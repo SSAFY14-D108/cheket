@@ -3,12 +3,12 @@ import { notFound } from "next/navigation"
 import { EventDetailView } from "@/components/shows/EventDetailView"
 
 interface ShowDetailPageProps {
-    params: Promise<{ id: string }>
+    params: Promise<{ showId: string }>
 }
 
 export default async function ShowDetailPage({ params }: ShowDetailPageProps) {
-    const { id } = await params
-    const event = mockEvents.find((e) => e.id === id)
+    const { showId } = await params
+    const event = mockEvents.find((e) => e.id === showId)
 
     if (!event) {
         notFound()

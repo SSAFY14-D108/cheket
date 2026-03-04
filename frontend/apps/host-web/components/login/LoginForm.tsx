@@ -20,7 +20,7 @@ export function LoginForm() {
 
   return (
     <div className="flex w-full max-w-md flex-col gap-5 px-6 border border-dashed border-gray-400 p-8 rounded-lg">
-      <h1 className="text-center text-2xl font-bold tracking-tight text-foreground text-primary">
+      <h1 className="text-center text-2xl font-bold tracking-tight text-primary">
         CHEKET HOST
       </h1>
 
