@@ -22,10 +22,10 @@ export function DashboardContent({ event, dailyBookings, company }: DashboardCon
     { label: "공석", value: event.emptyCount, color: "var(--chart-3)" },
   ]
 
-  const revenueSegments = event.revenueDistribution.map((r, i) => ({
-    label: r.label,
-    value: r.percentage,
-    color: ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"][i] ?? "var(--chart-3)",
+  const revenueSegments = event.stakeholders.map((s, i) => ({
+    label: s.name,
+    value: s.shareBps / 100,
+    color: ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"][i] ?? "var(--chart-3)",
   }))
 
   const handleDeposit = () => {

@@ -8,7 +8,7 @@ interface DashboardPageProps {
 
 export default async function DashboardPage({ params }: DashboardPageProps) {
     const { showId } = await params
-    const event = mockEvents.find((e) => e.id === showId)
+    const event = mockEvents.find((e) => e.showId.toString() === showId)
 
     if (!event) {
         notFound()

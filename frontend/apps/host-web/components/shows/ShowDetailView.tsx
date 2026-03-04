@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Heart, Calendar, MapPin } from "lucide-react"
+import { mockVenues } from "@/lib/mock-data"
 import type { Event } from "@/lib/mock-data"
 
 interface ShowDetailViewProps {
@@ -17,7 +18,7 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
     const router = useRouter()
 
     const handleEdit = () => {
-        router.push(`/shows/${event.id}/edit`)
+        router.push(`/shows/${event.showId}/edit`)
     }
 
     const handleDelete = () => {
@@ -76,17 +77,17 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
                             <Separator />
                             <InfoRow
                                 label="공연 일시"
-                                value={event.date}
+                                value={`${event.show.startAt.substring(0, 16)} ~ ${event.show.endAt.substring(0, 16)}`}
                                 icon={<Calendar className="size-3.5 text-muted-foreground" />}
                             />
                             <Separator />
                             <InfoRow
                                 label="장소"
-                                value={event.location}
+                                value={event.venue.name}
                                 icon={<MapPin className="size-3.5 text-muted-foreground" />}
                             />
                             <Separator />
-                            <InfoRow label="예매 기간" value={`${event.bookingStartDate} ~ ${event.bookingEndDate}`} />
+                            <InfoRow label="예매 기간" value={`${event.reservation.openAt.substring(0, 16)} ~ ${event.reservation.closeAt.substring(0, 16)}`} />
                             <Separator />
                             <div className="flex flex-col gap-1">
                                 <span className="text-sm text-muted-foreground">공연 설명</span>
@@ -101,14 +102,14 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
                             <CardTitle className="text-base">티켓 정보</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-4">
-                            <InfoRow label="구매 제한" value={`1인당 ${event.maxPurchase}매`} />
+                            <InfoRow label="구매 제한" value={`1인당 ${event.purchaseLimit}매`} />
                             <Separator />
                             <div className="flex flex-col gap-2">
                                 <span className="text-sm text-muted-foreground">좌석별 가격</span>
                                 <div className="flex flex-wrap gap-2">
-                                    {event.seatPrices.map((seat) => (
-                                        <Badge key={seat.section} variant="secondary" className="text-xs">
-                                            {seat.section}: {seat.price.toLocaleString()}원
+                                    {event.grade.map((seat) => (
+                                        <Badge key={seat.sectionId} variant="secondary" className="text-xs" style={{ borderLeft: `3px solid ${seat.colorCode}` }}>
+                                            {seat.gradeName}: {seat.price.toLocaleString()}원
                                         </Badge>
                                     ))}
                                 </div>
@@ -130,9 +131,9 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
                             <div className="flex flex-col gap-2">
                                 <span className="text-sm text-muted-foreground">수익 분배</span>
                                 <div className="flex flex-wrap gap-2">
-                                    {event.revenueDistribution.map((r) => (
-                                        <Badge key={r.label} variant="secondary" className="text-xs">
-                                            {r.label} {r.percentage}%
+                                    {event.stakeholders.map((s, idx) => (
+                                        <Badge key={idx} variant="secondary" className="text-xs">
+                                            {s.name}({s.role === 'organizer' ? '주최' : '아티스트'}) {(s.shareBps / 100).toFixed(1)}%
                                         </Badge>
                                     ))}
                                 </div>
@@ -140,7 +141,13 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
                             <Separator />
                             <div className="flex flex-col gap-1">
                                 <span className="text-sm text-muted-foreground">환불 정책</span>
-                                <p className="text-sm leading-relaxed text-foreground">{event.refundPolicy}</p>
+                                <div className="flex flex-col gap-1 mt-1">
+                                    {event.refundPolicy.map((r, idx) => (
+                                        <p key={idx} className="text-sm text-foreground">
+                                            - 공연 {r.daysRemaining}일 전: {(r.refundRate * 100).toFixed(0)}% 환불 ({r.feeDescription})
+                                        </p>
+                                    ))}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

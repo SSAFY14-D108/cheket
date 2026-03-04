@@ -8,7 +8,7 @@ interface ShowEditPageProps {
 
 export default async function ShowEditPage({ params }: ShowEditPageProps) {
     const { showId } = await params
-    const event = mockEvents.find((e) => e.id === showId)
+    const event = mockEvents.find((e) => e.showId.toString() === showId)
 
     if (!event) {
         notFound()

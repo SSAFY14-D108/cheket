@@ -35,7 +35,7 @@ export default function MyPage() {
         <h2 className="text-lg font-semibold text-foreground">등록한 공연</h2>
         <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {mockEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.showId} event={event} />
           ))}
         </div>
       </section>
