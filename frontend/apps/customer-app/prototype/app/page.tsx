@@ -3,20 +3,14 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ChevronRight, Clock, Heart } from "lucide-react";
-
-import {
-  bannerSlides,
-  discountItems,
-  openSchedule,
-  rankingItems,
-} from "@/lib/mock-data";
+import { bannerSlides, discountItems, openSchedule, rankingItems } from "@/lib/mock-data";
 
 function SectionHeader({ title }: { title: string }) {
   return (
     <div className="mb-3 flex items-center justify-between px-1">
       <h2 className="text-base font-bold text-foreground">{title}</h2>
       <button className="flex items-center gap-0.5 text-xs text-muted-foreground">
-        전체보기 <ChevronRight className="h-3.5 w-3.5" />
+        {"\uB354\uBCF4\uAE30"} <ChevronRight className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -36,17 +30,15 @@ function HeroBanner() {
 
   return (
     <section className="relative overflow-hidden">
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-none">
+      <div className="relative aspect-[4/3] w-full overflow-hidden">
         <Image src={slide.image} alt={slide.title} fill className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        <div className="absolute right-3 bottom-3 rounded-full bg-black/45 px-2.5 py-1 text-xs text-white">
+        <div className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-xs text-white">
           {current + 1} / {bannerSlides.length}
         </div>
         <div className="absolute bottom-0 left-0 p-4 text-white">
           <p className="text-sm font-bold">{slide.subtitle}</p>
-          <h1 className="mt-1 text-xl font-black leading-tight text-balance">
-            {slide.title}
-          </h1>
+          <h1 className="mt-1 text-xl font-black leading-tight text-balance">{slide.title}</h1>
           <p className="mt-1 text-xs text-white/90">{slide.venue}</p>
           <p className="text-xs text-white/80">{slide.dates}</p>
         </div>
@@ -60,7 +52,7 @@ function HeroBanner() {
             className={`rounded-full transition-all ${
               i === current ? "h-1.5 w-4 bg-white" : "h-1.5 w-1.5 bg-white/50"
             }`}
-            aria-label={`배너 ${i + 1}`}
+            aria-label={`slide ${i + 1}`}
           />
         ))}
       </div>
@@ -78,21 +70,19 @@ function RankingSection() {
 
   return (
     <section className="px-4 py-5">
-      <SectionHeader title="콘서트 랭킹" />
+      <SectionHeader title={"\uC778\uAE30 \uACF5\uC5F0 \uB7AD\uD0B9"} />
       <div className="flex gap-3 overflow-x-auto pb-1">
         {rankingItems.map((item) => (
           <article key={item.rank} className="w-32 shrink-0">
             <div className="relative h-44 w-32 overflow-hidden rounded-xl bg-secondary">
               <Image src={item.poster} alt={item.name} fill className="object-cover" />
               <span
-                className={`absolute top-2 left-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${getRankClass(item.rank)}`}
+                className={`absolute left-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${getRankClass(item.rank)}`}
               >
                 {item.rank}
               </span>
             </div>
-            <p className="mt-2 line-clamp-2 text-xs font-semibold text-card-foreground">
-              {item.name}
-            </p>
+            <p className="mt-2 line-clamp-2 text-xs font-semibold text-card-foreground">{item.name}</p>
             <p className="mt-1 text-[10px] text-muted-foreground">{item.venue}</p>
           </article>
         ))}
@@ -104,7 +94,7 @@ function RankingSection() {
 function OpenScheduleSection() {
   return (
     <section className="bg-secondary/40 px-4 py-5">
-      <SectionHeader title="오픈 예정" />
+      <SectionHeader title={"\uC608\uB9E4 \uC624\uD508 \uC608\uC815"} />
       <div className="flex gap-3 overflow-x-auto pb-1">
         {openSchedule.map((item) => (
           <article
@@ -143,28 +133,28 @@ function OpenScheduleSection() {
 function RecommendationSection() {
   return (
     <section className="px-4 py-5">
-      <SectionHeader title="리세일 추천" />
+      <SectionHeader title={"\uB9DE\uCDA4 \uCD94\uCC9C"} />
       <div className="flex gap-3">
         <article className="flex h-36 w-28 shrink-0 flex-col items-center justify-center rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-secondary">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/20">
             <Heart className="h-5 w-5 text-primary" />
           </div>
           <p className="mt-2 text-center text-[11px] font-semibold text-card-foreground">
-            찜한 공연
+            {"\uC704\uC2DC\uB9AC\uC2A4\uD2B8 \uACF5\uC5F0"}
           </p>
           <p className="text-xl font-bold text-primary">3</p>
         </article>
 
         <article className="flex flex-1 gap-3 rounded-2xl border border-border bg-card p-3">
           <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl bg-secondary">
-            <Image src="/posters/concert1.jpg" alt="추천 공연" fill className="object-cover" />
+            <Image src="/posters/concert1.jpg" alt="recommended poster" fill className="object-cover" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="line-clamp-2 text-sm font-semibold text-card-foreground">
               AESPA WORLD TOUR 2026
             </p>
             <p className="mt-1 text-xs text-muted-foreground">2026.03.20 - 03.21</p>
-            <p className="text-xs text-muted-foreground">올림픽체조경기장</p>
+            <p className="text-xs text-muted-foreground">{"\uC7A0\uC2E4 \uCCB4\uC870\uACBD\uAE30\uC7A5"}</p>
             <p className="mt-2 text-xs font-medium text-primary">95,000 CTK~</p>
           </div>
         </article>
@@ -175,8 +165,8 @@ function RecommendationSection() {
 
 function DiscountSection() {
   return (
-    <section className="px-4 pt-5 pb-6">
-      <SectionHeader title="지금 특가" />
+    <section className="px-4 pb-6 pt-5">
+      <SectionHeader title={"\uD2B9\uAC00 \uD560\uC778"} />
       <div className="space-y-2">
         {discountItems.map((item) => (
           <article key={item.id} className="rounded-2xl border border-border bg-card p-3">
@@ -187,17 +177,16 @@ function DiscountSection() {
               <div className="min-w-0 flex-1">
                 <div className="mb-2 inline-flex items-center gap-1 rounded-md bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
                   <Clock className="h-3 w-3" />
-                  타임특가
+                  {"\uD0C0\uC784\uB51C"}
                 </div>
-                <p className="line-clamp-2 text-sm font-semibold text-card-foreground">
-                  {item.name}
-                </p>
+                <p className="line-clamp-2 text-sm font-semibold text-card-foreground">{item.name}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.venue}</p>
                 <p className="text-xs text-muted-foreground">{item.dates}</p>
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <span className="text-sm font-bold text-red-500">{item.discountPct}%</span>
                   <span className="text-sm font-bold text-card-foreground">
-                    {item.finalPrice.toLocaleString()}원
+                    {item.finalPrice.toLocaleString()}
+                    {"\uC6D0"}
                   </span>
                 </div>
               </div>
