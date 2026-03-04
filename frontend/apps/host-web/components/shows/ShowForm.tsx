@@ -23,12 +23,12 @@ interface RevenueShare {
     percentage: string
 }
 
-interface EventFormProps {
+interface ShowFormProps {
     mode: "create" | "edit"
     initialData?: Event
 }
 
-export function EventForm({ mode, initialData }: EventFormProps) {
+export function ShowForm({ mode, initialData }: ShowFormProps) {
     const router = useRouter()
     const [title, setTitle] = useState(initialData?.title ?? "")
     const [date, setDate] = useState(initialData?.date ?? "")

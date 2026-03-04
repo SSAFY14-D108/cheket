@@ -1,6 +1,6 @@
 import { mockEvents } from "@/lib/mock-data"
 import { notFound } from "next/navigation"
-import { EventForm } from "@/components/shows/EventForm"
+import { ShowForm } from "@/components/shows/ShowForm"
 
 interface ShowEditPageProps {
     params: Promise<{ showId: string }>
@@ -14,5 +14,5 @@ export default async function ShowEditPage({ params }: ShowEditPageProps) {
         notFound()
     }
 
-    return <EventForm mode="edit" initialData={event} />
+    return <ShowForm mode="edit" initialData={event} />
 }
