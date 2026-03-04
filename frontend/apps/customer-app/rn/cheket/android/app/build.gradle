@@ -93,6 +93,12 @@ android {
             keyPassword 'android'
         }
     }
+    externalNativeBuild {
+        cmake {
+            buildStagingDirectory "C:/tmp/cheket-cxx"
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
