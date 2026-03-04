@@ -17,8 +17,7 @@ export function EventDetailView({ event }: EventDetailViewProps) {
     const router = useRouter()
 
     const handleEdit = () => {
-        // TODO: 수정 페이지 이동 또는 수정 모드 전환
-        alert("수정하기 기능은 추후 구현됩니다.")
+        router.push(`/shows/${event.id}/edit`)
     }
 
     const handleDelete = () => {

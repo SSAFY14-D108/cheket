@@ -1,4 +1,5 @@
 import * as React from "react"
+import Image from "next/image"
 
 interface LeftPosterLayoutProps {
     children: React.ReactNode
@@ -9,10 +10,13 @@ export function LeftPosterLayout({ children }: LeftPosterLayoutProps) {
         <main className="flex min-h-svh w-full bg-background">
             {/* Left Area - Branding & Image (Hidden on mobile) */}
             <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden bg-zinc-900 border-r border-border">
-                {/* Background Image */}
-                <div
-                    className="absolute inset-0 z-0 bg-contain bg-no-repeat bg-center"
-                    style={{ backgroundImage: "url('/images_CHEKET/444.png')" }}
+                {/* Background Image automatically optimized by Next.js */}
+                <Image
+                    src="/images_CHEKET/444.png"
+                    alt="Background Poster"
+                    fill
+                    priority
+                    className="absolute inset-0 z-0 object-contain object-center"
                 />
                 {/* Soft dark gradient overlay for text readability */}
                 <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
@@ -35,7 +39,7 @@ export function LeftPosterLayout({ children }: LeftPosterLayoutProps) {
                         체켓 호스트 관리 페이지
                     </h1>
                     <p className="text-lg text-zinc-300 mb-8 max-w-md">
-                        대한민국에서 가장 혁신적인 NFT 티켓팅 네트워크.<br/>                        
+                        대한민국에서 가장 혁신적인 NFT 티켓팅 네트워크.<br />
                         지금 바로 체켓 에코시스템에 합류하세요.
                     </p>
                 </div>
