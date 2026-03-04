@@ -25,9 +25,9 @@ const LoginButton = React.forwardRef<HTMLButtonElement, LoginButtonProps>(
   ({ className, variant = "primary", label, children, ...props }, ref) => {
     const variantStyles = {
       primary:
-        "bg-muted text-foreground hover:bg-muted-foreground hover:text-background",
+        "bg-primary text-primary-foreground shadow hover:bg-primary/90",
       secondary:
-        "bg-muted text-foreground hover:bg-muted-foreground hover:text-background",
+        "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
     }
 
     return (

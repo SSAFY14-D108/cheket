@@ -1,9 +1,10 @@
 import { LoginForm } from "@/components/login/LoginForm"
+import { LeftPosterLayout } from "@/components/layout/LeftPosterLayout"
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-background">
+    <LeftPosterLayout>
       <LoginForm />
-    </main>
+    </LeftPosterLayout>
   )
 }
