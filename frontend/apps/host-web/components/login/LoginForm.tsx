@@ -20,11 +20,20 @@ export function LoginForm() {
 
   return (
     <div className="flex w-full max-w-md flex-col gap-5 px-6 border border-dashed border-gray-400 p-8 rounded-lg">
-      <h1 className="text-center text-2xl font-bold tracking-tight text-foreground">
-        NFT Ticket Admin
+      <h1 className="text-center text-2xl font-bold tracking-tight text-foreground text-primary">
+        CHEKET HOST
       </h1>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col space-y-2 text-center mb-2 mt-2">
+        <h2 className="text-xl font-bold tracking-tight text-foreground">
+          호스트 로그인
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          관리자 시스템에 접근하려면 계정 정보를 입력해주세요
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4">
         <LoginInput
           type="text"
           placeholder="아이디"

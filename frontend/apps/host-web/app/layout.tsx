@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'NFT Ticket Admin',
+  title: 'CHEKET HOST',
   description: 'NFT 티켓 판매 관리자 시스템',
   icons: {
     icon: [
