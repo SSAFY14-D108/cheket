@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Heart, Calendar, MapPin } from "lucide-react"
 import type { Event } from "@/lib/mock-data"
 
-interface EventDetailViewProps {
+interface ShowDetailViewProps {
     event: Event
 }
 
-export function EventDetailView({ event }: EventDetailViewProps) {
+export function ShowDetailView({ event }: ShowDetailViewProps) {
     const router = useRouter()
 
     const handleEdit = () => {

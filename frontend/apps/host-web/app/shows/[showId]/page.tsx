@@ -1,6 +1,6 @@
 import { mockEvents } from "@/lib/mock-data"
 import { notFound } from "next/navigation"
-import { EventDetailView } from "@/components/shows/EventDetailView"
+import { ShowDetailView } from "@/components/shows/ShowDetailView"
 
 interface ShowDetailPageProps {
     params: Promise<{ showId: string }>
@@ -14,5 +14,5 @@ export default async function ShowDetailPage({ params }: ShowDetailPageProps) {
         notFound()
     }
 
-    return <EventDetailView event={event} />
+    return <ShowDetailView event={event} />
 }

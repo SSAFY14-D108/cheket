@@ -1,5 +1,5 @@
-import { EventCreateForm } from "@/components/shows/EventCreateForm"
+import { ShowCreateForm } from "@/components/shows/ShowCreateForm"
 
 export default function ShowCreatePage() {
-    return <EventCreateForm />
+    return <ShowCreateForm />
 }
