@@ -8,7 +8,7 @@ interface ShowDetailPageProps {
 
 export default async function ShowDetailPage({ params }: ShowDetailPageProps) {
     const { showId } = await params
-    const event = mockEvents.find((e) => e.id === showId)
+    const event = mockEvents.find((e) => e.showId.toString() === showId)
 
     if (!event) {
         notFound()
