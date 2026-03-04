@@ -31,6 +31,7 @@ interface DateTimeRangePickerProps {
 }
 
 export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "기간 선택" }: DateTimeRangePickerProps) {
+    const [isOpen, setIsOpen] = React.useState(false)
     const [date, setDate] = React.useState<DateRange | undefined>({
         from: startAt ? new Date(startAt) : undefined,
         to: endAt ? new Date(endAt) : undefined,
@@ -92,6 +93,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
             const startStr = buildDateString(date.from, startHour, startMinute)
             const endStr = buildDateString(date.to, endHour, endMinute)
             onChange(startStr, endStr)
+            setIsOpen(false)
         }
     }
 
@@ -99,7 +101,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
     const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'))
 
     return (
-        <Popover>
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
                 <Button
                     id="date"
@@ -146,7 +148,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
                             <Label className="text-xs text-muted-foreground font-semibold">시작 시간</Label>
                             <div className="flex items-center gap-1">
                                 <Select value={startHour} onValueChange={setStartHour}>
-                                    <SelectTrigger className="w-[70px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
                                         <SelectValue placeholder="시" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
@@ -155,7 +157,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
                                 </Select>
                                 <span className="text-muted-foreground">:</span>
                                 <Select value={startMinute} onValueChange={setStartMinute}>
-                                    <SelectTrigger className="w-[70px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
                                         <SelectValue placeholder="분" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
@@ -170,7 +172,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
                             <Label className="text-xs text-muted-foreground font-semibold">종료 시간</Label>
                             <div className="flex items-center gap-1">
                                 <Select value={endHour} onValueChange={setEndHour}>
-                                    <SelectTrigger className="w-[70px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
                                         <SelectValue placeholder="시" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
@@ -179,7 +181,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
                                 </Select>
                                 <span className="text-muted-foreground">:</span>
                                 <Select value={endMinute} onValueChange={setEndMinute}>
-                                    <SelectTrigger className="w-[70px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
                                         <SelectValue placeholder="분" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">

@@ -99,7 +99,7 @@ export const mockEvents: Event[] = [
     title: "CHEKET LIVE: Spring Night",
     posterUrl: "/images/poster-1.jpg",
     venue: {
-      venueId: 12,
+      venueId: 1,
       name: "올림픽공원 올림픽홀",
       address: "서울특별시 송파구 올림픽로 424"
     },
@@ -148,7 +148,7 @@ export const mockEvents: Event[] = [
     title: "봄날의 재즈 나이트",
     posterUrl: "/images/poster-2.jpg",
     venue: {
-      venueId: 13,
+      venueId: 2,
       name: "블루노트 서울",
       address: "서울 마포구"
     },

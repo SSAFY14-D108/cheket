@@ -6,7 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Upload } from "lucide-react"
+import { ArrowLeft, Upload, ImagePlus } from "lucide-react"
 import { DescriptionEditor } from "./DescriptionEditor"
 import { SettingsCardBasic } from "./SettingsCardBasic"
 import { SettingsCardTickets } from "./SettingsCardTickets"
@@ -27,7 +27,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const [posterPreview, setPosterPreview] = useState<string | null>(initialData?.posterUrl ?? null)
     const [description, setDescription] = useState(initialData?.description ?? "")
 
-    const [venueId, setVenueId] = useState(initialData?.venueId?.toString() ?? "")
+    const [venueId, setVenueId] = useState(initialData?.venue?.venueId?.toString() ?? "")
     const [showStartAt, setShowStartAt] = useState(initialData?.show?.startAt?.substring(0, 16) ?? "")
     const [showEndAt, setShowEndAt] = useState(initialData?.show?.endAt?.substring(0, 16) ?? "")
     const [openAt, setOpenAt] = useState(initialData?.reservation?.openAt?.substring(0, 16) ?? "")
@@ -213,17 +213,23 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                             className="group flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed bg-muted/30 transition-colors hover:bg-muted/60"
                         >
                             {posterPreview ? (
-                                <div className="relative aspect-[16/9] w-full max-w-2xl overflow-hidden rounded-md">
-                                    <Image src={posterPreview} alt="포스터 미리보기" fill className="object-contain" />
+                                <div className="flex flex-col items-center gap-3 w-full p-4">
+                                    <div className="relative aspect-[3/4] w-full max-w-sm mx-auto overflow-hidden rounded-md border bg-muted/20">
+                                        <Image src={posterPreview} alt="포스터 미리보기" fill className="object-contain" />
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" className="gap-2" onClick={(e) => { e.preventDefault(); document.getElementById('poster-upload')?.click(); }}>
+                                        <ImagePlus className="size-4" />
+                                        포스터 변경
+                                    </Button>
                                 </div>
                             ) : (
-                                <div className="flex h-64 w-full flex-col items-center justify-center gap-4 text-muted-foreground">
+                                <div className="flex aspect-[3/4] w-full max-w-sm mx-auto flex-col items-center justify-center gap-4 text-muted-foreground p-6">
                                     <div className="rounded-full bg-secondary p-4 group-hover:bg-background">
                                         <Upload className="size-8" />
                                     </div>
                                     <div className="text-center">
-                                        <p className="font-medium text-foreground">클릭하여 이미지 업로드</p>
-                                        <p className="text-sm">PNG, JPG, JPEG (권장 비율 16:9 또는 3:4)</p>
+                                        <p className="font-medium text-foreground">클릭하여 포스터 업로드</p>
+                                        <p className="text-sm mt-1">세로형 이미지 (권장 비율 3:4)</p>
                                     </div>
                                 </div>
                             )}
