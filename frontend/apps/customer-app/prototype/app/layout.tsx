@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import {
-  CircleUserRound,
   House,
+  Music2,
   Search,
+  Star,
+  Tag,
   Ticket,
-  WalletCards,
+  UserCircle,
 } from "lucide-react";
 import "./globals.css";
 
@@ -26,11 +28,11 @@ export const metadata: Metadata = {
 };
 
 const bottomNavItems = [
-  { href: "/", label: "Home", icon: House },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/tickets", label: "Tickets", icon: Ticket },
-  { href: "/wallet", label: "Wallet", icon: WalletCards },
-  { href: "/my", label: "My", icon: CircleUserRound },
+  { href: "/", label: "홈", icon: House },
+  { href: "/concerts", label: "공연", icon: Music2 },
+  { href: "/resale", label: "리세일", icon: Tag },
+  { href: "/my-tickets", label: "내 티켓", icon: Ticket },
+  { href: "/collection", label: "컬렉션", icon: Star },
 ];
 
 export default function RootLayout({
@@ -39,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -49,12 +51,22 @@ export default function RootLayout({
               <strong className="text-base font-semibold tracking-tight text-primary">
                 CHEKET
               </strong>
-              <button
-                type="button"
-                className="rounded-md border border-border bg-card px-2.5 py-1 text-sm text-foreground"
-              >
-                Sign in
-              </button>
+              <div className="flex items-center gap-1">
+                <Link
+                  href="/concerts"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"
+                  aria-label="검색"
+                >
+                  <Search size={16} />
+                </Link>
+                <Link
+                  href="/login"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"
+                  aria-label="로그인"
+                >
+                  <UserCircle size={16} />
+                </Link>
+              </div>
             </div>
           </header>
 
