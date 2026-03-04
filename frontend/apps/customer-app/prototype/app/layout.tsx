@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import {
@@ -24,15 +24,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CHEKET",
-  description: "Cheket customer web prototype",
+  description: "CHEKET customer web prototype",
 };
 
 const bottomNavItems = [
-  { href: "/", label: "홈", icon: House },
-  { href: "/concerts", label: "공연", icon: Music2 },
-  { href: "/resale", label: "리세일", icon: Tag },
-  { href: "/my-tickets", label: "내 티켓", icon: Ticket },
-  { href: "/collection", label: "컬렉션", icon: Star },
+  { href: "/", label: "\uD648", icon: House },
+  { href: "/concerts", label: "\uACF5\uC5F0", icon: Music2 },
+  { href: "/resale", label: "\uC591\uB3C4", icon: Tag },
+  { href: "/my-tickets", label: "\uD2F0\uCF13", icon: Ticket },
+  { href: "/collection", label: "\uBCF4\uAD00\uD568", icon: Star },
 ];
 
 export default function RootLayout({
@@ -42,9 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col border-x border-border bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.02)]">
           <header className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
             <div className="flex items-center justify-between">
@@ -55,14 +53,14 @@ export default function RootLayout({
                 <Link
                   href="/concerts"
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"
-                  aria-label="검색"
+                  aria-label="\uACF5\uC5F0"
                 >
                   <Search size={16} />
                 </Link>
                 <Link
-                  href="/login"
+                  href="/my"
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"
-                  aria-label="로그인"
+                  aria-label="\uB9C8\uC774\uD398\uC774\uC9C0"
                 >
                   <UserCircle size={16} />
                 </Link>
