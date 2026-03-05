@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Ticket } from "lucide-react"
+import { Plus, Trash2, Ticket, X, ZoomIn } from "lucide-react"
+import { useState, useEffect } from "react"
 import type { Grade } from "./showFormTypes"
 
 interface SettingsCardTicketsProps {
+    venueId: string
     purchaseLimit: string
     grades: Grade[]
     ticketEffectId?: number
@@ -20,6 +22,7 @@ interface SettingsCardTicketsProps {
 }
 
 export function SettingsCardTickets({
+    venueId,
     purchaseLimit,
     grades,
     ticketEffectId,
@@ -29,6 +32,30 @@ export function SettingsCardTickets({
     onRemoveGrade,
     onUpdateGrade,
 }: SettingsCardTicketsProps) {
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+
+    // 장소 ID에 따른 도면 이미지 매핑
+    const getVenueMapImg = (id: string) => {
+        switch (id) {
+            case '1': return '/venue_map/sectionId1.png'
+            case '2': return '/venue_map/sectionid2.jpg'
+            case '3': return '/venue_map/sectionid3.png'
+            case '4': return '/venue_map/sectionid4.jpg'
+            default: return '/sectionId.png' // fallback
+        }
+    }
+
+    const mapImageSrc = getVenueMapImg(venueId)
+
+    // ESC 키로 모달 닫기
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsImageModalOpen(false)
+        }
+        if (isImageModalOpen) window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isImageModalOpen])
+
     return (
         <Card>
             <CardHeader className="py-4">
@@ -58,40 +85,51 @@ export function SettingsCardTickets({
                     </div>
 
                     {/* 구역 안내 이미지 */}
-                    <div className="mb-2 p-3 bg-muted/20 border rounded-lg flex flex-col gap-2 items-center">
+                    <div className="mb-2 p-3 bg-muted/20 border rounded-lg flex flex-col gap-2 items-center relative group">
                         <Label className="text-xs text-muted-foreground w-full text-left">구역 번호 참조 (sectionId)</Label>
-                        <img
-                            src="/sectionId.png"
-                            alt="구역 안내도"
-                            className="max-h-40 object-contain rounded border"
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                        />
+                        <div
+                            className="relative cursor-pointer overflow-hidden rounded border border-border/50 bg-background/50 hover:border-primary/50 transition-colors w-full flex justify-center"
+                            onClick={() => setIsImageModalOpen(true)}
+                        >
+                            <img
+                                src={mapImageSrc}
+                                alt="구역 안내도"
+                                className="max-h-48 object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/sectionId.png';
+                                }}
+                            />
+                            {/* Overlay icon on hover */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                                <span className="text-white text-sm font-medium flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                    <ZoomIn className="size-4" /> 클릭하여 크게 보기
+                                </span>
+                            </div>
+                        </div>
                     </div>
                     {grades.map((grade, idx) => (
                         <div key={'grade' + idx} className="flex items-center gap-3 p-3 bg-muted/10 border rounded-lg overflow-hidden relative group transition-colors hover:border-primary/40 shadow-sm">
                             {/* 좌측 테마 색상 바 */}
                             <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: grade.colorCode || '#ccc' }} />
 
-                            <div className="flex-1 flex items-start gap-3 pl-2">
-                                <div className="flex flex-col gap-1.5 w-[35%]">
-                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">등급명</Label>
-                                    <Input placeholder="예: VIP" value={grade.gradeName} onChange={e => onUpdateGrade(idx, 'gradeName', e.target.value)} className="h-8 text-xs font-medium" />
+                            <div className="flex-1 flex items-start gap-2 pl-1">
+                                <div className="flex flex-col gap-1.5 w-[25%]">
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">등급명</Label>
+                                    <Input placeholder="예: VIP" value={grade.gradeName} onChange={e => onUpdateGrade(idx, 'gradeName', e.target.value)} className="h-8 text-xs font-medium px-2" />
                                 </div>
-                                <div className="flex flex-col gap-1.5 flex-1 relative">
-                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">가격 (원)</Label>
-                                    <Input type="number" placeholder="150000" value={grade.price} onChange={e => onUpdateGrade(idx, 'price', e.target.value)} className="h-8 text-xs pl-6" />
-                                    <span className="absolute left-2.5 top-[26px] text-xs text-muted-foreground font-medium">₩</span>
+                                <div className="flex flex-col gap-1.5 w-[35%] relative">
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">가격(원)</Label>
+                                    <Input type="number" placeholder="150000" value={grade.price} onChange={e => onUpdateGrade(idx, 'price', e.target.value)} className="h-8 text-xs pl-5 pr-1" />
+                                    <span className="absolute left-1.5 top-[26px] text-[10px] text-muted-foreground font-medium">₩</span>
                                 </div>
-                                <div className="flex flex-col gap-1.5 w-[30%]">
-                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">구역(콤마구분)</Label>
-                                    <Input placeholder="1, 3" value={grade.sectionId || ''} onChange={e => onUpdateGrade(idx, 'sectionId', e.target.value)} className="h-8 text-xs" />
+                                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider truncate" title="구역(콤마구분)">구역(콤마)</Label>
+                                    <Input placeholder="1, 3" value={grade.sectionId || ''} onChange={e => onUpdateGrade(idx, 'sectionId', e.target.value)} className="h-8 text-xs px-2" />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-center gap-1.5 shrink-0">
-                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">라벨 색상</Label>
+                            <div className="flex flex-col items-center gap-1.5 shrink-0 ml-1">
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">색상</Label>
                                 <div
                                     className="relative flex items-center justify-center size-8 rounded-full border-2 shadow-sm cursor-pointer transition-transform hover:scale-105"
                                     style={{ backgroundColor: grade.colorCode || '#000000', borderColor: 'rgba(255,255,255,0.2)' }}
@@ -141,6 +179,33 @@ export function SettingsCardTickets({
                     </div>
                 </div>
             </CardContent>
+
+            {/* 풀스크린 이미지 확대 모달 */}
+            {isImageModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                    onClick={() => setIsImageModalOpen(false)}
+                >
+                    <div className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute -top-12 right-0 text-white hover:bg-white/20 hover:text-white rounded-full size-10"
+                            onClick={() => setIsImageModalOpen(false)}
+                        >
+                            <X className="size-6" />
+                        </Button>
+                        <img
+                            src={mapImageSrc}
+                            alt="구역 안내도 크게 보기"
+                            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl ring-1 ring-white/10"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/sectionId.png';
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </Card>
     )
 }

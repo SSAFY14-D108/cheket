@@ -230,6 +230,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     />
 
                     <SettingsCardTickets
+                        venueId={venueId}
                         purchaseLimit={purchaseLimit}
                         grades={grades}
                         ticketEffectId={ticketEffectId ? Number(ticketEffectId) : undefined}
