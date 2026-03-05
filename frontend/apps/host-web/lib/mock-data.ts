@@ -77,6 +77,21 @@ export interface Venue {
   capacity: number
 }
 
+// ─── 회원 조회 (Stakeholder Verification) ─────────────────────────
+// API: GET /api/v1/authsearch
+export interface AuthUser {
+  userId: number
+  name: string
+  phone: string
+}
+
+export const mockAuthUsers: AuthUser[] = [
+  { userId: 15, name: "홍길동", phone: "01012345678" },
+  { userId: 16, name: "김철수", phone: "01011111111" },
+  { userId: 17, name: "이영희", phone: "01022222222" },
+  { userId: 18, name: "CHEKET공식", phone: "01000000000" },
+]
+
 export const mockVenues: Venue[] = [
   { venueId: 1, name: "올림픽홀", capacity: 2500 },
   { venueId: 2, name: "블루노트 서울", capacity: 300 },
