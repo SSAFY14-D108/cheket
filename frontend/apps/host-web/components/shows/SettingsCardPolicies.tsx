@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Search } from "lucide-react"
 import type { Stakeholder, RefundItem } from "./showFormTypes"
+import { mockAuthUsers } from "@/lib/mock-data"
 
 interface SettingsCardPoliciesProps {
     stakeholders: Stakeholder[]
@@ -29,6 +30,26 @@ export function SettingsCardPolicies({
     onRemoveRefund,
     onUpdateRefund,
 }: SettingsCardPoliciesProps) {
+
+    // 목업 데이터를 활용한 간단한 가짜 API 시뮬레이션
+    const handleVerify = (idx: number, type: 'phone' | 'businessNo', value: string) => {
+        if (!value) {
+            alert("조회할 값을 입력해주세요.");
+            return;
+        }
+
+        // 0.3초 딜레이(통신하는 척)
+        setTimeout(() => {
+            const foundUser = mockAuthUsers.find((u: { phone: string; name: string }) => u.phone === value.replace(/-/g, ''));
+            if (foundUser) {
+                onUpdateStakeholder(idx, 'name', foundUser.name);
+                alert(`[조회 성공] ${foundUser.name}님이 확인되었습니다.`);
+            } else {
+                alert("일치하는 회원을 찾을 수 없습니다.");
+            }
+        }, 300);
+    }
+
     return (
         <Card>
             <CardHeader className="py-4">
@@ -48,27 +69,41 @@ export function SettingsCardPolicies({
 
                     {stakeholders.map((sh, idx) => (
                         <div key={'sh' + idx} className="flex flex-col gap-1 border-b pb-2 mb-1 last:border-0">
-                            <div className="flex gap-1">
+                            {/* 1줄: 역할 + 연락처/사업자번호 + 조회 + 삭제 */}
+                            <div className="flex gap-1 items-center w-full">
                                 <select
-                                    className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                    className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shrink-0"
                                     value={sh.role}
                                     onChange={e => onUpdateStakeholder(idx, 'role', e.target.value)}
                                 >
                                     <option value="organizer">주최사</option>
                                     <option value="artist">아티스트</option>
                                 </select>
-                                <Input placeholder="이름/법인명" value={sh.name} onChange={e => onUpdateStakeholder(idx, 'name', e.target.value)} className="h-8 text-xs flex-1" />
+
+                                {sh.role === 'organizer' ? (
+                                    <Input placeholder="사업자번호 (숫자만)" value={sh.businessNo ?? ""} onChange={e => onUpdateStakeholder(idx, 'businessNo', e.target.value)} className="h-8 text-xs flex-1 min-w-0" />
+                                ) : (
+                                    <Input placeholder="연락처 (숫자만)" value={sh.phone ?? ""} onChange={e => onUpdateStakeholder(idx, 'phone', e.target.value)} className="h-8 text-xs flex-1 min-w-0" />
+                                )}
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2 text-xs shrink-0"
+                                    onClick={() => handleVerify(idx, sh.role === 'organizer' ? 'businessNo' : 'phone', sh.role === 'organizer' ? (sh.businessNo ?? "") : (sh.phone ?? ""))}
+                                >
+                                    <Search className="size-3 mr-1" />조회
+                                </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0" onClick={() => onRemoveStakeholder(idx)}>
                                     <Trash2 className="size-3" />
                                 </Button>
                             </div>
-                            <div className="flex gap-1">
-                                {sh.role === 'organizer' ? (
-                                    <Input placeholder="사업자번호" value={sh.businessNo ?? ""} onChange={e => onUpdateStakeholder(idx, 'businessNo', e.target.value)} className="h-8 text-xs" />
-                                ) : (
-                                    <Input placeholder="연락처" value={sh.phone ?? ""} onChange={e => onUpdateStakeholder(idx, 'phone', e.target.value)} className="h-8 text-xs" />
-                                )}
-                                <Input type="number" placeholder="BPS(예:7000)" value={sh.shareBps} onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)} className="h-8 text-xs w-28" />
+
+                            {/* 2줄: 이름(자동입력) + BPS 비율 */}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <Input placeholder="이름/법인명 (조회 시 자동입력)" value={sh.name} onChange={e => onUpdateStakeholder(idx, 'name', e.target.value)} className="h-8 text-xs flex-1 bg-muted/30" readOnly />
+                                <Input type="number" placeholder="비율(BPS)" value={sh.shareBps} onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)} className="h-8 text-xs w-[100px]" />
+                                <span className="text-[9px] text-muted-foreground shrink-0 whitespace-nowrap">예: 70%→7000</span>
                             </div>
                         </div>
                     ))}
@@ -91,10 +126,12 @@ export function SettingsCardPolicies({
                                     <Trash2 className="size-2.5" />
                                 </Button>
                             </div>
-                            <div className="flex gap-1">
-                                <Input type="number" placeholder="N일 전" value={ref.daysRemaining} onChange={e => onUpdateRefund(idx, 'daysRemaining', e.target.value)} className="h-7 px-1 text-[10px] w-1/3" />
-                                <Input type="number" step="0.1" placeholder="환불률(0~1)" value={ref.refundRate} onChange={e => onUpdateRefund(idx, 'refundRate', e.target.value)} className="h-7 px-1 text-[10px] w-1/3" />
-                                <Input placeholder="설명(부분환불)" value={ref.feeDescription} onChange={e => onUpdateRefund(idx, 'feeDescription', e.target.value)} className="h-7 px-1 text-[10px] flex-1" />
+                            <div className="flex items-center gap-1.5 text-xs">
+                                <span className="text-muted-foreground whitespace-nowrap">공연</span>
+                                <Input type="number" placeholder="예: 7" value={ref.daysRemaining} onChange={e => onUpdateRefund(idx, 'daysRemaining', e.target.value)} className="h-7 px-2 text-[11px] w-20 text-center" />
+                                <span className="text-muted-foreground whitespace-nowrap">일 전, </span>
+                                <Input type="number" step="1" min="0" max="100" placeholder="예: 70" value={ref.refundRate} onChange={e => onUpdateRefund(idx, 'refundRate', e.target.value)} className="h-7 px-2 text-[11px] w-20 text-center" />
+                                <span className="text-muted-foreground whitespace-nowrap">% 환불</span>
                             </div>
                         </div>
                     ))}

@@ -12,7 +12,7 @@ import { SettingsCardBasic } from "./SettingsCardBasic"
 import { SettingsCardTickets } from "./SettingsCardTickets"
 import { SettingsCardPolicies } from "./SettingsCardPolicies"
 import { mockVenues } from "@/lib/mock-data"
-import type { Grade, Stakeholder, RefundItem, SessionItem } from "./showFormTypes"
+import type { Grade, Stakeholder, RefundItem } from "./showFormTypes"
 
 interface ShowFormProps {
     mode: "create" | "edit"
@@ -33,10 +33,15 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const [openAt, setOpenAt] = useState(initialData?.reservation?.openAt?.substring(0, 16) ?? "")
     const [closeAt, setCloseAt] = useState(initialData?.reservation?.closeAt?.substring(0, 16) ?? "")
     const [purchaseLimit, setPurchaseLimit] = useState(initialData?.purchaseLimit?.toString() ?? "")
+    const [ticketEffectId, setTicketEffectId] = useState<number | undefined>(initialData?.ticketEffectId)
 
     const [grades, setGrades] = useState<Grade[]>(
-        initialData?.grade?.map((g: any) => ({ sectionId: g.sectionId?.toString() || "", gradeName: g.gradeName, price: g.price?.toString() || "", colorCode: g.colorCode || "#aaaaaa" }))
-        ?? [{ sectionId: "", gradeName: "", price: "", colorCode: "#aaaaaa" }]
+        initialData?.grade?.map((g: any) => ({
+            ...g,
+            price: g.price.toString(),
+            sectionId: Array.isArray(g.sectionId) ? g.sectionId.join(', ') : (g.sectionId ? String(g.sectionId) : '')
+        }))
+        ?? [{ gradeName: "VIP", price: "150000", colorCode: "#7C6EF0", sectionId: "" }]
     )
 
     const [stakeholders, setStakeholders] = useState<Stakeholder[]>(
@@ -52,23 +57,12 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const [refundPolicy, setRefundPolicy] = useState<RefundItem[]>(
         initialData?.refundPolicy?.map((r: any) => ({
             daysRemaining: r.daysRemaining.toString(),
-            refundRate: r.refundRate.toString(),
-            feeDescription: r.feeDescription
+            refundRate: r.refundRate.toString()
         }))
         ?? [
-            { daysRemaining: "14", refundRate: "1.0", feeDescription: "전액 환불" },
-            { daysRemaining: "7", refundRate: "0.7", feeDescription: "30% 수수료" }
+            { daysRemaining: "14", refundRate: "100" },
+            { daysRemaining: "7", refundRate: "70" }
         ]
-    )
-
-    const [sessionInfo, setSessionInfo] = useState<SessionItem[]>(
-        initialData?.sessionInfo?.map((s: any) => ({
-            sessionId: s.sessionId?.toString() || "",
-            sessionDate: s.sessionDate || "",
-            sessionStartDate: s.sessionStartDate || "",
-            capacity: s.capacity?.toString() || ""
-        }))
-        ?? [{ sessionId: "", sessionDate: "", sessionStartDate: "", capacity: "" }]
     )
 
     // ─── Computed ─────────────────────────────────────────────
@@ -86,15 +80,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         }
     }
 
-    // 장소 선택 시 모든 회차의 수용 인원을 해당 공연장 최대 수용 인원으로 자동 채우기
     const handleVenueChange = (id: string) => {
         setVenueId(id)
-        const selectedVenue = mockVenues.find(v => v.venueId.toString() === id)
-        if (selectedVenue) {
-            setSessionInfo(prev =>
-                prev.map(s => ({ ...s, capacity: selectedVenue.totalSeat.toString() }))
-            )
-        }
     }
 
     const addGrade = () => setGrades(prev => [...prev, { sectionId: "", gradeName: "", price: "", colorCode: "#aaaaaa" }])
@@ -109,21 +96,10 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         setStakeholders(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
 
     // RefundPolicy helpers
-    const addRefund = () => setRefundPolicy(prev => [...prev, { daysRemaining: "", refundRate: "", feeDescription: "" }])
+    const addRefund = () => setRefundPolicy(prev => [...prev, { daysRemaining: "", refundRate: "" }])
     const removeRefund = (idx: number) => setRefundPolicy(prev => prev.filter((_, i) => i !== idx))
     const updateRefund = (idx: number, field: keyof RefundItem, val: string) =>
         setRefundPolicy(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
-
-    // Session helpers — new sessions also get current venue capacity as default
-    const addSession = () => {
-        const selectedVenue = mockVenues.find(v => v.venueId.toString() === venueId)
-        const defaultCapacity = selectedVenue ? selectedVenue.totalSeat.toString() : ""
-        setSessionInfo(prev => [...prev, { sessionId: "", sessionDate: "", sessionStartDate: "", capacity: defaultCapacity }])
-    }
-    const removeSession = (idx: number) =>
-        setSessionInfo(prev => prev.filter((_, i) => i !== idx))
-    const updateSession = (idx: number, field: keyof SessionItem, val: string | number) =>
-        setSessionInfo(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
 
     const handleSubmit = async () => {
         if (!title.trim() || !venueId) {
@@ -145,7 +121,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             },
             description,
             purchaseLimit: Number(purchaseLimit),
-            grade: grades.map(g => ({ sectionId: Number(g.sectionId) || 0, gradeName: g.gradeName, price: Number(g.price), colorCode: g.colorCode })),
+            ticketEffectId,
+            grade: grades.map(g => ({
+                gradeName: g.gradeName,
+                price: Number(g.price),
+                colorCode: g.colorCode,
+                sectionId: g.sectionId ? g.sectionId.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n)) : []
+            })),
             stakeholders: stakeholders.map(s => ({
                 role: s.role, name: s.name,
                 ...(s.role === "organizer" ? { businessNo: s.businessNo } : {}),
@@ -154,14 +136,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             })),
             refundPolicy: refundPolicy.map(r => ({
                 daysRemaining: Number(r.daysRemaining),
-                refundRate: Number(r.refundRate),
-                feeDescription: r.feeDescription
-            })),
-            sessionInfo: sessionInfo.map((s, idx) => ({
-                sessionId: Number(s.sessionId) || (idx + 1), // 임시로 index + 1
-                sessionDate: s.sessionDate,
-                sessionStartDate: s.sessionStartDate,
-                capacity: Number(s.capacity)
+                refundRate: Number(r.refundRate)
             }))
         }
 
@@ -255,16 +230,15 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     />
 
                     <SettingsCardTickets
+                        venueId={venueId}
                         purchaseLimit={purchaseLimit}
                         grades={grades}
-                        sessionInfo={sessionInfo}
+                        ticketEffectId={ticketEffectId ? Number(ticketEffectId) : undefined}
+                        onChangeTicketEffectId={setTicketEffectId}
                         onChangePurchaseLimit={setPurchaseLimit}
                         onAddGrade={addGrade}
                         onRemoveGrade={removeGrade}
                         onUpdateGrade={updateGrade}
-                        onAddSession={addSession}
-                        onRemoveSession={removeSession}
-                        onUpdateSession={updateSession}
                     />
 
                     <SettingsCardPolicies

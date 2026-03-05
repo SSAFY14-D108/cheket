@@ -14,7 +14,7 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ event, dailyBookings, company }: DashboardContentProps) {
-  const bookingRate = ((event.soldSeats / event.totalSeats) * 100).toFixed(1)
+  const bookingRate = ((event.soldSeats / event.capacity) * 100).toFixed(1)
 
   const admissionSegments = [
     { label: "입장", value: event.enteredCount, color: "var(--chart-1)" },
@@ -100,7 +100,7 @@ export function DashboardContent({ event, dailyBookings, company }: DashboardCon
               <div className="flex items-end gap-2">
                 <span className="text-3xl font-bold text-foreground">{bookingRate}%</span>
                 <span className="pb-1 text-sm text-muted-foreground">
-                  ({event.soldSeats.toLocaleString()} / {event.totalSeats.toLocaleString()}석)
+                  ({event.soldSeats.toLocaleString()} / {event.capacity.toLocaleString()}석)
                 </span>
               </div>
               <div className="h-3 w-full overflow-hidden rounded-full bg-secondary">

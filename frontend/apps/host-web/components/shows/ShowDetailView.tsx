@@ -117,7 +117,7 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
                             <Separator />
                             <InfoRow
                                 label="판매 현황"
-                                value={`${event.soldSeats.toLocaleString()} / ${event.totalSeats.toLocaleString()}석 (${((event.soldSeats / event.totalSeats) * 100).toFixed(1)}%)`}
+                                value={`${event.soldSeats.toLocaleString()} / ${event.capacity.toLocaleString()}석 (${((event.soldSeats / event.capacity) * 100).toFixed(1)}%)`}
                             />
                         </CardContent>
                     </Card>
@@ -144,7 +144,7 @@ export function ShowDetailView({ event }: ShowDetailViewProps) {
                                 <div className="flex flex-col gap-1 mt-1">
                                     {event.refundPolicy.map((r, idx) => (
                                         <p key={idx} className="text-sm text-foreground">
-                                            - 공연 {r.daysRemaining}일 전: {(r.refundRate * 100).toFixed(0)}% 환불 ({r.feeDescription})
+                                            - 공연 {r.daysRemaining}일 전: {r.refundRate}% 환불
                                         </p>
                                     ))}
                                 </div>

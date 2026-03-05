@@ -18,7 +18,6 @@ export interface Stakeholder {
 export interface RefundItem {
   daysRemaining: number
   refundRate: number
-  feeDescription: string
 }
 
 export interface SessionItem {
@@ -56,7 +55,7 @@ export interface Event {
   updatedAt: string
 
   // --- 통계성 필드 (대시보드 / 마이페이지용 유지) ---
-  totalSeats: number
+  capacity: number
   soldSeats: number
   enteredCount: number
   notEnteredCount: number
@@ -75,14 +74,29 @@ export interface CompanyInfo {
 export interface Venue {
   venueId: number
   name: string
-  totalSeat: number
+  capacity: number
 }
 
+// ─── 회원 조회 (Stakeholder Verification) ─────────────────────────
+// API: GET /api/v1/authsearch
+export interface AuthUser {
+  userId: number
+  name: string
+  phone: string
+}
+
+export const mockAuthUsers: AuthUser[] = [
+  { userId: 15, name: "홍길동", phone: "01012345678" },
+  { userId: 16, name: "김철수", phone: "01011111111" },
+  { userId: 17, name: "이영희", phone: "01022222222" },
+  { userId: 18, name: "CHEKET공식", phone: "01000000000" },
+]
+
 export const mockVenues: Venue[] = [
-  { venueId: 1, name: "올림픽홀", totalSeat: 2500 },
-  { venueId: 2, name: "블루노트 서울", totalSeat: 300 },
-  { venueId: 3, name: "난지한강공원", totalSeat: 10000 },
-  { venueId: 4, name: "홍대 롤링홀", totalSeat: 200 },
+  { venueId: 1, name: "올림픽홀", capacity: 2500 },
+  { venueId: 2, name: "블루노트 서울", capacity: 300 },
+  { venueId: 3, name: "난지한강공원", capacity: 10000 },
+  { venueId: 4, name: "홍대 롤링홀", capacity: 200 },
 ]
 
 export const mockCompany: CompanyInfo = {
@@ -123,10 +137,10 @@ export const mockEvents: Event[] = [
       { role: "artist", name: "박지연", phone: "010-1234-5678", shareBps: 3000 }
     ],
     refundPolicy: [
-      { daysRemaining: 14, refundRate: 1.0, feeDescription: "전액 환불" },
-      { daysRemaining: 7, refundRate: 0.7, feeDescription: "30% 수수료" },
-      { daysRemaining: 3, refundRate: 0.5, feeDescription: "50% 수수료" },
-      { daysRemaining: 1, refundRate: 0.0, feeDescription: "100% 수수료" }
+      { daysRemaining: 14, refundRate: 100 },
+      { daysRemaining: 7, refundRate: 70 },
+      { daysRemaining: 3, refundRate: 50 },
+      { daysRemaining: 1, refundRate: 0 }
     ],
     sessionInfo: [
       { sessionId: 1, sessionDate: "2026-03-20", sessionStartDate: "19:30", capacity: 1200 },
@@ -136,7 +150,7 @@ export const mockEvents: Event[] = [
     createdAt: "2026-02-28T14:00:00",
     updatedAt: "2026-02-28T15:30:00",
     // 유지 (대시보드 구동용)
-    totalSeats: 2400,
+    capacity: 2400,
     soldSeats: 2000,
     enteredCount: 0,
     notEnteredCount: 0,
@@ -170,8 +184,8 @@ export const mockEvents: Event[] = [
       { role: "artist", name: "재즈밴드", phone: "010-1111-2222", shareBps: 5000 },
     ],
     refundPolicy: [
-      { daysRemaining: 5, refundRate: 1.0, feeDescription: "전액 환불" },
-      { daysRemaining: 0, refundRate: 0.0, feeDescription: "환불 불가" },
+      { daysRemaining: 5, refundRate: 100 },
+      { daysRemaining: 0, refundRate: 0 },
     ],
     sessionInfo: [
       { sessionId: 3, sessionDate: "2026-04-20", sessionStartDate: "20:00", capacity: 300 }
@@ -180,7 +194,7 @@ export const mockEvents: Event[] = [
     createdAt: "2026-03-01T10:00:00",
     updatedAt: "2026-03-01T10:00:00",
     // 유지
-    totalSeats: 300,
+    capacity: 300,
     soldSeats: 280,
     enteredCount: 250,
     notEnteredCount: 30,
@@ -214,8 +228,8 @@ export const mockEvents: Event[] = [
       { role: "artist", name: "록 밴드 연합", phone: "010-3333-3333", shareBps: 2000 },
     ],
     refundPolicy: [
-      { daysRemaining: 3, refundRate: 1.0, feeDescription: "전액 환불" },
-      { daysRemaining: 0, refundRate: 0.0, feeDescription: "환불 불가" },
+      { daysRemaining: 3, refundRate: 100 },
+      { daysRemaining: 0, refundRate: 0 },
     ],
     sessionInfo: [
       { sessionId: 4, sessionDate: "2026-05-10", sessionStartDate: "19:00", capacity: 200 }
@@ -223,7 +237,7 @@ export const mockEvents: Event[] = [
     status: "UPCOMING",
     createdAt: "2026-03-02T10:00:00",
     updatedAt: "2026-03-02T10:00:00",
-    totalSeats: 200,
+    capacity: 200,
     soldSeats: 180,
     enteredCount: 0,
     notEnteredCount: 180,
@@ -259,10 +273,10 @@ export const mockEvents: Event[] = [
       { role: "artist", name: "참여 아티스트 전체", phone: "010-4444-4444", shareBps: 4000 },
     ],
     refundPolicy: [
-      { daysRemaining: 30, refundRate: 1.0, feeDescription: "전액 환불" },
-      { daysRemaining: 14, refundRate: 0.7, feeDescription: "30% 수수료" },
-      { daysRemaining: 7, refundRate: 0.5, feeDescription: "50% 수수료" },
-      { daysRemaining: 1, refundRate: 0.0, feeDescription: "환불 불가" }
+      { daysRemaining: 30, refundRate: 100 },
+      { daysRemaining: 14, refundRate: 70 },
+      { daysRemaining: 7, refundRate: 50 },
+      { daysRemaining: 1, refundRate: 0 }
     ],
     sessionInfo: [
       { sessionId: 5, sessionDate: "2026-07-25", sessionStartDate: "13:00", capacity: 10000 },
@@ -271,7 +285,7 @@ export const mockEvents: Event[] = [
     status: "UPCOMING",
     createdAt: "2026-03-03T10:00:00",
     updatedAt: "2026-03-03T10:00:00",
-    totalSeats: 20000,
+    capacity: 20000,
     soldSeats: 15500,
     enteredCount: 0,
     notEnteredCount: 15500,
@@ -297,3 +311,84 @@ export const mockDailyBookings: DailyBooking[] = [
   { date: "03/10", count: 3200 },
   { date: "03/14", count: 4200 },
 ]
+
+// ─── 찜 목록 (Wishlist / Likes) ────────────────────────────────────
+// API: GET /api/v1/users/likes
+// mockEvents 의 showId / title / venue / posterUrl / status 와 일치시켜 관리
+export interface LikedShow {
+  showId: number
+  title: string
+  posterUrl: string
+  venue: string
+  showDate: string
+  status: string
+}
+
+export const mockLikes: LikedShow[] = [
+  {
+    showId: 42,
+    title: "CHEKET LIVE: Spring Night",
+    posterUrl: "/images/poster-1.jpg",
+    venue: "올림픽공원 올림픽홀",
+    showDate: "2026-03-20T19:30:00",
+    status: "UPCOMING",
+  },
+  {
+    showId: 44,
+    title: "Rolling Indie Night",
+    posterUrl: "/images/poster-3.jpg",
+    venue: "홍대 롤링홀",
+    showDate: "2026-05-10T19:00:00",
+    status: "UPCOMING",
+  },
+]
+
+// ─── 대시보드: 회차별 예매 현황 ──────────────────────────────────────
+// API: GET /api/v1/hosts/shows/{showId}/dashboard/reservations
+// 사용법: mockDashboardReservations[showId]
+export interface DashboardReservationSession {
+  sessionId: number
+  date: string
+  capacity: number
+  reservedSeats: number
+}
+
+export interface DashboardReservationData {
+  showId: number
+  title: string
+  sessions: DashboardReservationSession[]
+}
+
+export const mockDashboardReservations: DashboardReservationData[] = [
+  {
+    showId: 42,
+    title: "CHEKET LIVE: Spring Night",
+    sessions: [
+      { sessionId: 1, date: "2026-03-20", capacity: 1200, reservedSeats: 950 },
+      { sessionId: 2, date: "2026-03-21", capacity: 1200, reservedSeats: 1050 },
+    ],
+  },
+  {
+    showId: 43,
+    title: "봄날의 재즈 나이트",
+    sessions: [
+      { sessionId: 3, date: "2026-04-20", capacity: 300, reservedSeats: 280 },
+    ],
+  },
+  {
+    showId: 44,
+    title: "Rolling Indie Night",
+    sessions: [
+      { sessionId: 4, date: "2026-05-10", capacity: 200, reservedSeats: 180 },
+    ],
+  },
+  {
+    showId: 45,
+    title: "2026 한강 썸머 뮤직 페스티벌",
+    sessions: [
+      { sessionId: 5, date: "2026-07-25", capacity: 10000, reservedSeats: 7800 },
+      { sessionId: 6, date: "2026-07-26", capacity: 10000, reservedSeats: 7700 },
+    ],
+  },
+]
+
