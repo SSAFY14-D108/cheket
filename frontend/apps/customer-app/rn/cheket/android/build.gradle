@@ -19,3 +19,21 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Windows 260자 경로 제한 해결: 모든 네이티브 모듈의 CMake 빌드 출력을 짧은 경로로 이동
+subprojects { subproject ->
+    subproject.plugins.withId("com.android.library") {
+        subproject.android {
+            try {
+                externalNativeBuild.cmake.buildStagingDirectory = new File("C:/tmp/rn-cxx/${subproject.name}")
+            } catch (Exception ignored) {}
+        }
+    }
+    subproject.plugins.withId("com.android.application") {
+        subproject.android {
+            try {
+                externalNativeBuild.cmake.buildStagingDirectory = new File("C:/tmp/rn-cxx/${subproject.name}")
+            } catch (Exception ignored) {}
+        }
+    }
+}
