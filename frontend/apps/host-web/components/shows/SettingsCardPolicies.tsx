@@ -62,13 +62,26 @@ export function SettingsCardPolicies({
                                     <Trash2 className="size-3" />
                                 </Button>
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 items-start">
                                 {sh.role === 'organizer' ? (
-                                    <Input placeholder="사업자번호" value={sh.businessNo ?? ""} onChange={e => onUpdateStakeholder(idx, 'businessNo', e.target.value)} className="h-8 text-xs" />
+                                    <div className="flex flex-1 gap-1">
+                                        <Input placeholder="사업자번호" value={sh.businessNo ?? ""} onChange={e => onUpdateStakeholder(idx, 'businessNo', e.target.value)} className="h-8 text-xs flex-1" />
+                                        <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => alert("사업자번호 조회 연동 예정")}>
+                                            조회
+                                        </Button>
+                                    </div>
                                 ) : (
-                                    <Input placeholder="연락처" value={sh.phone ?? ""} onChange={e => onUpdateStakeholder(idx, 'phone', e.target.value)} className="h-8 text-xs" />
+                                    <div className="flex flex-1 gap-1">
+                                        <Input placeholder="연락처" value={sh.phone ?? ""} onChange={e => onUpdateStakeholder(idx, 'phone', e.target.value)} className="h-8 text-xs flex-1" />
+                                        <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => alert("연락처 조회 연동 예정")}>
+                                            조회
+                                        </Button>
+                                    </div>
                                 )}
-                                <Input type="number" placeholder="BPS(예:7000)" value={sh.shareBps} onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)} className="h-8 text-xs w-28" />
+                                <div className="flex flex-col gap-0.5 w-[84px] shrink-0">
+                                    <Input type="number" placeholder="비율(BPS)" value={sh.shareBps} onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)} className="h-8 text-xs w-full" />
+                                    <span className="text-[9px] text-muted-foreground text-center">예: 70% ➔ 7000</span>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -91,10 +104,12 @@ export function SettingsCardPolicies({
                                     <Trash2 className="size-2.5" />
                                 </Button>
                             </div>
-                            <div className="flex gap-1">
-                                <Input type="number" placeholder="N일 전" value={ref.daysRemaining} onChange={e => onUpdateRefund(idx, 'daysRemaining', e.target.value)} className="h-7 px-1 text-[10px] w-1/3" />
-                                <Input type="number" step="0.1" placeholder="환불률(0~1)" value={ref.refundRate} onChange={e => onUpdateRefund(idx, 'refundRate', e.target.value)} className="h-7 px-1 text-[10px] w-1/3" />
-                                <Input placeholder="설명(부분환불)" value={ref.feeDescription} onChange={e => onUpdateRefund(idx, 'feeDescription', e.target.value)} className="h-7 px-1 text-[10px] flex-1" />
+                            <div className="flex items-center gap-1.5 text-xs">
+                                <span className="text-muted-foreground whitespace-nowrap">공연</span>
+                                <Input type="number" placeholder="예: 7" value={ref.daysRemaining} onChange={e => onUpdateRefund(idx, 'daysRemaining', e.target.value)} className="h-7 px-2 text-[11px] w-20 text-center" />
+                                <span className="text-muted-foreground whitespace-nowrap">일 전, </span>
+                                <Input type="number" step="1" min="0" max="100" placeholder="예: 70" value={ref.refundRate} onChange={e => onUpdateRefund(idx, 'refundRate', e.target.value)} className="h-7 px-2 text-[11px] w-20 text-center" />
+                                <span className="text-muted-foreground whitespace-nowrap">% 환불</span>
                             </div>
                         </div>
                     ))}
