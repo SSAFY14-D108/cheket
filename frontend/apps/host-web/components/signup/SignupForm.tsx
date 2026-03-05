@@ -79,6 +79,16 @@ export function SignupForm() {
     router.push("/")
   }
 
+  const isFormValid =
+    form.companyName.trim().length > 0 &&
+    form.businessNumber.trim().length > 0 &&
+    form.email.trim().length > 0 &&
+    form.username.trim().length > 0 &&
+    isIdChecked &&
+    form.password.length > 0 &&
+    form.passwordConfirm.length > 0 &&
+    form.password === form.passwordConfirm
+
   return (
     <div className="flex w-full max-w-md flex-col gap-5 px-6">
       <h1 className="text-center text-2xl font-bold tracking-tight text-foreground">
@@ -185,7 +195,12 @@ export function SignupForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <LoginButton type="button" variant="primary" onClick={handleSubmit}>
+        <LoginButton
+          type="button"
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={!isFormValid}
+        >
           회원가입
         </LoginButton>
         <LoginButton type="button" variant="secondary" onClick={() => router.push("/")}>

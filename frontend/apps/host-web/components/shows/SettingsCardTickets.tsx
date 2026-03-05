@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Ticket } from "lucide-react"
 import type { Grade, SessionItem } from "./showFormTypes"
 
 interface SettingsCardTicketsProps {
@@ -36,7 +36,10 @@ export function SettingsCardTickets({
     return (
         <Card>
             <CardHeader className="py-4">
-                <CardTitle className="text-lg">티켓 설정</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <Ticket className="size-5 text-primary" />
+                    티켓 설정
+                </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5 pb-4">
                 <div className="flex flex-col gap-1.5">
@@ -58,12 +61,45 @@ export function SettingsCardTickets({
                         </Button>
                     </div>
                     {grades.map((grade, idx) => (
-                        <div key={'grade' + idx} className="flex gap-2">
-                            <Input placeholder="등급(VIP)" value={grade.gradeName} onChange={e => onUpdateGrade(idx, 'gradeName', e.target.value)} className="h-8 text-xs w-24" />
-                            <Input type="number" placeholder="가격" value={grade.price} onChange={e => onUpdateGrade(idx, 'price', e.target.value)} className="h-8 text-xs flex-1" />
-                            <Input type="color" value={grade.colorCode} onChange={e => onUpdateGrade(idx, 'colorCode', e.target.value)} className="h-8 w-10 p-0.5 border-none bg-transparent" title="색상 지정" />
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" onClick={() => onRemoveGrade(idx)}>
-                                <Trash2 className="size-3" />
+                        <div key={'grade' + idx} className="flex items-center gap-3 p-3 bg-muted/10 border rounded-lg overflow-hidden relative group transition-colors hover:border-primary/40 shadow-sm">
+                            {/* 좌측 테마 색상 바 */}
+                            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: grade.colorCode || '#ccc' }} />
+
+                            <div className="flex-1 flex items-start gap-3 pl-2">
+                                <div className="flex flex-col gap-1.5 w-[35%]">
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">등급명</Label>
+                                    <Input placeholder="예: VIP" value={grade.gradeName} onChange={e => onUpdateGrade(idx, 'gradeName', e.target.value)} className="h-8 text-xs font-medium" />
+                                </div>
+                                <div className="flex flex-col gap-1.5 flex-1 relative">
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">가격 (원)</Label>
+                                    <Input type="number" placeholder="150000" value={grade.price} onChange={e => onUpdateGrade(idx, 'price', e.target.value)} className="h-8 text-xs pl-6" />
+                                    <span className="absolute left-2.5 top-[26px] text-xs text-muted-foreground font-medium">₩</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">라벨 색상</Label>
+                                <div
+                                    className="relative flex items-center justify-center size-8 rounded-full border-2 shadow-sm cursor-pointer transition-transform hover:scale-105"
+                                    style={{ backgroundColor: grade.colorCode || '#000000', borderColor: 'rgba(255,255,255,0.2)' }}
+                                >
+                                    <Input
+                                        type="color"
+                                        value={grade.colorCode || '#000000'}
+                                        onChange={e => onUpdateGrade(idx, 'colorCode', e.target.value)}
+                                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                                        title="좌석 색상 선택"
+                                    />
+                                </div>
+                            </div>
+
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 mt-5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => onRemoveGrade(idx)}
+                            >
+                                <Trash2 className="size-4" />
                             </Button>
                         </div>
                     ))}

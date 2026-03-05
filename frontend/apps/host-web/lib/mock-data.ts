@@ -297,3 +297,84 @@ export const mockDailyBookings: DailyBooking[] = [
   { date: "03/10", count: 3200 },
   { date: "03/14", count: 4200 },
 ]
+
+// ─── 찜 목록 (Wishlist / Likes) ────────────────────────────────────
+// API: GET /api/v1/users/likes
+// mockEvents 의 showId / title / venue / posterUrl / status 와 일치시켜 관리
+export interface LikedShow {
+  showId: number
+  title: string
+  posterUrl: string
+  venue: string
+  showDate: string
+  status: string
+}
+
+export const mockLikes: LikedShow[] = [
+  {
+    showId: 42,
+    title: "CHEKET LIVE: Spring Night",
+    posterUrl: "/images/poster-1.jpg",
+    venue: "올림픽공원 올림픽홀",
+    showDate: "2026-03-20T19:30:00",
+    status: "UPCOMING",
+  },
+  {
+    showId: 44,
+    title: "Rolling Indie Night",
+    posterUrl: "/images/poster-3.jpg",
+    venue: "홍대 롤링홀",
+    showDate: "2026-05-10T19:00:00",
+    status: "UPCOMING",
+  },
+]
+
+// ─── 대시보드: 회차별 예매 현황 ──────────────────────────────────────
+// API: GET /api/v1/hosts/shows/{showId}/dashboard/reservations
+// 사용법: mockDashboardReservations[showId]
+export interface DashboardReservationSession {
+  sessionId: number
+  date: string
+  totalSeats: number
+  reservedSeats: number
+}
+
+export interface DashboardReservationData {
+  showId: number
+  title: string
+  sessions: DashboardReservationSession[]
+}
+
+export const mockDashboardReservations: DashboardReservationData[] = [
+  {
+    showId: 42,
+    title: "CHEKET LIVE: Spring Night",
+    sessions: [
+      { sessionId: 1, date: "2026-03-20", totalSeats: 1200, reservedSeats: 950 },
+      { sessionId: 2, date: "2026-03-21", totalSeats: 1200, reservedSeats: 1050 },
+    ],
+  },
+  {
+    showId: 43,
+    title: "봄날의 재즈 나이트",
+    sessions: [
+      { sessionId: 3, date: "2026-04-20", totalSeats: 300, reservedSeats: 280 },
+    ],
+  },
+  {
+    showId: 44,
+    title: "Rolling Indie Night",
+    sessions: [
+      { sessionId: 4, date: "2026-05-10", totalSeats: 200, reservedSeats: 180 },
+    ],
+  },
+  {
+    showId: 45,
+    title: "2026 한강 썸머 뮤직 페스티벌",
+    sessions: [
+      { sessionId: 5, date: "2026-07-25", totalSeats: 10000, reservedSeats: 7800 },
+      { sessionId: 6, date: "2026-07-26", totalSeats: 10000, reservedSeats: 7700 },
+    ],
+  },
+]
+
