@@ -17,7 +17,6 @@ export interface Stakeholder {
 export interface RefundItem {
     daysRemaining: string
     refundRate: string
-    feeDescription: string
 }
 
 export interface SessionItem {

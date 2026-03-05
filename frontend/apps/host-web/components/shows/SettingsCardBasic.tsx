@@ -43,7 +43,7 @@ export function SettingsCardBasic({
                         <option value="" disabled>장소를 선택하세요</option>
                         {mockVenues.map((venue) => (
                             <option key={venue.venueId} value={venue.venueId}>
-                                {venue.name} (최대 {venue.totalSeat}명)
+                                {venue.name} (최대 {venue.capacity}명)
                             </option>
                         ))}
                     </select>

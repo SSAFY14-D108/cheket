@@ -52,12 +52,11 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const [refundPolicy, setRefundPolicy] = useState<RefundItem[]>(
         initialData?.refundPolicy?.map((r: any) => ({
             daysRemaining: r.daysRemaining.toString(),
-            refundRate: r.refundRate.toString(),
-            feeDescription: r.feeDescription
+            refundRate: r.refundRate.toString()
         }))
         ?? [
-            { daysRemaining: "14", refundRate: "1.0", feeDescription: "전액 환불" },
-            { daysRemaining: "7", refundRate: "0.7", feeDescription: "30% 수수료" }
+            { daysRemaining: "14", refundRate: "100" },
+            { daysRemaining: "7", refundRate: "70" }
         ]
     )
 
@@ -92,7 +91,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         const selectedVenue = mockVenues.find(v => v.venueId.toString() === id)
         if (selectedVenue) {
             setSessionInfo(prev =>
-                prev.map(s => ({ ...s, capacity: selectedVenue.totalSeat.toString() }))
+                prev.map(s => ({ ...s, capacity: selectedVenue.capacity.toString() }))
             )
         }
     }
@@ -109,7 +108,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         setStakeholders(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
 
     // RefundPolicy helpers
-    const addRefund = () => setRefundPolicy(prev => [...prev, { daysRemaining: "", refundRate: "", feeDescription: "" }])
+    const addRefund = () => setRefundPolicy(prev => [...prev, { daysRemaining: "", refundRate: "" }])
     const removeRefund = (idx: number) => setRefundPolicy(prev => prev.filter((_, i) => i !== idx))
     const updateRefund = (idx: number, field: keyof RefundItem, val: string) =>
         setRefundPolicy(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
@@ -117,7 +116,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     // Session helpers — new sessions also get current venue capacity as default
     const addSession = () => {
         const selectedVenue = mockVenues.find(v => v.venueId.toString() === venueId)
-        const defaultCapacity = selectedVenue ? selectedVenue.totalSeat.toString() : ""
+        const defaultCapacity = selectedVenue ? selectedVenue.capacity.toString() : ""
         setSessionInfo(prev => [...prev, { sessionId: "", sessionDate: "", sessionStartDate: "", capacity: defaultCapacity }])
     }
     const removeSession = (idx: number) =>
@@ -154,8 +153,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             })),
             refundPolicy: refundPolicy.map(r => ({
                 daysRemaining: Number(r.daysRemaining),
-                refundRate: Number(r.refundRate),
-                feeDescription: r.feeDescription
+                refundRate: Number(r.refundRate)
             })),
             sessionInfo: sessionInfo.map((s, idx) => ({
                 sessionId: Number(s.sessionId) || (idx + 1), // 임시로 index + 1
