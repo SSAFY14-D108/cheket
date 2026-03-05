@@ -12,7 +12,7 @@ import { SettingsCardBasic } from "./SettingsCardBasic"
 import { SettingsCardTickets } from "./SettingsCardTickets"
 import { SettingsCardPolicies } from "./SettingsCardPolicies"
 import { mockVenues } from "@/lib/mock-data"
-import type { Grade, Stakeholder, RefundItem, SessionItem } from "./showFormTypes"
+import type { Grade, Stakeholder, RefundItem } from "./showFormTypes"
 
 interface ShowFormProps {
     mode: "create" | "edit"
@@ -65,16 +65,6 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         ]
     )
 
-    const [sessionInfo, setSessionInfo] = useState<SessionItem[]>(
-        initialData?.sessionInfo?.map((s: any) => ({
-            sessionId: s.sessionId?.toString() || "",
-            sessionDate: s.sessionDate || "",
-            sessionStartDate: s.sessionStartDate || "",
-            capacity: s.capacity?.toString() || ""
-        }))
-        ?? [{ sessionId: "", sessionDate: "", sessionStartDate: "", capacity: "" }]
-    )
-
     // ─── Computed ─────────────────────────────────────────────
     const isEdit = mode === "edit"
     const headerTitle = isEdit ? "공연 수정" : "공연 등록"
@@ -90,15 +80,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         }
     }
 
-    // 장소 선택 시 모든 회차의 수용 인원을 해당 공연장 최대 수용 인원으로 자동 채우기
     const handleVenueChange = (id: string) => {
         setVenueId(id)
-        const selectedVenue = mockVenues.find(v => v.venueId.toString() === id)
-        if (selectedVenue) {
-            setSessionInfo(prev =>
-                prev.map(s => ({ ...s, capacity: selectedVenue.capacity.toString() }))
-            )
-        }
     }
 
     const addGrade = () => setGrades(prev => [...prev, { sectionId: "", gradeName: "", price: "", colorCode: "#aaaaaa" }])
@@ -117,17 +100,6 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const removeRefund = (idx: number) => setRefundPolicy(prev => prev.filter((_, i) => i !== idx))
     const updateRefund = (idx: number, field: keyof RefundItem, val: string) =>
         setRefundPolicy(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
-
-    // Session helpers — new sessions also get current venue capacity as default
-    const addSession = () => {
-        const selectedVenue = mockVenues.find(v => v.venueId.toString() === venueId)
-        const defaultCapacity = selectedVenue ? selectedVenue.capacity.toString() : ""
-        setSessionInfo(prev => [...prev, { sessionId: "", sessionDate: "", sessionStartDate: "", capacity: defaultCapacity }])
-    }
-    const removeSession = (idx: number) =>
-        setSessionInfo(prev => prev.filter((_, i) => i !== idx))
-    const updateSession = (idx: number, field: keyof SessionItem, val: string | number) =>
-        setSessionInfo(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
 
     const handleSubmit = async () => {
         if (!title.trim() || !venueId) {
@@ -165,12 +137,6 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             refundPolicy: refundPolicy.map(r => ({
                 daysRemaining: Number(r.daysRemaining),
                 refundRate: Number(r.refundRate)
-            })),
-            sessionInfo: sessionInfo.map((s, idx) => ({
-                sessionId: Number(s.sessionId) || (idx + 1), // 임시로 index + 1
-                sessionDate: s.sessionDate,
-                sessionStartDate: s.sessionStartDate,
-                capacity: Number(s.capacity)
             }))
         }
 
@@ -266,16 +232,12 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     <SettingsCardTickets
                         purchaseLimit={purchaseLimit}
                         grades={grades}
-                        sessionInfo={sessionInfo}
                         ticketEffectId={ticketEffectId ? Number(ticketEffectId) : undefined}
                         onChangeTicketEffectId={setTicketEffectId}
                         onChangePurchaseLimit={setPurchaseLimit}
                         onAddGrade={addGrade}
                         onRemoveGrade={removeGrade}
                         onUpdateGrade={updateGrade}
-                        onAddSession={addSession}
-                        onRemoveSession={removeSession}
-                        onUpdateSession={updateSession}
                     />
 
                     <SettingsCardPolicies

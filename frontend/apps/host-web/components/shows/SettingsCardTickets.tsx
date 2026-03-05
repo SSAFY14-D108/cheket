@@ -6,36 +6,28 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Ticket } from "lucide-react"
-import type { Grade, SessionItem } from "./showFormTypes"
+import type { Grade } from "./showFormTypes"
 
 interface SettingsCardTicketsProps {
     purchaseLimit: string
     grades: Grade[]
-    sessionInfo: SessionItem[]
     ticketEffectId?: number
     onChangeTicketEffectId: (val: number) => void
     onChangePurchaseLimit: (val: string) => void
     onAddGrade: () => void
     onRemoveGrade: (idx: number) => void
     onUpdateGrade: (idx: number, field: keyof Grade, val: string) => void
-    onAddSession: () => void
-    onRemoveSession: (idx: number) => void
-    onUpdateSession: (idx: number, field: keyof SessionItem, val: string | number) => void
 }
 
 export function SettingsCardTickets({
     purchaseLimit,
     grades,
-    sessionInfo,
     ticketEffectId,
     onChangeTicketEffectId,
     onChangePurchaseLimit,
     onAddGrade,
     onRemoveGrade,
     onUpdateGrade,
-    onAddSession,
-    onRemoveSession,
-    onUpdateSession,
 }: SettingsCardTicketsProps) {
     return (
         <Card>
@@ -128,46 +120,6 @@ export function SettingsCardTickets({
 
                 <Separator />
 
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-sm">회차 정보 (Session)</Label>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddSession}>
-                            <Plus className="size-3" />
-                        </Button>
-                    </div>
-                    {sessionInfo.map((sess, idx) => (
-                        <div key={'sess' + idx} className="flex flex-col gap-2 bg-muted/40 p-3 rounded border text-xs">
-                            <div className="flex justify-between items-center font-medium">
-                                <span>Session {idx + 1}</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onRemoveSession(idx)}>
-                                    <Trash2 className="size-3" />
-                                </Button>
-                            </div>
-                            <div className="flex flex-col gap-2 mt-1">
-                                <div className="flex flex-col gap-1.5">
-                                    <Label className="text-[10px]">공연 일자</Label>
-                                    <Input type="date" value={sess.sessionDate} onChange={e => onUpdateSession(idx, 'sessionDate', e.target.value)} className="h-8 text-xs" />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <Label className="text-[10px]">시작 시간</Label>
-                                    <Input type="time" value={sess.sessionStartDate} onChange={e => onUpdateSession(idx, 'sessionStartDate', e.target.value)} className="h-8 text-xs" />
-                                </div>
-                                <div className="flex flex-col gap-1.5 mt-1">
-                                    <Label className="text-[10px]">수용 인원</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="수용인원"
-                                        value={sess.capacity}
-                                        onChange={e => onUpdateSession(idx, 'capacity', e.target.value)}
-                                        className="h-8 px-2"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <Separator />
 
                 <div className="flex flex-col gap-3">
                     <Label className="text-sm">티켓 효과 설정 (Ticket Effect)</Label>

@@ -20,13 +20,6 @@ export interface RefundItem {
     refundRate: string
 }
 
-export interface SessionItem {
-    sessionId: number | string
-    sessionDate: string
-    sessionStartDate: string
-    capacity: string
-}
-
 export interface ShowFormData {
     ticketEffectId?: number
 }
