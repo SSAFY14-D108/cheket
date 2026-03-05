@@ -4,7 +4,10 @@
       "Bash(npm install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-screens react-native-gesture-handler react-native-vector-icons react-native-svg)",
       "Bash(npx tsc --noEmit)",
       "Bash(npx tsc --noEmit --pretty)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm install react-native-reanimated)",
+      "Bash(npm install react-native-worklets)",
+      "Bash(npx react-native start --reset-cache)"
     ]
   }
 }
