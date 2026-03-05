@@ -33,10 +33,15 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const [openAt, setOpenAt] = useState(initialData?.reservation?.openAt?.substring(0, 16) ?? "")
     const [closeAt, setCloseAt] = useState(initialData?.reservation?.closeAt?.substring(0, 16) ?? "")
     const [purchaseLimit, setPurchaseLimit] = useState(initialData?.purchaseLimit?.toString() ?? "")
+    const [ticketEffectId, setTicketEffectId] = useState<number | undefined>(initialData?.ticketEffectId)
 
     const [grades, setGrades] = useState<Grade[]>(
-        initialData?.grade?.map((g: any) => ({ sectionId: g.sectionId?.toString() || "", gradeName: g.gradeName, price: g.price?.toString() || "", colorCode: g.colorCode || "#aaaaaa" }))
-        ?? [{ sectionId: "", gradeName: "", price: "", colorCode: "#aaaaaa" }]
+        initialData?.grade?.map((g: any) => ({
+            ...g,
+            price: g.price.toString(),
+            sectionId: Array.isArray(g.sectionId) ? g.sectionId.join(', ') : (g.sectionId ? String(g.sectionId) : '')
+        }))
+        ?? [{ gradeName: "VIP", price: "150000", colorCode: "#7C6EF0", sectionId: "" }]
     )
 
     const [stakeholders, setStakeholders] = useState<Stakeholder[]>(
@@ -144,7 +149,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             },
             description,
             purchaseLimit: Number(purchaseLimit),
-            grade: grades.map(g => ({ sectionId: Number(g.sectionId) || 0, gradeName: g.gradeName, price: Number(g.price), colorCode: g.colorCode })),
+            ticketEffectId,
+            grade: grades.map(g => ({
+                gradeName: g.gradeName,
+                price: Number(g.price),
+                colorCode: g.colorCode,
+                sectionId: g.sectionId ? g.sectionId.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n)) : []
+            })),
             stakeholders: stakeholders.map(s => ({
                 role: s.role, name: s.name,
                 ...(s.role === "organizer" ? { businessNo: s.businessNo } : {}),
@@ -256,6 +267,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                         purchaseLimit={purchaseLimit}
                         grades={grades}
                         sessionInfo={sessionInfo}
+                        ticketEffectId={ticketEffectId ? Number(ticketEffectId) : undefined}
+                        onChangeTicketEffectId={setTicketEffectId}
                         onChangePurchaseLimit={setPurchaseLimit}
                         onAddGrade={addGrade}
                         onRemoveGrade={removeGrade}

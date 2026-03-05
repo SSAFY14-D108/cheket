@@ -12,6 +12,8 @@ interface SettingsCardTicketsProps {
     purchaseLimit: string
     grades: Grade[]
     sessionInfo: SessionItem[]
+    ticketEffectId?: number
+    onChangeTicketEffectId: (val: number) => void
     onChangePurchaseLimit: (val: string) => void
     onAddGrade: () => void
     onRemoveGrade: (idx: number) => void
@@ -25,6 +27,8 @@ export function SettingsCardTickets({
     purchaseLimit,
     grades,
     sessionInfo,
+    ticketEffectId,
+    onChangeTicketEffectId,
     onChangePurchaseLimit,
     onAddGrade,
     onRemoveGrade,
@@ -60,6 +64,19 @@ export function SettingsCardTickets({
                             <Plus className="size-3" />
                         </Button>
                     </div>
+
+                    {/* 구역 안내 이미지 */}
+                    <div className="mb-2 p-3 bg-muted/20 border rounded-lg flex flex-col gap-2 items-center">
+                        <Label className="text-xs text-muted-foreground w-full text-left">구역 번호 참조 (sectionId)</Label>
+                        <img
+                            src="/sectionId.png"
+                            alt="구역 안내도"
+                            className="max-h-40 object-contain rounded border"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                        />
+                    </div>
                     {grades.map((grade, idx) => (
                         <div key={'grade' + idx} className="flex items-center gap-3 p-3 bg-muted/10 border rounded-lg overflow-hidden relative group transition-colors hover:border-primary/40 shadow-sm">
                             {/* 좌측 테마 색상 바 */}
@@ -74,6 +91,10 @@ export function SettingsCardTickets({
                                     <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">가격 (원)</Label>
                                     <Input type="number" placeholder="150000" value={grade.price} onChange={e => onUpdateGrade(idx, 'price', e.target.value)} className="h-8 text-xs pl-6" />
                                     <span className="absolute left-2.5 top-[26px] text-xs text-muted-foreground font-medium">₩</span>
+                                </div>
+                                <div className="flex flex-col gap-1.5 w-[30%]">
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">구역(콤마구분)</Label>
+                                    <Input placeholder="1, 3" value={grade.sectionId || ''} onChange={e => onUpdateGrade(idx, 'sectionId', e.target.value)} className="h-8 text-xs" />
                                 </div>
                             </div>
 
@@ -144,6 +165,28 @@ export function SettingsCardTickets({
                             </div>
                         </div>
                     ))}
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-col gap-3">
+                    <Label className="text-sm">티켓 효과 설정 (Ticket Effect)</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div
+                            className={`flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${ticketEffectId === 1 ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'}`}
+                            onClick={() => onChangeTicketEffectId(1)}
+                        >
+                            <img src="/ticket_effect/logo.png" alt="효과 1" className="h-16 object-contain" />
+                            <span className="text-xs font-medium">효과 1</span>
+                        </div>
+                        <div
+                            className={`flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${ticketEffectId === 2 ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'}`}
+                            onClick={() => onChangeTicketEffectId(2)}
+                        >
+                            <img src="/ticket_effect/logo2.png" alt="효과 2" className="h-16 object-contain" />
+                            <span className="text-xs font-medium">효과 2</span>
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>

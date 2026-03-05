@@ -1,16 +1,17 @@
 // Shared types used across ShowForm sub-components
 export interface Grade {
-    sectionId: number | string
     gradeName: string
     price: string
     colorCode: string
+    sectionId: string
 }
 
 export interface Stakeholder {
-    role: "organizer" | "artist"
-    name: string
-    businessNo?: string
+    role: 'organizer' | 'artist'
+    userId?: number
+    name?: string
     phone?: string
+    businessNo?: string
     shareBps: string
 }
 
@@ -24,4 +25,8 @@ export interface SessionItem {
     sessionDate: string
     sessionStartDate: string
     capacity: string
+}
+
+export interface ShowFormData {
+    ticketEffectId?: number
 }
