@@ -76,8 +76,8 @@ export function SettingsCardPolicies({
                                     value={sh.role}
                                     onChange={e => onUpdateStakeholder(idx, 'role', e.target.value)}
                                 >
-                                    <option value="organizer">주최사</option>
-                                    <option value="artist">아티스트</option>
+                                    <option value="organizer">사업자</option>
+                                    <option value="artist">개인</option>
                                 </select>
 
                                 {sh.role === 'organizer' ? (

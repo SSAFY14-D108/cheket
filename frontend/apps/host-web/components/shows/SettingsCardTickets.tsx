@@ -7,30 +7,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Ticket, X, ZoomIn } from "lucide-react"
 import { useState, useEffect } from "react"
-import type { Grade } from "./showFormTypes"
+import type { Grade, SessionItem } from "./showFormTypes"
+import { DateTimePicker } from "@/components/common/DateTimePicker"
 
 interface SettingsCardTicketsProps {
     venueId: string
     purchaseLimit: string
     grades: Grade[]
+    sessionInfo: SessionItem[]
     ticketEffectId?: number
     onChangeTicketEffectId: (val: number) => void
     onChangePurchaseLimit: (val: string) => void
     onAddGrade: () => void
     onRemoveGrade: (idx: number) => void
     onUpdateGrade: (idx: number, field: keyof Grade, val: string) => void
+    onAddSession: () => void
+    onRemoveSession: (idx: number) => void
+    onUpdateSession: (idx: number, field: keyof SessionItem, val: string | number) => void
 }
 
 export function SettingsCardTickets({
     venueId,
     purchaseLimit,
     grades,
+    sessionInfo,
     ticketEffectId,
     onChangeTicketEffectId,
     onChangePurchaseLimit,
     onAddGrade,
     onRemoveGrade,
     onUpdateGrade,
+    onAddSession,
+    onRemoveSession,
+    onUpdateSession,
 }: SettingsCardTicketsProps) {
     const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
@@ -211,6 +220,53 @@ export function SettingsCardTickets({
                     </div>
                 </div>
             )}
+
+            <Separator className="my-2" />
+
+            <CardContent className="flex flex-col gap-4 pt-0 pb-4">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm">회차 정보 (Session)</Label>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddSession}>
+                            <Plus className="size-3" />
+                        </Button>
+                    </div>
+                    {sessionInfo.map((sess, idx) => (
+                        <div key={'sess' + idx} className="flex flex-col gap-2 bg-muted/40 p-3 rounded border text-xs">
+                            <div className="flex justify-between items-center font-medium">
+                                <span>Session {idx + 1}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onRemoveSession(idx)}>
+                                    <Trash2 className="size-3" />
+                                </Button>
+                            </div>
+                            <div className="flex flex-col gap-2 mt-2">
+                                <div className="flex flex-col gap-1.5">
+                                    <Label className="text-[10px]">공연 일자 및 시간</Label>
+                                    <DateTimePicker
+                                        value={sess.sessionDate && sess.sessionStartDate ? `${sess.sessionDate}T${sess.sessionStartDate}` : undefined}
+                                        onChange={(val) => {
+                                            const [date, time] = val.split("T")
+                                            onUpdateSession(idx, 'sessionDate', date)
+                                            onUpdateSession(idx, 'sessionStartDate', time)
+                                        }}
+                                        placeholder="공연 시작 날짜/시간"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5 mt-1">
+                                    <Label className="text-[10px]">수용 인원</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="수용인원"
+                                        value={sess.capacity}
+                                        onChange={e => onUpdateSession(idx, 'capacity', e.target.value)}
+                                        className="h-8 px-2"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
         </Card>
     )
 }

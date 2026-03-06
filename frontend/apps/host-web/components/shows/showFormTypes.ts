@@ -23,3 +23,10 @@ export interface RefundItem {
 export interface ShowFormData {
     ticketEffectId?: number
 }
+
+export interface SessionItem {
+    sessionId: number | string
+    sessionDate: string
+    sessionStartDate: string
+    capacity: string | number
+}
