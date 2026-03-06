@@ -8,14 +8,18 @@ import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
-@RequiredArgsConstructor // final 필드들의 생성자를 자동으로 생성
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -24,9 +28,13 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("이미 존재하는 이메일 입니다.");
         }
 
+        // TODO: Web3j WalletUtils로 교체 예정
+        String tempAddress = "0x" + UUID.randomUUID().toString().replace("-", "");
+        String tempFilename = "temp-" + UUID.randomUUID() + ".json";
+
         Wallet wallet = Wallet.builder()
-                .address("임시지갑주소")
-                .keystoreFilename("임시파일명")
+                .address(tempAddress)
+                .keystoreFilename(tempFilename)
                 .build();
         walletRepository.save(wallet);
 
@@ -35,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(request.username())
                 .phoneNumber(request.phoneNumber())
                 .email(request.email())
-                .password(request.password())
+                .password(passwordEncoder.encode(request.password()))
                 .notificationEnable(true)
                 .build();
         userRepository.save(user);

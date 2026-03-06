@@ -30,7 +30,7 @@ public class Wallet {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "keystore_filename", nullable = false, length = 200)
+    @Column(name = "keystore_filename", nullable = false, length = 100)
     private String keystoreFilename;
 
     @PrePersist // save() 직전 자동 호출 -> createAt 자동 세팅
