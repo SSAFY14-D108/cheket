@@ -1,6 +1,6 @@
-package com.ssafy.cheket.service.auth;
+package com.ssafy.cheket.service.user;
 
-import com.ssafy.cheket.dto.auth.request.SignupRequest;
+import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.ConflictException;
@@ -8,17 +8,17 @@ import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.crypto.Credentials;
-import org.springframework.beans.factory.annotation.Value;
-import java.io.File;
+import org.web3j.crypto.WalletUtils;
 
+import java.io.File;
 
 @Service
 @RequiredArgsConstructor
-public class AuthServiceImpl implements AuthService {
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
@@ -32,38 +32,25 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void signup(SignupRequest request) throws Exception {
+    public void userSignup(UserSignupRequest request) throws Exception {
         // 1단계: 이메일 중복 체크
         if (userRepository.existsByEmail(request.email())) {
             throw new ConflictException("이미 존재하는 이메일 입니다.");
         }
 
         // 2단계: 지갑 생성
-        String filename = WalletUtils.generateNewWalletFile(
-            keystorePassword,
-            new File(keystoreDirectory)
-        );
-        Credentials credentials = WalletUtils.loadCredentials(
-            keystorePassword,
-            new File(keystoreDirectory + "/" + filename)
-        );
+        String filename = WalletUtils.generateNewWalletFile(keystorePassword, new File(keystoreDirectory));
+        Credentials credentials = WalletUtils.loadCredentials(keystorePassword,
+            new File(keystoreDirectory + "/" + filename));
 
         String address = credentials.getAddress();
 
-        Wallet wallet = Wallet.builder()
-                .address(address)
-                .keystoreFilename(filename)
-                .build();
+        Wallet wallet = Wallet.builder().address(address).keystoreFilename(filename).build();
         walletRepository.save(wallet);
 
-        User user = User.builder()
-                .walletId(wallet.getId())
-                .username(request.username())
-                .phoneNumber(request.phoneNumber())
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .notificationEnable(true)
-                .build();
+        User user = User.builder().walletId(wallet.getId()).username(request.username())
+            .phoneNumber(request.phoneNumber()).email(request.email())
+            .password(passwordEncoder.encode(request.password())).notificationEnable(true).build();
         userRepository.save(user);
     }
 }

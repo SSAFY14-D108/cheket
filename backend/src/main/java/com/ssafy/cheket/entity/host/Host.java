@@ -1,14 +1,16 @@
 package com.ssafy.cheket.entity.host;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
+@Builder
 @Table(name = "hosts")
 public class Host {
 
@@ -16,13 +18,16 @@ public class Host {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "wallet_id", nullable = false)
+    private Long walletId;
+
     @Column(name = "company_name", nullable = false, unique = false, length = 50)
     private String companyName;
 
     @Column(name = "business_no", nullable = false, unique = true, length = 50)
     private String businessNo;
 
-    @Column(nullable = false, unique = false, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String email;
 
     @Column(nullable = false, unique = false, length = 100)
@@ -37,6 +42,14 @@ public class Host {
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
 
-    // TODO: Wallet 넣기
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
