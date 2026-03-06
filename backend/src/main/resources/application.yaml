@@ -14,3 +14,8 @@ spring:
       properties:
           hibernate:
               dialect: org.hibernate.dialect.MySQLDialect
+
+wallet:
+    keystore:
+        password: ${KEYSTORE_PASSWORD}
+        directory: ${KEYSTORE_DIR}
