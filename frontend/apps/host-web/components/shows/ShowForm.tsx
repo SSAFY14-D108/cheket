@@ -99,6 +99,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                 prev.map(s => ({ ...s, capacity: selectedVenue.capacity.toString() }))
             )
         }
+        // 장소가 변경되면 기존에 선택된 구역 정보는 무효화되므로 깔끔하게 비워줍니다.
+        setGrades(prev => prev.map(g => ({ ...g, sectionId: "" })))
     }
 
     const addGrade = () => setGrades(prev => [...prev, { sectionId: "", gradeName: "", price: "", colorCode: "#aaaaaa" }])

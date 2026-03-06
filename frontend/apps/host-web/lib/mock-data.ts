@@ -78,6 +78,32 @@ export interface Venue {
   capacity: number
 }
 
+// ─── API: GET /api/v1/venues/{venueId}/sections 의 응답 모크 ───
+export interface Section {
+  sectionId: number
+  sectionName: string
+}
+
+export const mockSectionsByVenue: Record<number, Section[]> = {
+  1: [
+    { sectionId: 1, sectionName: "가 구역" },
+    { sectionId: 2, sectionName: "나 구역" },
+    { sectionId: 3, sectionName: "다 구역" },
+    { sectionId: 4, sectionName: "라 구역" },
+  ],
+  2: [
+    { sectionId: 5, sectionName: "1층 스탠딩" },
+    { sectionId: 6, sectionName: "2층 지정석" },
+  ],
+  3: [
+    { sectionId: 7, sectionName: "피크닉존" },
+    { sectionId: 8, sectionName: "그랜드홀" },
+  ],
+  4: [
+    { sectionId: 9, sectionName: "단일 층" },
+  ]
+}
+
 // ─── 회원 조회 (Stakeholder Verification) ─────────────────────────
 // API: GET /api/v1/authsearch
 export interface AuthUser {

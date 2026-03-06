@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Ticket, X, ZoomIn } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Plus, Trash2, Ticket, X, ZoomIn, ChevronDown } from "lucide-react"
 import { useState, useEffect } from "react"
 import type { Grade, SessionItem } from "./showFormTypes"
 import { DateTimePicker } from "@/components/common/DateTimePicker"
+import { mockSectionsByVenue, type Section } from "@/lib/mock-data"
 
 interface SettingsCardTicketsProps {
     venueId: string
@@ -55,6 +57,35 @@ export function SettingsCardTickets({
     }
 
     const mapImageSrc = getVenueMapImg(venueId)
+
+    // 선택된 장소의 구역(Section) 정보 API 연동 (상태 관리)
+    const [availableSections, setAvailableSections] = useState<Section[]>([])
+
+    // venueId가 바뀔 때마다 백엔드 API를 찔러서 구역 데이터를 가져옵니다.
+    useEffect(() => {
+        if (!venueId) {
+            setAvailableSections([])
+            return
+        }
+
+        const fetchSections = async () => {
+            try {
+                // 향후 실제 API 연결 시 아래의 주석 처리된 코드를 사용하면 완벽히 똑같습니다.
+                // const response = await fetch(`https://api.cheket.com/api/v1/venues/${venueId}/sections`);
+                // const json = await response.json();
+                // setAvailableSections(json.data); // "data: []" 배열만 바로 State에 저장
+
+                // --- (현재는 API가 없으므로) 모의 데이터로 대체 ---
+                const mockResponseData = mockSectionsByVenue[Number(venueId)] || []
+                setAvailableSections(mockResponseData)
+            } catch (error) {
+                console.error("구역 정보를 불러오는데 실패했습니다.", error)
+                setAvailableSections([])
+            }
+        }
+
+        fetchSections()
+    }, [venueId])
 
     // ESC 키로 모달 닫기
     useEffect(() => {
@@ -163,7 +194,77 @@ export function SettingsCardTickets({
                                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium">₩</span>
                                 </div>
                                 <div className="w-[35%] shrink-0">
-                                    <Input placeholder="구역 (예: 1, 3)" value={grade.sectionId || ''} onChange={e => onUpdateGrade(idx, 'sectionId', e.target.value)} className="h-8 text-xs px-2" />
+                                    {(() => {
+                                        const rawSelected = grade.sectionId ? grade.sectionId.split(',').map(s => s.trim()).filter(Boolean) : []
+                                        const validSelected = rawSelected.filter(id => availableSections.some(sec => sec.sectionId.toString() === id))
+
+                                        return (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        className={`w-full h-8 text-xs justify-between px-2 font-normal ${validSelected.length === 0 ? 'text-muted-foreground' : ''}`}
+                                                    >
+                                                        <span className="truncate">
+                                                            {validSelected.length > 0
+                                                                ? `${validSelected.length}개 구역 선택됨`
+                                                                : "구역 선택 (다중)"}
+                                                        </span>
+                                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[250px] p-3 text-xs" align="end">
+                                                    <div className="font-semibold mb-2">구역 선택</div>
+                                                    {availableSections.length > 0 ? (
+                                                        <>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {availableSections.map(section => {
+                                                                    const selectedSections = grade.sectionId ? grade.sectionId.split(',').map(s => s.trim()) : []
+                                                                    const isSelected = selectedSections.includes(section.sectionId.toString())
+
+                                                                    const toggleSelection = () => {
+                                                                        let newSelected;
+                                                                        if (isSelected) {
+                                                                            newSelected = selectedSections.filter(s => s !== section.sectionId.toString())
+                                                                        } else {
+                                                                            newSelected = [...selectedSections, section.sectionId.toString()]
+                                                                        }
+                                                                        onUpdateGrade(idx, 'sectionId', newSelected.sort((a, b) => Number(a) - Number(b)).join(', '))
+                                                                    }
+
+                                                                    return (
+                                                                        <div
+                                                                            key={section.sectionId}
+                                                                            onClick={toggleSelection}
+                                                                            className={`flex items-center justify-center px-3 h-8 text-xs font-medium rounded-md cursor-pointer transition-colors border ${isSelected
+                                                                                ? 'bg-primary text-primary-foreground border-primary'
+                                                                                : 'bg-background hover:bg-muted border-border'
+                                                                                }`}
+                                                                        >
+                                                                            {section.sectionName}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                            {validSelected.length > 0 && (
+                                                                <div className="mt-3 pt-2 text-muted-foreground border-t whitespace-normal break-words leading-relaxed">
+                                                                    선택됨: {
+                                                                        validSelected.map(id => {
+                                                                            const sec = availableSections.find(a => a.sectionId.toString() === id);
+                                                                            return sec ? sec.sectionName : id;
+                                                                        }).join(', ')
+                                                                    }
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <div className="text-muted-foreground text-center py-4">해당 공연장의 구역 정보가 없습니다.</div>
+                                                    )}
+                                                </PopoverContent>
+                                            </Popover>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>
