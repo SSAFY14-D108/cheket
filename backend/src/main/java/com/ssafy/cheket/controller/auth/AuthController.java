@@ -20,7 +20,7 @@ public class AuthController {
 
     @PostMapping
     @Operation(summary = "회원가입") // Swagger 문서 자동 생성
-    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody SignupRequest request) { // JSON 바디를 SignupRequest java로 변환
+    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody SignupRequest request) throws Exception { // JSON 바디를 SignupRequest java로 변환
         authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(201,"회원가입 완료", null));

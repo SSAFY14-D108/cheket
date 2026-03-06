@@ -10,8 +10,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.web3j.crypto.WalletUtils;
+import org.web3j.crypto.Credentials;
+import org.springframework.beans.factory.annotation.Value;
+import java.io.File;
 
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -21,20 +24,35 @@ public class AuthServiceImpl implements AuthService {
     private final WalletRepository walletRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
+    @Value("${wallet.keystore.password}")
+    private String keystorePassword;
+
+    @Value("${wallet.keystore.directory}")
+    private String keystoreDirectory;
+
     @Override
     @Transactional
-    public void signup(SignupRequest request) {
+    public void signup(SignupRequest request) throws Exception {
+        // 1단계: 이메일 중복 체크
         if (userRepository.existsByEmail(request.email())) {
             throw new ConflictException("이미 존재하는 이메일 입니다.");
         }
 
-        // TODO: Web3j WalletUtils로 교체 예정
-        String tempAddress = "0x" + UUID.randomUUID().toString().replace("-", "");
-        String tempFilename = "temp-" + UUID.randomUUID() + ".json";
+        // 2단계: 지갑 생성
+        String filename = WalletUtils.generateNewWalletFile(
+            keystorePassword,
+            new File(keystoreDirectory)
+        );
+        Credentials credentials = WalletUtils.loadCredentials(
+            keystorePassword,
+            new File(keystoreDirectory + "/" + filename)
+        );
+
+        String address = credentials.getAddress();
 
         Wallet wallet = Wallet.builder()
-                .address(tempAddress)
-                .keystoreFilename(tempFilename)
+                .address(address)
+                .keystoreFilename(filename)
                 .build();
         walletRepository.save(wallet);
 
