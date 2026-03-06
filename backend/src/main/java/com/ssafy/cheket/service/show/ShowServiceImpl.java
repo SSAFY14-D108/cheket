@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -18,12 +19,14 @@ public class ShowServiceImpl implements ShowService {
     private final ShowRepository showRepository;
 
     @Override
-    public GetShowListResponse getShowList(int page, int size) {
+    public GetShowListResponse getShowList(Region region, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
             Sort.by(Sort.Direction.DESC, "createdAt") // 일단 고정
         );
 
-        Page<Show> result = showRepository.findAll(pageable);
+        Page<Show> result = (region == null)
+            ? showRepository.findAllWithVenue(pageable)
+            : showRepository.findAllByVenueRegion(region, pageable);
 
         List<GetShowListResponse.ShowItem> items = result.getContent().stream()
             .map(s -> new GetShowListResponse.ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(),
