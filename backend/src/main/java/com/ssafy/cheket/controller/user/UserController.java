@@ -1,8 +1,8 @@
-package com.ssafy.cheket.controller.auth;
+package com.ssafy.cheket.controller.user;
 
-import com.ssafy.cheket.dto.auth.request.SignupRequest;
+import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
 import com.ssafy.cheket.dto.common.ApiResponse;
-import com.ssafy.cheket.service.auth.AuthService;
+import com.ssafy.cheket.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,15 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
-public class AuthController {
-    private final AuthService authService;
+public class UserController {
+    private final UserService userService;
 
     @PostMapping
     @Operation(summary = "회원가입") // Swagger 문서 자동 생성
-    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody SignupRequest request) throws Exception { // JSON 바디를 SignupRequest java로 변환
-        authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(201,"회원가입 완료", null));
+    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody UserSignupRequest request) throws Exception {
+        userService.userSignup(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "회원가입 완료", null));
     }
 
 }
