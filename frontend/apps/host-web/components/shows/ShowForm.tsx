@@ -6,13 +6,13 @@ import Image from "next/image"
 import Link from "next/link"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Upload, ImagePlus } from "lucide-react"
+import { ArrowLeft, Upload, ImagePlus, User, Music } from "lucide-react"
 import { DescriptionEditor } from "./DescriptionEditor"
 import { SettingsCardBasic } from "./SettingsCardBasic"
 import { SettingsCardTickets } from "./SettingsCardTickets"
 import { SettingsCardPolicies } from "./SettingsCardPolicies"
 import { mockVenues } from "@/lib/mock-data"
-import type { Grade, Stakeholder, RefundItem } from "./showFormTypes"
+import type { Grade, Stakeholder, RefundItem, SessionItem } from "./showFormTypes"
 
 interface ShowFormProps {
     mode: "create" | "edit"
@@ -24,6 +24,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
     // ─── State ───────────────────────────────────────────────
     const [title, setTitle] = useState(initialData?.title ?? "")
+    const [artistName, setArtistName] = useState(initialData?.artistName ?? "")
     const [posterPreview, setPosterPreview] = useState<string | null>(initialData?.posterUrl ?? null)
     const [description, setDescription] = useState(initialData?.description ?? "")
 
@@ -33,13 +34,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const [openAt, setOpenAt] = useState(initialData?.reservation?.openAt?.substring(0, 16) ?? "")
     const [closeAt, setCloseAt] = useState(initialData?.reservation?.closeAt?.substring(0, 16) ?? "")
     const [purchaseLimit, setPurchaseLimit] = useState(initialData?.purchaseLimit?.toString() ?? "")
-    const [ticketEffectId, setTicketEffectId] = useState<number | undefined>(initialData?.ticketEffectId)
 
     const [grades, setGrades] = useState<Grade[]>(
         initialData?.grade?.map((g: any) => ({
             ...g,
             price: g.price.toString(),
-            sectionId: Array.isArray(g.sectionId) ? g.sectionId.join(', ') : (g.sectionId ? String(g.sectionId) : '')
+            sectionId: Array.isArray(g.sectionId) ? g.sectionId.join(', ') : (g.sectionId ? String(g.sectionId) : ''),
+            ticketEffectId: g.ticketEffectId ? String(g.ticketEffectId) : undefined
         }))
         ?? [{ gradeName: "VIP", price: "150000", colorCode: "#7C6EF0", sectionId: "" }]
     )
@@ -65,6 +66,16 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         ]
     )
 
+    const [sessionInfo, setSessionInfo] = useState<SessionItem[]>(
+        initialData?.sessionInfo?.map((s: any) => ({
+            sessionId: s.sessionId?.toString() || "",
+            sessionDate: s.sessionDate || "",
+            sessionStartDate: s.sessionStartDate || "",
+            capacity: s.capacity?.toString() || ""
+        }))
+        ?? [{ sessionId: "", sessionDate: "", sessionStartDate: "", capacity: "" }]
+    )
+
     // ─── Computed ─────────────────────────────────────────────
     const isEdit = mode === "edit"
     const headerTitle = isEdit ? "공연 수정" : "공연 등록"
@@ -82,6 +93,14 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
     const handleVenueChange = (id: string) => {
         setVenueId(id)
+        const selectedVenue = mockVenues.find(v => v.venueId.toString() === id)
+        if (selectedVenue) {
+            setSessionInfo(prev =>
+                prev.map(s => ({ ...s, capacity: selectedVenue.capacity.toString() }))
+            )
+        }
+        // 장소가 변경되면 기존에 선택된 구역 정보는 무효화되므로 깔끔하게 비워줍니다.
+        setGrades(prev => prev.map(g => ({ ...g, sectionId: "" })))
     }
 
     const addGrade = () => setGrades(prev => [...prev, { sectionId: "", gradeName: "", price: "", colorCode: "#aaaaaa" }])
@@ -101,6 +120,17 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     const updateRefund = (idx: number, field: keyof RefundItem, val: string) =>
         setRefundPolicy(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
 
+    // Session helpers — new sessions also get current venue capacity as default
+    const addSession = () => {
+        const selectedVenue = mockVenues.find(v => v.venueId.toString() === venueId)
+        const defaultCapacity = selectedVenue ? selectedVenue.capacity.toString() : ""
+        setSessionInfo(prev => [...prev, { sessionId: "", sessionDate: "", sessionStartDate: "", capacity: defaultCapacity }])
+    }
+    const removeSession = (idx: number) =>
+        setSessionInfo(prev => prev.filter((_, i) => i !== idx))
+    const updateSession = (idx: number, field: keyof SessionItem, val: string | number) =>
+        setSessionInfo(prev => prev.map((item, i) => i === idx ? { ...item, [field]: val } : item))
+
     const handleSubmit = async () => {
         if (!title.trim() || !venueId) {
             alert("공연명과 장소는 필수입니다.")
@@ -109,6 +139,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
         const payload = {
             title,
+            artistName,
             posterUrl: posterPreview ?? "https://cdn.example.com/default.jpg",
             venueId: Number(venueId),
             show: {
@@ -121,12 +152,12 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             },
             description,
             purchaseLimit: Number(purchaseLimit),
-            ticketEffectId,
             grade: grades.map(g => ({
                 gradeName: g.gradeName,
                 price: Number(g.price),
                 colorCode: g.colorCode,
-                sectionId: g.sectionId ? g.sectionId.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n)) : []
+                sectionId: g.sectionId ? g.sectionId.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n)) : [],
+                ticketEffectId: g.ticketEffectId ? Number(g.ticketEffectId) : undefined
             })),
             stakeholders: stakeholders.map(s => ({
                 role: s.role, name: s.name,
@@ -137,6 +168,12 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             refundPolicy: refundPolicy.map(r => ({
                 daysRemaining: Number(r.daysRemaining),
                 refundRate: Number(r.refundRate)
+            })),
+            sessionInfo: sessionInfo.map((s, idx) => ({
+                sessionId: Number(s.sessionId) || (idx + 1), // 임시로 index + 1
+                sessionDate: s.sessionDate,
+                sessionStartDate: s.sessionStartDate,
+                capacity: Number(s.capacity)
             }))
         }
 
@@ -155,7 +192,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     return (
         <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
             {/* Header & Title */}
-            <div className="mb-6 flex flex-col gap-4 border-b pb-6">
+            <div className="mb-6 flex flex-col gap-6 border-b pb-8 mt-2">
+                {/* Back button and page title */}
                 <div className="flex items-center gap-3">
                     <Link
                         href={isEdit && initialData?.id ? `/shows/${initialData.id}` : "/mypage"}
@@ -166,13 +204,43 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     </Link>
                     <span className="text-sm font-medium text-muted-foreground">{headerTitle}</span>
                 </div>
-                <input
-                    type="text"
-                    placeholder="멋진 공연 제목을 입력하세요"
-                    className="w-full bg-transparent text-3xl md:text-5xl font-bold placeholder:text-muted-foreground border-none focus:outline-none focus:ring-0 px-0"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
+
+                {/* Input Fields Container */}
+                <div className="flex flex-col gap-6 bg-muted/20 p-6 rounded-xl border border-border/50">
+                    {/* Title Input */}
+                    <div className="flex items-start gap-4">
+                        <div className="mt-2 text-primary/80 bg-primary/10 p-2 rounded-full hidden sm:block">
+                            <Music className="size-6" />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1.5">
+                            <Label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">공연 제목 (Title)</Label>
+                            <input
+                                type="text"
+                                placeholder="멋진 공연 제목을 입력하세요"
+                                className="w-full bg-transparent text-3xl md:text-4xl lg:text-5xl font-bold placeholder:text-muted-foreground/40 border-none focus:outline-none focus:ring-0 px-1"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Artist Input */}
+                    <div className="flex items-start gap-4">
+                        <div className="mt-1 text-primary/80 bg-primary/10 p-2 rounded-full hidden sm:block">
+                            <User className="size-5" />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1.5">
+                            <Label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">아티스트 / 그룹명 (Artist)</Label>
+                            <input
+                                type="text"
+                                placeholder="참여하는 아티스트 또는 그룹명을 입력하세요"
+                                className="w-full bg-transparent text-xl md:text-2xl font-semibold text-foreground/90 placeholder:text-muted-foreground/40 border-none focus:outline-none focus:ring-0 px-1"
+                                value={artistName}
+                                onChange={(e) => setArtistName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Split Layout */}
@@ -231,14 +299,17 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
                     <SettingsCardTickets
                         venueId={venueId}
+                        posterPreview={posterPreview}
                         purchaseLimit={purchaseLimit}
                         grades={grades}
-                        ticketEffectId={ticketEffectId ? Number(ticketEffectId) : undefined}
-                        onChangeTicketEffectId={setTicketEffectId}
                         onChangePurchaseLimit={setPurchaseLimit}
                         onAddGrade={addGrade}
                         onRemoveGrade={removeGrade}
                         onUpdateGrade={updateGrade}
+                        sessionInfo={sessionInfo}
+                        onAddSession={addSession}
+                        onRemoveSession={removeSession}
+                        onUpdateSession={updateSession}
                     />
 
                     <SettingsCardPolicies

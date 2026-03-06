@@ -5,32 +5,42 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Ticket, X, ZoomIn } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Plus, Trash2, Ticket, X, ZoomIn, ChevronDown } from "lucide-react"
 import { useState, useEffect } from "react"
-import type { Grade } from "./showFormTypes"
+import type { Grade, SessionItem } from "./showFormTypes"
+import { DateTimePicker } from "@/components/common/DateTimePicker"
+import { mockSectionsByVenue, type Section, mockTicketEffects, type TicketEffect } from "@/lib/mock-data"
+import { TicketEffectPreview } from "./TicketEffectPreview"
 
 interface SettingsCardTicketsProps {
     venueId: string
+    posterPreview: string | null
     purchaseLimit: string
     grades: Grade[]
-    ticketEffectId?: number
-    onChangeTicketEffectId: (val: number) => void
+    sessionInfo: SessionItem[]
     onChangePurchaseLimit: (val: string) => void
     onAddGrade: () => void
     onRemoveGrade: (idx: number) => void
     onUpdateGrade: (idx: number, field: keyof Grade, val: string) => void
+    onAddSession: () => void
+    onRemoveSession: (idx: number) => void
+    onUpdateSession: (idx: number, field: keyof SessionItem, val: string | number) => void
 }
 
 export function SettingsCardTickets({
     venueId,
+    posterPreview,
     purchaseLimit,
     grades,
-    ticketEffectId,
-    onChangeTicketEffectId,
+    sessionInfo,
     onChangePurchaseLimit,
     onAddGrade,
     onRemoveGrade,
     onUpdateGrade,
+    onAddSession,
+    onRemoveSession,
+    onUpdateSession,
 }: SettingsCardTicketsProps) {
     const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
@@ -46,6 +56,57 @@ export function SettingsCardTickets({
     }
 
     const mapImageSrc = getVenueMapImg(venueId)
+
+    // 선택된 장소의 구역(Section) 정보 API 연동 (상태 관리)
+    const [availableSections, setAvailableSections] = useState<Section[]>([])
+
+    // venueId가 바뀔 때마다 백엔드 API를 찔러서 구역 데이터를 가져옵니다.
+    useEffect(() => {
+        if (!venueId) {
+            setAvailableSections([])
+            return
+        }
+
+        const fetchSections = async () => {
+            try {
+                // 향후 실제 API 연결 시 아래의 주석 처리된 코드를 사용하면 완벽히 똑같습니다.
+                // const response = await fetch(`https://api.cheket.com/api/v1/venues/${venueId}/sections`);
+                // const json = await response.json();
+                // setAvailableSections(json.data); // "data: []" 배열만 바로 State에 저장
+
+                // --- (현재는 API가 없으므로) 모의 데이터로 대체 ---
+                const mockResponseData = mockSectionsByVenue[Number(venueId)] || []
+                setAvailableSections(mockResponseData)
+            } catch (error) {
+                console.error("구역 정보를 불러오는데 실패했습니다.", error)
+                setAvailableSections([])
+            }
+        }
+
+        fetchSections()
+    }, [venueId])
+
+    // 티켓 효과 목록 API 연동 (상태 관리)
+    const [ticketEffects, setTicketEffects] = useState<TicketEffect[]>([])
+
+    // 컴포넌트 마운트 시 티켓 효과 목록을 가져옵니다.
+    useEffect(() => {
+        const fetchTicketEffects = async () => {
+            try {
+                // 향후 실제 API 연결 시 아래 주석 처리된 코드를 사용하면 됩니다.
+                // const response = await fetch('https://api.cheket.com/api/v1/ticket-effects');
+                // const json = await response.json();
+                // setTicketEffects(json.data);
+
+                // --- 모의 데이터 대체 ---
+                setTicketEffects(mockTicketEffects)
+            } catch (error) {
+                console.error("티켓 효과 목록을 불러오는데 실패했습니다.", error)
+                setTicketEffects([])
+            }
+        }
+        fetchTicketEffects()
+    }, [])
 
     // ESC 키로 모달 닫기
     useEffect(() => {
@@ -154,36 +215,93 @@ export function SettingsCardTickets({
                                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium">₩</span>
                                 </div>
                                 <div className="w-[35%] shrink-0">
-                                    <Input placeholder="구역 (예: 1, 3)" value={grade.sectionId || ''} onChange={e => onUpdateGrade(idx, 'sectionId', e.target.value)} className="h-8 text-xs px-2" />
+                                    {(() => {
+                                        const rawSelected = grade.sectionId ? grade.sectionId.split(',').map(s => s.trim()).filter(Boolean) : []
+                                        const validSelected = rawSelected.filter(id => availableSections.some(sec => sec.sectionId.toString() === id))
+
+                                        return (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        className={`w-full h-8 text-xs justify-between px-2 font-normal ${validSelected.length === 0 ? 'text-muted-foreground' : ''}`}
+                                                    >
+                                                        <span className="truncate">
+                                                            {validSelected.length > 0
+                                                                ? `${validSelected.length}개 구역 선택됨`
+                                                                : "구역 선택 (다중)"}
+                                                        </span>
+                                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[250px] p-3 text-xs" align="end">
+                                                    <div className="font-semibold mb-2">구역 선택</div>
+                                                    {availableSections.length > 0 ? (
+                                                        <>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {availableSections.map(section => {
+                                                                    const selectedSections = grade.sectionId ? grade.sectionId.split(',').map(s => s.trim()) : []
+                                                                    const isSelected = selectedSections.includes(section.sectionId.toString())
+
+                                                                    const toggleSelection = () => {
+                                                                        let newSelected;
+                                                                        if (isSelected) {
+                                                                            newSelected = selectedSections.filter(s => s !== section.sectionId.toString())
+                                                                        } else {
+                                                                            newSelected = [...selectedSections, section.sectionId.toString()]
+                                                                        }
+                                                                        onUpdateGrade(idx, 'sectionId', newSelected.sort((a, b) => Number(a) - Number(b)).join(', '))
+                                                                    }
+
+                                                                    return (
+                                                                        <div
+                                                                            key={section.sectionId}
+                                                                            onClick={toggleSelection}
+                                                                            className={`flex items-center justify-center px-3 h-8 text-xs font-medium rounded-md cursor-pointer transition-colors border ${isSelected
+                                                                                ? 'bg-primary text-primary-foreground border-primary'
+                                                                                : 'bg-background hover:bg-muted border-border'
+                                                                                }`}
+                                                                        >
+                                                                            {section.sectionName}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                            {validSelected.length > 0 && (
+                                                                <div className="mt-3 pt-2 text-muted-foreground border-t whitespace-normal break-words leading-relaxed">
+                                                                    선택됨: {
+                                                                        validSelected.map(id => {
+                                                                            const sec = availableSections.find(a => a.sectionId.toString() === id);
+                                                                            return sec ? sec.sectionName : id;
+                                                                        }).join(', ')
+                                                                    }
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <div className="text-muted-foreground text-center py-4">해당 공연장의 구역 정보가 없습니다.</div>
+                                                    )}
+                                                </PopoverContent>
+                                            </Popover>
+                                        );
+                                    })()}
                                 </div>
                             </div>
+
+                            {/* 3줄: 실시간 티켓 효과 및 미리보기 썸네일 */}
+                            <TicketEffectPreview
+                                posterUrl={posterPreview}
+                                selectedEffectId={grade.ticketEffectId}
+                                onSelectEffect={(effectId) => onUpdateGrade(idx, 'ticketEffectId', effectId)}
+                                ticketEffects={ticketEffects}
+                            />
                         </div>
                     ))}
                 </div>
-
-                <Separator />
-
-
-                <div className="flex flex-col gap-3">
-                    <Label className="text-sm">티켓 효과 설정 (Ticket Effect)</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div
-                            className={`flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${ticketEffectId === 1 ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'}`}
-                            onClick={() => onChangeTicketEffectId(1)}
-                        >
-                            <img src="/ticket_effect/logo.png" alt="효과 1" className="h-16 object-contain" />
-                            <span className="text-xs font-medium">효과 1</span>
-                        </div>
-                        <div
-                            className={`flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${ticketEffectId === 2 ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'}`}
-                            onClick={() => onChangeTicketEffectId(2)}
-                        >
-                            <img src="/ticket_effect/logo2.png" alt="효과 2" className="h-16 object-contain" />
-                            <span className="text-xs font-medium">효과 2</span>
-                        </div>
-                    </div>
-                </div>
             </CardContent>
+
+
 
             {/* 풀스크린 이미지 확대 모달 */}
             {isImageModalOpen && (
@@ -211,6 +329,44 @@ export function SettingsCardTickets({
                     </div>
                 </div>
             )}
+
+            <Separator className="my-2" />
+
+            <CardContent className="flex flex-col gap-4 pt-0 pb-4">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm">회차 정보 (Session)</Label>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddSession}>
+                            <Plus className="size-3" />
+                        </Button>
+                    </div>
+                    {sessionInfo.map((sess, idx) => (
+                        <div key={'sess' + idx} className="flex flex-col gap-2 bg-muted/40 p-3 rounded border text-xs">
+                            <div className="flex justify-between items-center font-medium">
+                                <span>Session {idx + 1}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onRemoveSession(idx)}>
+                                    <Trash2 className="size-3" />
+                                </Button>
+                            </div>
+                            <div className="flex flex-col gap-2 mt-2">
+                                <div className="flex flex-col gap-1.5">
+                                    <Label className="text-[10px]">공연 일자 및 시간</Label>
+                                    <DateTimePicker
+                                        value={sess.sessionDate && sess.sessionStartDate ? `${sess.sessionDate}T${sess.sessionStartDate}` : undefined}
+                                        onChange={(val) => {
+                                            const [date, time] = val.split("T")
+                                            onUpdateSession(idx, 'sessionDate', date)
+                                            onUpdateSession(idx, 'sessionStartDate', time)
+                                        }}
+                                        placeholder="공연 시작 날짜/시간"
+                                    />
+                                </div>
+
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
         </Card>
     )
 }
