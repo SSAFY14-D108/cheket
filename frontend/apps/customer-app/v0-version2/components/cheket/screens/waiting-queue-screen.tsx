@@ -43,10 +43,10 @@ export function WaitingQueueScreen() {
   useEffect(() => {
     if (queueState !== 'READY_TO_ENTER') return
     const timeout = setTimeout(() => {
-      navigate('seat-selection', { eventId: navParams.eventId })
+      navigate('seat-selection', { eventId: navParams.eventId, eventDateId: navParams.eventDateId })
     }, 1500)
     return () => clearTimeout(timeout)
-  }, [queueState, navigate, navParams.eventId])
+  }, [queueState, navigate, navParams.eventId, navParams.eventDateId])
 
   // Expire after 60 seconds of being READY (kept as fallback)
   const [readyCountdown, setReadyCountdown] = useState(60)
@@ -66,8 +66,8 @@ export function WaitingQueueScreen() {
   }, [queueState])
 
   const handleEnter = useCallback(() => {
-    navigate('seat-selection', { eventId: navParams.eventId })
-  }, [navigate, navParams.eventId])
+    navigate('seat-selection', { eventId: navParams.eventId, eventDateId: navParams.eventDateId })
+  }, [navigate, navParams.eventId, navParams.eventDateId])
 
   if (!event) return null
 

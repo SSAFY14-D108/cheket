@@ -22,9 +22,11 @@ export function SeatSelectionScreen() {
   const event = MOCK_EVENTS.find((e) => e.id === navParams.eventId)
 
   const hasMultipleDates = Boolean(event?.dates && event.dates.length > 1)
+  const presetDate = event?.dates?.find((d) => d.id === navParams.eventDateId) ?? null
+  const needsDateStep = hasMultipleDates && !presetDate
 
-  const [step, setStep] = useState<Step>(hasMultipleDates ? 'date' : 'seats')
-  const [selectedDate, setSelectedDate] = useState<EventDate | null>(null)
+  const [step, setStep] = useState<Step>(needsDateStep ? 'date' : 'seats')
+  const [selectedDate, setSelectedDate] = useState<EventDate | null>(presetDate)
   const [calendarDayShows, setCalendarDayShows] = useState<EventDate[]>([])
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
@@ -65,7 +67,7 @@ export function SeatSelectionScreen() {
   }, [seats])
 
   const steps: { key: Step; label: string }[] = [
-    ...(hasMultipleDates ? [{ key: 'date' as Step, label: '날짜' }] : []),
+    ...(needsDateStep ? [{ key: 'date' as Step, label: '날짜' }] : []),
     { key: 'seats' as Step, label: '좌석' },
   ]
   const currentStepIndex = steps.findIndex((s) => s.key === step)
@@ -74,7 +76,7 @@ export function SeatSelectionScreen() {
     if (showTimePicker) { setShowTimePicker(false); setCalendarDayShows([]); return }
     if (step === 'seats') {
       setSelectedSeats([])
-      if (hasMultipleDates) { setSelectedDate(null); setStep('date') }
+      if (needsDateStep) { setSelectedDate(null); setStep('date') }
       else goBack()
     } else {
       goBack()

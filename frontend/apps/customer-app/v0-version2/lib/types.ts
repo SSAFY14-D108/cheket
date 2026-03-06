@@ -1,6 +1,6 @@
 export type TicketStatus = 'SOLD' | 'LISTED' | 'USED' | 'EXPIRED'
 export type SeatStatus = 'AVAILABLE' | 'LOCKED' | 'SOLD'
-export type EventStatus = 'ON_SALE' | 'SOLD_OUT' | 'ENDED'
+export type EventStatus = 'ON_SALE' | 'SOLD_OUT'
 export type Tab = 'home' | 'concerts' | 'resale' | 'my-tickets' | 'collection'
 
 export type TxType = 'PURCHASE' | 'RESALE_LIST' | 'RESALE_BUY' | 'TRANSFER'
@@ -45,6 +45,7 @@ export type Screen =
   | 'home'
   | 'concerts'
   | 'event-detail'
+  | 'event-date-selection'
   | 'waiting-queue'
   | 'seat-selection'
   | 'payment'
@@ -91,6 +92,7 @@ export interface EventDate {
 export interface Event {
   id: string
   name: string
+  artistName?: string
   date: string
   dates?: EventDate[]   // multiple performance dates
   venue: string
@@ -147,12 +149,14 @@ export interface User {
   id: string
   name: string
   phone: string
+  email: string
   walletAddress: string
   ctkBalance: number
 }
 
 export interface NavParams {
   eventId?: string
+  eventDateId?: string
   ticketId?: string
   resaleItemId?: string
   /** ID of the newly issued ticket after resale purchase, for the complete screen */

@@ -9,7 +9,7 @@ export function MyTicketsScreen() {
   const { tickets, navigate } = useApp()
 
   return (
-    <AppShell>
+    <AppShell title="내 티켓">
       <div className="flex flex-col gap-4 p-4">
         <div className="flex items-center gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           {(['전체', '보유중', '판매중', '사용됨', '만료됨'] as const).map((label) => (
