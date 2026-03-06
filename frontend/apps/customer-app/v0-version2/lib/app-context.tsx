@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { Screen, Tab, NavParams, Ticket, User, ResaleItem, TxRecord, TxType, WalletTx, WalletTxType, Event } from './types'
+import { Screen, Tab, NavParams, Ticket, User, ResaleItem, TxRecord, TxType, WalletTx, WalletTxType, Event, RefundRule } from './types'
 import { MOCK_USER, MOCK_TICKETS, MOCK_RESALE_ITEMS, MOCK_EVENTS } from './mock-data'
 
 // ── TX helper ────────────────────────────────────────────────────────────────
@@ -11,6 +11,51 @@ function randomHex(len: number) {
 function makeTxHash() { return `0x${randomHex(64)}` }
 function makeTxId()   { return `tx_${Date.now()}_${randomHex(4)}` }
 function makeWalletTxId() { return `wtx_${Date.now()}_${randomHex(4)}` }
+
+function parseTicketEventDate(value: string) {
+  const match = value.match(/(\d{4})\.(\d{2})\.(\d{2})/)
+  if (!match) return null
+  const [, year, month, day] = match
+  return new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0)
+}
+
+function getDefaultRefundRules(): RefundRule[] {
+  return [
+    { id: 'default_r1', daysBefore: 7, feeRate: 0, label: '공연 7일 전까지' },
+    { id: 'default_r2', daysBefore: 3, feeRate: 0.1, label: '공연 3일 전까지' },
+    { id: 'default_r3', daysBefore: 1, feeRate: 0.2, label: '공연 1일 전까지' },
+    { id: 'default_r4', daysBefore: 0, feeRate: 1, label: '공연 당일 이후' },
+  ]
+}
+
+function getRefundPolicy(ticket: Ticket, event?: Event) {
+  const eventDate = parseTicketEventDate(ticket.eventDate)
+  const refundRules = [...(event?.refundRules ?? getDefaultRefundRules())].sort((a, b) => b.daysBefore - a.daysBefore)
+  if (!eventDate) {
+    return {
+      refundable: false,
+      feeRate: refundRules[refundRules.length - 1]?.feeRate ?? 1,
+      feeAmount: ticket.originalPrice,
+      refundAmount: 0,
+      daysLeft: -1,
+      appliedRule: refundRules[refundRules.length - 1] ?? null,
+    }
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diff = eventDate.getTime() - today.getTime()
+  const daysLeft = Math.floor(diff / 86400000)
+
+  const appliedRule = refundRules.find((rule) => daysLeft >= rule.daysBefore) ?? refundRules[refundRules.length - 1]
+  const feeRate = appliedRule?.feeRate ?? 1
+
+  const refundable = daysLeft >= 1 && ticket.status === 'SOLD'
+  const feeAmount = refundable ? Math.floor(ticket.originalPrice * feeRate) : ticket.originalPrice
+  const refundAmount = refundable ? ticket.originalPrice - feeAmount : 0
+
+  return { refundable, feeRate, feeAmount, refundAmount, daysLeft, appliedRule }
+}
 
 interface AppContextValue {
   // Auth
@@ -37,6 +82,7 @@ interface AppContextValue {
   buyResaleTicket: (resaleItemId: string) => string | false
   topUpCTK: (amount: number) => void
   transferTicket: (ticketId: string, recipientPhone: string) => { success: boolean; recipientName?: string; reason?: 'LIMIT_EXCEEDED' | 'USER_NOT_FOUND' | 'NETWORK' }
+  refundTicket: (ticketId: string) => { success: boolean; refundAmount?: number; feeAmount?: number; reason?: 'NOT_FOUND' | 'NOT_ELIGIBLE' }
   
   // Wishlist
   wishlist: string[]
@@ -261,13 +307,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true, recipientName }
   }, [tickets])
 
+  const refundTicket = useCallback((ticketId: string): { success: boolean; refundAmount?: number; feeAmount?: number; reason?: 'NOT_FOUND' | 'NOT_ELIGIBLE' } => {
+    const ticket = tickets.find((item) => item.id === ticketId)
+    if (!ticket) return { success: false, reason: 'NOT_FOUND' }
+
+    const event = events.find((item) => item.id === ticket.eventId)
+    const policy = getRefundPolicy(ticket, event)
+    if (!policy.refundable || !user) {
+      return { success: false, reason: 'NOT_ELIGIBLE' }
+    }
+
+    setTickets((prev) =>
+      prev.map((item) =>
+        item.id === ticketId
+          ? { ...item, status: 'EXPIRED' as const, resalePrice: undefined }
+          : item
+      )
+    )
+
+    setUser((prev) => (
+      prev ? { ...prev, ctkBalance: prev.ctkBalance + policy.refundAmount } : prev
+    ))
+
+    setWalletTxs((prev) => {
+      const lastBalance = prev.length > 0 ? prev[0].balance : user.ctkBalance
+      return [
+        {
+          id: makeWalletTxId(),
+          type: 'REFUND',
+          label: `${ticket.eventName} 티켓 환불`,
+          amount: policy.refundAmount,
+          balance: lastBalance + policy.refundAmount,
+          createdAt: Date.now(),
+        },
+        ...prev,
+      ]
+    })
+
+    setTxRecords((prev) => [
+      {
+        id: makeTxId(),
+        txHash: makeTxHash(),
+        type: 'REFUND',
+        status: 'CONFIRMED',
+        label: `${ticket.eventName} 티켓 환불`,
+        amount: policy.refundAmount,
+        createdAt: Date.now(),
+        confirmedAt: Date.now(),
+        confirmations: 12,
+      },
+      ...prev,
+    ])
+
+    return {
+      success: true,
+      refundAmount: policy.refundAmount,
+      feeAmount: policy.feeAmount,
+    }
+  }, [events, tickets, user])
+
   return (
     <AppContext.Provider
       value={{
         user, login, logout,
         screen, activeTab, navParams, navigate, navigateTab, goBack,
         tickets, resaleItems, events,
-        addTicket, updateTicketStatus, addResaleItem, removeResaleItem, buyResaleTicket, topUpCTK, transferTicket,
+        addTicket, updateTicketStatus, addResaleItem, removeResaleItem, buyResaleTicket, topUpCTK, transferTicket, refundTicket,
         wishlist, toggleWishlist, isWishlisted,
         txRecords, addTx,
         walletTxs, addWalletTx,
