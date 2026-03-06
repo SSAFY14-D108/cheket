@@ -57,16 +57,7 @@ fun CollectionScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         // ── Collection grid ──
         Scaffold(
-            topBar = {
-                AppHeader(title = "컬렉션", actions = {
-                    if (uiState.usedTickets.isNotEmpty()) {
-                        Text(
-                            "${uiState.usedTickets.size}장", fontSize = 13.sp, color = MutedForeground,
-                            fontWeight = FontWeight.Medium, modifier = Modifier.padding(end = 16.dp)
-                        )
-                    }
-                })
-            }
+            topBar = { AppHeader(title = "컬렉션") }
         ) { innerPadding ->
             if (uiState.usedTickets.isEmpty() && !uiState.isLoading) {
                 EmptyState(
@@ -75,11 +66,25 @@ fun CollectionScreen(
                 )
             } else {
                 Column(Modifier.fillMaxSize().background(Background).padding(innerPadding)) {
-                    Text(
-                        "관람한 공연의 소장 티켓을 모아보세요. 탭하면 상세 정보를 볼 수 있어요.",
-                        fontSize = 12.sp, color = MutedForeground, lineHeight = 18.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-                    )
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Muted,
+                        ) {
+                            Text(
+                                "${uiState.usedTickets.size}장",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MutedForeground,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "관람한 공연의 소장 티켓을 모아보세요. 카드를 탭하면 상세 정보를 볼 수 있어요.",
+                            fontSize = 12.sp, color = MutedForeground, lineHeight = 18.sp,
+                        )
+                    }
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),

@@ -8,6 +8,7 @@ object MockDataSource {
         id = "user_001",
         name = "김민준",
         phone = "010-1234-5678",
+        email = "minjun.kim@cheket.app",
         walletAddress = "0x3a9F...dE42",
         ctkBalance = 2400,
     )
@@ -18,6 +19,7 @@ object MockDataSource {
         Event(
             id = "evt_001",
             name = "AESPA WORLD TOUR 2026",
+            artistName = "aespa",
             date = "2026.04.12 (토) ~ 04.13 (일)",
             dates = listOf(
                 EventDate("evt_001_d1", "2026.04.12 (토) 18:00", "DAY 1"),
@@ -41,6 +43,7 @@ object MockDataSource {
         Event(
             id = "evt_002",
             name = "METALLICA M72 WORLD TOUR",
+            artistName = "Metallica",
             date = "2026.05.24 (토) ~ 05.25 (일)",
             dates = listOf(
                 EventDate("evt_002_d1", "2026.05.24 (토) 18:00", "DAY 1"),
@@ -62,6 +65,7 @@ object MockDataSource {
         ),
         Event(
             id = "evt_003",
+            artistName = "Seoul Philharmonic Orchestra",
             name = "서울 필하모닉 뉴이어 콘서트",
             date = "2026.01.01 (수) 15:00",
             venue = "예술의전당 콘서트홀, 서울",
@@ -80,6 +84,7 @@ object MockDataSource {
         Event(
             id = "evt_004",
             name = "ULTRA KOREA 2026",
+            artistName = "Martin Garrix, Armin van Buuren 외",
             date = "2026.06.07 (토) ~ 06.08 (일)",
             dates = listOf(
                 EventDate("evt_004_d1", "2026.06.07 (토) 14:00", "DAY 1"),
@@ -100,11 +105,12 @@ object MockDataSource {
         Event(
             id = "evt_005",
             name = "JARASUM JAZZ FESTIVAL",
+            artistName = "Pat Metheny, Snarky Puppy 외",
             date = "2026.10.05 (토) 12:00",
             venue = "자라섬, 가평",
             region = "경기",
             poster = "$P/jarasum/400/600",
-            status = EventStatus.ENDED,
+            status = EventStatus.SOLD_OUT,
             maxPerUser = 8,
             openDate = "2026-10-05",
             grades = listOf(

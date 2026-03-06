@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.ResaleGroupItem
+import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
 
@@ -36,69 +37,35 @@ fun ResaleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background),
-    ) {
-        if (uiState.groupedItems.isEmpty() && !uiState.isLoading) {
-            // Header even when empty
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            ) {
-                Text(
-                    "2차 거래소",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OnBackground,
+    Scaffold(
+        topBar = { AppHeader(title = "2차 거래소") },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Background)
+                .padding(innerPadding),
+        ) {
+            if (uiState.groupedItems.isEmpty() && !uiState.isLoading) {
+                EmptyState(
+                    "등록된 리세일 티켓이 없습니다",
+                    "아직 리세일 등록된 티켓이 없습니다.",
+                    Modifier.fillMaxSize(),
                 )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "리세일 티켓 구매",
-                    fontSize = 12.sp,
-                    color = MutedForeground,
-                )
-            }
-            EmptyState(
-                "등록된 리세일 티켓이 없습니다",
-                "아직 리세일 등록된 티켓이 없습니다.",
-                Modifier.fillMaxSize(),
-            )
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Header spanning full width
-                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                    Column {
-                        Text(
-                            "2차 거래소",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(uiState.groupedItems, key = { it.eventId }) { group ->
+                        ResaleEventCard(
+                            group = group,
+                            onClick = { onResaleItemClick(group.eventId) },
                         )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "리세일 티켓 구매",
-                            fontSize = 12.sp,
-                            color = MutedForeground,
-                        )
-                        Spacer(Modifier.height(8.dp))
                     }
-                }
-
-                // Event grid cards
-                items(uiState.groupedItems, key = { it.eventId }) { group ->
-                    ResaleEventCard(
-                        group = group,
-                        onClick = { onResaleItemClick(group.eventId) },
-                    )
                 }
             }
         }

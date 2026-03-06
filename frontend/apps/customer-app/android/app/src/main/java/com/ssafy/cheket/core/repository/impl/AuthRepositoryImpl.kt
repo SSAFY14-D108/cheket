@@ -29,6 +29,7 @@ class AuthRepositoryImpl : AuthRepository {
             id = "new_user_1",
             name = name,
             phone = phone,
+            email = "$name@cheket.app",
             walletAddress = "0xNewUser",
             ctkBalance = 0,
         )

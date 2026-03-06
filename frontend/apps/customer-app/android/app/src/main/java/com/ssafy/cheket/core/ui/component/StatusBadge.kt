@@ -29,9 +29,8 @@ fun TicketStatusBadge(status: TicketStatus) {
 @Composable
 fun EventStatusBadge(status: EventStatus) {
     val (bg, text, label) = when (status) {
-        EventStatus.ON_SALE -> Triple(StatusOnSale.copy(alpha = 0.15f), StatusOnSale, "예매중")
+        EventStatus.ON_SALE -> Triple(StatusOnSale.copy(alpha = 0.15f), StatusOnSale, "판매중")
         EventStatus.SOLD_OUT -> Triple(StatusSoldOut.copy(alpha = 0.15f), StatusSoldOut, "매진")
-        EventStatus.ENDED -> Triple(StatusEnded.copy(alpha = 0.15f), StatusEnded, "종료")
     }
     StatusLabel(bg = bg, text = text, label = label)
 }

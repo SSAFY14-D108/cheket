@@ -100,28 +100,11 @@ fun MyPageScreen(
                         Text(user.phone, fontSize = 13.sp, color = MutedForeground)
                     }
 
-                    // Wallet address
+                    // Email
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.AccountBalanceWallet, null, tint = MutedForeground, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Outlined.Email, null, tint = MutedForeground, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            user.walletAddress,
-                            fontSize = 12.sp,
-                            color = MutedForeground,
-                            fontFamily = FontFamily.Monospace,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(
-                            onClick = {
-                                clipboardManager.setText(AnnotatedString(user.walletAddress))
-                                Toast.makeText(context, "복사되었습니다!", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(Icons.Outlined.ContentCopy, "복사", tint = Primary, modifier = Modifier.size(16.dp))
-                        }
+                        Text(user.email, fontSize = 13.sp, color = MutedForeground)
                     }
                 }
             }

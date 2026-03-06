@@ -2,6 +2,7 @@ package com.ssafy.cheket.features.event
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +39,7 @@ import java.util.Locale
 @Composable
 fun EventDetailScreen(
     eventId: String,
-    onNavigateToQueue: (eventId: String) -> Unit,
+    onNavigateToDateSelection: (eventId: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val event = remember { MockDataSource.mockEvents.find { it.id == eventId } }
@@ -97,22 +98,43 @@ fun EventDetailScreen(
                 ) {
                     EventStatusBadge(status = event.status)
                 }
-                // Wishlist button - top right
-                IconButton(
-                    onClick = { isWishlisted = !isWishlisted },
+                // Wishlist button - top right with count badge
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Black.copy(alpha = 0.4f))
                 ) {
-                    Icon(
-                        imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = if (isWishlisted) "찜 해제" else "찜하기",
-                        tint = if (isWishlisted) Danger else White,
-                        modifier = Modifier.size(22.dp),
-                    )
+                    IconButton(
+                        onClick = { isWishlisted = !isWishlisted },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Black.copy(alpha = 0.45f))
+                    ) {
+                        Icon(
+                            imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isWishlisted) "찜 해제" else "찜하기",
+                            tint = if (isWishlisted) Danger else White,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    // Wishlist count badge
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp)
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(Primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "3", // mock wishlist count
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = White,
+                        )
+                    }
                 }
             }
 
@@ -128,6 +150,14 @@ fun EventDetailScreen(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (event.artistName != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = event.artistName,
+                        fontSize = 14.sp,
+                        color = MutedForeground,
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
 
                 // Info rows with icons
@@ -195,7 +225,7 @@ fun EventDetailScreen(
                     .padding(bottom = 16.dp)
             ) {
                 Text(
-                    text = "등급별 가격",
+                    text = "가격 안내",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = OnBackground,
@@ -231,7 +261,7 @@ fun EventDetailScreen(
                     .padding(bottom = 24.dp)
             ) {
                 Button(
-                    onClick = { onNavigateToQueue(event.id) },
+                    onClick = { onNavigateToDateSelection(event.id) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -244,7 +274,6 @@ fun EventDetailScreen(
                         text = when (event.status) {
                             EventStatus.ON_SALE -> "예매하기"
                             EventStatus.SOLD_OUT -> "매진"
-                            EventStatus.ENDED -> "종료된 공연"
                         },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
