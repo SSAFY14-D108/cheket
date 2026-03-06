@@ -3,6 +3,7 @@ package com.ssafy.cheket.service.show;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.Region;
+import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -19,10 +20,8 @@ public class ShowServiceImpl implements ShowService {
     private final ShowRepository showRepository;
 
     @Override
-    public GetShowListResponse getShowList(Region region, String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
-            Sort.by(Sort.Direction.DESC, "createdAt") // 일단 고정
-        );
+    public GetShowListResponse getShowList(Region region, ShowSort sort, String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100), toSort(sort));
 
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         Page<Show> result = showRepository.search(region, normalized, pageable);
@@ -38,6 +37,19 @@ public class ShowServiceImpl implements ShowService {
 
         return new GetShowListResponse(items, result.getNumber(), result.getSize(), result.getTotalElements(),
             result.getTotalPages());
+    }
+
+    private Sort toSort(ShowSort sort) {
+        if (sort == null)
+            sort = ShowSort.LATEST;
+
+        return switch (sort) {
+            case LATEST -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case DEADLINE -> Sort.by(Sort.Direction.ASC, "reservationEndDate");
+            case POPULAR ->
+                // TODO: 예매수 -> 티켓 엔티티 만들고 수정
+                Sort.by(Sort.Direction.DESC, "createdAt");
+        };
     }
 
     private int clamp(int v, int min, int max) {
