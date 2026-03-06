@@ -15,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -71,8 +71,8 @@ fun HomeScreen(
                         IconButton(onClick = {}) {
                             Icon(Icons.Outlined.Notifications, contentDescription = "알림", tint = OnBackground)
                         }
-                        IconButton(onClick = {}) {
-                            Icon(Icons.Default.Search, contentDescription = "검색", tint = OnBackground)
+                        IconButton(onClick = onMyPage) {
+                            Icon(Icons.Filled.Person, contentDescription = "마이페이지", tint = OnBackground)
                         }
                     }
                 }

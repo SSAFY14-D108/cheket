@@ -49,6 +49,7 @@ import com.ssafy.cheket.features.auth.FindAccountScreen
 import com.ssafy.cheket.features.auth.PasswordResetScreen
 import com.ssafy.cheket.features.resale.ResaleListScreen
 import com.ssafy.cheket.features.resale.ResaleTicketsScreen
+import com.ssafy.cheket.features.event.EventDateSelectionScreen
 
 object Routes {
     const val LOGIN = "login"
@@ -61,8 +62,9 @@ object Routes {
 
     // Detail / Flow screens
     const val EVENT_DETAIL = "event_detail/{eventId}"
-    const val WAITING_QUEUE = "waiting_queue/{eventId}"
-    const val SEAT_SELECTION = "seat_selection/{eventId}"
+    const val EVENT_DATE_SELECTION = "event_date_selection/{eventId}"
+    const val WAITING_QUEUE = "waiting_queue/{eventId}/{eventDateId}"
+    const val SEAT_SELECTION = "seat_selection/{eventId}/{eventDateId}"
     const val PAYMENT = "payment/{eventId}"
     const val PURCHASE_FAILED = "purchase_failed/{eventId}/{reason}"
     const val TICKET_DETAIL = "ticket_detail/{ticketId}"
@@ -92,8 +94,9 @@ object Routes {
 
     // Helper functions for building routes with args
     fun eventDetail(eventId: String) = "event_detail/$eventId"
-    fun waitingQueue(eventId: String) = "waiting_queue/$eventId"
-    fun seatSelection(eventId: String) = "seat_selection/$eventId"
+    fun eventDateSelection(eventId: String) = "event_date_selection/$eventId"
+    fun waitingQueue(eventId: String, eventDateId: String) = "waiting_queue/$eventId/$eventDateId"
+    fun seatSelection(eventId: String, eventDateId: String) = "seat_selection/$eventId/$eventDateId"
     fun payment(eventId: String) = "payment/$eventId"
     fun purchaseFailed(eventId: String, reason: String) = "purchase_failed/$eventId/${java.net.URLEncoder.encode(reason, "UTF-8")}"
     fun ticketDetail(ticketId: String) = "ticket_detail/$ticketId"
@@ -205,28 +208,48 @@ fun AppNavGraph(
                 val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
                 EventDetailScreen(
                     eventId = eventId,
-                    onNavigateToQueue = { navController.navigate(Routes.waitingQueue(it)) },
+                    onNavigateToDateSelection = { navController.navigate(Routes.eventDateSelection(it)) },
                     onBack = { navController.popBackStack() },
                 )
             }
 
             // ── Purchase Flow ──
             composable(
-                route = Routes.WAITING_QUEUE,
+                route = Routes.EVENT_DATE_SELECTION,
                 arguments = listOf(navArgument("eventId") { type = NavType.StringType }),
             ) { backStackEntry ->
                 val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                EventDateSelectionScreen(
+                    eventId = eventId,
+                    onDateSelected = { evtId, dateId ->
+                        navController.navigate(Routes.waitingQueue(evtId, dateId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.WAITING_QUEUE,
+                arguments = listOf(
+                    navArgument("eventId") { type = NavType.StringType },
+                    navArgument("eventDateId") { type = NavType.StringType },
+                ),
+            ) { backStackEntry ->
+                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                val eventDateId = backStackEntry.arguments?.getString("eventDateId") ?: ""
                 WaitingQueueScreen(
                     eventId = eventId,
-                    onComplete = { navController.navigate(Routes.seatSelection(it)) {
-                        popUpTo(Routes.waitingQueue(eventId)) { inclusive = true }
+                    onComplete = { navController.navigate(Routes.seatSelection(it, eventDateId)) {
+                        popUpTo(Routes.waitingQueue(eventId, eventDateId)) { inclusive = true }
                     } },
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(
                 route = Routes.SEAT_SELECTION,
-                arguments = listOf(navArgument("eventId") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("eventId") { type = NavType.StringType },
+                    navArgument("eventDateId") { type = NavType.StringType },
+                ),
             ) { backStackEntry ->
                 val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
                 SeatSelectionScreen(

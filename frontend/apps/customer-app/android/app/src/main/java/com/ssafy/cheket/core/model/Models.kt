@@ -1,7 +1,7 @@
 package com.ssafy.cheket.core.model
 
 enum class TicketStatus { SOLD, LISTED, USED, EXPIRED }
-enum class EventStatus { ON_SALE, SOLD_OUT, ENDED }
+enum class EventStatus { ON_SALE, SOLD_OUT }
 enum class SeatStatus { AVAILABLE, LOCKED, SOLD }
 
 enum class TxType { PURCHASE, RESALE_LIST, RESALE_BUY, TRANSFER }
@@ -33,6 +33,7 @@ data class EventDate(
 data class Event(
     val id: String,
     val name: String,
+    val artistName: String? = null,
     val date: String,
     val dates: List<EventDate> = emptyList(),
     val venue: String,
@@ -65,6 +66,7 @@ data class User(
     val id: String,
     val name: String,
     val phone: String,
+    val email: String,
     val walletAddress: String,
     val ctkBalance: Int,
 )

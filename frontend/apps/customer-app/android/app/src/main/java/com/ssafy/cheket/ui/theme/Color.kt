@@ -30,7 +30,6 @@ val BadgeExpired = Color(0xFFE53E3E)
 // Event status
 val StatusOnSale = Color(0xFF00C598)
 val StatusSoldOut = Color(0xFF9CA3AF)
-val StatusEnded = Color(0xFF6B7280)
 
 // Grade colors
 val GradeVip = Color(0xFFf59e0b)
