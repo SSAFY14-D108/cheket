@@ -30,6 +30,7 @@ export interface SessionItem {
 export interface Event {
   showId: number
   title: string
+  artistName: string
   posterUrl: string
   venue: {
     venueId: number
@@ -111,6 +112,7 @@ export const mockEvents: Event[] = [
   {
     showId: 42,
     title: "CHEKET LIVE: Spring Night",
+    artistName: "에스파",
     posterUrl: "/images/poster-1.jpg",
     venue: {
       venueId: 1,
@@ -160,6 +162,7 @@ export const mockEvents: Event[] = [
   {
     showId: 43,
     title: "봄날의 재즈 나이트",
+    artistName: "재즈 올스타즈",
     posterUrl: "/images/poster-2.jpg",
     venue: {
       venueId: 2,
@@ -204,6 +207,7 @@ export const mockEvents: Event[] = [
   {
     showId: 44,
     title: "Rolling Indie Night",
+    artistName: "실리카겔 & 잔나비",
     posterUrl: "/images/poster-3.jpg",
     venue: {
       venueId: 4,
@@ -247,6 +251,7 @@ export const mockEvents: Event[] = [
   {
     showId: 45,
     title: "2026 한강 썸머 뮤직 페스티벌",
+    artistName: "Various Artists",
     posterUrl: "/images/poster-4.jpg",
     venue: {
       venueId: 3,

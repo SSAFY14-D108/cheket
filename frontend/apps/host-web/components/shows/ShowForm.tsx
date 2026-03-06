@@ -6,7 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Upload, ImagePlus } from "lucide-react"
+import { ArrowLeft, Upload, ImagePlus, User, Music } from "lucide-react"
 import { DescriptionEditor } from "./DescriptionEditor"
 import { SettingsCardBasic } from "./SettingsCardBasic"
 import { SettingsCardTickets } from "./SettingsCardTickets"
@@ -24,6 +24,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
     // ─── State ───────────────────────────────────────────────
     const [title, setTitle] = useState(initialData?.title ?? "")
+    const [artistName, setArtistName] = useState(initialData?.artistName ?? "")
     const [posterPreview, setPosterPreview] = useState<string | null>(initialData?.posterUrl ?? null)
     const [description, setDescription] = useState(initialData?.description ?? "")
 
@@ -136,6 +137,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
         const payload = {
             title,
+            artistName,
             posterUrl: posterPreview ?? "https://cdn.example.com/default.jpg",
             venueId: Number(venueId),
             show: {
@@ -188,7 +190,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     return (
         <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
             {/* Header & Title */}
-            <div className="mb-6 flex flex-col gap-4 border-b pb-6">
+            <div className="mb-6 flex flex-col gap-6 border-b pb-8 mt-2">
+                {/* Back button and page title */}
                 <div className="flex items-center gap-3">
                     <Link
                         href={isEdit && initialData?.id ? `/shows/${initialData.id}` : "/mypage"}
@@ -199,13 +202,43 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     </Link>
                     <span className="text-sm font-medium text-muted-foreground">{headerTitle}</span>
                 </div>
-                <input
-                    type="text"
-                    placeholder="멋진 공연 제목을 입력하세요"
-                    className="w-full bg-transparent text-3xl md:text-5xl font-bold placeholder:text-muted-foreground border-none focus:outline-none focus:ring-0 px-0"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
+
+                {/* Input Fields Container */}
+                <div className="flex flex-col gap-6 bg-muted/20 p-6 rounded-xl border border-border/50">
+                    {/* Title Input */}
+                    <div className="flex items-start gap-4">
+                        <div className="mt-2 text-primary/80 bg-primary/10 p-2 rounded-full hidden sm:block">
+                            <Music className="size-6" />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1.5">
+                            <Label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">공연 제목 (Title)</Label>
+                            <input
+                                type="text"
+                                placeholder="멋진 공연 제목을 입력하세요"
+                                className="w-full bg-transparent text-3xl md:text-4xl lg:text-5xl font-bold placeholder:text-muted-foreground/40 border-none focus:outline-none focus:ring-0 px-1"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Artist Input */}
+                    <div className="flex items-start gap-4">
+                        <div className="mt-1 text-primary/80 bg-primary/10 p-2 rounded-full hidden sm:block">
+                            <User className="size-5" />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1.5">
+                            <Label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">아티스트 / 그룹명 (Artist)</Label>
+                            <input
+                                type="text"
+                                placeholder="참여하는 아티스트 또는 그룹명을 입력하세요"
+                                className="w-full bg-transparent text-xl md:text-2xl font-semibold text-foreground/90 placeholder:text-muted-foreground/40 border-none focus:outline-none focus:ring-0 px-1"
+                                value={artistName}
+                                onChange={(e) => setArtistName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Split Layout */}
