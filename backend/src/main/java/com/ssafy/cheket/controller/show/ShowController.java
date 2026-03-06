@@ -21,8 +21,9 @@ public class ShowController {
     @GetMapping
     @Operation(summary = "공연 목록 조회")
     public ResponseEntity<ApiResponse<GetShowListResponse>> getShowList(@RequestParam(required = false) Region region,
-        @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        GetShowListResponse response = showService.getShowList(region, page, size);
+        @RequestParam(required = false) String keyword, @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+        GetShowListResponse response = showService.getShowList(region, keyword, page, size);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 목록 조회 완료", response));
     }
 

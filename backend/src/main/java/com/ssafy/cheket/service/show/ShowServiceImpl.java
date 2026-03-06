@@ -19,14 +19,13 @@ public class ShowServiceImpl implements ShowService {
     private final ShowRepository showRepository;
 
     @Override
-    public GetShowListResponse getShowList(Region region, int page, int size) {
+    public GetShowListResponse getShowList(Region region, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
             Sort.by(Sort.Direction.DESC, "createdAt") // 일단 고정
         );
 
-        Page<Show> result = (region == null)
-            ? showRepository.findAllWithVenue(pageable)
-            : showRepository.findAllByVenueRegion(region, pageable);
+        String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        Page<Show> result = showRepository.search(region, normalized, pageable);
 
         List<GetShowListResponse.ShowItem> items = result.getContent().stream()
             .map(s -> new GetShowListResponse.ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(),
