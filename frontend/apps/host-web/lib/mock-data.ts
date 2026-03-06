@@ -338,23 +338,7 @@ export const mockEvents: Event[] = [
   }
 ]
 
-export interface DailyBooking {
-  date: string
-  count: number
-}
 
-export const mockDailyBookings: DailyBooking[] = [
-  { date: "02/01", count: 120 },
-  { date: "02/05", count: 340 },
-  { date: "02/10", count: 580 },
-  { date: "02/15", count: 720 },
-  { date: "02/20", count: 950 },
-  { date: "02/25", count: 1100 },
-  { date: "03/01", count: 1400 },
-  { date: "03/05", count: 2100 },
-  { date: "03/10", count: 3200 },
-  { date: "03/14", count: 4200 },
-]
 
 // ─── 찜 목록 (Wishlist / Likes) ────────────────────────────────────
 // API: GET /api/v1/users/likes
@@ -436,3 +420,58 @@ export const mockDashboardReservations: DashboardReservationData[] = [
   },
 ]
 
+// ─── Dashboard API Mock Data ────────────────────────────────────────────────
+// 실제 API가 준비되면 아래 데이터는 제거하고 fetch 로직으로 대체합니다.
+
+import type {
+  DashboardTotalSales,
+  DashboardBookingRate,
+  DashboardRevenueSplit,
+  DashboardReservations,
+  WalletBalance,
+} from "@/lib/dashboard-types"
+
+export const mockDashboardTotalSales: DashboardTotalSales = {
+  showId: 1,
+  title: "서울 윈터 콘서트 2026",
+  totalPrimarySales: 375000000,
+}
+
+export const mockDashboardBookingRate: DashboardBookingRate = {
+  showId: 1,
+  title: "서울 윈터 콘서트 2026",
+  capacity: 35000,       // 세션 7개 × 5000석
+  reservedSeats: 15580,
+  bookingRate: 44.5,
+}
+
+export const mockDashboardRevenueSplit: DashboardRevenueSplit = {
+  showId: 1,
+  title: "서울 윈터 콘서트 2026",
+  totalRevenue: 15.75,
+  splits: [
+    { role: "소속사", rateBps: 5000, amount: 7.875 },
+    { role: "가수", rateBps: 3000, amount: 4.725 },
+    { role: "기획자", rateBps: 2000, amount: 3.15 },
+  ],
+}
+
+export const mockDashboardReservationsNew: DashboardReservations = {
+  showId: 1,
+  title: "서울 윈터 콘서트 2026",
+  venue: "올림픽공원 올림픽홀",
+  sessions: [
+    { sessionId: 1, date: "2026-03-01", capacity: 5000, reservedSeats: 4800 },
+    { sessionId: 2, date: "2026-03-02", capacity: 5000, reservedSeats: 400 },
+    { sessionId: 3, date: "2026-03-03", capacity: 5000, reservedSeats: 2600 },
+    { sessionId: 4, date: "2026-03-04", capacity: 5000, reservedSeats: 1500 },
+    { sessionId: 5, date: "2026-03-05", capacity: 5000, reservedSeats: 1300 },
+    { sessionId: 6, date: "2026-03-06", capacity: 5000, reservedSeats: 800 },
+    { sessionId: 7, date: "2026-03-07", capacity: 5000, reservedSeats: 580 },
+  ],
+}
+
+export const mockWalletBalance: WalletBalance = {
+  balance: 350000,
+  walletAddress: "0xAb5801a7D398351b8bE11C439e05C5b3259aec9B",
+}
