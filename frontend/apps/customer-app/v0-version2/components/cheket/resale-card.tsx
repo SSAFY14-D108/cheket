@@ -1,13 +1,18 @@
 'use client'
 
-import Image from 'next/image'
+import { Calendar, Tag, Ticket } from 'lucide-react'
 import { ResaleItem } from '@/lib/types'
-import { MapPin, Tag } from 'lucide-react'
 
 interface ResaleCardProps {
   item: ResaleItem
   onClick: () => void
 }
+
+const LABELS = {
+  separator: ' \u00b7 ',
+  discount: '\ud560\uc778',
+  originalPrice: '\uc815\uac00 ',
+} as const
 
 export function ResaleCard({ item, onClick }: ResaleCardProps) {
   const discount = item.originalPrice - item.resalePrice
@@ -16,34 +21,41 @@ export function ResaleCard({ item, onClick }: ResaleCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/40 active:scale-[0.98] transition-all text-left"
+      className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left transition-all hover:border-primary/40 active:scale-[0.98]"
     >
-      <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
-        <Image src={item.poster} alt={item.eventName} fill className="object-cover" sizes="80px" />
-      </div>
-      <div className="flex-1 min-w-0 py-0.5">
-        <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-1 mb-0.5">
-          {item.eventName}
-        </h3>
-        <p className="text-xs text-muted-foreground mb-1">{item.seatLabel} · {item.grade}</p>
-        <div className="flex items-center gap-1 text-muted-foreground text-xs mb-2">
-          <MapPin className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate">{item.venue}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-foreground text-sm">
-            {item.resalePrice.toLocaleString()} CTK
-          </span>
-          {discount > 0 && (
-            <span className="flex items-center gap-0.5 text-xs text-primary font-medium">
-              <Tag className="w-3 h-3" />
-              {discountPct}% 할인
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Ticket className="h-3 w-3 flex-shrink-0 text-primary" />
+            <span className="truncate">
+              {item.seatLabel}
+              {LABELS.separator}
+              {item.grade}
             </span>
-          )}
+          </div>
+
+          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{item.eventDate}</span>
+          </div>
+
+          <div className="mt-1.5 flex items-end gap-2">
+            <span className="text-lg font-bold leading-none text-foreground">
+              {item.resalePrice.toLocaleString()} CTK
+            </span>
+            <p className="text-[11px] text-muted-foreground line-through">
+              {LABELS.originalPrice}
+              {item.originalPrice.toLocaleString()} CTK
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground line-through">
-          정가 {item.originalPrice.toLocaleString()} CTK
-        </p>
+
+        {discount > 0 && (
+          <span className="mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            <Tag className="h-2.5 w-2.5" />
+            {discountPct}% {LABELS.discount}
+          </span>
+        )}
       </div>
     </button>
   )

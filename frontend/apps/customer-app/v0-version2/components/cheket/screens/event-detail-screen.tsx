@@ -5,7 +5,7 @@ import { useApp } from '@/lib/app-context'
 import { MOCK_EVENTS } from '@/lib/mock-data'
 import { AppShell } from '../app-shell'
 import { EventStatusBadge } from '../status-badge'
-import { MapPin, Calendar, Users, ChevronRight, Heart } from 'lucide-react'
+import { MapPin, Calendar, Users, ChevronRight, Heart, Receipt } from 'lucide-react'
 
 export function EventDetailScreen() {
   const { navParams, navigate, goBack, isWishlisted, toggleWishlist, wishlist } = useApp()
@@ -15,6 +15,7 @@ export function EventDetailScreen() {
 
   const canBuy = event.status === 'ON_SALE'
   const wishlisted = isWishlisted(event.id)
+  const refundRules = event.refundRules ?? []
 
   return (
     <AppShell showBack onBack={goBack} title={event.name} showBottomNav>
@@ -32,6 +33,23 @@ export function EventDetailScreen() {
           <div className="absolute bottom-3 left-3">
             <EventStatusBadge status={event.status} />
           </div>
+
+          {refundRules.length > 0 && (
+            <div className="bg-card rounded-xl border border-border p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Receipt className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm text-foreground">환불 규정</h3>
+              </div>
+              <div className="flex flex-col gap-2">
+                {refundRules.map((rule) => (
+                  <div key={rule.id} className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{rule.label}</span>
+                    <span>{rule.feeRate >= 1 ? '환불 불가' : `수수료 ${Math.round(rule.feeRate * 100)}%`}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={() => toggleWishlist(event.id)}

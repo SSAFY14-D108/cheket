@@ -7,6 +7,7 @@ import { EmptyState } from '../empty-state'
 
 export function MyTicketsScreen() {
   const { tickets, navigate } = useApp()
+  const visibleTickets = tickets.filter((ticket) => ticket.status === 'SOLD' || ticket.status === 'LISTED')
 
   return (
     <AppShell title="내 티켓">
@@ -22,14 +23,14 @@ export function MyTicketsScreen() {
           ))}
         </div>
 
-        {tickets.length === 0 ? (
+        {visibleTickets.length === 0 ? (
           <EmptyState
             title="보유한 티켓이 없습니다"
             description="공연을 검색하고 첫 번째 NFT 티켓을 구매해보세요."
           />
         ) : (
           <div className="flex flex-col gap-3">
-            {tickets.map((ticket) => (
+            {visibleTickets.map((ticket) => (
               <TicketCard
                 key={ticket.id}
                 ticket={ticket}

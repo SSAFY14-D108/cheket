@@ -3,10 +3,10 @@ export type SeatStatus = 'AVAILABLE' | 'LOCKED' | 'SOLD'
 export type EventStatus = 'ON_SALE' | 'SOLD_OUT'
 export type Tab = 'home' | 'concerts' | 'resale' | 'my-tickets' | 'collection'
 
-export type TxType = 'PURCHASE' | 'RESALE_LIST' | 'RESALE_BUY' | 'TRANSFER'
+export type TxType = 'PURCHASE' | 'RESALE_LIST' | 'RESALE_BUY' | 'TRANSFER' | 'REFUND'
 export type TxStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED'
 
-export type WalletTxType = 'CHARGE' | 'PURCHASE' | 'RESALE_BUY' | 'RESALE_SELL' | 'TRANSFER_SEND' | 'TRANSFER_RECEIVE'
+export type WalletTxType = 'CHARGE' | 'PURCHASE' | 'RESALE_BUY' | 'RESALE_SELL' | 'TRANSFER_SEND' | 'TRANSFER_RECEIVE' | 'REFUND'
 
 export interface TxRecord {
   id: string              // uuid
@@ -89,6 +89,13 @@ export interface EventDate {
   day: string        // e.g. "DAY 1"
 }
 
+export interface RefundRule {
+  id: string
+  daysBefore: number
+  feeRate: number
+  label: string
+}
+
 export interface Event {
   id: string
   name: string
@@ -101,6 +108,7 @@ export interface Event {
   status: EventStatus
   maxPerUser: number
   grades: Grade[]
+  refundRules?: RefundRule[]
   openDate?: string     // for deadline sorting, e.g. "2026-04-01"
   description?: string
 }

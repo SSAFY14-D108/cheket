@@ -5,14 +5,33 @@ import { AppShell } from '../app-shell'
 import { ChevronLeft, Check, AlertCircle, Clock } from 'lucide-react'
 
 export function TxHistoryScreen() {
-  const { goBack, txRecords } = useApp()
+  const { goBack, txRecords, tickets } = useApp()
+
+  const derivedRecords = tickets
+    .filter((ticket) => /^tkt_\d{3}$/.test(ticket.id))
+    .map((ticket, index) => ({
+      id: `ticket-history-${ticket.id}`,
+      txHash: `0x${ticket.id.replace(/[^a-zA-Z0-9]/g, '').padEnd(64, '0').slice(0, 64)}`,
+      type: ticket.status === 'LISTED' ? 'RESALE_LIST' : ticket.status === 'EXPIRED' ? 'REFUND' : 'PURCHASE',
+      status: 'CONFIRMED' as const,
+      label: ticket.eventName,
+      amount: ticket.resalePrice ?? ticket.originalPrice,
+      createdAt: Date.now() - (index + 1) * 3600000,
+      confirmedAt: Date.now() - (index + 1) * 3600000 + 180000,
+      confirmations: 12,
+    }))
+
+  const allTxRecords = [...txRecords, ...derivedRecords]
+    .filter((record, index, records) => records.findIndex((item) => item.id === record.id) === index)
+    .sort((a, b) => b.createdAt - a.createdAt)
 
   const getTxTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       PURCHASE: '티켓 구매',
-      RESALE_LIST: '리세일 등록',
-      RESALE_BUY: '리세일 구매',
+      RESALE_LIST: '재판매 등록',
+      RESALE_BUY: '재판매 구매',
       TRANSFER: '티켓 양도',
+      REFUND: '티켓 환불',
     }
     return labels[type] || type
   }
@@ -23,6 +42,7 @@ export function TxHistoryScreen() {
       RESALE_LIST: 'bg-purple-50 text-purple-700 border-purple-200',
       RESALE_BUY: 'bg-green-50 text-green-700 border-green-200',
       TRANSFER: 'bg-orange-50 text-orange-700 border-orange-200',
+      REFUND: 'bg-amber-50 text-amber-700 border-amber-200',
     }
     return colors[type] || 'bg-gray-50 text-gray-700 border-gray-200'
   }
@@ -38,7 +58,7 @@ export function TxHistoryScreen() {
       CONFIRMED: '완료',
       FAILED: '실패',
       PENDING: '대기중',
-      CONFIRMING: '처리중',
+      CONFIRMING: '확인중',
     }
     return labels[status] || status
   }
@@ -52,68 +72,62 @@ export function TxHistoryScreen() {
     return `${month}.${day} ${hour}:${min}`
   }
 
-  const formatHash = (hash: string) => {
-    return `${hash.slice(0, 10)}...${hash.slice(-8)}`
-  }
+  const formatHash = (hash: string) => `${hash.slice(0, 10)}...${hash.slice(-8)}`
 
   return (
     <AppShell>
       <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border px-4 py-3 flex items-center gap-3 z-10">
           <button
             onClick={goBack}
             className="p-1 hover:bg-muted rounded-lg active:scale-95 transition-all"
-            aria-label="돌아가기"
+            aria-label="뒤로가기"
           >
             <ChevronLeft className="w-6 h-6 text-foreground" />
           </button>
           <h1 className="text-lg font-bold text-foreground">티켓 거래 내역</h1>
         </div>
 
-        {/* TX List */}
         <div className="flex-1 overflow-y-auto">
-          {txRecords.length === 0 ? (
+          {allTxRecords.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
                 <Clock className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-foreground font-medium">거래 내역이 없습니다</p>
-              <p className="text-sm text-muted-foreground mt-1">콘서트 티켓을 구매하면 내역이 표시됩니다</p>
+              <p className="text-foreground font-medium">거래 내역이 없습니다.</p>
+              <p className="text-sm text-muted-foreground mt-1">구매, 재판매, 환불한 티켓 내역이 여기에 표시됩니다.</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {txRecords.map((tx) => (
+              {allTxRecords.map((tx) => (
                 <div key={tx.id} className="bg-card border-b border-border p-4">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground truncate">{tx.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatDate(tx.createdAt)}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatDate(tx.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(tx.status)}
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${
-                        tx.status === 'CONFIRMED' 
-                          ? 'bg-green-50 text-green-700 border-green-200'
-                          : tx.status === 'FAILED'
-                          ? 'bg-red-50 text-red-700 border-red-200'
-                          : 'bg-muted text-muted-foreground border-border'
-                      }`}>
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-full border ${
+                          tx.status === 'CONFIRMED'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : tx.status === 'FAILED'
+                              ? 'bg-red-50 text-red-700 border-red-200'
+                              : 'bg-muted text-muted-foreground border-border'
+                        }`}
+                      >
                         {getStatusLabel(tx.status)}
                       </span>
                     </div>
                   </div>
 
-                  {/* TX Type Badge */}
                   <div className="mb-3">
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border inline-block ${getTxTypeColor(tx.type)}`}>
                       {getTxTypeLabel(tx.type)}
                     </span>
                   </div>
 
-                  {/* TX Details */}
                   <div className="bg-muted rounded-lg p-3 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">TX Hash</span>
