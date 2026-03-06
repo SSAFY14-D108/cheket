@@ -1,6 +1,6 @@
 package com.ssafy.cheket.controller.user;
 
-import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
+import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,5 +24,6 @@ public class UserController {
         userService.userSignup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "회원가입 완료", null));
     }
+
 
 }

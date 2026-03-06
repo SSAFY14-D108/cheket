@@ -1,6 +1,6 @@
 package com.ssafy.cheket.service.user;
 
-import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
+import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.ConflictException;
@@ -53,4 +53,6 @@ public class UserServiceImpl implements UserService {
             .password(passwordEncoder.encode(request.password())).notificationEnable(true).build();
         userRepository.save(user);
     }
+
+
 }
