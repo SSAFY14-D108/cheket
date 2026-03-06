@@ -2,22 +2,32 @@ package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
+import com.ssafy.cheket.dto.show.response.GetShowListResponse;
+import com.ssafy.cheket.service.show.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/shows")
+@RequestMapping("/api/v1/shows")
 public class ShowController {
 
+    private final ShowService showService;
+
     @GetMapping
+    @Operation(summary = "공연 목록 조회")
+    public ResponseEntity<ApiResponse<GetShowListResponse>> getShowList(@RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+        GetShowListResponse response = showService.getShowList(page, size);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 목록 조회 완료", response));
+    }
+
+    @GetMapping("/{showId}")
     @Operation(summary = "공연 상세 조회")
-    public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail() {
+    public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail(@PathVariable String showId) {
         GetShowDetailResponse response = new GetShowDetailResponse();
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 성공", response));
     }

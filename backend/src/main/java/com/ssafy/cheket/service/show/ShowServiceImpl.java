@@ -1,9 +1,44 @@
 package com.ssafy.cheket.service.show;
 
+import com.ssafy.cheket.dto.show.response.GetShowListResponse;
+import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.repository.show.ShowRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ShowServiceImpl implements ShowService {
+
+    private final ShowRepository showRepository;
+
+    @Override
+    public GetShowListResponse getShowList(int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
+            Sort.by(Sort.Direction.DESC, "createdAt") // 일단 고정
+        );
+
+        Page<Show> result = showRepository.findAll(pageable);
+
+        List<GetShowListResponse.ShowItem> items = result.getContent().stream()
+            .map(s -> new GetShowListResponse.ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(),
+                s.getVenue().getName(), s.getPurchaseLimit(), s.getVenue().getRegion().name(),
+                new GetShowListResponse.ShowPeriod(s.getShowStartDate().toLocalDate(),
+                    s.getShowEndDate().toLocalDate()),
+                new GetShowListResponse.ReservationPeriod(s.getReservationStartDate(), s.getReservationEndDate()),
+                s.getStatus().name()))
+            .toList();
+
+        return new GetShowListResponse(items, result.getNumber(), result.getSize(), result.getTotalElements(),
+            result.getTotalPages());
+    }
+
+    private int clamp(int v, int min, int max) {
+        return Math.max(min, Math.min(max, v));
+    }
 }
