@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useCallback, useEffect, useRef, type CSSProperties } from 'react'
 import Image from 'next/image'
@@ -542,14 +542,14 @@ export function CollectionScreen() {
   }
 
   return (
-    <AppShell
-      title="컬렉션"
-      rightElement={
-        <span className="text-xs text-muted-foreground font-medium">{collected.length}장</span>
-      }
-    >
+    <AppShell title="컬렉션">
       <div className="flex flex-col h-full overflow-y-auto pb-24">
         <div className="px-4 pt-4 pb-2">
+          <div className="mb-2">
+            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {collected.length}장
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             관람한 공연의 소장 티켓을 모아보세요. 카드를 탭하면 상세 정보를 볼 수 있어요.
           </p>

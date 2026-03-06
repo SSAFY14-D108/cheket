@@ -10,6 +10,7 @@ function randomHex(len: number) {
 }
 function makeTxHash() { return `0x${randomHex(64)}` }
 function makeTxId()   { return `tx_${Date.now()}_${randomHex(4)}` }
+function makeWalletTxId() { return `wtx_${Date.now()}_${randomHex(4)}` }
 
 interface AppContextValue {
   // Auth
@@ -49,6 +50,10 @@ interface AppContextValue {
   // Wallet TX history
   walletTxs: WalletTx[]
   addWalletTx: (type: WalletTxType, label: string, amount: number) => WalletTx
+
+  // Settings
+  allowNotifications: boolean
+  setAllowNotifications: (enabled: boolean) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -82,6 +87,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createdAt: Date.now() - 86400000 * 9,
     },
   ])
+  const [allowNotifications, setAllowNotifications] = useState(true)
 
   const login = useCallback((id: string, _password: string): boolean => {
     if (id.length > 0) {
@@ -179,7 +185,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newBalance = prev.ctkBalance + amount
       // Add wallet TX
       const wtx: WalletTx = {
-        id: `wtx_${Date.now()}`,
+        id: makeWalletTxId(),
         type: 'CHARGE',
         label: `CTK ${amount.toLocaleString()} 충전`,
         amount,
@@ -211,7 +217,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const lastBalance = walletTxs.length > 0 ? walletTxs[0].balance : user?.ctkBalance || 0
     const newBalance = lastBalance + amount
     const wtx: WalletTx = {
-      id: `wtx_${Date.now()}`,
+      id: makeWalletTxId(),
       type,
       label,
       amount,
@@ -265,6 +271,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         wishlist, toggleWishlist, isWishlisted,
         txRecords, addTx,
         walletTxs, addWalletTx,
+        allowNotifications, setAllowNotifications,
       }}
     >
       {children}

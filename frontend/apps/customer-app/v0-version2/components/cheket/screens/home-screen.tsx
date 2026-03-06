@@ -11,7 +11,7 @@ import {
   MOCK_EVENTS,
 } from '@/lib/mock-data'
 import { AppShell } from '../app-shell'
-import { ChevronRight, Search, Clock, Heart, Tag } from 'lucide-react'
+import { ChevronRight, Clock, Heart, Tag } from 'lucide-react'
 
 // ── Hero banner carousel ──────────────────────────────────────────────────
 function HeroBanner({ onEventClick }: { onEventClick: (id: string) => void }) {
@@ -319,11 +319,7 @@ export function HomeScreen() {
   const goToEvent = (eventId: string) => navigate('event-detail', { eventId })
 
   return (
-    <AppShell showNotification rightElement={
-      <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors" aria-label="검색">
-        <Search className="w-5 h-5 text-foreground" />
-      </button>
-    }>
+    <AppShell>
       <HeroBanner onEventClick={goToEvent} />
 
       {/* Thin divider */}

@@ -6,6 +6,7 @@ import { SignupScreen } from './screens/signup-screen'
 import { HomeScreen } from './screens/home-screen'
 import { ConcertsScreen } from './screens/concerts-screen'
 import { EventDetailScreen } from './screens/event-detail-screen'
+import { EventDateSelectionScreen } from './screens/event-date-selection-screen'
 import { WaitingQueueScreen } from './screens/waiting-queue-screen'
 import { SeatSelectionScreen } from './screens/seat-selection-screen'
 import { PaymentScreen } from './screens/payment-screen'
@@ -45,6 +46,7 @@ export function CheketApp() {
     home: <HomeScreen />,
     concerts: <ConcertsScreen />,
     'event-detail': <EventDetailScreen />,
+    'event-date-selection': <EventDateSelectionScreen />,
     'waiting-queue': <WaitingQueueScreen />,
     'seat-selection': <SeatSelectionScreen />,
     payment: <PaymentScreen />,

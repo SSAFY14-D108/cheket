@@ -31,14 +31,8 @@ export function ResaleListScreen() {
   }, [eventMap, events])
 
   return (
-    <AppShell showNotification={false}>
+    <AppShell title="2차 거래소">
       <div className="flex flex-col gap-4 p-4">
-        {/* Header */}
-        <div>
-          <h2 className="text-lg font-bold text-foreground">2차 거래소</h2>
-          <p className="text-xs text-muted-foreground mt-1">리세일 티켓 구매</p>
-        </div>
-
         {/* Events grid */}
         {eventsWithResale.length === 0 ? (
           <EmptyState

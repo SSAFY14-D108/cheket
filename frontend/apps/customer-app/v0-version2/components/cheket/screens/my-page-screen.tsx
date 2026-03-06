@@ -2,20 +2,12 @@
 
 import { useApp } from '@/lib/app-context'
 import { AppShell } from '../app-shell'
-import { User, Phone, Wallet, LogOut, ChevronRight, Copy, Heart, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { User, Phone, Mail, LogOut, ChevronRight, Heart, Settings } from 'lucide-react'
 
 export function MyPageScreen() {
   const { user, logout, navigate, goBack, wishlist } = useApp()
-  const [copied, setCopied] = useState(false)
 
   if (!user) return null
-
-  const copyAddress = () => {
-    navigator.clipboard.writeText(user.walletAddress).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   const menuItems = [
     { label: '공지사항', icon: null },
@@ -46,14 +38,10 @@ export function MyPageScreen() {
               <span className="ml-auto text-foreground font-medium">{user.phone}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Wallet className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-muted-foreground">지갑 주소</span>
-              <span className="ml-auto text-foreground font-mono text-xs">{user.walletAddress}</span>
-              <button onClick={copyAddress} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="주소 복사">
-                <Copy className="w-3.5 h-3.5" />
-              </button>
+              <Mail className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="text-muted-foreground">이메일</span>
+              <span className="ml-auto text-foreground text-sm">{user.email}</span>
             </div>
-            {copied && <p className="text-xs text-primary text-right">복사되었습니다!</p>}
           </div>
         </div>
 

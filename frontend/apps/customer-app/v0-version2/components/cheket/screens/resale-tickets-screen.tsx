@@ -25,7 +25,7 @@ export function ResaleTicketsScreen() {
 
   if (!event) {
     return (
-      <AppShell showNotification={false}>
+      <AppShell>
         <div className="flex items-center justify-center h-screen">
           <EmptyState title="공연을 찾을 수 없습니다" />
         </div>
@@ -34,7 +34,7 @@ export function ResaleTicketsScreen() {
   }
 
   return (
-    <AppShell showNotification={false}>
+    <AppShell>
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center gap-3">

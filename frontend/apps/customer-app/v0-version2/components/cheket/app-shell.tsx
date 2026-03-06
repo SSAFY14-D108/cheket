@@ -23,7 +23,7 @@ export function AppShell({
   title,
   showBack = false,
   onBack,
-  showNotification = false,
+  showNotification = true,
   rightElement,
   hideProfileIcon = false,
 }: AppShellProps) {
