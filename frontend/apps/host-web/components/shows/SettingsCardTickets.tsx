@@ -10,15 +10,15 @@ import { Plus, Trash2, Ticket, X, ZoomIn, ChevronDown } from "lucide-react"
 import { useState, useEffect } from "react"
 import type { Grade, SessionItem } from "./showFormTypes"
 import { DateTimePicker } from "@/components/common/DateTimePicker"
-import { mockSectionsByVenue, type Section } from "@/lib/mock-data"
+import { mockSectionsByVenue, type Section, mockTicketEffects, type TicketEffect } from "@/lib/mock-data"
+import { TicketEffectPreview } from "./TicketEffectPreview"
 
 interface SettingsCardTicketsProps {
     venueId: string
+    posterPreview: string | null
     purchaseLimit: string
     grades: Grade[]
     sessionInfo: SessionItem[]
-    ticketEffectId?: number
-    onChangeTicketEffectId: (val: number) => void
     onChangePurchaseLimit: (val: string) => void
     onAddGrade: () => void
     onRemoveGrade: (idx: number) => void
@@ -30,11 +30,10 @@ interface SettingsCardTicketsProps {
 
 export function SettingsCardTickets({
     venueId,
+    posterPreview,
     purchaseLimit,
     grades,
     sessionInfo,
-    ticketEffectId,
-    onChangeTicketEffectId,
     onChangePurchaseLimit,
     onAddGrade,
     onRemoveGrade,
@@ -86,6 +85,28 @@ export function SettingsCardTickets({
 
         fetchSections()
     }, [venueId])
+
+    // 티켓 효과 목록 API 연동 (상태 관리)
+    const [ticketEffects, setTicketEffects] = useState<TicketEffect[]>([])
+
+    // 컴포넌트 마운트 시 티켓 효과 목록을 가져옵니다.
+    useEffect(() => {
+        const fetchTicketEffects = async () => {
+            try {
+                // 향후 실제 API 연결 시 아래 주석 처리된 코드를 사용하면 됩니다.
+                // const response = await fetch('https://api.cheket.com/api/v1/ticket-effects');
+                // const json = await response.json();
+                // setTicketEffects(json.data);
+
+                // --- 모의 데이터 대체 ---
+                setTicketEffects(mockTicketEffects)
+            } catch (error) {
+                console.error("티켓 효과 목록을 불러오는데 실패했습니다.", error)
+                setTicketEffects([])
+            }
+        }
+        fetchTicketEffects()
+    }, [])
 
     // ESC 키로 모달 닫기
     useEffect(() => {
@@ -267,33 +288,20 @@ export function SettingsCardTickets({
                                     })()}
                                 </div>
                             </div>
+
+                            {/* 3줄: 실시간 티켓 효과 및 미리보기 썸네일 */}
+                            <TicketEffectPreview
+                                posterUrl={posterPreview}
+                                selectedEffectId={grade.ticketEffectId}
+                                onSelectEffect={(effectId) => onUpdateGrade(idx, 'ticketEffectId', effectId)}
+                                ticketEffects={ticketEffects}
+                            />
                         </div>
                     ))}
                 </div>
-
-                <Separator />
-
-
-                <div className="flex flex-col gap-3">
-                    <Label className="text-sm">티켓 효과 설정 (Ticket Effect)</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div
-                            className={`flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${ticketEffectId === 1 ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'}`}
-                            onClick={() => onChangeTicketEffectId(1)}
-                        >
-                            <img src="/ticket_effect/logo.png" alt="효과 1" className="h-16 object-contain" />
-                            <span className="text-xs font-medium">효과 1</span>
-                        </div>
-                        <div
-                            className={`flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${ticketEffectId === 2 ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/50'}`}
-                            onClick={() => onChangeTicketEffectId(2)}
-                        >
-                            <img src="/ticket_effect/logo2.png" alt="효과 2" className="h-16 object-contain" />
-                            <span className="text-xs font-medium">효과 2</span>
-                        </div>
-                    </div>
-                </div>
             </CardContent>
+
+
 
             {/* 풀스크린 이미지 확대 모달 */}
             {isImageModalOpen && (
@@ -353,16 +361,7 @@ export function SettingsCardTickets({
                                         placeholder="공연 시작 날짜/시간"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-1.5 mt-1">
-                                    <Label className="text-[10px]">수용 인원</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="수용인원"
-                                        value={sess.capacity}
-                                        onChange={e => onUpdateSession(idx, 'capacity', e.target.value)}
-                                        className="h-8 px-2"
-                                    />
-                                </div>
+
                             </div>
                         </div>
                     ))}

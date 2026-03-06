@@ -4,6 +4,7 @@ export interface Grade {
     price: string
     colorCode: string
     sectionId: string
+    ticketEffectId?: string
 }
 
 export interface Stakeholder {
@@ -21,7 +22,7 @@ export interface RefundItem {
 }
 
 export interface ShowFormData {
-    ticketEffectId?: number
+    // Ticket effect moved to Grade
 }
 
 export interface SessionItem {

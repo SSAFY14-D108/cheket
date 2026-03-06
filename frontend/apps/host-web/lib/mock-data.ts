@@ -104,6 +104,19 @@ export const mockSectionsByVenue: Record<number, Section[]> = {
   ]
 }
 
+// ─── API: GET /api/v1/ticket-effects 의 응답 모크 ───
+export interface TicketEffect {
+  id: number
+  effect: string
+}
+
+export const mockTicketEffects: TicketEffect[] = [
+  { id: 1, effect: "glow1" },
+  { id: 2, effect: "glow2" },
+  { id: 3, effect: "glow3" },
+  { id: 4, effect: "glow4" },
+]
+
 // ─── 회원 조회 (Stakeholder Verification) ─────────────────────────
 // API: GET /api/v1/authsearch
 export interface AuthUser {
