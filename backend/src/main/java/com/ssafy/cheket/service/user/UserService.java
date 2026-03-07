@@ -1,7 +1,13 @@
 package com.ssafy.cheket.service.user;
 
+import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
 import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
+import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 
 public interface UserService {
     void userSignup(UserSignupRequest request) throws Exception;
+
+    // 이베일 찾기
+    FindEmailResponse findEmail(FindEmailRequest request);
+
 }

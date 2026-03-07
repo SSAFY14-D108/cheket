@@ -1,6 +1,8 @@
 package com.ssafy.cheket.controller.user;
 
+import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
 import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
+import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +25,13 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> signup(@RequestBody UserSignupRequest request) throws Exception {
         userService.userSignup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "회원가입 완료", null));
+    }
+
+    @PostMapping("/email")
+    @Operation(summary = "이메일 찾기")
+    public ResponseEntity<ApiResponse<FindEmailResponse>> findEmail(@RequestBody FindEmailRequest request) {
+        FindEmailResponse response = userService.findEmail(request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "이메일 찾기에 성공했습니다.", response));
     }
 
 }
