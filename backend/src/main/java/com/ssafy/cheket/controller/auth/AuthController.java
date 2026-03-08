@@ -12,10 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -37,6 +34,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> reissue(@RequestBody ReissueRequest request) {
         LoginResponse response = authService.reissue(request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "토큰 재발급 성공", response));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "사용자 로그아웃")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization) {
+        String accessToken = authorization.replace("Bearer ", "");
+        authService.logout(accessToken);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그아웃 완료", null));
     }
 
     @PostMapping("/sms/send")

@@ -30,13 +30,14 @@ public class JwtTokenProvider {
     // Access Token 생성 — API 요청 인증용 (만료: 30분)
     public String generateAccessToken(Long userId, String email, String role) {
         Date now = new Date();
+        // JWT 생성 빌더
         return Jwts.builder().subject(String.valueOf(userId)) // 토큰 주인 (userId)
             .claim("email", email) // 추가 정보: 이메일 (DB 조회 없이 사용 가능)
             .claim("role", role) // 추가 정보: 권한 (USER/HOST 구분)
             .issuedAt(now) // 토큰 발급 시간
             .expiration(new Date(now.getTime() + accessExpiration)) // 만료 시간
             .signWith(secretKey) // 비밀 키로 서명 (위조 방지)
-            .compact(); // 최종 JWT 문자열 생성
+            .compact(); // 최종 JWT 문자열 생성 (build와 같은 역할)
     }
 
     // Refresh Token 생성 — Access Token 재발급용 (만료: 7일)
@@ -84,4 +85,9 @@ public class JwtTokenProvider {
         return claims.get("email", String.class);
     }
 
+    // 토큰 남은 만료시간 계산 메서드 추가
+    public long getRemainingExpiration(String token) {
+        Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
+        return claims.getExpiration().getTime() - System.currentTimeMillis();
+    }
 }
