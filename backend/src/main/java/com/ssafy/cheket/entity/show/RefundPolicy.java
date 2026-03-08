@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.refundpolicy;
+package com.ssafy.cheket.entity.show;
 
 import jakarta.persistence.*;
 import lombok.*;

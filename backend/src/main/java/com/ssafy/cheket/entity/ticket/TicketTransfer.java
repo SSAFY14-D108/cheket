@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.tickettransfer;
+package com.ssafy.cheket.entity.ticket;
 
 import jakarta.persistence.*;
 import lombok.*;

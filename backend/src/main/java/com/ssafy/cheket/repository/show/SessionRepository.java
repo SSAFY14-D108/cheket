@@ -1,6 +1,6 @@
 package com.ssafy.cheket.repository.show;
 
-import com.ssafy.cheket.entity.session.Session;
+import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.repository.show.projection.SessionListProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -3,7 +3,7 @@ package com.ssafy.cheket.service.show;
 import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.SessionListResponse;
-import com.ssafy.cheket.entity.seatgrade.SeatGrade;
+import com.ssafy.cheket.entity.show.SeatGrade;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
