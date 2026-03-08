@@ -2,12 +2,14 @@ package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
+import com.ssafy.cheket.dto.show.response.SessionListResponse;
 import com.ssafy.cheket.entity.seatgrade.SeatGrade;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.show.*;
+import com.ssafy.cheket.repository.show.projection.SessionListProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class ShowServiceImpl implements ShowService {
     private final RefundPolicyRepository refundPolicyRepository;
     private final SeatGradeRepository seatGradeRepository;
     private final SectionRepository sectionRepository;
+    private final SessionRepository sessionRepository;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -74,6 +77,19 @@ public class ShowServiceImpl implements ShowService {
                 show.getShowEndDate().toLocalDate()),
             new GetShowDetailResponse.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
             show.getStatus(), show.getDescription(), show.getArtist(), false, likeCount, grades, refundPolicies);
+    }
+
+    @Override
+    public List<SessionListResponse> getSessionList(Long showId) {
+        if (!showRepository.existsById(showId))
+            throw new NotFoundException("존재하지 않는 공연입니다.");
+
+        List<SessionListProjection> results = sessionRepository.findSessionListByShowId(showId);
+
+        return results.stream()
+            .map(result -> new SessionListResponse(result.getSessionId(), result.getSessionDate().toLocalDate(),
+                result.getSessionStartTime().toLocalTime(), result.getRemainingSeats(), result.getTotalSeats()))
+            .toList();
     }
 
     private Sort toSort(ShowSort sort) {
