@@ -1,6 +1,6 @@
 package com.ssafy.cheket.controller.host;
 
-import com.ssafy.cheket.dto.auth.request.HostSignupRequest;
+import com.ssafy.cheket.dto.host.request.HostSignupRequest;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.service.host.HostService;
