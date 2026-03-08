@@ -9,9 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Entity
 @Builder
-@Table(name = "seat_grades", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"show_id", "section_id"})
-})
+@Table(name = "seat_grades", uniqueConstraints = {@UniqueConstraint(columnNames = {"show_id", "section_id"})})
 public class SeatGrade {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

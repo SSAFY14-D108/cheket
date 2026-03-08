@@ -1,7 +1,7 @@
 package com.ssafy.cheket.controller.user;
 
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
-import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
+import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.user.UserService;
