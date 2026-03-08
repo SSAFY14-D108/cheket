@@ -1,9 +1,12 @@
 package com.ssafy.cheket.service.user;
 
-import com.ssafy.cheket.dto.user.request.UserSignupRequest;
+import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.auth.request.UserSignupRequest;
+import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.ConflictException;
+import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import jakarta.transaction.Transactional;
@@ -54,5 +57,12 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    // 이메일 찾기
+    @Override
+    public FindEmailResponse findEmail(FindEmailRequest request) {
+        User user = userRepository.findByUsernameAndPhoneNumber(request.username(), request.phoneNumber())
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 회원입니다."));
+        return new FindEmailResponse(user.getEmail());
+    }
 
 }
