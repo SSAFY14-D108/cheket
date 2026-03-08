@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.auth;
 
 import com.ssafy.cheket.dto.auth.request.LoginRequest;
+import com.ssafy.cheket.dto.auth.request.ReissueRequest;
 import com.ssafy.cheket.dto.auth.request.SmsSendForChangePasswordRequest;
 import com.ssafy.cheket.dto.auth.request.SmsSendVerificationRequest;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
@@ -29,6 +30,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그인 성공", response));
+    }
+
+    @PostMapping("/reissue")
+    @Operation(summary = "토큰 재발급")
+    public ResponseEntity<ApiResponse<LoginResponse>> reissue(@RequestBody ReissueRequest request) {
+        LoginResponse response = authService.reissue(request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "토큰 재발급 성공", response));
     }
 
     @PostMapping("/sms/send")
