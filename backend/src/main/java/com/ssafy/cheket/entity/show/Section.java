@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.section;
+package com.ssafy.cheket.entity.show;
 
 import jakarta.persistence.*;
 import lombok.*;

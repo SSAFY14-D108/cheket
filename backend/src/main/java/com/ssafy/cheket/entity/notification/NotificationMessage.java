@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.notificationmessage;
+package com.ssafy.cheket.entity.notification;
 
 import jakarta.persistence.*;
 import lombok.*;
