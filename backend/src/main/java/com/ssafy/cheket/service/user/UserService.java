@@ -7,7 +7,7 @@ import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 public interface UserService {
     void userSignup(UserSignupRequest request) throws Exception;
 
-    // 이베일 찾기
+    // 이메일 찾기
     FindEmailResponse findEmail(FindEmailRequest request);
 
 }
