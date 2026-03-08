@@ -30,8 +30,8 @@ public class ShowController {
 
     @GetMapping("/{showId}")
     @Operation(summary = "공연 상세 조회")
-    public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail(@PathVariable String showId) {
-        GetShowDetailResponse response = new GetShowDetailResponse();
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 성공", response));
+    public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail(@PathVariable Long showId) {
+        GetShowDetailResponse response = showService.getShowDetail(showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 완료", response));
     }
 }

@@ -49,7 +49,6 @@ public class Show {
     @Column(name = "playtime", nullable = false)
     private Integer playtime;
 
-    @Lob
     @Column(name = "description", nullable = false)
     private String description;
 

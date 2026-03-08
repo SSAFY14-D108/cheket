@@ -1,15 +1,19 @@
 package com.ssafy.cheket.service.show;
 
+import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
+import com.ssafy.cheket.entity.seatgrade.SeatGrade;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
-import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.show.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -18,7 +22,12 @@ import java.util.List;
 public class ShowServiceImpl implements ShowService {
 
     private final ShowRepository showRepository;
+    private final LikeRepository likeRepository;
+    private final RefundPolicyRepository refundPolicyRepository;
+    private final SeatGradeRepository seatGradeRepository;
+    private final SectionRepository sectionRepository;
 
+    // 공연 검색 및 목록 조회
     @Override
     public GetShowListResponse getShowList(Region region, ShowSort sort, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100), toSort(sort));
@@ -37,6 +46,34 @@ public class ShowServiceImpl implements ShowService {
 
         return new GetShowListResponse(items, result.getNumber(), result.getSize(), result.getTotalElements(),
             result.getTotalPages());
+    }
+
+    // 공연 상세 조회
+    @Override
+    public GetShowDetailResponse getShowDetail(Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+
+        int likeCount = likeRepository.countByShowId(showId);
+
+        List<GetShowDetailResponse.GradeInfo> grades = seatGradeRepository.findByShowId(showId).stream()
+            .sorted(Comparator.comparing(SeatGrade::getSectionId))
+            .map(seatGrade -> new GetShowDetailResponse.GradeInfo(seatGrade.getSectionId(), seatGrade.getGradeName(),
+                seatGrade.getPrice(), seatGrade.getColorCode()))
+            .toList();
+
+        List<GetShowDetailResponse.RefundPolicyInfo> refundPolicies = refundPolicyRepository
+            .findByShowIdOrderByDaysRemainingDesc(showId).stream()
+            .map(refundPolicy -> new GetShowDetailResponse.RefundPolicyInfo(refundPolicy.getDaysRemaining(),
+                refundPolicy.getRefundRate()))
+            .toList();
+
+        // JWT 관련 추가된 후에 isLiked 수정하기
+        return new GetShowDetailResponse(show.getId(), show.getTitle(), show.getPosterUrl(), show.getVenue().getName(),
+            show.getPurchaseLimit(), show.getVenue().getRegion(),
+            new GetShowDetailResponse.ShowPeriod(show.getShowStartDate().toLocalDate(),
+                show.getShowEndDate().toLocalDate()),
+            new GetShowDetailResponse.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
+            show.getStatus(), show.getDescription(), show.getArtist(), false, likeCount, grades, refundPolicies);
     }
 
     private Sort toSort(ShowSort sort) {
