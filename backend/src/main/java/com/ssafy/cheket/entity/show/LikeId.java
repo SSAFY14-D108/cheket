@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.like;
+package com.ssafy.cheket.entity.show;
 
 import lombok.*;
 

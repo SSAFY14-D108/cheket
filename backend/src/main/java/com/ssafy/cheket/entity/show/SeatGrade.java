@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.seatgrade;
+package com.ssafy.cheket.entity.show;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,6 +23,9 @@ public class SeatGrade {
 
     @Column(name = "grade_name", nullable = false, length = 30)
     private String gradeName;
+
+    @Column(name = "price", nullable = false)
+    private Integer price;
 
     @Column(name = "color_code", nullable = false, length = 10)
     private String colorCode;

@@ -1,4 +1,4 @@
-package com.ssafy.cheket.entity.stakeholder;
+package com.ssafy.cheket.entity.settlement;
 
 import jakarta.persistence.*;
 import lombok.*;
