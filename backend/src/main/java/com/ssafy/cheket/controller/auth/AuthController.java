@@ -1,8 +1,11 @@
 package com.ssafy.cheket.controller.auth;
 
+import com.ssafy.cheket.dto.auth.request.LoginRequest;
 import com.ssafy.cheket.dto.auth.request.SmsSendForChangePasswordRequest;
 import com.ssafy.cheket.dto.auth.request.SmsSendVerificationRequest;
+import com.ssafy.cheket.dto.auth.response.LoginResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.service.auth.AuthService;
 import com.ssafy.cheket.service.sms.SmsService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +21,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
+    private final AuthService authService;
     private final SmsService smsService;
+
+    @PostMapping("/login")
+    @Operation(summary = "사용자 로그인")
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그인 성공", response));
+    }
 
     @PostMapping("/sms/send")
     @Operation(summary = "회원가입 시 필요한 인증코드 전송")

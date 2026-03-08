@@ -9,9 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Entity
 @Builder
-@Table(name = "session_seats", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"session_id", "seat_id"})
-})
+@Table(name = "session_seats", uniqueConstraints = {@UniqueConstraint(columnNames = {"session_id", "seat_id"})})
 public class SessionSeat {
 
     public enum SeatStatus {

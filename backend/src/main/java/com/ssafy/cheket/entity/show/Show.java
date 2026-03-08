@@ -49,8 +49,7 @@ public class Show {
     @Column(name = "playtime", nullable = false)
     private Integer playtime;
 
-    @Lob
-    @Column(name = "description", nullable = false)
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "purchase_limit", nullable = false)

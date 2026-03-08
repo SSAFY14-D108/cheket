@@ -26,6 +26,11 @@ wallet:
         password: ${KEYSTORE_PASSWORD}
         directory: ${KEYSTORE_DIR}
 
+jwt:
+    secret: ${JWT_SECRET}
+    access-expiration: ${JWT_ACCESS_EXPIRATION}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+
 solapi:
     api-key: ${SOLAPI_API_KEY}
     api-secret: ${SOLAPI_API_SECRET}
