@@ -28,7 +28,7 @@ public class AuthController {
     @Operation(summary = "사용자 로그인")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.ok(200, "로그인 성공", response));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그인 성공", response));
     }
 
     @PostMapping("/sms/send")
