@@ -53,7 +53,7 @@ public class UserServiceImpl implements UserService {
 
         User user = User.builder().walletId(wallet.getId()).username(request.username())
             .phoneNumber(request.phoneNumber()).email(request.email())
-            .password(passwordEncoder.encode(request.password())).notificationEnable(true).build();
+            .password(passwordEncoder.encode(request.password())).notificationEnable(true).build(); // 최종 객체 생성
         userRepository.save(user);
     }
 
