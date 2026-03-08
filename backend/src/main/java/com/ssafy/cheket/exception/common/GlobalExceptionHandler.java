@@ -63,4 +63,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ApiResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
     }
+
+    // 429 Too Many Requests - 너무 잦은 요청으로 인한 오류
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTooManyRequests(TooManyRequestsException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(ApiResponse.fail(HttpStatus.TOO_MANY_REQUESTS.value(), e.getMessage()));
+    }
+
+    // 502 Bad Gateway
+    @ExceptionHandler(SmsSendFailedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSmsSendFailed(SmsSendFailedException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
+    }
+
 }
