@@ -7,8 +7,11 @@ import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.exception.common.UnauthorizedException;
 import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.TimeUnit;
 
 @Service // Spring이 빈으로 등록해야 함
 @RequiredArgsConstructor // final 필드 생성자
@@ -17,6 +20,8 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    // 키와 값이 둘 다 String인 Redis 템플릿 = StringRedisTemplate
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -33,5 +38,13 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
         return new LoginResponse(accessToken, refreshToken);
+    }
+
+    @Override
+    public void logout(String accessToken) {
+        // Access Token 남은 시간 뒤에 자동 삭제되도록 (블랙리스트에 쌓임 방지)
+        long expiration = jwtTokenProvider.getRemainingExpiration(accessToken);
+        // 값 저장 (TTL 포함) set("키", "값", 만료시간, 시간단위)
+        redisTemplate.opsForValue().set("blacklist:" + accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
     }
 }

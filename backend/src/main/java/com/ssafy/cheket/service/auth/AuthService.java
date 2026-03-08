@@ -5,4 +5,5 @@ import com.ssafy.cheket.dto.auth.response.LoginResponse;
 
 public interface AuthService {
     LoginResponse login(LoginRequest request);
+    void logout(String accessToken);
 }
