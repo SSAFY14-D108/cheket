@@ -9,6 +9,7 @@ import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.auth.AuthService;
 import com.ssafy.cheket.service.sms.SmsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     @Operation(summary = "사용자 로그아웃")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization) {
         String accessToken = authorization.replace("Bearer ", "");
         authService.logout(accessToken);

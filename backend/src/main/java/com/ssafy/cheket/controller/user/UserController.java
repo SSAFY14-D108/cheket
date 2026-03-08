@@ -6,6 +6,7 @@ import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class UserController {
 
     @PostMapping("/email")
     @Operation(summary = "이메일 찾기")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<FindEmailResponse>> findEmail(@RequestBody FindEmailRequest request) {
         FindEmailResponse response = userService.findEmail(request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "이메일 찾기에 성공했습니다.", response));
