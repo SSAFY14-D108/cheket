@@ -84,7 +84,7 @@ private fun PaymentMainContent(
 
     Scaffold(
         topBar = {
-            AppHeader(title = "결제", onBack = onBack)
+            AppHeader(title = "결제 확인", onBack = onBack)
         },
         bottomBar = {
             Surface(
@@ -247,7 +247,7 @@ private fun PaymentMainContent(
                                 Spacer(Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "${seat.grade} ${seat.row}열 ${seat.number}번",
+                                        text = "${seat.grade} ${seat.row} ${seat.number}번",
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = OnBackground,
@@ -302,7 +302,7 @@ private fun PaymentMainContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.AccountBalanceWallet, null, tint = Primary, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("CTK 잔액", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = OnBackground)
+                        Text("보유 CTK 잔액", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = OnBackground)
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(
@@ -405,7 +405,7 @@ private fun PaymentMainContent(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "[DEV] 결제 실패 시뮬레이션",
+                            text = "실패 시뮬레이션",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Warning,
@@ -539,14 +539,14 @@ private fun PaymentSuccessContent(
             Spacer(Modifier.height(20.dp))
 
             Text(
-                text = "결제가 완료되었습니다!",
+                text = "예매가 완료되었습니다",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = OnBackground,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "NFT 티켓이 발급되었습니다.",
+                text = "구매한 티켓은 내 티켓에서 바로 확인할 수 있습니다.",
                 fontSize = 14.sp,
                 color = MutedForeground,
             )
@@ -620,7 +620,7 @@ private fun PaymentSuccessContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "${seat.grade} ${seat.row}열 ${seat.number}번",
+                                text = "${seat.grade} ${seat.row} ${seat.number}번",
                                 fontSize = 13.sp,
                                 color = MutedForeground,
                             )
