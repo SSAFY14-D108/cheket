@@ -8,4 +8,7 @@ public interface AuthService {
     LoginResponse login(LoginRequest request);
     LoginResponse reissue(ReissueRequest request);
     void logout(String accessToken);
+
+    // 이메일 중복 확인
+    void checkEmailDuplicated(String email);
 }

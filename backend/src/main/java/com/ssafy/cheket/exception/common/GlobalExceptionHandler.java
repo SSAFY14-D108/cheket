@@ -81,8 +81,7 @@ public class GlobalExceptionHandler {
     // 410 Gone - 인증 만료
     @ExceptionHandler(GoneException.class)
     public ResponseEntity<ApiResponse<Void>> handleGone(GoneException e) {
-        return ResponseEntity.status(HttpStatus.GONE)
-            .body(ApiResponse.fail(HttpStatus.GONE.value(), e.getMessage()));
+        return ResponseEntity.status(HttpStatus.GONE).body(ApiResponse.fail(HttpStatus.GONE.value(), e.getMessage()));
     }
 
 }
