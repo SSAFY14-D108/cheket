@@ -37,6 +37,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
+                .requestMatchers("/api/v1/shows/**").permitAll().requestMatchers("/api/v1/hosts/business-no/duplicate")
+                .permitAll().requestMatchers(HttpMethod.GET, "/api/v1/resales").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shows").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shows/venue").permitAll()
+                .requestMatchers("/api/v1/shows/{showId}/refund").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shows/upcoming").permitAll()
                 // 나머지는 인증 필수
                 .anyRequest().authenticated())
 
