@@ -4,38 +4,37 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { LoginInput } from "@/components/common/LoginInput"
 import { LoginButton } from "@/components/common/LoginButton"
+import { useToast } from "@/hooks/use-toast"
+import { signupHost } from "@/lib/auth-api"
+import { ApiError } from "@/lib/api"
 
 interface SignupState {
   companyName: string
-  businessNumber: string
+  businessNo: string
   email: string
-  username: string
   password: string
   passwordConfirm: string
 }
 
 const initialState: SignupState = {
   companyName: "",
-  businessNumber: "",
+  businessNo: "",
   email: "",
-  username: "",
   password: "",
   passwordConfirm: "",
 }
 
 export function SignupForm() {
   const router = useRouter()
+  const { toast } = useToast()
   const [form, setForm] = useState<SignupState>(initialState)
   const [errors, setErrors] = useState<Partial<Record<keyof SignupState, string>>>({})
-  const [isIdChecked, setIsIdChecked] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const updateField = (key: keyof SignupState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }))
-    }
-    if (key === "username") {
-      setIsIdChecked(false)
     }
   }
 
@@ -49,42 +48,61 @@ export function SignupForm() {
     form.passwordConfirm.length > 0 &&
     form.password === form.passwordConfirm
 
-  const handleDuplicateCheck = () => {
-    if (!form.username.trim()) {
-      setErrors((prev) => ({ ...prev, username: "아이디를 먼저 입력해주세요." }))
-      return
-    }
-    setIsIdChecked(true)
-    alert("사용 가능한 아이디입니다.")
-  }
-
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof SignupState, string>> = {}
+
     if (!form.companyName.trim()) newErrors.companyName = "회사 이름을 입력해주세요."
-    if (!form.businessNumber.trim()) newErrors.businessNumber = "사업자등록번호를 입력해주세요."
+    if (!form.businessNo.trim()) newErrors.businessNo = "사업자등록번호를 입력해주세요."
     if (!form.email.trim()) newErrors.email = "이메일을 입력해주세요."
-    if (!form.username.trim()) newErrors.username = "아이디를 입력해주세요."
-    else if (!isIdChecked) newErrors.username = "아이디 중복확인을 해주세요."
     if (!form.password.trim()) newErrors.password = "비밀번호를 입력해주세요."
-    if (!form.passwordConfirm.trim()) newErrors.passwordConfirm = "비밀번호 확인을 입력해주세요."
-    else if (form.password !== form.passwordConfirm) newErrors.passwordConfirm = "비밀번호가 일치하지 않습니다."
+    if (!form.passwordConfirm.trim()) {
+      newErrors.passwordConfirm = "비밀번호 확인을 입력해주세요."
+    } else if (form.password !== form.passwordConfirm) {
+      newErrors.passwordConfirm = "비밀번호가 일치하지 않습니다."
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return
-    // TODO: 회원가입 API 연동
-    alert("회원가입이 완료되었습니다.")
-    router.push("/")
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await signupHost({
+        companyName: form.companyName.trim(),
+        businessNo: form.businessNo.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      })
+
+      toast({
+        title: "회원가입 완료",
+        description: response.responseMessage,
+      })
+      router.push("/")
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : "회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+
+      toast({
+        title: "회원가입 실패",
+        description: message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const isFormValid =
     form.companyName.trim().length > 0 &&
-    form.businessNumber.trim().length > 0 &&
+    form.businessNo.trim().length > 0 &&
     form.email.trim().length > 0 &&
-    form.username.trim().length > 0 &&
-    isIdChecked &&
     form.password.length > 0 &&
     form.passwordConfirm.length > 0 &&
     form.password === form.passwordConfirm
@@ -96,7 +114,6 @@ export function SignupForm() {
       </h1>
 
       <div className="flex flex-col gap-3">
-        {/* 회사 이름 */}
         <div className="flex flex-col gap-1">
           <LoginInput
             type="text"
@@ -109,20 +126,18 @@ export function SignupForm() {
           )}
         </div>
 
-        {/* 사업자등록번호 */}
         <div className="flex flex-col gap-1">
           <LoginInput
             type="text"
             placeholder="사업자등록번호"
-            value={form.businessNumber}
-            onChange={(e) => updateField("businessNumber", e.target.value)}
+            value={form.businessNo}
+            onChange={(e) => updateField("businessNo", e.target.value)}
           />
-          {errors.businessNumber && (
-            <p className="text-sm text-destructive">{errors.businessNumber}</p>
+          {errors.businessNo && (
+            <p className="text-sm text-destructive">{errors.businessNo}</p>
           )}
         </div>
 
-        {/* 이메일 */}
         <div className="flex flex-col gap-1">
           <LoginInput
             type="email"
@@ -135,33 +150,6 @@ export function SignupForm() {
           )}
         </div>
 
-        {/* 아이디 + 중복확인 */}
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-2">
-            <LoginInput
-              type="text"
-              placeholder="아이디"
-              value={form.username}
-              onChange={(e) => updateField("username", e.target.value)}
-              className="flex-1"
-            />
-            <button
-              type="button"
-              onClick={handleDuplicateCheck}
-              className="shrink-0 rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              중복확인
-            </button>
-          </div>
-          {isIdChecked && !errors.username && (
-            <p className="text-sm text-chart-5">사용 가능한 아이디입니다.</p>
-          )}
-          {errors.username && (
-            <p className="text-sm text-destructive">{errors.username}</p>
-          )}
-        </div>
-
-        {/* 비밀번호 */}
         <div className="flex flex-col gap-1">
           <LoginInput
             type="password"
@@ -174,7 +162,6 @@ export function SignupForm() {
           )}
         </div>
 
-        {/* 비밀번호 확인 */}
         <div className="flex flex-col gap-1">
           <LoginInput
             type="password"
@@ -199,11 +186,16 @@ export function SignupForm() {
           type="button"
           variant="primary"
           onClick={handleSubmit}
-          disabled={!isFormValid}
+          disabled={!isFormValid || isSubmitting}
         >
-          회원가입
+          {isSubmitting ? "가입 처리 중..." : "회원가입"}
         </LoginButton>
-        <LoginButton type="button" variant="secondary" onClick={() => router.push("/")}>
+        <LoginButton
+          type="button"
+          variant="secondary"
+          onClick={() => router.push("/")}
+          disabled={isSubmitting}
+        >
           로그인으로 돌아가기
         </LoginButton>
       </div>
