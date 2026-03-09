@@ -1,8 +1,6 @@
 package com.ssafy.cheket.service.show;
 
-import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
-import com.ssafy.cheket.dto.show.response.GetShowListResponse;
-import com.ssafy.cheket.dto.show.response.SessionListResponse;
+import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.SeatGrade;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.Region;
@@ -17,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class ShowServiceImpl implements ShowService {
     private final SeatGradeRepository seatGradeRepository;
     private final SectionRepository sectionRepository;
     private final SessionRepository sessionRepository;
+    private final SessionSeatRepository sessionSeatRepository;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -79,6 +81,7 @@ public class ShowServiceImpl implements ShowService {
             show.getStatus(), show.getDescription(), show.getArtist(), false, likeCount, grades, refundPolicies);
     }
 
+    // 회차 목록 조회
     @Override
     public List<SessionListResponse> getSessionList(Long showId) {
         if (!showRepository.existsById(showId))
@@ -90,6 +93,35 @@ public class ShowServiceImpl implements ShowService {
             .map(result -> new SessionListResponse(result.getSessionId(), result.getSessionDate().toLocalDate(),
                 result.getSessionStartTime().toLocalTime(), result.getRemainingSeats(), result.getTotalSeats()))
             .toList();
+    }
+
+    // 좌석 배치도 조회
+    @Override
+    public List<GetSeatsResponse> getSeats(Long showId, Long sessionId) {
+        if (!sessionRepository.existsByIdAndShowId(sessionId, showId))
+            throw new NotFoundException("해당 공연의 회차를 찾을 수 없습니다.");
+
+        List<SeatRowDto> rows = sessionSeatRepository.findSeatRowsByShowIdAndSessionId(showId, sessionId);
+
+        // 구역별로 묶기
+        Map<Long, SectionGroup> grouped = new LinkedHashMap<>();
+        for (SeatRowDto row : rows) {
+            grouped
+                // 구역이 없으면 새로 생성
+                .computeIfAbsent(row.sectionId(),
+                    key -> new SectionGroup(row.sectionId(), row.sectionName(), row.gradeName(), row.price(),
+                        row.colorCode(), new ArrayList<>()))
+                // 해당 구역에 좌석 추가
+                .seats().add(new SeatItemResponse(row.sessionSeatId(), row.seatId(), row.rowNum(), row.colNum(),
+                    row.seatNo(), row.status().name()));
+        }
+
+        return grouped.values().stream().map(group -> new GetSeatsResponse(group.sectionId(), group.sectionName(),
+            group.gradeName(), group.price(), group.colorCode(), group.seats())).toList();
+    }
+
+    private record SectionGroup(Long sectionId, String sectionName, String gradeName, Integer price, String colorCode,
+        List<SeatItemResponse> seats) {
     }
 
     private Sort toSort(ShowSort sort) {

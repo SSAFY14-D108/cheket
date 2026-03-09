@@ -24,4 +24,6 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
         ORDER BY s.session_date ASC, s.session_start_time ASC
         """, nativeQuery = true)
     List<SessionListProjection> findSessionListByShowId(@Param("showId") Long showId);
+
+    boolean existsByIdAndShowId(Long sessionId, Long showId);
 }
