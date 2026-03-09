@@ -7,6 +7,7 @@ import { LoginButton } from "@/components/common/LoginButton"
 import { useToast } from "@/hooks/use-toast"
 import { loginHost } from "@/lib/auth-api"
 import { ApiError } from "@/lib/api"
+import { setAccessToken, setRefreshToken } from "@/lib/auth-storage"
 
 export function LoginForm() {
   const router = useRouter()
@@ -30,6 +31,9 @@ export function LoginForm() {
         email: email.trim(),
         password,
       })
+
+      setAccessToken(response.data.accessToken)
+      setRefreshToken(response.data.refreshToken)
 
       toast({
         title: "로그인 성공",

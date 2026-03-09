@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { MockServiceWorkerProvider } from '@/components/providers/MockServiceWorkerProvider'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geist.className} ${geistMono.variable} font-sans antialiased`}>
+        <MockServiceWorkerProvider />
         {children}
         <Toaster />
         <Analytics />
