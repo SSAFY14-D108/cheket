@@ -7,8 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.EventSeat
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
@@ -38,7 +38,7 @@ fun ResaleDetailScreen(
     val user = remember { MockDataSource.mockUser }
 
     if (resaleItem == null) {
-        Scaffold(topBar = { AppHeader(title = "리세일 상세", onBack = onBack) }) { innerPadding ->
+        Scaffold(topBar = { AppHeader(title = "재판매 티켓", onBack = onBack) }) { innerPadding ->
             Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text("해당 리세일 항목을 찾을 수 없습니다.", color = MutedForeground, fontSize = 14.sp)
             }
@@ -55,7 +55,7 @@ fun ResaleDetailScreen(
     val hasInsufficientBalance = user.ctkBalance < resaleItem.resalePrice
 
     Scaffold(
-        topBar = { AppHeader(title = "리세일 상세", onBack = onBack) },
+        topBar = { AppHeader(title = "재판매 티켓", onBack = onBack) },
         bottomBar = {
             Surface(
                 tonalElevation = 4.dp,
@@ -67,7 +67,7 @@ fun ResaleDetailScreen(
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(Danger.copy(alpha = 0.1f))
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -110,7 +110,7 @@ fun ResaleDetailScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Poster
             AsyncImage(
@@ -120,40 +120,52 @@ fun ResaleDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Muted),
             )
 
             // Event Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         resaleItem.eventName,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-
-                    InfoRow(Icons.Outlined.CalendarMonth, resaleItem.eventDate)
-                    InfoRow(Icons.Outlined.LocationOn, resaleItem.venue)
-                    InfoRow(Icons.Outlined.EventSeat, "${resaleItem.seatLabel} (${resaleItem.grade})")
+                    InfoRow(Icons.Outlined.CalendarMonth, resaleItem.eventDate, tint = Primary)
+                    InfoRow(Icons.Outlined.LocationOn, resaleItem.venue, tint = Primary)
                 }
             }
 
-            // Price Card
+            // Ticket Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("가격 정보", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+                    Text("티켓 정보", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("좌석", fontSize = 14.sp, color = MutedForeground)
+                        Text(
+                            "${resaleItem.seatLabel} · ${resaleItem.grade}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = OnBackground,
+                        )
+                    }
 
                     Row(
                         Modifier.fillMaxWidth(),
@@ -164,37 +176,9 @@ fun ResaleDetailScreen(
                         Text(
                             "%,d CTK".format(resaleItem.originalPrice),
                             fontSize = 14.sp,
-                            color = SubText,
+                            color = MutedForeground,
                             textDecoration = TextDecoration.LineThrough,
                         )
-                    }
-
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("리세일가", fontSize = 14.sp, color = MutedForeground)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (isDiscounted) {
-                                Text(
-                                    "${discountPct}% 할인",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = White,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(Danger)
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                )
-                            }
-                            Text(
-                                "%,d CTK".format(resaleItem.resalePrice),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = OnBackground,
-                            )
-                        }
                     }
 
                     HorizontalDivider(color = BorderColor)
@@ -204,32 +188,53 @@ fun ResaleDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("내 잔액", fontSize = 14.sp, color = MutedForeground)
-                        Text(
-                            "%,d CTK".format(user.ctkBalance),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (hasInsufficientBalance) Danger else Primary,
-                        )
+                        Text("재판매가", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isDiscounted) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(PrimaryLight)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.LocalOffer,
+                                        contentDescription = null,
+                                        tint = Primary,
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                    Text(
+                                        "${discountPct}% 할인",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Primary,
+                                    )
+                                }
+                            }
+                            Text(
+                                "%,d CTK".format(resaleItem.resalePrice),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Primary,
+                            )
+                        }
                     }
                 }
             }
 
             // Notice Section
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryLight),
+                shape = RoundedCornerShape(16.dp),
+                color = Muted,
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Outlined.Info, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
-                        Text("리세일 구매 안내", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PrimaryDark)
-                    }
-                    NoticeText("리세일 티켓은 블록체인에 기록되어 위변조가 불가능합니다.")
-                    NoticeText("구매 완료 후 취소 및 환불이 불가합니다.")
-                    NoticeText("티켓의 좌석 정보와 등급을 반드시 확인하세요.")
-                    NoticeText("구매 즉시 CTK 잔액에서 차감됩니다.")
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("구매 안내", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+                    NoticeText("재판매 티켓은 구매 즉시 내 티켓으로 이동됩니다.")
+                    NoticeText("구매가 완료되면 판매자의 리스팅은 자동으로 종료됩니다.")
+                    NoticeText("잔액이 부족하면 구매가 불가하므로 충전 후 다시 시도해주세요.")
                 }
             }
 
@@ -239,9 +244,9 @@ fun ResaleDetailScreen(
 }
 
 @Composable
-private fun InfoRow(icon: ImageVector, text: String) {
+private fun InfoRow(icon: ImageVector, text: String, tint: androidx.compose.ui.graphics.Color = MutedForeground) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(icon, contentDescription = null, tint = MutedForeground, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
         Text(text, fontSize = 14.sp, color = MutedForeground)
     }
 }
@@ -249,7 +254,7 @@ private fun InfoRow(icon: ImageVector, text: String) {
 @Composable
 private fun NoticeText(text: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("\u2022", fontSize = 12.sp, color = PrimaryDark)
-        Text(text, fontSize = 12.sp, color = PrimaryDark, lineHeight = 18.sp)
+        Text("\u2022", fontSize = 12.sp, color = MutedForeground)
+        Text(text, fontSize = 12.sp, color = MutedForeground, lineHeight = 18.sp)
     }
 }

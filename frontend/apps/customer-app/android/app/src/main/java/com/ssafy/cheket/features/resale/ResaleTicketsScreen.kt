@@ -7,9 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,8 +42,6 @@ fun ResaleTicketsScreen(
 ) {
     val allItems = remember { MockDataSource.mockResaleItems.filter { it.eventId == eventId } }
     val event = remember { MockDataSource.mockEvents.find { it.id == eventId } }
-    val eventName = event?.name ?: allItems.firstOrNull()?.eventName ?: "리세일 티켓"
-    val eventDate = event?.date ?: ""
 
     var sortMode by remember { mutableStateOf(SortMode.LATEST) }
 
@@ -53,44 +52,19 @@ fun ResaleTicketsScreen(
         }
     }
 
+    if (event == null) {
+        Scaffold(topBar = { AppHeader(title = "2차 거래소", onBack = onBack) }) { innerPadding ->
+            EmptyState(
+                title = "공연 정보를 찾을 수 없습니다.",
+                description = "",
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            )
+        }
+        return
+    }
+
     Scaffold(
-        topBar = {
-            // Custom header with event name + date
-            Surface(shadowElevation = 1.dp) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 4.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = "뒤로가기",
-                            tint = OnBackground,
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = eventName,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (eventDate.isNotEmpty()) {
-                            Text(
-                                text = eventDate,
-                                fontSize = 12.sp,
-                                color = MutedForeground,
-                            )
-                        }
-                    }
-                }
-            }
-        },
+        topBar = { AppHeader(title = "2차 거래소", onBack = onBack) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -98,11 +72,117 @@ fun ResaleTicketsScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
+            // Event info card
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = CardBg,
+                border = CardDefaults.outlinedCardBorder().copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(BorderColor),
+                ),
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Event poster
+                    AsyncImage(
+                        model = event.poster,
+                        contentDescription = event.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(80.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Muted),
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = event.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = OnBackground,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 20.sp,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        // Date
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.CalendarMonth,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                text = event.date,
+                                fontSize = 12.sp,
+                                color = MutedForeground,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        // Venue
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.LocationOn,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                text = event.venue,
+                                fontSize = 12.sp,
+                                color = MutedForeground,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        // Selling count badge
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(PrimaryLight)
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.ConfirmationNumber,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Text(
+                                text = "판매 중 ${sortedItems.size}건",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Primary,
+                            )
+                        }
+                    }
+                }
+            }
+
             // Sort toggle pills
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SortMode.entries.forEach { mode ->
@@ -110,7 +190,7 @@ fun ResaleTicketsScreen(
                     Text(
                         text = mode.label,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         color = if (selected) White else MutedForeground,
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
@@ -123,15 +203,15 @@ fun ResaleTicketsScreen(
 
             if (sortedItems.isEmpty()) {
                 EmptyState(
-                    title = "등록된 리세일 티켓이 없습니다",
-                    description = "${eventName}의 리세일 티켓이 없습니다.",
+                    title = "등록된 재판매 티켓이 없습니다.",
+                    description = "${event.name} 재판매 티켓이 등록되면 여기에서 확인할 수 있습니다.",
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(sortedItems, key = { it.id }) { item ->
                         ResaleTicketCard(
@@ -169,107 +249,104 @@ private fun ResaleTicketCard(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
         ) {
-            // Poster thumbnail (80x80 square)
-            AsyncImage(
-                model = item.poster,
-                contentDescription = item.eventName,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Muted),
-            )
-
-            Spacer(Modifier.width(12.dp))
-
-            // Info section
             Column(
                 modifier = Modifier.weight(1f),
             ) {
-                // Event name
-                Text(
-                    text = item.eventName,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OnBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                // Seat · Grade (primary info with ticket icon)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.ConfirmationNumber,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = "${item.seatLabel} · ${item.grade}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OnBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 Spacer(Modifier.height(2.dp))
 
-                // Seat · Grade
-                Text(
-                    text = "${item.seatLabel} \u00B7 ${item.grade}",
-                    fontSize = 12.sp,
-                    color = MutedForeground,
-                )
-
-                Spacer(Modifier.height(1.dp))
-
-                // Venue with MapPin icon
+                // Event date
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
-                        Icons.Outlined.LocationOn,
+                        Icons.Outlined.CalendarMonth,
                         contentDescription = null,
                         tint = MutedForeground,
                         modifier = Modifier.size(12.dp),
                     )
                     Text(
-                        text = item.venue,
-                        fontSize = 12.sp,
+                        text = item.eventDate,
+                        fontSize = 11.sp,
                         color = MutedForeground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
 
-                // Resale price + discount
+                // Price row
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = "%,d CTK".format(item.resalePrice),
-                        fontSize = 14.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground,
+                        lineHeight = 18.sp,
                     )
-                    if (hasDiscount && discountPct > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.LocalOffer,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(12.dp),
-                            )
-                            Text(
-                                text = "${discountPct}% 할인",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Primary,
-                            )
-                        }
+                    if (hasDiscount) {
+                        Text(
+                            text = "정가 %,d CTK".format(item.originalPrice),
+                            fontSize = 11.sp,
+                            color = MutedForeground,
+                            textDecoration = TextDecoration.LineThrough,
+                        )
                     }
                 }
+            }
 
-                // Original price (strikethrough)
-                if (hasDiscount) {
+            // Discount badge pill
+            if (hasDiscount && discountPct > 0) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(PrimaryLight)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.LocalOffer,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(10.dp),
+                    )
                     Text(
-                        text = "정가 %,d CTK".format(item.originalPrice),
-                        fontSize = 12.sp,
-                        color = MutedForeground,
-                        textDecoration = TextDecoration.LineThrough,
+                        text = "${discountPct}% 할인",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Primary,
                     )
                 }
             }
