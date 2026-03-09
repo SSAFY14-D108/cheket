@@ -5,6 +5,7 @@ import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.service.host.HostService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ public class HostController {
 
     @PostMapping("/business-no/duplicate")
     @Operation(summary = "사업자 등록번호 중복 확인")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<CheckBusinessNoDuplicateResponse>> checkBusinessNoDuplicate(String businessNo) {
         CheckBusinessNoDuplicateResponse response = hostService.checkBusinessNoDuplicate(businessNo);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "사용 가능한 사업자 등록번호 입니다.", response));

@@ -41,10 +41,10 @@ public class JwtTokenProvider {
     }
 
     // Refresh Token 생성 — Access Token 재발급용 (만료: 7일)
-    // email, role은 불필요 → userId만 담음
-    public String generateRefreshToken(Long userId) {
+    // 재발급 시 DB 조회 없이 새 Access Token을 만들 수 있도록 email, role도 담음
+    public String generateRefreshToken(Long userId, String email, String role) {
         Date now = new Date();
-        return Jwts.builder().subject(String.valueOf(userId)).issuedAt(now)
+        return Jwts.builder().subject(String.valueOf(userId)).claim("email", email).claim("role", role).issuedAt(now)
             .expiration(new Date(now.getTime() + refreshExpiration)).signWith(secretKey).compact();
     }
 
@@ -69,6 +69,12 @@ public class JwtTokenProvider {
     public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
         return claims.get("role", String.class);
+    }
+
+    // 토큰에서 email 추출
+    public String getEmailFromToken(String token) {
+        Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
+        return claims.get("email", String.class);
     }
 
     // 토큰 남은 만료시간 계산 메서드 추가

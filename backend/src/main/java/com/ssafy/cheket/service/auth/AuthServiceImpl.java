@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.auth;
 
 import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.LoginRequest;
+import com.ssafy.cheket.dto.auth.request.ReissueRequest;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.exception.common.UnauthorizedException;
@@ -35,9 +36,30 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. 토큰 발급
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), "USER");
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail(), "USER");
 
         return new LoginResponse(accessToken, refreshToken);
+    }
+
+    @Override
+    public LoginResponse reissue(ReissueRequest request) {
+        String refreshToken = request.refreshToken();
+
+        // 1. Refresh Token 유효성 검증 - 만료되었거나 위조된 토큰이면 401
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new UnauthorizedException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        // 2. Refresh Token에서 정보 추출 — DB 조회 없이 토큰에서 바로 꺼냄
+        Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+        String email = jwtTokenProvider.getEmailFromToken(refreshToken);
+        String role = jwtTokenProvider.getRoleFromToken(refreshToken);
+
+        // 3. 새 토큰 발급 (Refresh Token Rotation — 둘 다 새로 발급)
+        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, email, role);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, email, role);
+
+        return new LoginResponse(newAccessToken, newRefreshToken);
     }
 
     @Override
