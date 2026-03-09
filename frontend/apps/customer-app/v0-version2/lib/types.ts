@@ -167,6 +167,7 @@ export interface NavParams {
   eventDateId?: string
   ticketId?: string
   resaleItemId?: string
+  resaleEntrySource?: 'home' | 'marketplace'
   /** ID of the newly issued ticket after resale purchase, for the complete screen */
   purchasedTicketId?: string
   seats?: Seat[]

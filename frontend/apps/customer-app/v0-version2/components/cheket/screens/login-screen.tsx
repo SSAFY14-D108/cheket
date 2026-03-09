@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { useApp } from '@/lib/app-context'
 import { Eye, EyeOff, Lock, User } from 'lucide-react'
@@ -13,109 +14,111 @@ export function LoginScreen() {
 
   const handleLogin = () => {
     if (!id || !password) {
-      setError('아이디와 비밀번호를 입력해주세요.')
+      setError('아이디와 비밀번호를 입력해 주세요.')
       return
     }
+
     const ok = login(id, password)
-    if (!ok) setError('아이디 또는 비밀번호가 잘못되었습니다.')
+    if (!ok) setError('로그인에 실패했습니다. 입력 정보를 다시 확인해 주세요.')
   }
 
   return (
-    <div className="min-h-full flex flex-col bg-background">
-      {/* Logo area */}
-      <div className="flex flex-col items-center justify-center pt-20 pb-10">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-4">
-          <span className="text-primary font-bold text-2xl">C</span>
-        </div>
-        <h1 className="text-3xl font-bold text-primary tracking-tight">cheket</h1>
-        <p className="text-muted-foreground text-sm mt-2">NFT 티켓팅 플랫폼</p>
-      </div>
-
-      {/* Form */}
-      <div className="flex-1 px-6 flex flex-col gap-4">
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            className="w-full bg-secondary border border-border rounded-xl py-3.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-            placeholder="아이디"
-            value={id}
-            onChange={(e) => { setId(e.target.value); setError('') }}
-            autoComplete="username"
+    <div className="min-h-full bg-background">
+      <div className="mx-auto flex min-h-full w-full max-w-[390px] flex-col px-6 pb-8 pt-10">
+        <div className="mb-8 flex flex-col items-center">
+          <Image
+            src="/cheket-ticket.webp"
+            alt="cheket ticket"
+            width={640}
+            height={320}
+            className="h-auto w-[200px] object-contain"
+            priority
           />
+          <h1 className="mt-5 text-center text-[24px] font-bold tracking-[-0.04em] text-foreground">
+            로그인
+          </h1>
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            cheket 계정으로 티켓 서비스를 이용하세요
+          </p>
         </div>
 
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            className="w-full bg-secondary border border-border rounded-xl py-3.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-            placeholder="비밀번호"
-            type={showPw ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError('') }}
-            autoComplete="current-password"
-          />
+        <div className="flex flex-1 flex-col gap-4">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">아이디</span>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="w-full rounded-xl border border-border bg-secondary py-3.5 pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+                placeholder="아이디 입력"
+                value={id}
+                onChange={(e) => {
+                  setId(e.target.value)
+                  setError('')
+                }}
+                autoComplete="username"
+              />
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-muted-foreground">비밀번호</span>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="w-full rounded-xl border border-border bg-secondary py-3.5 pl-11 pr-12 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+                placeholder="비밀번호 입력"
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError('')
+                }}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </label>
+
+          {error ? <p className="text-xs text-red-500">{error}</p> : null}
+
           <button
-            onClick={() => setShowPw(!showPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+            onClick={handleLogin}
+            className="mt-2 w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-95 active:scale-[0.98]"
           >
-            {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            로그인
           </button>
-        </div>
 
-        {error && (
-          <p className="text-red-400 text-xs text-center">{error}</p>
-        )}
-
-        <button
-          onClick={handleLogin}
-          className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-xl text-sm hover:opacity-90 active:scale-[0.98] transition-all mt-2"
-        >
-          로그인
-        </button>
-
-        <div className="flex items-center gap-4 my-2">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-muted-foreground text-xs">또는</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        <SignUpButton />
-
-        {/* Help links */}
-        <div className="flex items-center justify-center gap-2 text-xs mt-3">
           <button
-            onClick={() => navigate('find-account')}
-            className="text-primary underline hover:opacity-75 transition-opacity"
+            onClick={() => navigate('signup')}
+            className="w-full rounded-xl border border-border bg-secondary py-3.5 text-sm font-semibold text-foreground transition-all hover:border-primary/50 active:scale-[0.98]"
           >
-            이메일 찾기
+            회원가입
           </button>
-          <span className="text-border">·</span>
-          <button
-            onClick={() => navigate('password-reset')}
-            className="text-primary underline hover:opacity-75 transition-opacity"
-          >
-            비밀번호 찾기
-          </button>
-        </div>
 
-        <p className="text-muted-foreground text-xs text-center mt-4">
-          로그인 시 <span className="text-primary underline cursor-pointer">이용약관</span> 및{' '}
-          <span className="text-primary underline cursor-pointer">개인정보처리방침</span>에 동의합니다
-        </p>
+          <div className="mt-2 flex items-center justify-center gap-2 text-xs">
+            <button
+              onClick={() => navigate('find-account')}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              이메일 찾기
+            </button>
+            <span className="text-border">·</span>
+            <button
+              onClick={() => navigate('password-reset')}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              비밀번호 찾기
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  )
-}
-
-function SignUpButton() {
-  const { navigate } = useApp()
-  return (
-    <button
-      onClick={() => navigate('signup')}
-      className="w-full bg-secondary border border-border text-foreground font-semibold py-3.5 rounded-xl text-sm hover:border-primary/50 active:scale-[0.98] transition-all"
-    >
-      회원가입
-    </button>
   )
 }

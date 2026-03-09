@@ -5,7 +5,6 @@ import Image from 'next/image'
 import ReactCardFlip from 'react-card-flip'
 import Tilt from 'react-parallax-tilt'
 import { useApp } from '@/lib/app-context'
-import { MOCK_TICKETS } from '@/lib/mock-data'
 import { Ticket } from '@/lib/types'
 import { AppShell } from '../app-shell'
 import { Music2 } from 'lucide-react'
@@ -533,8 +532,8 @@ function CollectibleTicketCard({
 
 // ?? SCREEN ???????????????????????????????????????????????????????????????????
 export function CollectionScreen() {
-  const { navigateTab } = useApp()
-  const collected = MOCK_TICKETS.filter((t) => t.status === 'USED')
+  const { navigateTab, tickets } = useApp()
+  const collected = tickets.filter((t) => t.status === 'USED')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const getVariant = (ticket: Ticket) => {
     const num = Number(ticket.id.replace(/\D/g, '')) || 0

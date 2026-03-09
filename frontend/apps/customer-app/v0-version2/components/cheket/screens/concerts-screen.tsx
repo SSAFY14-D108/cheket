@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 type SortKey = '인기순' | '최신순' | '오픈임박순'
 
-const REGIONS = ['전체', '서울', '부산', '인천', '대구', '광주', '경기', '경남', '전북']
+const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '제주']
 const SORTS: SortKey[] = ['인기순', '최신순', '오픈임박순']
 const PAGE_SIZE = 6
 
@@ -24,11 +24,21 @@ export function ConcertsScreen() {
   const { navigate, events } = useApp()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [query, setQuery] = useState('')
-  const [activeRegion, setActiveRegion] = useState('전체')
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([])
   const [sort, setSort] = useState<SortKey>('인기순')
-  const [hideSoldOut, setHideSoldOut] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
+  const toggleRegion = (region: string) => {
+    if (region === '전체') {
+      setSelectedRegions([])
+      return
+    }
+
+    setSelectedRegions((prev) =>
+      prev.includes(region) ? prev.filter((item) => item !== region) : [...prev, region]
+    )
+  }
 
   const filtered = useMemo(() => {
     let list = events.filter((event) => {
@@ -38,9 +48,9 @@ export function ConcertsScreen() {
         event.name.toLowerCase().includes(keyword) ||
         event.venue.toLowerCase().includes(keyword) ||
         (event.artistName ?? '').toLowerCase().includes(keyword)
-      const matchRegion = activeRegion === '전체' || event.region === activeRegion
-      const matchSoldOut = hideSoldOut ? event.status !== 'SOLD_OUT' : true
-      return matchQuery && matchRegion && matchSoldOut
+      const matchRegion =
+        selectedRegions.length === 0 || selectedRegions.includes(event.region)
+      return matchQuery && matchRegion
     })
 
     if (sort === '인기순') {
@@ -52,15 +62,15 @@ export function ConcertsScreen() {
     }
 
     return list
-  }, [activeRegion, events, hideSoldOut, query, sort])
+  }, [events, query, selectedRegions, sort])
 
   const visibleEvents = filtered.slice(0, visibleCount)
   const hasMore = visibleCount < filtered.length
-  const activeFilterCount = (activeRegion !== '전체' ? 1 : 0) + (hideSoldOut ? 1 : 0)
+  const activeFilterCount = selectedRegions.length
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [query, activeRegion, sort, hideSoldOut])
+  }, [query, selectedRegions, sort])
 
   useEffect(() => {
     const node = loadMoreRef.current
@@ -85,9 +95,9 @@ export function ConcertsScreen() {
       <div className="flex flex-col gap-3 p-4">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="w-full bg-secondary border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full rounded-xl border border-border bg-secondary py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none"
               placeholder="공연명, 아티스트, 장소 검색"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -96,15 +106,15 @@ export function ConcertsScreen() {
           <button
             onClick={() => setShowFilters((value) => !value)}
             className={cn(
-              'relative flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl border transition-colors',
+              'relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border transition-colors',
               showFilters
-                ? 'bg-primary border-primary text-primary-foreground'
-                : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
             )}
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <SlidersHorizontal className="h-4 w-4" />
             {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center border border-background">
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-background bg-primary text-[10px] font-bold text-primary-foreground">
                 {activeFilterCount}
               </span>
             )}
@@ -117,10 +127,10 @@ export function ConcertsScreen() {
               key={item}
               onClick={() => setSort(item)}
               className={cn(
-                'flex-1 py-2 rounded-xl text-xs font-semibold transition-colors border',
+                'flex-1 rounded-xl border py-2 text-xs font-semibold transition-colors',
                 sort === item
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
               )}
             >
               {item}
@@ -129,19 +139,20 @@ export function ConcertsScreen() {
         </div>
 
         {showFilters && (
-          <div className="flex flex-col gap-3 bg-secondary/50 border border-border rounded-2xl p-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-secondary/50 p-4">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2">지역</p>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">지역</p>
               <div className="flex flex-wrap gap-2">
                 {REGIONS.map((region) => (
                   <button
                     key={region}
-                    onClick={() => setActiveRegion(region)}
+                    onClick={() => toggleRegion(region)}
                     className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border',
-                      activeRegion === region
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                      'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                      (region === '전체' && selectedRegions.length === 0) ||
+                        selectedRegions.includes(region)
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-background text-muted-foreground hover:text-foreground'
                     )}
                   >
                     {region}
@@ -150,34 +161,17 @@ export function ConcertsScreen() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground">매진 공연 숨기기</span>
-              <button
-                onClick={() => setHideSoldOut((value) => !value)}
-                className={cn(
-                  'w-11 h-6 rounded-full transition-colors relative',
-                  hideSoldOut ? 'bg-primary' : 'bg-border'
-                )}
-              >
-                <span
-                  className={cn(
-                    'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
-                    hideSoldOut ? 'translate-x-5' : 'translate-x-0.5'
-                  )}
-                />
-              </button>
-            </div>
-
             {activeFilterCount > 0 && (
               <button
                 onClick={() => {
-                  setActiveRegion('전체')
-                  setHideSoldOut(false)
+                  setSelectedRegions([])
                 }}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground self-start"
+                className="self-start text-xs text-muted-foreground hover:text-foreground"
               >
-                <X className="w-3 h-3" />
-                필터 초기화
+                <span className="inline-flex items-center gap-1.5">
+                  <X className="h-3 w-3" />
+                  필터 초기화
+                </span>
               </button>
             )}
           </div>
@@ -185,33 +179,28 @@ export function ConcertsScreen() {
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="flex flex-wrap gap-2">
-            {activeRegion !== '전체' && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                {activeRegion}
-                <button onClick={() => setActiveRegion('전체')}>
-                  <X className="w-3 h-3" />
+            {selectedRegions.map((region) => (
+              <span
+                key={region}
+                className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+              >
+                {region}
+                <button onClick={() => toggleRegion(region)}>
+                  <X className="h-3 w-3" />
                 </button>
               </span>
-            )}
-            {hideSoldOut && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                매진 숨김
-                <button onClick={() => setHideSoldOut(false)}>
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
+            ))}
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground px-0.5">
-          총 <span className="text-foreground font-semibold">{filtered.length}</span>개의 공연
+        <p className="px-0.5 text-xs text-muted-foreground">
+          총 <span className="font-semibold text-foreground">{filtered.length}</span>개의 공연
         </p>
 
         {filtered.length === 0 ? (
           <EmptyState
-            title="공연이 없습니다"
-            description="검색어나 필터 조건을 다시 확인해보세요."
+            title="공연이 없어요"
+            description="검색어나 필터를 바꿔서 다시 확인해 보세요."
           />
         ) : (
           <>
@@ -225,12 +214,11 @@ export function ConcertsScreen() {
               ))}
             </div>
 
-            <div ref={loadMoreRef} className="h-16 flex items-center justify-center">
-              {hasMore ? (
-                <span className="text-xs text-muted-foreground">공연을 더 불러오는 중...</span>
-              ) : (
-                <span className="text-xs text-muted-foreground">모든 공연을 확인했습니다.</span>
-              )}
+            <div
+              ref={loadMoreRef}
+              className={cn('flex items-center justify-center', hasMore ? 'h-10' : 'h-2')}
+            >
+              {hasMore && <span className="text-xs text-muted-foreground">공연을 더 불러오는 중...</span>}
             </div>
           </>
         )}

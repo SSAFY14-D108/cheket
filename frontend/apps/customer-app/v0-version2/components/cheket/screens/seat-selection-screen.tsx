@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useApp } from '@/lib/app-context'
-import { MOCK_EVENTS, generateSeats } from '@/lib/mock-data'
+import { generateSeats } from '@/lib/mock-data'
 import { Seat, EventDate } from '@/lib/types'
 import { AppShell } from '../app-shell'
 import { cn } from '@/lib/utils'
@@ -18,8 +18,8 @@ const KR_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const
 type Step = 'date' | 'seats'
 
 export function SeatSelectionScreen() {
-  const { navParams, navigate, goBack } = useApp()
-  const event = MOCK_EVENTS.find((e) => e.id === navParams.eventId)
+  const { navParams, navigate, goBack, events } = useApp()
+  const event = events.find((e) => e.id === navParams.eventId)
 
   const hasMultipleDates = Boolean(event?.dates && event.dates.length > 1)
   const presetDate = event?.dates?.find((d) => d.id === navParams.eventDateId) ?? null
@@ -33,7 +33,10 @@ export function SeatSelectionScreen() {
   const [zoom, setZoom] = useState(1)
   const mapRef = useRef<HTMLDivElement>(null)
 
-  const seats = useMemo(() => generateSeats(navParams.eventId ?? ''), [navParams.eventId])
+  const seats = useMemo(
+    () => generateSeats(navParams.eventId ?? '', event?.grades ?? []),
+    [event?.grades, navParams.eventId]
+  )
 
   if (!event) return null
 

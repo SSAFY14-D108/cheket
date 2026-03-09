@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { ReactNode } from 'react'
 import { Bell, ChevronLeft, UserCircle } from 'lucide-react'
 import { BottomNav } from './bottom-nav'
@@ -47,7 +48,14 @@ export function AppShell({
             <h1 className="font-semibold text-base text-foreground">{title}</h1>
           ) : (
             !showBack && (
-              <span className="font-bold text-xl tracking-tight text-primary">cheket</span>
+              <Image
+                src="/logo2.webp"
+                alt="cheket"
+                width={140}
+                height={32}
+                className="h-auto w-[78px] object-contain"
+                priority
+              />
             )
           )}
         </div>
@@ -74,7 +82,7 @@ export function AppShell({
       </header>
 
       {/* Scrollable content */}
-      <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-20' : ''}`}>
+      <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-14' : ''}`}>
         {children}
       </main>
 
