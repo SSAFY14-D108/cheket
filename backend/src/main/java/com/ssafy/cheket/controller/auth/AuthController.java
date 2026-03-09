@@ -1,10 +1,8 @@
 package com.ssafy.cheket.controller.auth;
 
-import com.ssafy.cheket.dto.auth.request.LoginRequest;
-import com.ssafy.cheket.dto.auth.request.ReissueRequest;
-import com.ssafy.cheket.dto.auth.request.SmsSendForChangePasswordRequest;
-import com.ssafy.cheket.dto.auth.request.SmsSendVerificationRequest;
+import com.ssafy.cheket.dto.auth.request.*;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
+import com.ssafy.cheket.dto.auth.response.SmsVerificationResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.auth.AuthService;
 import com.ssafy.cheket.service.sms.SmsService;
@@ -59,6 +57,13 @@ public class AuthController {
         @RequestBody SmsSendForChangePasswordRequest request) {
         smsService.sendPasswordResetVerificationCode(request.email());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "인증 코드가 전송되었습니다.", null));
+    }
+
+    @PostMapping("/sms/verify")
+    @Operation(summary = "회원가입 시 발급 받은 인증코드 검증")
+    public ResponseEntity<ApiResponse<SmsVerificationResponse>> verifySmsCode(@RequestBody SmsVerificationRequest request) {
+        SmsVerificationResponse response = smsService.verifySmsCode(request.phoneNumber(), request.code());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "인증이 완료되었습니다.", response));
     }
 
 }

@@ -1,7 +1,9 @@
 package com.ssafy.cheket.service.sms;
 
+import com.ssafy.cheket.dto.auth.response.SmsVerificationResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.exception.common.GoneException;
 import com.ssafy.cheket.exception.common.SmsSendFailedException;
 import com.ssafy.cheket.exception.common.TooManyRequestsException;
 import com.ssafy.cheket.repository.auth.AuthRepository;
@@ -87,6 +89,28 @@ public class SmsServiceImpl implements SmsService {
 
         authRedisRepository.savePasswordResetSmsCode(email, verificationCode, SMS_CODE_TTL);
         authRedisRepository.savePasswordResetSmsCooldown(email, SMS_COOLDOWN_TTL);
+    }
+
+    // 회원가입 시 발급 받은 인증코드 검증
+    @Override
+    public SmsVerificationResponse verifySmsCode(String phoneNumber, String code) {
+        if(phoneNumber == null || phoneNumber.isBlank()) {
+            throw new BadRequestException("전화번호는 필수입니다.");
+        }
+
+        if(code == null || code.isBlank()) {
+            throw new BadRequestException("인증 코드는 필수입니다.");
+        }
+
+        if(!authRedisRepository.existsSmsVerificationCode(phoneNumber)) {
+            throw new GoneException("인증 코드가 만료되었습니다.");
+        }
+
+        if(!authRedisRepository.isSmsVerificationCodeMatched(phoneNumber, code)) {
+            throw new BadRequestException("인증 코드가 일치하지 않습니다.");
+        }
+
+        return new SmsVerificationResponse(true);
     }
 
     private String generateVerificationCode() {
