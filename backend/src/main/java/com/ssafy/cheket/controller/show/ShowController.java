@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.show.response.GetSeatsResponse;
 import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.SessionListResponse;
@@ -8,6 +9,7 @@ import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.service.show.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,7 @@ public class ShowController {
 
     @GetMapping("/{showId}")
     @Operation(summary = "공연 상세 조회")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail(@PathVariable Long showId) {
         GetShowDetailResponse response = showService.getShowDetail(showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 완료", response));
@@ -40,9 +43,18 @@ public class ShowController {
 
     @GetMapping("/{showId}/sessions")
     @Operation(summary = "회차 목록 조회")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<List<SessionListResponse>>> getSessionList(@PathVariable Long showId) {
         List<SessionListResponse> response = showService.getSessionList(showId);
-
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회차 목록 조회 완료", response));
+    }
+
+    @GetMapping("/{showId}/sessions/{sessionId}/seats")
+    @Operation(summary = "좌석 배치도 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetSeatsResponse>>> getSeats(@PathVariable Long showId,
+        @PathVariable Long sessionId) {
+        List<GetSeatsResponse> response = showService.getSeats(showId, sessionId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "좌석 배치도 조회 완료", response));
     }
 }
