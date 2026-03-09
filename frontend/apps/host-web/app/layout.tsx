@@ -5,8 +5,14 @@ import { MockServiceWorkerProvider } from '@/components/providers/MockServiceWor
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'] })
-const geistMono = Geist_Mono({ subsets: ['latin'] })
+const geist = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin']
+})
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin']
+})
 
 export const metadata: Metadata = {
   title: 'CHEKET HOST',
