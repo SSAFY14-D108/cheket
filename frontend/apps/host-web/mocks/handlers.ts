@@ -6,6 +6,17 @@ const MOCK_NEW_ACCESS_TOKEN = "mock-access-token-new"
 const MOCK_NEW_REFRESH_TOKEN = "mock-refresh-token-new"
 
 export const handlers = [
+  // 회원가입
+  http.post("*/api/v1/hosts", async () => {
+    return HttpResponse.json(
+      {
+        httpStatusCode: 201,
+        responseMessage: "회원가입이 완료되었습니다.",
+      },
+      { status: 201 }
+    )
+  }),
+  // 로그인
   http.post("*/api/v1/hosts/login", async () => {
     return HttpResponse.json(
       {
