@@ -13,7 +13,7 @@ object MockDataSource {
         ctkBalance = 2400,
     )
 
-    private const val P = "https://picsum.photos/seed"
+    private const val P = "file:///android_asset/posters"
 
     val mockEvents = listOf(
         Event(
@@ -28,7 +28,7 @@ object MockDataSource {
             ),
             venue = "올림픽체조경기장, 서울",
             region = "서울",
-            poster = "$P/aespa/400/600",
+            poster = "$P/aespa.webp",
             status = EventStatus.ON_SALE,
             maxPerUser = 4,
             openDate = "2026-04-12",
@@ -51,7 +51,7 @@ object MockDataSource {
             ),
             venue = "고척스카이돔, 서울",
             region = "서울",
-            poster = "$P/metallica/400/600",
+            poster = "$P/metallica.webp",
             status = EventStatus.ON_SALE,
             maxPerUser = 2,
             openDate = "2026-05-24",
@@ -70,7 +70,7 @@ object MockDataSource {
             date = "2026.01.01 (수) 15:00",
             venue = "예술의전당 콘서트홀, 서울",
             region = "서울",
-            poster = "$P/philharmonic/400/600",
+            poster = "$P/philharmonic.webp",
             status = EventStatus.SOLD_OUT,
             maxPerUser = 6,
             openDate = "2026-01-01",
@@ -92,7 +92,7 @@ object MockDataSource {
             ),
             venue = "잠실종합운동장, 서울",
             region = "서울",
-            poster = "$P/ultrakorea/400/600",
+            poster = "$P/ultrakorea.webp",
             status = EventStatus.ON_SALE,
             maxPerUser = 4,
             openDate = "2026-06-07",
@@ -109,7 +109,7 @@ object MockDataSource {
             date = "2026.10.05 (토) 12:00",
             venue = "자라섬, 가평",
             region = "경기",
-            poster = "$P/jarasum/400/600",
+            poster = "$P/jarasum.webp",
             status = EventStatus.SOLD_OUT,
             maxPerUser = 8,
             openDate = "2026-10-05",
@@ -124,11 +124,11 @@ object MockDataSource {
     // ── Home screen data ──
 
     val bannerSlides = listOf(
-        BannerSlide("b1", "evt_004", "$P/ultrakorea/800/400",
+        BannerSlide("b1", "evt_004", "$P/ultrakorea.webp",
             "2026 울트라코리아", "ULTRA KOREA IS COMING", "잠실종합운동장, 서울", "2026.6.7 - 2026.6.8"),
-        BannerSlide("b2", "evt_001", "$P/aespa/800/400",
+        BannerSlide("b2", "evt_001", "$P/aespa.webp",
             "2026 aespa 월드 투어", "AESPA WORLD TOUR", "올림픽체조경기장, 서울", "2026.4.12"),
-        BannerSlide("b3", "evt_002", "$P/metallica/800/400",
+        BannerSlide("b3", "evt_002", "$P/metallica.webp",
             "메탈리카 내한 공연", "METALLICA M72 WORLD TOUR", "고척스카이돔, 서울", "2026.5.24"),
     )
 
@@ -146,61 +146,61 @@ object MockDataSource {
     )
 
     val rankingItems = listOf(
-        RankingItem(1, "evt_001", "AESPA WORLD TOUR 2026", "올림픽체조경기장", "$P/aespa/400/600", "콘서트"),
-        RankingItem(2, "evt_002", "METALLICA M72 WORLD TOUR", "고척스카이돔", "$P/metallica/400/600", "콘서트"),
-        RankingItem(3, "evt_004", "ULTRA KOREA 2026", "잠실종합운동장", "$P/ultrakorea/400/600", "콘서트"),
-        RankingItem(4, "evt_003", "서울 필하모닉 뉴이어 콘서트", "예술의전당", "$P/philharmonic/400/600", "클래식"),
-        RankingItem(5, "evt_005", "JARASUM JAZZ FESTIVAL", "자라섬, 가평", "$P/jarasum/400/600", "콘서트"),
+        RankingItem(1, "evt_001", "AESPA WORLD TOUR 2026", "올림픽체조경기장", "$P/aespa.webp", "콘서트"),
+        RankingItem(2, "evt_002", "METALLICA M72 WORLD TOUR", "고척스카이돔", "$P/metallica.webp", "콘서트"),
+        RankingItem(3, "evt_004", "ULTRA KOREA 2026", "잠실종합운동장", "$P/ultrakorea.webp", "콘서트"),
+        RankingItem(4, "evt_003", "서울 필하모닉 뉴이어 콘서트", "예술의전당", "$P/philharmonic.webp", "클래식"),
+        RankingItem(5, "evt_005", "JARASUM JAZZ FESTIVAL", "자라섬, 가평", "$P/jarasum.webp", "콘서트"),
     )
 
     val openSchedule = listOf(
         OpenScheduleItem("op_001", "evt_001", "AESPA WORLD TOUR 2026",
-            "오늘 18:00", "일반예매", listOf("단독판매"), "$P/aespa/400/600", true),
+            "오늘 18:00", "일반예매", listOf("단독판매"), "$P/aespa.webp", true),
         OpenScheduleItem("op_002", "evt_002", "METALLICA M72 WORLD TOUR",
-            "내일 20:00", "멤버십 선구매", listOf("단독판매"), "$P/metallica/400/600", false),
+            "내일 20:00", "멤버십 선구매", listOf("단독판매"), "$P/metallica.webp", false),
         OpenScheduleItem("op_003", "evt_003", "서울 필하모닉 뉴이어 콘서트",
-            "03.03(화) 18:00", "일반예매", listOf("HOT", "단독판매"), "$P/philharmonic/400/600", false),
+            "03.03(화) 18:00", "일반예매", listOf("HOT", "단독판매"), "$P/philharmonic.webp", false),
         OpenScheduleItem("op_004", "evt_004", "ULTRA KOREA 2026",
-            "03.10(화) 10:00", "얼리버드", listOf("단독판매"), "$P/ultrakorea/400/600", false),
+            "03.10(화) 10:00", "얼리버드", listOf("단독판매"), "$P/ultrakorea.webp", false),
     )
 
     val discountItems = listOf(
         DiscountItem("dc_001", "evt_005", "JARASUM JAZZ FESTIVAL",
-            "자라섬, 가평", "2026.10.5 ~ 10.7", "전석 할인", 40, 88000, "00:00:00", true, "$P/jarasum/400/600"),
+            "자라섬, 가평", "2026.10.5 ~ 10.7", "전석 할인", 40, 88000, "00:00:00", true, "$P/jarasum.webp"),
         DiscountItem("dc_002", "evt_003", "서울 필하모닉 뉴이어 콘서트",
-            "예술의전당 콘서트홀", "2026.1.1 ~ 1.3", "R석 할인", 50, 45000, "D-10 10:24:33", true, "$P/philharmonic/400/600"),
+            "예술의전당 콘서트홀", "2026.1.1 ~ 1.3", "R석 할인", 50, 45000, "D-10 10:24:33", true, "$P/philharmonic.webp"),
         DiscountItem("dc_003", "evt_001", "AESPA WORLD TOUR 2026",
-            "올림픽체조경기장", "2026.4.12", "S석 할인", 20, 88000, "10:24:33", false, "$P/aespa/400/600"),
+            "올림픽체조경기장", "2026.4.12", "S석 할인", 20, 88000, "10:24:33", false, "$P/aespa.webp"),
     )
 
     // ── Tickets ──
 
     val mockTickets = listOf(
         Ticket("tkt_001", "evt_001", "AESPA WORLD TOUR 2025", "2025.04.12 (토) 19:00",
-            "올림픽체조경기장, 서울", "$P/aespa/400/600", "evt_001_C3", "C열 3번", "R석", 140000, TicketStatus.SOLD),
+            "올림픽체조경기장, 서울", "$P/aespa.webp", "evt_001_C3", "C열 3번", "R석", 140000, TicketStatus.SOLD),
         Ticket("tkt_002", "evt_002", "METALLICA M72 WORLD TOUR", "2025.05.24 (토) 18:00",
-            "고척스카이돔, 서울", "$P/metallica/400/600", "evt_002_B7", "B열 7번", "FLOOR", 150000, TicketStatus.LISTED, resalePrice = 145000),
+            "고척스카이돔, 서울", "$P/metallica.webp", "evt_002_B7", "B열 7번", "FLOOR", 150000, TicketStatus.LISTED, resalePrice = 145000),
         Ticket("tkt_003", "evt_005", "JARASUM JAZZ FESTIVAL", "2024.10.05 (토) 12:00",
-            "자라섬, 가평", "$P/jarasum/400/600", "evt_005_A2", "A열 2번", "2일권", 150000, TicketStatus.USED, attendedDate = "2024.10.05"),
+            "자라섬, 가평", "$P/jarasum.webp", "evt_005_A2", "A열 2번", "2일권", 150000, TicketStatus.USED, attendedDate = "2024.10.05"),
         Ticket("tkt_004", "evt_003", "서울 필하모닉 뉴이어 콘서트", "2025.01.01 (수) 15:00",
-            "예술의전당 콘서트홀, 서울", "$P/philharmonic/400/600", "evt_003_D5", "D열 5번", "R석", 90000, TicketStatus.EXPIRED),
+            "예술의전당 콘서트홀, 서울", "$P/philharmonic.webp", "evt_003_D5", "D열 5번", "R석", 90000, TicketStatus.EXPIRED),
         Ticket("tkt_005", "evt_001", "AESPA WORLD TOUR 2025", "2025.04.12 (토) 19:00",
-            "올림픽체조경기장, 서울", "$P/aespa/400/600", "evt_001_A1", "A열 1번", "VIP", 180000, TicketStatus.USED, attendedDate = "2025.04.12"),
+            "올림픽체조경기장, 서울", "$P/aespa.webp", "evt_001_A1", "A열 1번", "VIP", 180000, TicketStatus.USED, attendedDate = "2025.04.12"),
         Ticket("tkt_006", "evt_002", "METALLICA M72 WORLD TOUR", "2025.05.24 (토) 18:00",
-            "고척스카이돔, 서울", "$P/metallica/400/600", "evt_002_F11", "F열 11번", "GA PIT", 180000, TicketStatus.USED, attendedDate = "2025.05.24"),
+            "고척스카이돔, 서울", "$P/metallica.webp", "evt_002_F11", "F열 11번", "GA PIT", 180000, TicketStatus.USED, attendedDate = "2025.05.24"),
     )
 
     // ── Resale ──
 
     val mockResaleItems = listOf(
         ResaleItem("rs_001", "tkt_002", "evt_002", "METALLICA M72 WORLD TOUR", "2025.05.24 (토) 18:00",
-            "고척스카이돔, 서울", "$P/metallica/400/600", "B열 7번", "FLOOR", 150000, 145000, "user_001"),
+            "고척스카이돔, 서울", "$P/metallica.webp", "B열 7번", "FLOOR", 150000, 145000, "user_001"),
         ResaleItem("rs_002", "tkt_ext_001", "evt_001", "AESPA WORLD TOUR 2025", "2025.04.12 (토) 19:00",
-            "올림픽체조경기장, 서울", "$P/aespa/400/600", "E열 4번", "S석", 110000, 105000, "user_042"),
+            "올림픽체조경기장, 서울", "$P/aespa.webp", "E열 4번", "S석", 110000, 105000, "user_042"),
         ResaleItem("rs_003", "tkt_ext_002", "evt_004", "ULTRA KOREA 2025", "2025.06.07 (토) 14:00",
-            "잠실종합운동장, 서울", "$P/ultrakorea/400/600", "GA 구역 215번", "GA", 220000, 210000, "user_088"),
+            "잠실종합운동장, 서울", "$P/ultrakorea.webp", "GA 구역 215번", "GA", 220000, 210000, "user_088"),
         ResaleItem("rs_004", "tkt_ext_003", "evt_001", "AESPA WORLD TOUR 2025", "2025.04.12 (토) 19:00",
-            "올림픽체조경기장, 서울", "$P/aespa/400/600", "A열 1번", "VIP", 180000, 175000, "user_019"),
+            "올림픽체조경기장, 서울", "$P/aespa.webp", "A열 1번", "VIP", 180000, 175000, "user_019"),
     )
 
     // ── Wallet / TX mock data ──

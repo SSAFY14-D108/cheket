@@ -15,6 +15,10 @@ class MockInterceptor : Interceptor {
 
     private val json = "application/json".toMediaType()
 
+    companion object {
+        private const val P = "file:///android_asset/posters"
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val path = request.url.encodedPath
@@ -116,8 +120,8 @@ class MockInterceptor : Interceptor {
     """)
 
     private fun likedShows() = wrap("""[
-        {"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"https://picsum.photos/seed/aespa/400/600","venue":"올림픽체조경기장","showDate":"2026-04-12","status":"ON_SALE"},
-        {"showId":4,"title":"ULTRA KOREA 2026","posterUrl":"https://picsum.photos/seed/ultrakorea/400/600","venue":"잠실종합운동장","showDate":"2026-06-07","status":"ON_SALE"}
+        {"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"$P/aespa.webp","venue":"올림픽체조경기장","showDate":"2026-04-12","status":"ON_SALE"},
+        {"showId":4,"title":"ULTRA KOREA 2026","posterUrl":"$P/ultrakorea.webp","venue":"잠실종합운동장","showDate":"2026-06-07","status":"ON_SALE"}
     ]""")
 
     // ══════════════════════════════════════════
@@ -126,11 +130,11 @@ class MockInterceptor : Interceptor {
 
     private fun showList() = wrap("""{
         "shows":[
-            {"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"https://picsum.photos/seed/aespa/400/600","venue":"올림픽체조경기장, 서울","showStartDate":"2026-04-12","showEndDate":"2026-04-13","region":"SEOUL","showStatus":"ON_SALE"},
-            {"showId":2,"title":"METALLICA M72 WORLD TOUR","posterUrl":"https://picsum.photos/seed/metallica/400/600","venue":"고척스카이돔, 서울","showStartDate":"2026-05-24","showEndDate":"2026-05-25","region":"SEOUL","showStatus":"ON_SALE"},
-            {"showId":3,"title":"서울 필하모닉 뉴이어 콘서트","posterUrl":"https://picsum.photos/seed/philharmonic/400/600","venue":"예술의전당 콘서트홀, 서울","showStartDate":"2026-01-01","showEndDate":null,"region":"SEOUL","showStatus":"SOLD_OUT"},
-            {"showId":4,"title":"ULTRA KOREA 2026","posterUrl":"https://picsum.photos/seed/ultrakorea/400/600","venue":"잠실종합운동장, 서울","showStartDate":"2026-06-07","showEndDate":"2026-06-08","region":"SEOUL","showStatus":"ON_SALE"},
-            {"showId":5,"title":"JARASUM JAZZ FESTIVAL","posterUrl":"https://picsum.photos/seed/jarasum/400/600","venue":"자라섬, 가평","showStartDate":"2026-10-05","showEndDate":null,"region":"GYEONGGI","showStatus":"SOLD_OUT"}
+            {"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"$P/aespa.webp","venue":"올림픽체조경기장, 서울","showStartDate":"2026-04-12","showEndDate":"2026-04-13","region":"SEOUL","showStatus":"ON_SALE"},
+            {"showId":2,"title":"METALLICA M72 WORLD TOUR","posterUrl":"$P/metallica.webp","venue":"고척스카이돔, 서울","showStartDate":"2026-05-24","showEndDate":"2026-05-25","region":"SEOUL","showStatus":"ON_SALE"},
+            {"showId":3,"title":"서울 필하모닉 뉴이어 콘서트","posterUrl":"$P/philharmonic.webp","venue":"예술의전당 콘서트홀, 서울","showStartDate":"2026-01-01","showEndDate":null,"region":"SEOUL","showStatus":"SOLD_OUT"},
+            {"showId":4,"title":"ULTRA KOREA 2026","posterUrl":"$P/ultrakorea.webp","venue":"잠실종합운동장, 서울","showStartDate":"2026-06-07","showEndDate":"2026-06-08","region":"SEOUL","showStatus":"ON_SALE"},
+            {"showId":5,"title":"JARASUM JAZZ FESTIVAL","posterUrl":"$P/jarasum.webp","venue":"자라섬, 가평","showStartDate":"2026-10-05","showEndDate":null,"region":"GYEONGGI","showStatus":"SOLD_OUT"}
         ],
         "page":0,"size":20,"totalElements":5,"totalPages":1
     }""")
@@ -138,7 +142,7 @@ class MockInterceptor : Interceptor {
     private fun showDetail() = wrap("""{
         "showId":1,
         "title":"AESPA WORLD TOUR 2026",
-        "posterUrl":"https://picsum.photos/seed/aespa/400/600",
+        "posterUrl":"$P/aespa.webp",
         "description":"aespa의 첫 번째 월드 투어. 서울 단독 공연으로 펼쳐지는 화려한 무대.",
         "artist":"aespa",
         "venue":"올림픽체조경기장, 서울",
@@ -206,8 +210,8 @@ class MockInterceptor : Interceptor {
     }""")
 
     private fun upcomingShows() = wrap("""[
-        {"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"https://picsum.photos/seed/aespa/400/600","venue":"올림픽체조경기장","reservationDate":"2026-04-01T18:00:00","status":"UPCOMING"},
-        {"showId":4,"title":"ULTRA KOREA 2026","posterUrl":"https://picsum.photos/seed/ultrakorea/400/600","venue":"잠실종합운동장","reservationDate":"2026-05-15T10:00:00","status":"UPCOMING"}
+        {"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"$P/aespa.webp","venue":"올림픽체조경기장","reservationDate":"2026-04-01T18:00:00","status":"UPCOMING"},
+        {"showId":4,"title":"ULTRA KOREA 2026","posterUrl":"$P/ultrakorea.webp","venue":"잠실종합운동장","reservationDate":"2026-05-15T10:00:00","status":"UPCOMING"}
     ]""")
 
     // ══════════════════════════════════════════
@@ -217,14 +221,14 @@ class MockInterceptor : Interceptor {
     private fun purchase() = wrap("""{"txId":1001}""")
 
     private fun upcomingTickets() = wrap("""[
-        {"ticketId":1,"numbering":1,"posterUrl":"https://picsum.photos/seed/aespa/400/600","show":{"showId":1,"name":"AESPA WORLD TOUR 2026","date":"2026-04-12","venue":"올림픽체조경기장, 서울"},"price":140000,"seatId":6,"sectionName":"가","seatNo":"B-1","grade":"R석","status":"UPCOMING"},
-        {"ticketId":2,"numbering":2,"posterUrl":"https://picsum.photos/seed/metallica/400/600","show":{"showId":2,"name":"METALLICA M72 WORLD TOUR","date":"2026-05-24","venue":"고척스카이돔, 서울"},"price":150000,"seatId":11,"sectionName":"가","seatNo":"B-7","grade":"FLOOR","status":"ON-SALE"}
+        {"ticketId":1,"numbering":1,"posterUrl":"$P/aespa.webp","show":{"showId":1,"name":"AESPA WORLD TOUR 2026","date":"2026-04-12","venue":"올림픽체조경기장, 서울"},"price":140000,"seatId":6,"sectionName":"가","seatNo":"B-1","grade":"R석","status":"UPCOMING"},
+        {"ticketId":2,"numbering":2,"posterUrl":"$P/metallica.webp","show":{"showId":2,"name":"METALLICA M72 WORLD TOUR","date":"2026-05-24","venue":"고척스카이돔, 서울"},"price":150000,"seatId":11,"sectionName":"가","seatNo":"B-7","grade":"FLOOR","status":"ON-SALE"}
     ]""")
 
     private fun collectionTickets() = wrap("""[
-        {"ticketId":3,"posterUrl":"https://picsum.photos/seed/jarasum/400/600","show":{"showId":5,"name":"JARASUM JAZZ FESTIVAL","date":"2024-10-05","venue":"자라섬, 가평"},"sectionName":"A","seatNo":"A-2","grade":"2일권"},
-        {"ticketId":5,"posterUrl":"https://picsum.photos/seed/aespa/400/600","show":{"showId":1,"name":"AESPA WORLD TOUR 2025","date":"2025-04-12","venue":"올림픽체조경기장, 서울"},"sectionName":"A","seatNo":"A-1","grade":"VIP"},
-        {"ticketId":6,"posterUrl":"https://picsum.photos/seed/metallica/400/600","show":{"showId":2,"name":"METALLICA M72 WORLD TOUR","date":"2025-05-24","venue":"고척스카이돔, 서울"},"sectionName":"F","seatNo":"F-11","grade":"GA PIT"}
+        {"ticketId":3,"posterUrl":"$P/jarasum.webp","show":{"showId":5,"name":"JARASUM JAZZ FESTIVAL","date":"2024-10-05","venue":"자라섬, 가평"},"sectionName":"A","seatNo":"A-2","grade":"2일권"},
+        {"ticketId":5,"posterUrl":"$P/aespa.webp","show":{"showId":1,"name":"AESPA WORLD TOUR 2025","date":"2025-04-12","venue":"올림픽체조경기장, 서울"},"sectionName":"A","seatNo":"A-1","grade":"VIP"},
+        {"ticketId":6,"posterUrl":"$P/metallica.webp","show":{"showId":2,"name":"METALLICA M72 WORLD TOUR","date":"2025-05-24","venue":"고척스카이돔, 서울"},"sectionName":"F","seatNo":"F-11","grade":"GA PIT"}
     ]""")
 
     private fun qrCode() = wrap("""{
@@ -278,15 +282,15 @@ class MockInterceptor : Interceptor {
 
     private fun resaleShows() = wrap("""{
         "shows":[
-            {"showId":1,"title":"AESPA WORLD TOUR 2026","showStartDate":"2026-04-12","showEndDate":"2026-04-13","venue":"올림픽체조경기장, 서울","region":"SEOUL","posterUrl":"https://picsum.photos/seed/aespa/400/600","ticketCount":2},
-            {"showId":2,"title":"METALLICA M72 WORLD TOUR","showStartDate":"2026-05-24","showEndDate":"2026-05-25","venue":"고척스카이돔, 서울","region":"SEOUL","posterUrl":"https://picsum.photos/seed/metallica/400/600","ticketCount":1},
-            {"showId":4,"title":"ULTRA KOREA 2026","showStartDate":"2026-06-07","showEndDate":"2026-06-08","venue":"잠실종합운동장, 서울","region":"SEOUL","posterUrl":"https://picsum.photos/seed/ultrakorea/400/600","ticketCount":1}
+            {"showId":1,"title":"AESPA WORLD TOUR 2026","showStartDate":"2026-04-12","showEndDate":"2026-04-13","venue":"올림픽체조경기장, 서울","region":"SEOUL","posterUrl":"$P/aespa.webp","ticketCount":2},
+            {"showId":2,"title":"METALLICA M72 WORLD TOUR","showStartDate":"2026-05-24","showEndDate":"2026-05-25","venue":"고척스카이돔, 서울","region":"SEOUL","posterUrl":"$P/metallica.webp","ticketCount":1},
+            {"showId":4,"title":"ULTRA KOREA 2026","showStartDate":"2026-06-07","showEndDate":"2026-06-08","venue":"잠실종합운동장, 서울","region":"SEOUL","posterUrl":"$P/ultrakorea.webp","ticketCount":1}
         ],
         "page":0,"size":20,"totalElements":3,"totalPages":1
     }""")
 
     private fun resaleTickets() = wrap("""{
-        "show":{"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"https://picsum.photos/seed/aespa/400/600","venue":"올림픽체조경기장, 서울","region":"SEOUL"},
+        "show":{"showId":1,"title":"AESPA WORLD TOUR 2026","posterUrl":"$P/aespa.webp","venue":"올림픽체조경기장, 서울","region":"SEOUL"},
         "tickets":[
             {"ticketId":101,"session":{"sessionId":1,"sessionDate":"2026-04-12","sessionStartTime":"18:00:00"},"sectionName":"가","seatId":3,"seatNo":"A-3","grade":"VIP","originalPrice":180000,"discountedPrice":170000,"discountRate":5.6},
             {"ticketId":102,"session":{"sessionId":1,"sessionDate":"2026-04-12","sessionStartTime":"18:00:00"},"sectionName":"가","seatId":9,"seatNo":"B-4","grade":"R석","originalPrice":140000,"discountedPrice":130000,"discountRate":7.1}
