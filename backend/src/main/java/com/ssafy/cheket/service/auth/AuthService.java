@@ -11,4 +11,8 @@ public interface AuthService {
 
     // 이메일 중복 확인
     void checkEmailDuplicated(String email);
+
+    // 비밀번호 초기화
+    void resetPassword(String phoneNumber, String code, String newPassword);
+
 }

@@ -52,7 +52,7 @@ public class AuthController {
     }
 
     @PostMapping("/password")
-    @Operation(summary = "비밀번호 변경 시 필요한 인증코드 전송")
+    @Operation(summary = "비밀번호 초기화 시 필요한 인증코드 전송")
     public ResponseEntity<ApiResponse<Void>> sendPasswordResetVerificationCode(
         @RequestBody SmsSendForChangePasswordRequest request) {
         smsService.sendPasswordResetVerificationCode(request.email());
@@ -63,7 +63,8 @@ public class AuthController {
     @Operation(summary = "회원가입 시 발급 받은 인증코드 검증")
     public ResponseEntity<ApiResponse<SmsVerificationResponse>> verifySmsCode(
         @RequestBody SmsVerificationRequest request) {
-        SmsVerificationResponse response = smsService.verifySmsCode(request.phoneNumber(), request.code());
+        SmsVerificationResponse response = new SmsVerificationResponse(
+            smsService.verifySmsCode(request.phoneNumber(), request.code()));
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "인증이 완료되었습니다.", response));
     }
 
@@ -72,6 +73,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> checkEmailDuplicated(@RequestBody DuplicatedEmailCheckRequest request) {
         authService.checkEmailDuplicated(request.email());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회원가입이 가능한 이메일입니다.", null));
+    }
+
+    @PatchMapping("/reset-password")
+    @Operation(summary = "비밀번호 초기화")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.phoneNumber(), request.code(), request.newPassword());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "비밀번호가 변경되었습니다.", null));
     }
 
 }

@@ -1,6 +1,5 @@
 package com.ssafy.cheket.service.sms;
 
-import com.ssafy.cheket.dto.auth.response.SmsVerificationResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.GoneException;
@@ -93,7 +92,7 @@ public class SmsServiceImpl implements SmsService {
 
     // 회원가입 시 발급 받은 인증코드 검증
     @Override
-    public SmsVerificationResponse verifySmsCode(String phoneNumber, String code) {
+    public boolean verifySmsCode(String phoneNumber, String code) {
         if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new BadRequestException("전화번호는 필수입니다.");
         }
@@ -110,7 +109,7 @@ public class SmsServiceImpl implements SmsService {
             throw new BadRequestException("인증 코드가 일치하지 않습니다.");
         }
 
-        return new SmsVerificationResponse(true);
+        return true;
     }
 
     private String generateVerificationCode() {
