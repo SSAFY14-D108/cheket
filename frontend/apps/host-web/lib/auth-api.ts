@@ -26,8 +26,10 @@ export interface LoginResponse extends AuthSuccessResponse {
   data: LoginTokenData
 }
 
+export type LogoutResponse = AuthSuccessResponse
+
 export async function signupHost(payload: SignupRequest) {
-  return apiFetch<AuthSuccessResponse>("/api/v1/host", {
+  return apiFetch<AuthSuccessResponse>("/api/v1/hosts", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -40,4 +42,10 @@ export async function loginHost(payload: LoginRequest) {
   })
 
   return result.data
+}
+
+export async function logoutHost() {
+  return apiFetch<LogoutResponse>("/api/v1/hosts/logout", {
+    method: "POST",
+  })
 }
