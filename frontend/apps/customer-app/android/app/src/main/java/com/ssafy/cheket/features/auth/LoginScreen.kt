@@ -72,14 +72,14 @@ fun LoginScreen(
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                "cheket",
+                "로그인",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Black,
                 color = Primary,
                 letterSpacing = (-1).sp,
             )
             Spacer(Modifier.height(4.dp))
-            Text("NFT 티켓팅 플랫폼", fontSize = 14.sp, color = MutedForeground)
+            Text("cheket 계정으로 티켓 서비스를 이용하세요", fontSize = 14.sp, color = MutedForeground)
         }
 
         // Form
