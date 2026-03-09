@@ -1,3 +1,5 @@
 .env
 .claude/
 .DS_Store
+.idea/
+*.iml
