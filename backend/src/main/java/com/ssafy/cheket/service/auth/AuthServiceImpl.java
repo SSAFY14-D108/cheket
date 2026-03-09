@@ -5,7 +5,10 @@ import com.ssafy.cheket.dto.auth.request.LoginRequest;
 import com.ssafy.cheket.dto.auth.request.ReissueRequest;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
 import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.UnauthorizedException;
+import com.ssafy.cheket.repository.auth.AuthRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -23,6 +26,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     // 키와 값이 둘 다 String인 Redis 템플릿 = StringRedisTemplate
     private final StringRedisTemplate redisTemplate;
+    private final AuthRepository authRepository;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -69,4 +73,17 @@ public class AuthServiceImpl implements AuthService {
         // 값 저장 (TTL 포함) set("키", "값", 만료시간, 시간단위)
         redisTemplate.opsForValue().set("blacklist:" + accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
     }
+
+    // 이메일 중복 확인
+    @Override
+    public void checkEmailDuplicated(String email) {
+        if (email == null || email.isBlank()) {
+            throw new BadRequestException("이메일은 필수입니다.");
+        }
+
+        if (authRepository.existsByEmail(email)) {
+            throw new ConflictException("이미 존재하는 이메일입니다.");
+        }
+    }
+
 }

@@ -1,7 +1,4 @@
 package com.ssafy.cheket.dto.auth.request;
 
-public record SmsVerificationRequest(
-    String phoneNumber,
-    String code
-) {
+public record SmsVerificationRequest(String phoneNumber, String code) {
 }

@@ -61,9 +61,17 @@ public class AuthController {
 
     @PostMapping("/sms/verify")
     @Operation(summary = "회원가입 시 발급 받은 인증코드 검증")
-    public ResponseEntity<ApiResponse<SmsVerificationResponse>> verifySmsCode(@RequestBody SmsVerificationRequest request) {
+    public ResponseEntity<ApiResponse<SmsVerificationResponse>> verifySmsCode(
+        @RequestBody SmsVerificationRequest request) {
         SmsVerificationResponse response = smsService.verifySmsCode(request.phoneNumber(), request.code());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "인증이 완료되었습니다.", response));
+    }
+
+    @PostMapping("/duplicate")
+    @Operation(summary = "이메일 중복확인")
+    public ResponseEntity<ApiResponse<Void>> checkEmailDuplicated(@RequestBody DuplicatedEmailCheckRequest request) {
+        authService.checkEmailDuplicated(request.email());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회원가입이 가능한 이메일입니다.", null));
     }
 
 }

@@ -94,19 +94,19 @@ public class SmsServiceImpl implements SmsService {
     // 회원가입 시 발급 받은 인증코드 검증
     @Override
     public SmsVerificationResponse verifySmsCode(String phoneNumber, String code) {
-        if(phoneNumber == null || phoneNumber.isBlank()) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new BadRequestException("전화번호는 필수입니다.");
         }
 
-        if(code == null || code.isBlank()) {
+        if (code == null || code.isBlank()) {
             throw new BadRequestException("인증 코드는 필수입니다.");
         }
 
-        if(!authRedisRepository.existsSmsVerificationCode(phoneNumber)) {
+        if (!authRedisRepository.existsSmsVerificationCode(phoneNumber)) {
             throw new GoneException("인증 코드가 만료되었습니다.");
         }
 
-        if(!authRedisRepository.isSmsVerificationCodeMatched(phoneNumber, code)) {
+        if (!authRedisRepository.isSmsVerificationCodeMatched(phoneNumber, code)) {
             throw new BadRequestException("인증 코드가 일치하지 않습니다.");
         }
 
