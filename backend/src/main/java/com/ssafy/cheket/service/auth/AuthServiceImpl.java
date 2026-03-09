@@ -104,4 +104,28 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
     }
 
+    // 비밀번호 변경
+    @Override
+    public void changePassword(Long id, String oldPassword, String newPassword) {
+        if (oldPassword == null || oldPassword.isBlank()) {
+            throw new BadRequestException("현재 비밀번호는 필수입니다.");
+        }
+
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new BadRequestException("새 비밀번호는 필수입니다.");
+        }
+
+        User user = authRepository.findById(id).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BadRequestException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BadRequestException("새 비밀번호는 현재 비밀번호와 달라야합니다.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
 }

@@ -15,4 +15,7 @@ public interface AuthService {
     // 비밀번호 초기화
     void resetPassword(String phoneNumber, String code, String newPassword);
 
+    // 비밀번호 변경
+    void changePassword(Long id, String oldPassword, String newPassword);
+
 }

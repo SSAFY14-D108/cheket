@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -79,6 +80,15 @@ public class AuthController {
     @Operation(summary = "비밀번호 초기화")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.phoneNumber(), request.code(), request.newPassword());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "비밀번호가 변경되었습니다.", null));
+    }
+
+    @PatchMapping("/change-password")
+    @Operation(summary = "비밀번호 변경")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@AuthenticationPrincipal Long userId,
+        @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(userId, request.oldPassword(), request.newPassword());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "비밀번호가 변경되었습니다.", null));
     }
 
