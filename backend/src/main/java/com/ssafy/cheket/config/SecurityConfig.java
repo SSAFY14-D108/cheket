@@ -4,6 +4,7 @@ import com.ssafy.cheket.config.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -33,9 +34,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 인증 없이 접근 가능한 API
                 .requestMatchers("/api/v1/auth/**").permitAll() // 로그인, 로그아웃, SMS
-                .requestMatchers("/api/v1/users/signup").permitAll() // 사용자 회원가입
-                .requestMatchers("/api/v1/hosts/signup").permitAll() // 주최측 회원가입
+                .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
+                .requestMatchers("/api/v1/shows/**").permitAll().requestMatchers("/api/v1/hosts/business-no/duplicate")
+                .permitAll().requestMatchers(HttpMethod.GET, "/api/v1/resales").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shows").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shows/venue").permitAll()
+                .requestMatchers("/api/v1/shows/{showId}/refund").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/shows/upcoming").permitAll()
                 // 나머지는 인증 필수
                 .anyRequest().authenticated())
 
