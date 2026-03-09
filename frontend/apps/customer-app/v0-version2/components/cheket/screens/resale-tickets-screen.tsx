@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, ChevronDown, MapPin, Ticket, X } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import { AppShell } from '../app-shell'
@@ -14,19 +14,18 @@ type SortMode = 'latest' | 'price'
 type SessionFilter = 'all' | string
 
 const LABELS = {
-  marketplace: '\u0032\ucc28 \uac70\ub798\uc18c',
-  all: '\uc804\uccb4',
-  session: '\ud68c\ucc28',
-  sessionSelect: '\ud68c\ucc28 \uc120\ud0dd',
-  sessionGuide: '\uc6d0\ud558\ub294 \uacf5\uc5f0 \ud68c\ucc28\ub97c \uc120\ud0dd\ud558\uc138\uc694.',
-  latest: '\ucd5c\uc2e0\uc21c',
-  price: '\uac00\uaca9\uc21c',
-  sellingCountPrefix: '\ud310\ub9e4 \uc911 ',
-  sellingCountSuffix: '\uac74',
-  eventNotFound: '\uacf5\uc5f0 \uc815\ubcf4\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.',
-  emptyTitle: '\ub4f1\ub85d\ub41c \uc7ac\ud310\ub9e4 \ud2f0\ucf13\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.',
-  emptyDescriptionSuffix:
-    ' \uc7ac\ud310\ub9e4 \ud2f0\ucf13\uc774 \ub4f1\ub85d\ub418\uba74 \uc5ec\uae30\uc5d0\uc11c \ud655\uc778\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.',
+  marketplace: '2차 거래소',
+  all: '전체',
+  session: '회차',
+  sessionSelect: '회차 선택',
+  sessionGuide: '원하는 공연 회차를 선택하세요.',
+  latest: '최신순',
+  price: '가격순',
+  sellingCountPrefix: '판매 중 ',
+  sellingCountSuffix: '건',
+  eventNotFound: '공연 정보를 찾을 수 없습니다.',
+  emptyTitle: '등록된 재판매 티켓이 없습니다.',
+  emptyDescriptionSuffix: ' 재판매 티켓이 등록되면 여기에서 확인할 수 있습니다.',
 } as const
 
 export function ResaleTicketsScreen() {
@@ -34,7 +33,9 @@ export function ResaleTicketsScreen() {
   const [sort, setSort] = useState<SortMode>('latest')
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>('all')
   const [isSessionSheetOpen, setIsSessionSheetOpen] = useState(false)
-  const [selectedResaleItemId, setSelectedResaleItemId] = useState<string | null>(null)
+  const [selectedResaleItemId, setSelectedResaleItemId] = useState<string | null>(
+    (navParams.resaleItemId as string | undefined) ?? null
+  )
 
   const eventId = navParams.eventId as string | undefined
   const event = events.find((item) => item.id === eventId)
@@ -52,6 +53,7 @@ export function ResaleTicketsScreen() {
   const actualSessionCount = sessionOptions.length - 1
   const useSessionSheet = actualSessionCount >= 4
   const selectedSessionLabel = sessionFilter === 'all' ? LABELS.all : sessionFilter
+  const entrySource = navParams.resaleEntrySource ?? 'marketplace'
 
   const filtered = useMemo(() => {
     const items =
@@ -65,6 +67,11 @@ export function ResaleTicketsScreen() {
 
     return [...items].reverse()
   }, [eventItems, sessionFilter, sort])
+
+  useEffect(() => {
+    const targetId = navParams.resaleItemId as string | undefined
+    setSelectedResaleItemId(targetId ?? null)
+  }, [navParams.resaleItemId])
 
   if (!event) {
     return (
@@ -82,19 +89,11 @@ export function ResaleTicketsScreen() {
         <div className="border-b border-border px-4 py-4">
           <div className="flex gap-3 rounded-2xl border border-border bg-card p-3">
             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
-              <Image
-                src={event.poster}
-                alt={event.name}
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
+              <Image src={event.poster} alt={event.name} fill className="object-cover" sizes="80px" />
             </div>
 
             <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-2 text-lg font-bold leading-tight text-foreground">
-                {event.name}
-              </h3>
+              <h3 className="line-clamp-2 text-lg font-bold leading-tight text-foreground">{event.name}</h3>
               <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
                 <span className="truncate leading-5">{event.date}</span>
@@ -237,7 +236,12 @@ export function ResaleTicketsScreen() {
                 <div className="w-8" />
                 <h2 className="text-base font-semibold text-foreground">재판매 티켓</h2>
                 <button
-                  onClick={() => setSelectedResaleItemId(null)}
+                  onClick={() => {
+                    setSelectedResaleItemId(null)
+                    if (entrySource === 'home') {
+                      goBack()
+                    }
+                  }}
                   className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-secondary"
                   aria-label="닫기"
                 >

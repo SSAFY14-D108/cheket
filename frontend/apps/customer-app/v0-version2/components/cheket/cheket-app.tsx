@@ -19,7 +19,6 @@ import { MyTicketsScreen } from './screens/my-tickets-screen'
 import { TicketDetailScreen } from './screens/ticket-detail-screen'
 import { ResaleCreateScreen } from './screens/resale-create-screen'
 import { QrCheckinScreen } from './screens/qr-checkin-screen'
-import { ArchiveScreen } from './screens/archive-screen'
 import { CollectibleTicketDetailScreen } from './screens/collectible-ticket-detail-screen'
 import { MyPageScreen } from './screens/my-page-screen'
 import { WalletScreen } from './screens/wallet-screen'
@@ -59,7 +58,6 @@ export function CheketApp() {
     'ticket-detail': <TicketDetailScreen />,
     'resale-create': <ResaleCreateScreen />,
     'qr-checkin': <QrCheckinScreen />,
-    archive: <ArchiveScreen />,
     'collectible-ticket-detail': <CollectibleTicketDetailScreen />,
     'my-page': <MyPageScreen />,
     wallet: <WalletScreen />,

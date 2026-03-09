@@ -8,7 +8,6 @@ import {
   CATEGORY_ICONS,
   RANKING_ITEMS,
   OPEN_SCHEDULE,
-  MOCK_EVENTS,
 } from '@/lib/mock-data'
 import { AppShell } from '../app-shell'
 import { ChevronRight, Clock, Heart, Tag } from 'lucide-react'
@@ -219,7 +218,13 @@ function DiscountSection() {
         {discounted.map((item) => (
           <button
             key={item.id}
-            onClick={() => navigate('resale-detail', { resaleItemId: item.id })}
+            onClick={() =>
+              navigate('resale-tickets', {
+                eventId: item.eventId,
+                resaleItemId: item.id,
+                resaleEntrySource: 'home',
+              })
+            }
             className="flex gap-3 py-4 text-left hover:bg-secondary/50 active:scale-[0.99] transition-all -mx-4 px-4"
           >
             {/* Poster */}
@@ -260,11 +265,9 @@ function DiscountSection() {
 
 // ── Recommendation Section with Wishlist ──────────────────────────────────
 function RecommendationSection({ onEventClick }: { onEventClick: (id: string) => void }) {
-  const { wishlist, navigate } = useApp()
+  const { wishlist, navigate, events } = useApp()
   
-  // Get one wishlisted event for display
-  const wishlistedEvents = MOCK_EVENTS.filter((e) => wishlist.includes(e.id))
-  const recommendedEvent = MOCK_EVENTS.find((e) => !wishlist.includes(e.id)) || MOCK_EVENTS[0]
+  const recommendedEvent = events.find((e) => !wishlist.includes(e.id)) || events[0]
 
   return (
     <section className="py-5">
