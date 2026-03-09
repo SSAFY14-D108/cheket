@@ -19,6 +19,7 @@ class CheketApplication : Application() {
         authDataStore = AuthDataStore(secureStorage)
         RetrofitClient.init(authDataStore)
 
-        appContainer = RealAppContainer()
+        // Mock API 사용 (서버 준비되면 RealAppContainer()로 변경)
+        appContainer = FakeAppContainer()
     }
 }
