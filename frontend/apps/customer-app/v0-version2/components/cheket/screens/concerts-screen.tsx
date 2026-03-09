@@ -1,27 +1,27 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useApp } from '@/lib/app-context'
-import { AppShell } from '../app-shell'
-import { EventCard } from '../event-card'
-import { EmptyState } from '../empty-state'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
+import { useApp } from '@/lib/app-context'
 import { cn } from '@/lib/utils'
+import { AppShell } from '../app-shell'
+import { EmptyState } from '../empty-state'
+import { EventCard } from '../event-card'
 
-type SortKey = '인기순' | '최신순' | '오픈임박순'
+type SortKey = '인기순' | '최신순' | '마감임박순'
 
-const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '제주']
-const SORTS: SortKey[] = ['인기순', '최신순', '오픈임박순']
+const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '광주', '경남', '전북', '제주', '기타']
+const SORTS: SortKey[] = ['인기순', '최신순', '마감임박순']
 const PAGE_SIZE = 6
 
 function popularityScore(id: string) {
   const order = ['evt_001', 'evt_002', 'evt_004', 'evt_006', 'evt_007', 'evt_008']
-  const idx = order.indexOf(id)
-  return idx === -1 ? 99 : idx
+  const index = order.indexOf(id)
+  return index === -1 ? 99 : index
 }
 
 export function ConcertsScreen() {
-  const { navigate, events } = useApp()
+  const { navigate, events, eventsError, eventsLoading, eventsSource } = useApp()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [query, setQuery] = useState('')
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
@@ -48,8 +48,8 @@ export function ConcertsScreen() {
         event.name.toLowerCase().includes(keyword) ||
         event.venue.toLowerCase().includes(keyword) ||
         (event.artistName ?? '').toLowerCase().includes(keyword)
-      const matchRegion =
-        selectedRegions.length === 0 || selectedRegions.includes(event.region)
+
+      const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(event.region)
       return matchQuery && matchRegion
     })
 
@@ -58,7 +58,7 @@ export function ConcertsScreen() {
     } else if (sort === '최신순') {
       list = [...list].sort((a, b) => (b.openDate ?? '').localeCompare(a.openDate ?? ''))
     } else {
-      list = [...list].sort((a, b) => (a.openDate ?? '9999').localeCompare(b.openDate ?? '9999'))
+      list = [...list].sort((a, b) => (a.openDate ?? '9999-12-31').localeCompare(b.openDate ?? '9999-12-31'))
     }
 
     return list
@@ -78,8 +78,7 @@ export function ConcertsScreen() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const [entry] = entries
-        if (entry?.isIntersecting) {
+        if (entries[0]?.isIntersecting) {
           setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filtered.length))
         }
       },
@@ -97,10 +96,10 @@ export function ConcertsScreen() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="w-full rounded-xl border border-border bg-secondary py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none"
+              className="w-full rounded-xl border border-border bg-secondary py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               placeholder="공연명, 아티스트, 장소 검색"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
             />
           </div>
           <button
@@ -138,6 +137,14 @@ export function ConcertsScreen() {
           ))}
         </div>
 
+        <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+          {eventsLoading
+            ? 'KOPIS 공연 데이터를 불러오는 중입니다.'
+            : eventsSource === 'kopis'
+              ? `KOPIS 연동 데이터 ${events.length}건을 표시 중입니다.`
+              : `KOPIS 연동 실패 또는 키 미설정으로 mock 데이터 ${events.length}건을 표시 중입니다.${eventsError ? ` (${eventsError})` : ''}`}
+        </div>
+
         {showFilters && (
           <div className="flex flex-col gap-3 rounded-2xl border border-border bg-secondary/50 p-4">
             <div>
@@ -149,8 +156,7 @@ export function ConcertsScreen() {
                     onClick={() => toggleRegion(region)}
                     className={cn(
                       'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                      (region === '전체' && selectedRegions.length === 0) ||
-                        selectedRegions.includes(region)
+                      (region === '전체' && selectedRegions.length === 0) || selectedRegions.includes(region)
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground'
                     )}
@@ -163,9 +169,7 @@ export function ConcertsScreen() {
 
             {activeFilterCount > 0 && (
               <button
-                onClick={() => {
-                  setSelectedRegions([])
-                }}
+                onClick={() => setSelectedRegions([])}
                 className="self-start text-xs text-muted-foreground hover:text-foreground"
               >
                 <span className="inline-flex items-center gap-1.5">
@@ -198,26 +202,16 @@ export function ConcertsScreen() {
         </p>
 
         {filtered.length === 0 ? (
-          <EmptyState
-            title="공연이 없어요"
-            description="검색어나 필터를 바꿔서 다시 확인해 보세요."
-          />
+          <EmptyState title="공연이 없어요" description="검색어나 필터를 바꿔서 다시 확인해 보세요." />
         ) : (
           <>
             <div className="flex flex-col gap-3">
               {visibleEvents.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onClick={() => navigate('event-detail', { eventId: event.id })}
-                />
+                <EventCard key={event.id} event={event} onClick={() => navigate('event-detail', { eventId: event.id })} />
               ))}
             </div>
 
-            <div
-              ref={loadMoreRef}
-              className={cn('flex items-center justify-center', hasMore ? 'h-10' : 'h-2')}
-            >
+            <div ref={loadMoreRef} className={cn('flex items-center justify-center', hasMore ? 'h-10' : 'h-2')}>
               {hasMore && <span className="text-xs text-muted-foreground">공연을 더 불러오는 중...</span>}
             </div>
           </>

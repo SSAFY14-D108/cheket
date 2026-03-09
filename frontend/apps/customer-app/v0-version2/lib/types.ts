@@ -111,6 +111,12 @@ export interface Event {
   refundRules?: RefundRule[]
   openDate?: string     // for deadline sorting, e.g. "2026-04-01"
   description?: string
+  priceInfo?: string
+  runtime?: string
+  ageRating?: string
+  cast?: string
+  crew?: string
+  introImages?: string[]
 }
 
 export interface Seat {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type {
   Event,
   NavParams,
@@ -99,6 +99,10 @@ interface AppContextValue {
   tickets: Ticket[]
   resaleItems: ResaleItem[]
   events: Event[]
+  eventsLoading: boolean
+  eventsSource: 'mock' | 'kopis'
+  eventsError: string | null
+  updateEvent: (id: string, updates: Partial<Event>) => void
   addTicket: (ticket: Ticket) => void
   updateTicketStatus: (id: string, updates: Partial<Ticket>) => void
   addResaleItem: (item: ResaleItem) => void
@@ -158,11 +162,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [screenHistory, setScreenHistory] = useState<Array<{ screen: Screen; params: NavParams }>>([])
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS)
   const [resaleItems, setResaleItems] = useState<ResaleItem[]>(MOCK_RESALE_ITEMS)
-  const [events] = useState<Event[]>(MOCK_EVENTS)
+  const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
+  const [eventsLoading, setEventsLoading] = useState(true)
+  const [eventsSource, setEventsSource] = useState<'mock' | 'kopis'>('mock')
+  const [eventsError, setEventsError] = useState<string | null>(null)
   const [wishlist, setWishlist] = useState<string[]>(['evt_001'])
   const [txRecords, setTxRecords] = useState<TxRecord[]>([])
   const [walletTxs, setWalletTxs] = useState<WalletTx[]>(INITIAL_WALLET_TXS)
   const [allowNotifications, setAllowNotifications] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadKopisEvents() {
+      try {
+        setEventsLoading(true)
+        const response = await fetch('/api/kopis/events?rows=30', { cache: 'no-store' })
+        const data = await response.json()
+
+        if (cancelled) return
+
+        if (Array.isArray(data.items) && data.items.length > 0) {
+          setEvents(data.items)
+          setEventsSource('kopis')
+          setEventsError(null)
+        } else {
+          setEvents(MOCK_EVENTS)
+          setEventsSource('mock')
+          setEventsError(typeof data.error === 'string' ? data.error : null)
+        }
+      } catch (error) {
+        if (cancelled) return
+        setEvents(MOCK_EVENTS)
+        setEventsSource('mock')
+        setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
+      } finally {
+        if (!cancelled) {
+          setEventsLoading(false)
+        }
+      }
+    }
+
+    void loadKopisEvents()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const login = useCallback((id: string, _password: string) => {
     if (id.length === 0) return false
@@ -219,6 +265,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addTicket = useCallback((ticket: Ticket) => {
     setTickets((prev) => [ticket, ...prev])
+  }, [])
+
+  const updateEvent = useCallback((id: string, updates: Partial<Event>) => {
+    setEvents((prev) => prev.map((event) => (event.id === id ? { ...event, ...updates } : event)))
   }, [])
 
   const updateTicketStatus = useCallback((id: string, updates: Partial<Ticket>) => {
@@ -426,6 +476,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         tickets,
         resaleItems,
         events,
+        eventsLoading,
+        eventsSource,
+        eventsError,
+        updateEvent,
         addTicket,
         updateTicketStatus,
         addResaleItem,
