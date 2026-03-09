@@ -91,7 +91,7 @@ fun EventDateSelectionScreen(
     }
 
     Scaffold(
-        topBar = { AppHeader(title = "회차 선택", onBack = onBack) },
+        topBar = { AppHeader(title = "공연 날짜 선택", onBack = onBack) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -103,7 +103,7 @@ fun EventDateSelectionScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "날짜/회차를 먼저 선택하면 대기열에 입장합니다.",
+                "원하는 날짜와 회차를 선택한 뒤 좌석을 고를 수 있어요.",
                 fontSize = 12.sp,
                 color = MutedForeground,
             )

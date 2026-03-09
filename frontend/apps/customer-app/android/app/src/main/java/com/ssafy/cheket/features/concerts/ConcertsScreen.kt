@@ -55,7 +55,7 @@ fun ConcertsScreen(
                         OutlinedTextField(
                             value = uiState.searchQuery,
                             onValueChange = viewModel::onSearchChange,
-                            placeholder = { Text("공연명, 장소로 검색", fontSize = 14.sp) },
+                            placeholder = { Text("공연명, 아티스트, 장소 검색", fontSize = 14.sp) },
                             leadingIcon = { Icon(Icons.Default.Search, null, tint = MutedForeground) },
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
@@ -100,20 +100,29 @@ fun ConcertsScreen(
                     // Sort pills
                     Row(
                         Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         SortOption.entries.forEach { sort ->
                             val sel = uiState.sortBy == sort
                             Text(
                                 sort.label,
-                                fontSize = 13.sp,
-                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
-                                color = if (sel) Primary else MutedForeground,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (sel) White else MutedForeground,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
                                     .clickable { viewModel.onSortChange(sort) }
-                                    .then(if (sel) Modifier.background(PrimaryLight) else Modifier)
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    .then(
+                                        if (sel) Modifier
+                                            .background(Primary)
+                                            .border(1.dp, Primary, RoundedCornerShape(12.dp))
+                                        else Modifier
+                                            .background(Muted)
+                                            .border(1.dp, BorderColor, RoundedCornerShape(12.dp))
+                                    )
+                                    .padding(vertical = 8.dp)
+                                    .wrapContentWidth(Alignment.CenterHorizontally),
                             )
                         }
                     }
@@ -124,42 +133,31 @@ fun ConcertsScreen(
                         HorizontalDivider(color = BorderColor)
                         Spacer(Modifier.height(8.dp))
 
-                        // Region pills
+                        // Region pills (multi-select)
                         Text("지역", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MutedForeground)
                         Spacer(Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            RegionPill("전체", uiState.selectedRegion == null) { viewModel.onRegionSelect(null) }
+                            RegionPill("전체", uiState.selectedRegions.isEmpty()) { viewModel.onRegionToggle(null) }
                             viewModel.regions.forEach { region ->
-                                RegionPill(region, uiState.selectedRegion == region) { viewModel.onRegionSelect(region) }
+                                RegionPill(region, uiState.selectedRegions.contains(region)) { viewModel.onRegionToggle(region) }
                             }
-                        }
-
-                        // Sold-out toggle
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 8.dp),
-                        ) {
-                            Text("매진 공연 숨기기", fontSize = 12.sp, color = MutedForeground)
-                            Spacer(Modifier.weight(1f))
-                            Switch(
-                                checked = !uiState.showSoldOut,
-                                onCheckedChange = { viewModel.onSoldOutToggle() },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = White,
-                                    checkedTrackColor = Primary,
-                                ),
-                            )
                         }
 
                         // Filter reset button
                         if (viewModel.hasActiveFilters()) {
-                            TextButton(
-                                onClick = viewModel::resetFilters,
-                                modifier = Modifier.fillMaxWidth(),
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable { viewModel.resetFilters() }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
+                                Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp), tint = MutedForeground)
                                 Text("필터 초기화", fontSize = 12.sp, color = MutedForeground)
                             }
                         }
@@ -171,18 +169,10 @@ fun ConcertsScreen(
                             modifier = Modifier.padding(top = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            uiState.selectedRegion?.let { region ->
+                            uiState.selectedRegions.forEach { region ->
                                 AssistChip(
-                                    onClick = { viewModel.onRegionSelect(null) },
+                                    onClick = { viewModel.onRegionToggle(region) },
                                     label = { Text(region, fontSize = 11.sp) },
-                                    trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp)) },
-                                    shape = RoundedCornerShape(20.dp),
-                                )
-                            }
-                            if (!uiState.showSoldOut) {
-                                AssistChip(
-                                    onClick = { viewModel.onSoldOutToggle() },
-                                    label = { Text("매진 숨김", fontSize = 11.sp) },
                                     trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp)) },
                                     shape = RoundedCornerShape(20.dp),
                                 )
@@ -209,8 +199,8 @@ fun ConcertsScreen(
 
             if (uiState.filteredEvents.isEmpty() && !uiState.isLoading) {
                 EmptyState(
-                    "검색 결과가 없습니다",
-                    "다른 검색어나 필터를 시도해보세요",
+                    "공연이 없어요",
+                    "검색어나 필터를 바꿔서 다시 확인해 보세요.",
                     Modifier.fillMaxSize(),
                 )
             } else {

@@ -39,6 +39,12 @@ object MockDataSource {
                 Grade("A석", 88000, 152, "#22c55e"),
             ),
             description = "aespa의 첫 번째 월드 투어. 서울 단독 공연으로 펼쳐지는 화려한 무대.",
+            refundRules = listOf(
+                RefundRule("rr_001_1", 7, 0f, "공연 7일 전까지"),
+                RefundRule("rr_001_2", 3, 0.1f, "공연 3일 전까지"),
+                RefundRule("rr_001_3", 1, 0.3f, "공연 1일 전까지"),
+                RefundRule("rr_001_4", 0, 1f, "공연 당일 이후"),
+            ),
         ),
         Event(
             id = "evt_002",
@@ -62,6 +68,12 @@ object MockDataSource {
                 Grade("STAND", 120000, 103, "#22c55e"),
             ),
             description = "메탈리카의 M72 월드투어 한국 공연. 역사적인 무대를 경험하세요.",
+            refundRules = listOf(
+                RefundRule("rr_002_1", 10, 0f, "공연 10일 전까지"),
+                RefundRule("rr_002_2", 5, 0.1f, "공연 5일 전까지"),
+                RefundRule("rr_002_3", 2, 0.3f, "공연 2일 전까지"),
+                RefundRule("rr_002_4", 0, 1f, "공연 1일 전 및 당일"),
+            ),
         ),
         Event(
             id = "evt_003",
@@ -80,6 +92,12 @@ object MockDataSource {
                 Grade("S석", 70000, 0, "#3b82f6"),
             ),
             description = "새해를 여는 서울 필하모닉의 특별 갈라 콘서트.",
+            refundRules = listOf(
+                RefundRule("rr_003_1", 14, 0f, "공연 14일 전까지"),
+                RefundRule("rr_003_2", 7, 0.1f, "공연 7일 전까지"),
+                RefundRule("rr_003_3", 1, 0.3f, "공연 1일 전까지"),
+                RefundRule("rr_003_4", 0, 1f, "공연 당일 이후"),
+            ),
         ),
         Event(
             id = "evt_004",
@@ -101,6 +119,12 @@ object MockDataSource {
                 Grade("GA", 220000, 210, "#3b82f6"),
             ),
             description = "세계 최대 EDM 페스티벌 울트라코리아 2026.",
+            refundRules = listOf(
+                RefundRule("rr_004_1", 14, 0f, "공연 14일 전까지"),
+                RefundRule("rr_004_2", 7, 0.1f, "공연 7일 전까지"),
+                RefundRule("rr_004_3", 3, 0.3f, "공연 3일 전까지"),
+                RefundRule("rr_004_4", 0, 1f, "공연 2일 전 및 당일"),
+            ),
         ),
         Event(
             id = "evt_005",
@@ -118,6 +142,12 @@ object MockDataSource {
                 Grade("2일권", 150000, 0, "#3b82f6"),
             ),
             description = "아시아 최대 재즈 축제 자라섬 국제 재즈 페스티벌.",
+            refundRules = listOf(
+                RefundRule("rr_005_1", 7, 0f, "공연 7일 전까지"),
+                RefundRule("rr_005_2", 3, 0.1f, "공연 3일 전까지"),
+                RefundRule("rr_005_3", 1, 0.3f, "공연 1일 전까지"),
+                RefundRule("rr_005_4", 0, 1f, "공연 당일 이후"),
+            ),
         ),
     )
 
