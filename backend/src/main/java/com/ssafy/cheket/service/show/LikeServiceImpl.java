@@ -29,4 +29,13 @@ public class LikeServiceImpl implements LikeService {
 
         likeRepository.save(like);
     }
+
+    @Override
+    @Transactional
+    public void removeLike(Long userId, Long showId) {
+        if (!showRepository.existsById(showId))
+            throw new NotFoundException("존재하지 않는 공연입니다.");
+
+        likeRepository.deleteByUserIdAndShowId(userId, showId);
+    }
 }

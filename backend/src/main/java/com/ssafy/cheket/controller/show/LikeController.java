@@ -25,4 +25,14 @@ public class LikeController {
         likeService.addLike(userId, showId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 찜 추가 완료", null));
     }
+
+    @DeleteMapping("/shows/{showId}/likes")
+    @Operation(summary = "공연 찜 삭제")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> removeLike(@PathVariable Long showId,
+        @AuthenticationPrincipal Long userId) {
+        likeService.removeLike(userId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 찜 삭제 완료", null));
+    }
+
 }
