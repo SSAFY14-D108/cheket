@@ -1,10 +1,14 @@
 package com.ssafy.cheket.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.cheket.config.jwt.JwtAuthenticationFilter;
+import com.ssafy.cheket.dto.common.ApiResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -20,6 +24,7 @@ public class SecurityConfig {
 
     // JWT 필터 주입
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,14 +42,33 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
-                .requestMatchers("/api/v1/shows/**").permitAll().requestMatchers("/api/v1/hosts/business-no/duplicate")
-                .permitAll().requestMatchers(HttpMethod.GET, "/api/v1/resales").permitAll()
+                .requestMatchers("/api/v1/hosts/business-no/duplicate").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/resales").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/resales/{showId}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows/venue").permitAll()
                 .requestMatchers("/api/v1/shows/{showId}/refund").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows/upcoming").permitAll()
                 // 나머지는 인증 필수
                 .anyRequest().authenticated())
+
+            .exceptionHandling(eh -> eh.authenticationEntryPoint((req, res, ex) -> {
+                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                res.setCharacterEncoding("UTF-8");
+
+                String body = objectMapper
+                    .writeValueAsString(ApiResponse.fail(HttpServletResponse.SC_UNAUTHORIZED, "로그인이 필요합니다."));
+                res.getWriter().write(body);
+            }).accessDeniedHandler((req, res, ex) -> {
+                res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                res.setCharacterEncoding("UTF-8");
+
+                String body = objectMapper
+                    .writeValueAsString(ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "접근 권한이 없습니다."));
+                res.getWriter().write(body);
+            }))
 
             // JWT 필터를 Spring Security 기본 인증 필터 앞에 배치
             // → 요청이 컨트롤러에 도달하기 전에 JWT 검증이 먼저 실행됨
