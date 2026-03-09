@@ -19,6 +19,15 @@ export const handlers = [
       { status: 200 }
     )
   }),
+  http.post("*/api/v1/hosts/logout", async () => {
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "로그아웃 완료",
+      },
+      { status: 200 }
+    )
+  }),
   http.post("*/api/v1/hosts/auth/reissue", async ({ request }) => {
     const body = (await request.json()) as { refreshToken?: string }
 

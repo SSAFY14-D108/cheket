@@ -1,5 +1,6 @@
 import { CompanyInfoCard } from "@/components/mypage/CompanyInfoCard"
 import { EventCard } from "@/components/mypage/EventCard"
+import { LogoutButton } from "@/components/mypage/LogoutButton"
 import { mockCompany, mockEvents } from "@/lib/mock-data"
 import Link from "next/link"
 
@@ -16,12 +17,7 @@ export default function MyPage() {
           >
             공연 등록
           </Link>
-          <Link
-            href="/"
-            className="rounded-sm bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-          >
-            로그아웃
-          </Link>
+          <LogoutButton />
         </div>
       </div>
 
