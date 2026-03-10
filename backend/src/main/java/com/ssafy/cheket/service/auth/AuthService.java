@@ -3,6 +3,7 @@ package com.ssafy.cheket.service.auth;
 import com.ssafy.cheket.dto.auth.request.LoginRequest;
 import com.ssafy.cheket.dto.auth.request.ReissueRequest;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
+import com.ssafy.cheket.dto.auth.response.SearchUserResponse;
 
 public interface AuthService {
     LoginResponse login(LoginRequest request);
@@ -17,5 +18,8 @@ public interface AuthService {
 
     // 비밀번호 변경
     void changePassword(Long id, String oldPassword, String newPassword);
+
+    // 회원 검색
+    SearchUserResponse searchUser(String userType, String number);
 
 }

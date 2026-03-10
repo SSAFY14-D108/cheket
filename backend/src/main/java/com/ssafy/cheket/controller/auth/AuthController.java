@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.auth;
 
 import com.ssafy.cheket.dto.auth.request.*;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
+import com.ssafy.cheket.dto.auth.response.SearchUserResponse;
 import com.ssafy.cheket.dto.auth.response.SmsVerificationResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.auth.AuthService;
@@ -90,6 +91,15 @@ public class AuthController {
         @RequestBody ChangePasswordRequest request) {
         authService.changePassword(userId, request.oldPassword(), request.newPassword());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "비밀번호가 변경되었습니다.", null));
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "회원 검색")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<SearchUserResponse>> searchUser(@RequestParam String userType,
+        @RequestParam String number) {
+        SearchUserResponse response = authService.searchUser(userType, number);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "조회에 성공했습니다.", response));
     }
 
 }
