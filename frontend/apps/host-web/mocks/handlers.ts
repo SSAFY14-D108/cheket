@@ -5,6 +5,7 @@ const MOCK_ACCESS_TOKEN = "mock-token-1234"
 const MOCK_REFRESH_TOKEN = "mock-refresh-token-5678"
 const MOCK_NEW_ACCESS_TOKEN = "mock-access-token-new"
 const MOCK_NEW_REFRESH_TOKEN = "mock-refresh-token-new"
+let MOCK_HOST_PASSWORD = "Password123!"
 const MY_PAGE_COMPANY = {
   companyName: "스타라이트 엔터테인먼트",
   businessNo: "123-45-67890",
@@ -333,7 +334,13 @@ export const handlers = [
     )
   }),
   // 회원가입
-  http.post("*/api/v1/hosts", async () => {
+  http.post("*/api/v1/hosts", async ({ request }) => {
+    const body = (await request.json()) as { password?: string }
+
+    if (body.password?.trim()) {
+      MOCK_HOST_PASSWORD = body.password
+    }
+
     return HttpResponse.json(
       {
         httpStatusCode: 201,
@@ -343,7 +350,13 @@ export const handlers = [
     )
   }),
   // 로그인
-  http.post("*/api/v1/hosts/login", async () => {
+  http.post("*/api/v1/hosts/login", async ({ request }) => {
+    const body = (await request.json()) as { password?: string }
+
+    if (body.password?.trim()) {
+      MOCK_HOST_PASSWORD = body.password
+    }
+
     return HttpResponse.json(
       {
         httpStatusCode: 200,
@@ -381,6 +394,82 @@ export const handlers = [
         httpStatusCode: 200,
         responseMessage: "조회에 성공했습니다.",
         data: MY_PAGE_COMPANY,
+      },
+      { status: 200 }
+    )
+  }),
+  http.put("*/api/v1/hosts", async ({ request }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const body = (await request.json()) as {
+      companyName?: string
+      email?: string
+    }
+
+    const companyName = body.companyName?.trim()
+    const email = body.email?.trim()
+
+    if (!companyName && !email) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "잘못된 요청입니다.",
+        },
+        { status: 400 }
+      )
+    }
+
+    if (companyName) {
+      MY_PAGE_COMPANY.companyName = companyName
+    }
+
+    if (email) {
+      MY_PAGE_COMPANY.email = email
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "회사 정보가 수정되었습니다.",
+      },
+      { status: 200 }
+    )
+  }),
+  http.delete("*/api/v1/hosts", async ({ request }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const body = (await request.json()) as { password?: string }
+
+    if (body.password !== MOCK_HOST_PASSWORD) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "비밀번호가 일치하지 않습니다.",
+        },
+        { status: 400 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "회원 탈퇴가 완료되었습니다.",
       },
       { status: 200 }
     )

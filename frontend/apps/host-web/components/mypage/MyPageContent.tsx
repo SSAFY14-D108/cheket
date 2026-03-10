@@ -114,6 +114,14 @@ export function MyPageContent() {
       </div>
 
       <section className="mt-8">
+        <div className="mb-3 flex items-center justify-end">
+          <Link
+            href="/mypage/settings"
+            className="rounded-sm border border-input bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            계정 설정
+          </Link>
+        </div>
         {company ? (
           <CompanyInfoCard company={company} />
         ) : (
