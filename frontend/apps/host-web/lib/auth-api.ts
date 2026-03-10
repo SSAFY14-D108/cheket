@@ -1,4 +1,4 @@
-import { apiFetch, apiRequest } from "@/lib/api"
+import { ApiError, apiFetch, apiRequest } from "@/lib/api"
 
 export interface SignupRequest {
   companyName: string
@@ -27,6 +27,15 @@ export interface LoginResponse extends AuthSuccessResponse {
 }
 
 export type LogoutResponse = AuthSuccessResponse
+export interface BusinessNoDuplicateResult {
+  isDuplicate: boolean
+}
+
+interface BusinessNoDuplicateResponse extends AuthSuccessResponse {
+  data: {
+    isDuplicate: boolean
+  }
+}
 
 export async function signupHost(payload: SignupRequest) {
   return apiFetch<AuthSuccessResponse>("/api/v1/hosts", {
@@ -48,4 +57,25 @@ export async function logoutHost() {
   return apiFetch<LogoutResponse>("/api/v1/hosts/logout", {
     method: "POST",
   })
+}
+
+export async function checkBusinessNoDuplicate(businessNo: string) {
+  try {
+    const response = await apiFetch<BusinessNoDuplicateResponse>(
+      "/api/v1/hosts/business-no/duplicate",
+      {
+        method: "POST",
+        body: JSON.stringify({ businessNo }),
+      }
+    )
+
+    return response.data
+  } catch (error) {
+    // apiFetch treats 409 as an error, so we normalize the duplicate case here.
+    if (error instanceof ApiError && error.status === 409) {
+      return { isDuplicate: true } satisfies BusinessNoDuplicateResult
+    }
+
+    throw error
+  }
 }
