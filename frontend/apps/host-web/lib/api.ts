@@ -31,8 +31,12 @@ interface TokenReissueResponse {
   }
 }
 
-const TOKEN_REISSUE_PATH = "/api/v1/hosts/auth/reissue"
+const TOKEN_REISSUE_PATH = "/api/v1/auth/reissue"
 const RETRY_HEADER = "X-Auth-Retry"
+const PUBLIC_AUTH_REQUESTS = [
+  { method: "POST", path: "/api/v1/hosts" },
+  { method: "POST", path: "/api/v1/hosts/login" },
+] as const
 
 let refreshPromise: Promise<TokenReissueResponse["data"]> | null = null
 
@@ -46,7 +50,26 @@ function buildUrl(path: string) {
   return `${baseUrl.replace(/\/$/, "")}${path}`
 }
 
-function buildHeaders(init?: RequestInit) {
+function normalizeMethod(method?: string) {
+  return (method ?? "GET").toUpperCase()
+}
+
+function isSameRequestTarget(path: string, method: string, target: { path: string; method: string }) {
+  return path === target.path && method === target.method
+}
+
+function isPublicAuthRequest(path: string, method: string) {
+  return PUBLIC_AUTH_REQUESTS.some((target) => isSameRequestTarget(path, method, target))
+}
+
+function isTokenReissueRequest(path: string, method: string) {
+  return isSameRequestTarget(path, method, {
+    path: TOKEN_REISSUE_PATH,
+    method: "POST",
+  })
+}
+
+function buildHeaders(path: string, method: string, init?: RequestInit) {
   const headers = new Headers(init?.headers)
   const token = getAccessToken()
 
@@ -54,7 +77,7 @@ function buildHeaders(init?: RequestInit) {
     headers.set("Content-Type", "application/json")
   }
 
-  if (token && !headers.has("Authorization")) {
+  if (token && !headers.has("Authorization") && !isPublicAuthRequest(path, method)) {
     headers.set("Authorization", toAuthorizationHeader(token))
   }
 
@@ -79,8 +102,13 @@ async function parseResponseBody(response: Response) {
   return null
 }
 
-function shouldAttemptRefresh(status: number, headers: Headers) {
-  return status === 401 && !headers.has(RETRY_HEADER)
+function shouldAttemptRefresh(path: string, method: string, status: number, headers: Headers) {
+  return (
+    status === 401 &&
+    !headers.has(RETRY_HEADER) &&
+    !isPublicAuthRequest(path, method) &&
+    !isTokenReissueRequest(path, method)
+  )
 }
 
 function redirectToLogin() {
@@ -152,16 +180,17 @@ export async function apiRequest<TResponse>(
   path: string,
   init?: RequestInit
 ): Promise<ApiResult<TResponse>> {
-  const headers = buildHeaders(init)
+  const method = normalizeMethod(init?.method)
+  const headers = buildHeaders(path, method, init)
   const response = await fetch(buildUrl(path), {
     ...init,
     headers,
   })
 
-  if (shouldAttemptRefresh(response.status, headers)) {
+  if (shouldAttemptRefresh(path, method, response.status, headers)) {
     try {
       const newTokens = await refreshTokens(headers.get("Authorization"))
-      const retryHeaders = buildHeaders(init)
+      const retryHeaders = buildHeaders(path, method, init)
 
       retryHeaders.set("Authorization", toAuthorizationHeader(newTokens.accessToken))
       retryHeaders.set(RETRY_HEADER, "true")

@@ -1,18 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import type { CompanyInfo } from "@/lib/mock-data"
+import type { MyCompanyInfo } from "@/lib/mypage-api"
 
 interface CompanyInfoCardProps {
-  company: CompanyInfo
+  company: MyCompanyInfo
 }
 
 export function CompanyInfoCard({ company }: CompanyInfoCardProps) {
   const fields = [
     { label: "회사명", value: company.companyName },
-    { label: "사업자등록번호", value: company.businessNumber },
+    { label: "사업자등록번호", value: company.businessNo },
     { label: "이메일", value: company.email },
-    { label: "지갑 주소", value: company.walletAddress },
-    { label: "잔액", value: `${company.balance} ETH` },
+    { label: "지갑 주소", value: company.walletAddress ?? "지갑 정보 없음" },
+    {
+      label: "잔액",
+      value: company.balance !== null && company.balance !== undefined ? `${company.balance} CTK` : "잔액 정보 없음",
+    },
   ]
 
   return (

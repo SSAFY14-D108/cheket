@@ -4,11 +4,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Calendar, BarChart3 } from "lucide-react"
-import { mockVenues } from "@/lib/mock-data"
-import type { Event } from "@/lib/mock-data"
+import type { MyShowSummary } from "@/lib/mypage-api"
 
 interface EventCardProps {
-  event: Event
+  event: MyShowSummary
 }
 
 const POSTER_PLACEHOLDER = "/images/poster-1.jpg"
@@ -32,11 +31,11 @@ export function EventCard({ event }: EventCardProps) {
           </h3>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Calendar className="size-3.5 shrink-0" />
-            <span>{event.show.startAt.substring(0, 10)}</span>
+            <span>{event.show.showStartDate}</span>
           </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="size-3.5 shrink-0" />
-            <span>{event.venue.name}</span>
+            <span>{event.venue}</span>
           </div>
           <Link
             href={`/shows/${event.showId}/dashboard`}
