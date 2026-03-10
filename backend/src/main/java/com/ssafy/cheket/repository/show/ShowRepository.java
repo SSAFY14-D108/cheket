@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ShowRepository extends JpaRepository<Show, Long> {
 
     @EntityGraph(attributePaths = {"venue"})
@@ -25,4 +27,14 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
           )
         """)
     Page<Show> search(@Param("region") Region region, @Param("keyword") String keyword, Pageable pageable);
+
+    @Query("""
+        select s
+        from Show s
+        WHERE s.status = com.ssafy.cheket.enums.ShowStatus.DRAFT
+        order by
+            (select COUNT(l) from Like l where l.showId = s.id) desc,
+            s.reservationStartDate asc
+        """)
+    List<Show> findUpcomingTop5ByLikeCount(Pageable pageable);
 }

@@ -64,9 +64,6 @@ public class Show {
     @Column(name = "artist", nullable = false, length = 200)
     private String artist;
 
-    @Column(name = "rating", nullable = false)
-    private Integer rating;
-
     @Column(name = "platform_fee_bps", nullable = false)
     private Integer platformFeeBps;
 
