@@ -32,7 +32,12 @@ class AuthAuthenticator(
 
         val newTokens = runBlocking {
             try {
-                refreshService.reissue(ReissueRequest(refreshToken))
+                refreshService.reissue(ReissueRequest(refreshToken)).data?.let { response ->
+                    AuthTokens(
+                        accessToken = response.accessToken,
+                        refreshToken = response.refreshToken,
+                    )
+                }
             } catch (e: Exception) {
                 null
             }
