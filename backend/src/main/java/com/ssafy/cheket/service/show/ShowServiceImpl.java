@@ -41,14 +41,7 @@ public class ShowServiceImpl implements ShowService {
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         Page<Show> result = showRepository.search(region, normalized, pageable);
 
-        List<GetShowListResponse.ShowItem> items = result.getContent().stream()
-            .map(s -> new GetShowListResponse.ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(),
-                s.getVenue().getName(), s.getPurchaseLimit(), s.getVenue().getRegion().name(),
-                new GetShowListResponse.ShowPeriod(s.getShowStartDate().toLocalDate(),
-                    s.getShowEndDate().toLocalDate()),
-                new GetShowListResponse.ReservationPeriod(s.getReservationStartDate(), s.getReservationEndDate()),
-                s.getStatus().name()))
-            .toList();
+        List<ShowItem> items = result.getContent().stream().map(this::toShowItem).toList();
 
         return new GetShowListResponse(items, result.getNumber(), result.getSize(), result.getTotalElements(),
             result.getTotalPages());
@@ -142,6 +135,14 @@ public class ShowServiceImpl implements ShowService {
             .map(policy -> new GetRefundResponse.RefundPolicyInfo(policy.getDaysRemaining(), policy.getRefundRate()))
             .toList();
         return new GetRefundResponse(refundPolicyInfoList, show.getShowStartDate().toLocalDate());
+    }
+
+    private ShowItem toShowItem(Show s) {
+        return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
+            s.getVenue().getRegion().name(),
+            new ShowItem.ShowPeriod(s.getShowStartDate().toLocalDate(), s.getShowEndDate().toLocalDate()),
+            new ShowItem.ReservationPeriod(s.getReservationStartDate(), s.getReservationEndDate()),
+            s.getStatus().name());
     }
 
     private record SectionGroup(Long sectionId, String sectionName, String gradeName, Integer price, String colorCode,
