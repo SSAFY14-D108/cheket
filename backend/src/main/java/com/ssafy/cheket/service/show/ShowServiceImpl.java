@@ -137,6 +137,16 @@ public class ShowServiceImpl implements ShowService {
         return new GetRefundResponse(refundPolicyInfoList, show.getShowStartDate().toLocalDate());
     }
 
+    // 오른 예정 공연 5개 조회
+    @Override
+    public GetUpcomingResponse getUpcoming() {
+        Pageable pageable = PageRequest.of(0, 5);
+        List<ShowItem> items = showRepository.findUpcomingTop5ByLikeCount(pageable).stream().map(this::toShowItem)
+            .toList();
+
+        return new GetUpcomingResponse(items);
+    }
+
     private ShowItem toShowItem(Show s) {
         return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
             s.getVenue().getRegion().name(),

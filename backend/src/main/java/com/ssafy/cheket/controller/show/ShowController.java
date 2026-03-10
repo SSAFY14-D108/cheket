@@ -68,4 +68,11 @@ public class ShowController {
         GetRefundResponse response = showService.getRefund(showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "환불 정책 조회 완료", response));
     }
+
+    @GetMapping("/upcoming")
+    @Operation(summary = "오픈 예정 공연 5개 조회")
+    public ResponseEntity<ApiResponse<GetUpcomingResponse>> getUpcoming() {
+        GetUpcomingResponse response = showService.getUpcoming();
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "오픈 예정 공연 5개 조회 완료", response));
+    }
 }
