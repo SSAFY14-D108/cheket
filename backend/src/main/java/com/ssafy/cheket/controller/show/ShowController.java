@@ -1,10 +1,7 @@
 package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
-import com.ssafy.cheket.dto.show.response.GetSeatsResponse;
-import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
-import com.ssafy.cheket.dto.show.response.GetShowListResponse;
-import com.ssafy.cheket.dto.show.response.SessionListResponse;
+import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.service.show.ShowService;
@@ -56,5 +53,19 @@ public class ShowController {
         @PathVariable Long sessionId) {
         List<GetSeatsResponse> response = showService.getSeats(showId, sessionId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "좌석 배치도 조회 완료", response));
+    }
+
+    @GetMapping("/venue")
+    @Operation(summary = "공연장 목록 조회")
+    public ResponseEntity<ApiResponse<List<GetVenuesResponse>>> getVenues() {
+        List<GetVenuesResponse> response = showService.getVenues();
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연장 목록 조회 완료", response));
+    }
+
+    @GetMapping("/{showId}/refund")
+    @Operation(summary = "환불 정책 조회")
+    public ResponseEntity<ApiResponse<GetRefundResponse>> getRefund(@PathVariable Long showId) {
+        GetRefundResponse response = showService.getRefund(showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "환불 정책 조회 완료", response));
     }
 }

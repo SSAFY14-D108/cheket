@@ -1,9 +1,6 @@
 package com.ssafy.cheket.service.show;
 
-import com.ssafy.cheket.dto.show.response.GetSeatsResponse;
-import com.ssafy.cheket.dto.show.response.GetShowDetailResponse;
-import com.ssafy.cheket.dto.show.response.GetShowListResponse;
-import com.ssafy.cheket.dto.show.response.SessionListResponse;
+import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 
@@ -17,4 +14,8 @@ public interface ShowService {
     List<SessionListResponse> getSessionList(Long showId);
 
     List<GetSeatsResponse> getSeats(Long showId, Long sessionId);
+
+    List<GetVenuesResponse> getVenues();
+
+    GetRefundResponse getRefund(Long showId);
 }

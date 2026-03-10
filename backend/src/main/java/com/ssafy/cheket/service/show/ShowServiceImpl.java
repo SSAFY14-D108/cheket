@@ -1,8 +1,7 @@
 package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.*;
-import com.ssafy.cheket.entity.show.SeatGrade;
-import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.NotFoundException;
@@ -31,6 +30,8 @@ public class ShowServiceImpl implements ShowService {
     private final SectionRepository sectionRepository;
     private final SessionRepository sessionRepository;
     private final SessionSeatRepository sessionSeatRepository;
+    private final VenueRepository venueRepository;
+    private final SeatRepository seatRepository;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -118,6 +119,29 @@ public class ShowServiceImpl implements ShowService {
 
         return grouped.values().stream().map(group -> new GetSeatsResponse(group.sectionId(), group.sectionName(),
             group.gradeName(), group.price(), group.colorCode(), group.seats())).toList();
+    }
+
+    // 공연장 목록 조회
+    @Override
+    public List<GetVenuesResponse> getVenues() {
+        List<Venue> venues = venueRepository.findAll();
+        return venues.stream().map(venue -> {
+            List<Section> sections = sectionRepository.findByVenueId(venue.getId());
+            List<Long> sectionIds = sections.stream().map(Section::getId).toList();
+            int capacity = sectionIds.isEmpty() ? 0 : seatRepository.countBySectionIdIn(sectionIds);
+            return new GetVenuesResponse(venue.getId(), venue.getName(), capacity);
+        }).toList();
+    }
+
+    // 공연별 환불 정책 조회
+    @Override
+    public GetRefundResponse getRefund(Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        List<RefundPolicy> refundPolicies = refundPolicyRepository.findByShowIdOrderByDaysRemainingDesc(showId);
+        List<GetRefundResponse.RefundPolicyInfo> refundPolicyInfoList = refundPolicies.stream()
+            .map(policy -> new GetRefundResponse.RefundPolicyInfo(policy.getDaysRemaining(), policy.getRefundRate()))
+            .toList();
+        return new GetRefundResponse(refundPolicyInfoList, show.getShowStartDate().toLocalDate());
     }
 
     private record SectionGroup(Long sectionId, String sectionName, String gradeName, Integer price, String colorCode,
