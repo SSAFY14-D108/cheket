@@ -29,6 +29,7 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
     private val _uiState = MutableStateFlow(ConcertsUiState())
     val uiState: StateFlow<ConcertsUiState> = _uiState.asStateFlow()
     val regions = listOf("서울", "경기", "인천", "부산", "대구", "대전", "광주", "제주")
+    private val popularityOrder = listOf("evt_001", "evt_002", "evt_004", "evt_006", "evt_007", "evt_008")
 
     init {
         viewModelScope.launch {
@@ -57,8 +58,6 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
     fun resetFilters() { _uiState.value = _uiState.value.copy(selectedRegions = emptyList()); applyFilters() }
     fun hasActiveFilters(): Boolean = _uiState.value.selectedRegions.isNotEmpty()
     fun activeFilterCount(): Int = _uiState.value.selectedRegions.size
-
-    private val popularityOrder = listOf("evt_001", "evt_002", "evt_004", "evt_006", "evt_007", "evt_008")
 
     private fun applyFilters() {
         val s = _uiState.value

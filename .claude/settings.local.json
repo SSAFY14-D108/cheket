@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(C:/Users/SSAFY/Documents/S14P21D108/**)",
+      "Bash(git:*)",
+      "Bash(./gradlew compileDebugKotlin:*)",
+      "Bash(chmod +x:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(./gradlew clean:*)"
+    ]
+  }
+}
