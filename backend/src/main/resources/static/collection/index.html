@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CHEKET</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  background:transparent;
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Scene & Card ── */
+.scene{perspective:800px;width:72vw;max-width:300px}
+.card{
+  position:relative;width:100%;aspect-ratio:2/3;
+  border-radius:14px;overflow:hidden;
+  transform-style:preserve-3d;
+  will-change:transform;
+  transition:transform 0.08s ease-out;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3),0 15px 50px rgba(0,0,0,0.5);
+  animation:enter 0.6s cubic-bezier(0.23,1,0.32,1) forwards;
+  opacity:0;transform:scale(0.85) rotateX(15deg);
+}
+@keyframes enter{to{opacity:1;transform:scale(1) rotateX(0deg)}}
+
+/* ── Layers ── */
+.poster{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;background:linear-gradient(135deg,#1a1a2e,#16213e);
+}
+.holo{
+  position:absolute;inset:0;width:100%;height:100%;
+  mix-blend-mode:screen;pointer-events:none;
+}
+.holo-css{
+  position:absolute;inset:0;
+  background:conic-gradient(from var(--a,0deg) at var(--x,50%) var(--y,50%),
+    rgba(255,0,0,0.12),rgba(255,127,0,0.12),rgba(255,255,0,0.12),
+    rgba(0,255,0,0.12),rgba(0,127,255,0.12),rgba(127,0,255,0.12),rgba(255,0,0,0.12));
+  mix-blend-mode:screen;pointer-events:none;display:none;
+}
+.grad{
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,transparent 25%,rgba(10,12,20,0.35) 50%,rgba(10,12,20,0.92) 82%);
+}
+.perf{
+  position:absolute;left:8%;right:8%;bottom:38%;height:0;
+  border-top:1.5px dashed rgba(255,255,255,0.12);
+}
+
+/* ── Content ── */
+.content{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:14px 16px;color:#fff;pointer-events:none;
+}
+.top{display:flex;justify-content:space-between;align-items:flex-start}
+.brand{font-size:10px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,0.75)}
+.badge{
+  font-size:8px;font-weight:700;letter-spacing:1px;
+  padding:3px 8px;border-radius:4px;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.badge-vip{background:linear-gradient(135deg,#d4a44a,#f5d77e);color:#1a1400}
+.badge-r{background:linear-gradient(135deg,#7b68ee,#b088f9);color:#fff}
+.badge-s{background:linear-gradient(135deg,#20b2aa,#48d1cc);color:#fff}
+.badge-a{background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7)}
+
+.bottom{display:flex;flex-direction:column;gap:3px}
+.ev-name{
+  font-size:13px;font-weight:700;line-height:1.3;
+  text-shadow:0 1px 4px rgba(0,0,0,0.5);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.ev-meta{font-size:9px;color:rgba(255,255,255,0.6);display:flex;gap:6px}
+.seat-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:2px}
+.seat{font-size:10px;font-weight:600;color:rgba(255,255,255,0.8)}
+.tno{font-size:8px;font-family:'Courier New',monospace;color:rgba(255,255,255,0.4)}
+
+/* ── Grade-specific glow ── */
+.card[data-grade="VIP"]{
+  box-shadow:0 4px 20px rgba(0,0,0,0.3),0 15px 50px rgba(0,0,0,0.5),
+    0 0 30px rgba(212,164,74,0.25),inset 0 0 1px rgba(212,164,74,0.4);
+}
+.card[data-grade="VIP"] .brand{color:#f5d77e}
+.card[data-grade="R"]{
+  box-shadow:0 4px 20px rgba(0,0,0,0.3),0 15px 50px rgba(0,0,0,0.5),
+    0 0 20px rgba(123,104,238,0.2);
+}
+.card[data-grade="S"]{
+  box-shadow:0 4px 20px rgba(0,0,0,0.3),0 15px 50px rgba(0,0,0,0.5),
+    0 0 20px rgba(32,178,170,0.15);
+}
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="card" id="card">
+    <img class="poster" id="poster" alt="">
+    <canvas class="holo" id="holo"></canvas>
+    <div class="holo-css" id="holoCss"></div>
+    <div class="grad"></div>
+    <div class="perf"></div>
+    <div class="content">
+      <div class="top">
+        <span class="brand">CHEKET</span>
+        <span class="badge" id="badge"></span>
+      </div>
+      <div class="bottom">
+        <div class="ev-name" id="name"></div>
+        <div class="ev-meta">
+          <span id="date"></span>
+          <span id="metaDot">·</span>
+          <span id="venue"></span>
+        </div>
+        <div class="seat-row">
+          <span class="seat" id="seat"></span>
+          <span class="tno" id="tno"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Query Parameters ──
+var P = Object.fromEntries(new URLSearchParams(location.search));
+var grade = (P.grade || 'A').toUpperCase();
+var gradeNum = grade === 'VIP' ? 0 : grade === 'R' ? 1 : grade === 'S' ? 2 : 3;
+
+// Populate UI
+var posterEl = document.getElementById('poster');
+posterEl.src = P.poster || '';
+posterEl.onerror = function(){ posterEl.style.display = 'none'; };
+
+document.getElementById('name').textContent = P.name || '';
+document.getElementById('date').textContent = P.date || '';
+document.getElementById('venue').textContent = P.venue || '';
+if (!P.date && !P.venue) document.getElementById('metaDot').style.display = 'none';
+document.getElementById('seat').textContent = P.seat || '';
+document.getElementById('tno').textContent = 'No.' + String(P.id || '0000').padStart(4, '0');
+
+var badgeEl = document.getElementById('badge');
+badgeEl.textContent = grade;
+badgeEl.className = 'badge badge-' + grade.toLowerCase();
+
+var card = document.getElementById('card');
+card.dataset.grade = grade;
+
+// ── Pointer Tracking (touch / mouse / gyro) ──
+var px = 0.5, py = 0.5;
+
+card.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  var t = e.touches[0], r = card.getBoundingClientRect();
+  px = Math.max(0, Math.min(1, (t.clientX - r.left) / r.width));
+  py = Math.max(0, Math.min(1, (t.clientY - r.top) / r.height));
+  card.style.transform = 'rotateX(' + ((py - 0.5) * 20) + 'deg) rotateY(' + ((0.5 - px) * 20) + 'deg)';
+}, {passive: false});
+
+card.addEventListener('touchend', function() {
+  card.style.transform = ''; px = 0.5; py = 0.5;
+});
+
+card.addEventListener('mousemove', function(e) {
+  var r = card.getBoundingClientRect();
+  px = (e.clientX - r.left) / r.width;
+  py = (e.clientY - r.top) / r.height;
+  card.style.transform = 'rotateX(' + ((py - 0.5) * 20) + 'deg) rotateY(' + ((0.5 - px) * 20) + 'deg)';
+});
+card.addEventListener('mouseleave', function() {
+  card.style.transform = ''; px = 0.5; py = 0.5;
+});
+
+if (window.DeviceOrientationEvent) {
+  window.addEventListener('deviceorientation', function(e) {
+    if (e.gamma == null) return;
+    px = Math.max(0, Math.min(1, 0.5 + e.gamma / 90));
+    py = Math.max(0, Math.min(1, 0.5 + (e.beta - 45) / 90));
+  });
+}
+
+// ── WebGL Holographic Shader ──
+var canvas = document.getElementById('holo');
+var gl = canvas.getContext('webgl', {alpha: true, premultipliedAlpha: false});
+
+if (gl) {
+  function mk(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
+  }
+
+  var vs = mk(gl.VERTEX_SHADER,
+    'attribute vec2 a_p;void main(){gl_Position=vec4(a_p,0,1);}');
+
+  var fs = mk(gl.FRAGMENT_SHADER, [
+    'precision mediump float;',
+    'uniform float u_t;',
+    'uniform vec2 u_res;',
+    'uniform vec2 u_ptr;',
+    'uniform float u_g;',
+    '',
+    'vec3 hv(float h,float s,float v){',
+    '  vec3 c=clamp(abs(mod(h*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.);',
+    '  return v*mix(vec3(1),c,s);',
+    '}',
+    '',
+    'void main(){',
+    '  vec2 uv=gl_FragCoord.xy/u_res;',
+    '  uv.y=1.-uv.y;',
+    '  vec2 d=uv-u_ptr;',
+    '  float ang=atan(d.y,d.x);',
+    '  float dst=length(d);',
+    '  float hue=ang/6.283+dst*2.5+u_t*.15;',
+    '  float fr=clamp(dst*1.8,0.,1.);fr*=fr;',
+    '  float ln=sin((uv.x*cos(ang)+uv.y*sin(ang))*60.+u_t*2.)*.5+.5;',
+    '  float sp=sin(uv.x*120.)*sin(uv.y*120.);',
+    '  sp=pow(max(sp,0.),20.);',
+    '  vec3 col;float a;',
+    '  if(u_g<.5){',
+    '    vec3 gd=vec3(1,.85,.4);',
+    '    col=mix(gd,hv(hue,.8,1.),.35+.25*sin(u_t+dst*5.));',
+    '    col+=sp*gd*2.;',
+    '    a=(.22+.15*ln)*(.5+.5*fr);',
+    '  }else if(u_g<1.5){',
+    '    col=hv(hue,.85,1.);',
+    '    col+=sp*.5;',
+    '    a=(.16+.1*ln)*(.4+.5*fr);',
+    '  }else if(u_g<2.5){',
+    '    col=hv(hue*.3+.5,.65,.9);',
+    '    a=(.12+.08*ln)*(.35+.4*fr);',
+    '  }else{',
+    '    col=vec3(.8,.85,.9);',
+    '    a=(.08+.05*ln)*(.25+.3*fr);',
+    '  }',
+    '  gl_FragColor=vec4(col,a);',
+    '}'
+  ].join('\n'));
+
+  var prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  var aLoc = gl.getAttribLocation(prog, 'a_p');
+  gl.enableVertexAttribArray(aLoc);
+  gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+
+  var uT = gl.getUniformLocation(prog, 'u_t');
+  var uRes = gl.getUniformLocation(prog, 'u_res');
+  var uPtr = gl.getUniformLocation(prog, 'u_ptr');
+  var uG = gl.getUniformLocation(prog, 'u_g');
+  gl.uniform1f(uG, gradeNum);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  function resize() {
+    var r = canvas.getBoundingClientRect();
+    var dpr = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+  }
+
+  function frame(t) {
+    gl.uniform1f(uT, t * 0.001);
+    gl.uniform2f(uPtr, px, py);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(frame);
+} else {
+  // CSS fallback for devices without WebGL
+  var css = document.getElementById('holoCss');
+  css.style.display = 'block';
+  (function loop() {
+    var a = Math.atan2(py - 0.5, px - 0.5) * 180 / Math.PI;
+    css.style.setProperty('--x', (px * 100) + '%');
+    css.style.setProperty('--y', (py * 100) + '%');
+    css.style.setProperty('--a', a + 'deg');
+    requestAnimationFrame(loop);
+  })();
+}
+</script>
+</body>
+</html>
