@@ -48,6 +48,40 @@ const MY_PAGE_SHOWS = [
     },
     status: "UPCOMING",
   },
+  {
+    showId: 44,
+    title: "한여름 밤의 인디페스타",
+    posterUrl: "/images/poster-3.jpg",
+    venue: "난지한강공원",
+    purchaseLimit: 4,
+    region: "SEOUL",
+    show: {
+      showStartDate: "2026-08-15",
+      showEndDate: "2026-08-16",
+    },
+    reservation: {
+      startDate: "2026-07-20T12:00:00",
+      endDate: "2026-08-14T23:59:59",
+    },
+    status: "TICKETING",
+  },
+  {
+    showId: 45,
+    title: "가을 클래식 선율",
+    posterUrl: "/images/poster-4.jpg",
+    venue: "예술의전당 콘서트홀",
+    purchaseLimit: 2,
+    region: "SEOUL",
+    show: {
+      showStartDate: "2026-10-10",
+      showEndDate: "2026-10-12",
+    },
+    reservation: {
+      startDate: "2026-09-01T10:00:00",
+      endDate: "2026-10-09T18:00:00",
+    },
+    status: "UPCOMING",
+  },
 ]
 
 function isAuthorized(request: Request) {
