@@ -62,7 +62,7 @@ export function SignupForm() {
     const newErrors: Partial<Record<keyof SignupState, string>> = {}
 
     if (!form.companyName.trim()) newErrors.companyName = "회사 이름을 입력해주세요."
-    if (!form.businessNo.trim()) newErrors.businessNo = "사업자등록번호를 입력해주세요."
+    if (!form.businessNo.trim()) newErrors.businessNo = "사업자등록번호를 입력해주세요. "
     if (!form.email.trim()) newErrors.email = "이메일을 입력해주세요."
     if (!form.password.trim()) newErrors.password = "비밀번호를 입력해주세요."
     if (!form.passwordConfirm.trim()) {
@@ -208,7 +208,7 @@ export function SignupForm() {
           <div className="flex gap-2">
             <LoginInput
               type="text"
-              placeholder="사업자등록번호"
+              placeholder="사업자등록번호 (예시: 122-90-38867)"
               value={form.businessNo}
               onChange={(e) => updateField("businessNo", e.target.value)}
             />

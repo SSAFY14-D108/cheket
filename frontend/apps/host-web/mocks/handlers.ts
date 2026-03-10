@@ -293,16 +293,6 @@ function createNotFoundResponse() {
 }
 
 export const handlers = [
-  // 회원가입
-  http.post("*/api/v1/hosts", async () => {
-    return HttpResponse.json(
-      {
-        httpStatusCode: 201,
-        responseMessage: "회원 가입이 완료되었습니다.",
-      },
-      { status: 201 }
-    )
-  }),
   http.post("*/api/v1/hosts/business-no/duplicate", async ({ request }) => {
     const body = (await request.json()) as { businessNo?: string }
     const businessNo = body.businessNo?.trim() ?? ""
@@ -340,6 +330,16 @@ export const handlers = [
         },
       },
       { status: 200 }
+    )
+  }),
+  // 회원가입
+  http.post("*/api/v1/hosts", async () => {
+    return HttpResponse.json(
+      {
+        httpStatusCode: 201,
+        responseMessage: "회원 가입이 완료되었습니다.",
+      },
+      { status: 201 }
     )
   }),
   // 로그인

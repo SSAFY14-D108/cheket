@@ -69,6 +69,10 @@ export async function checkBusinessNoDuplicate(businessNo: string) {
       }
     )
 
+    if (typeof response.data?.isDuplicate !== "boolean") {
+      throw new ApiError("사업자번호 중복확인 응답 형식이 올바르지 않습니다.", 500)
+    }
+
     return response.data
   } catch (error) {
     // apiFetch treats 409 as an error, so we normalize the duplicate case here.
