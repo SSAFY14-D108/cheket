@@ -61,4 +61,11 @@ public class ShowController {
         List<GetVenuesResponse> response = showService.getVenues();
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연장 목록 조회 완료", response));
     }
+
+    @GetMapping("/{showId}/refund")
+    @Operation(summary = "환불 정책 조회")
+    public ResponseEntity<ApiResponse<GetRefundResponse>> getRefund(@PathVariable Long showId) {
+        GetRefundResponse response = showService.getRefund(showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "환불 정책 조회 완료", response));
+    }
 }

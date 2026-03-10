@@ -16,4 +16,6 @@ public interface ShowService {
     List<GetSeatsResponse> getSeats(Long showId, Long sessionId);
 
     List<GetVenuesResponse> getVenues();
+
+    GetRefundResponse getRefund(Long showId);
 }
