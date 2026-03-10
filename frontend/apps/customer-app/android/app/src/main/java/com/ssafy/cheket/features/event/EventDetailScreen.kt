@@ -30,6 +30,7 @@ import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.model.EventStatus
 import com.ssafy.cheket.core.model.Grade
+import com.ssafy.cheket.core.model.RefundRule
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EventStatusBadge
 import com.ssafy.cheket.ui.theme.*
@@ -253,6 +254,17 @@ fun EventDetailScreen(
                 }
             }
 
+            // Refund Rules
+            if (event.refundRules.isNotEmpty()) {
+                RefundRulesSection(
+                    refundRules = event.refundRules,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                )
+            }
+
             // CTA Button - inline
             Box(
                 modifier = Modifier
@@ -317,6 +329,55 @@ private fun GradeRow(
                 color = if (grade.remaining > 0) Primary else Danger,
                 fontWeight = if (grade.remaining == 0) FontWeight.SemiBold else FontWeight.Normal,
             )
+        }
+    }
+}
+
+@Composable
+private fun RefundRulesSection(
+    refundRules: List<RefundRule>,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = CardBg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 12.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "환불 규정",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OnBackground,
+                )
+            }
+            refundRules.forEachIndexed { index, rule ->
+                if (index > 0) Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(rule.label, fontSize = 14.sp, color = MutedForeground)
+                    Text(
+                        if (rule.feeRate >= 1f) "환불 불가"
+                        else "수수료 ${(rule.feeRate * 100).toInt()}%",
+                        fontSize = 14.sp,
+                        color = MutedForeground,
+                    )
+                }
+            }
         }
     }
 }

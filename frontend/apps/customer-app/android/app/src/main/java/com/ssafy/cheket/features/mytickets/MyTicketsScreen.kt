@@ -41,11 +41,11 @@ fun MyTicketsScreen(
                     items(TicketFilter.entries) { filter ->
                         val sel = uiState.selectedFilter == filter
                         Text(filter.label, fontSize = 13.sp,
-                            fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
-                            color = if (sel) Primary else MutedForeground,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (sel) White else MutedForeground,
                             modifier = Modifier.clip(RoundedCornerShape(20.dp))
                                 .clickable { viewModel.onFilterChange(filter) }
-                                .background(if (sel) PrimaryLight else Muted)
+                                .background(if (sel) Primary else Muted)
                                 .padding(horizontal = 14.dp, vertical = 6.dp))
                     }
                 }
@@ -54,7 +54,12 @@ fun MyTicketsScreen(
         }
     ) { innerPadding ->
         if (uiState.filteredTickets.isEmpty() && !uiState.isLoading) {
-            EmptyState("티켓이 없습니다", "해당 상태의 티켓이 없어요",
+            val (emptyTitle, emptyDesc) = when (uiState.selectedFilter) {
+                TicketFilter.ALL -> "보유한 티켓이 없습니다" to "공연을 예매하면 여기에 티켓이 표시됩니다."
+                TicketFilter.SOLD -> "보유 중인 티켓이 없습니다" to "현재 보유 중인 티켓이 없습니다."
+                TicketFilter.LISTED -> "판매 중인 티켓이 없습니다" to "리세일에 등록한 티켓이 없습니다."
+            }
+            EmptyState(emptyTitle, emptyDesc,
                 Modifier.fillMaxSize().padding(innerPadding))
         } else {
             LazyColumn(Modifier.fillMaxSize().background(Background).padding(innerPadding),

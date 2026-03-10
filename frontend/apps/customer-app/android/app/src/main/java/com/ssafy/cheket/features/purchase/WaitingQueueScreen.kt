@@ -142,7 +142,7 @@ fun WaitingQueueScreen(
                             color = SubText,
                         )
                         Text(
-                            text = "${queuePosition}번",
+                            text = "${queuePosition}번째",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = OnBackground,
@@ -174,7 +174,7 @@ fun WaitingQueueScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "공정한 예매를 위해 대기열에서\n순서대로 입장하고 있습니다.",
+                        text = "순서가 되면 자동으로 좌석 선택 화면으로 이동합니다.\n화면을 닫지 말고 잠시만 기다려 주세요.",
                         fontSize = 13.sp,
                         color = MutedForeground,
                         textAlign = TextAlign.Center,

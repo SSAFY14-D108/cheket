@@ -43,8 +43,8 @@ fun TxHistoryScreen(
     ) { innerPadding ->
         if (txRecords.isEmpty()) {
             EmptyState(
-                title = "거래 내역이 없습니다",
-                description = "콘서트 티켓을 구매하면 내역이 표시됩니다",
+                title = "거래 내역이 없습니다.",
+                description = "티켓 구매, 재판매, 환불 내역이 여기에 표시됩니다.",
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
@@ -192,8 +192,8 @@ private fun DetailRow(
 private fun TxTypeBadge(type: TxType) {
     val (label, bg, fg) = when (type) {
         TxType.PURCHASE -> Triple("티켓 구매", Info.copy(alpha = 0.15f), Info)
-        TxType.RESALE_LIST -> Triple("리세일 등록", Primary.copy(alpha = 0.15f), Primary)
-        TxType.RESALE_BUY -> Triple("리세일 구매", Success.copy(alpha = 0.15f), Success)
+        TxType.RESALE_LIST -> Triple("재판매 등록", Primary.copy(alpha = 0.15f), Primary)
+        TxType.RESALE_BUY -> Triple("재판매 구매", Success.copy(alpha = 0.15f), Success)
         TxType.TRANSFER -> Triple("티켓 양도", Warning.copy(alpha = 0.15f), Warning)
     }
     Text(

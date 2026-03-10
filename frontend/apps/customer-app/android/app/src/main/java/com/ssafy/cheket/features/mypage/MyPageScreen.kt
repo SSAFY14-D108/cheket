@@ -54,7 +54,7 @@ fun MyPageScreen(
     val context = LocalContext.current
 
     Scaffold(
-        topBar = { AppHeader(title = "마이 페이지", onBack = onBack) },
+        topBar = { AppHeader(title = "마이페이지", onBack = onBack) },
     ) { innerPadding ->
         Column(
             Modifier
@@ -121,7 +121,7 @@ fun MyPageScreen(
                 Column(
                     Modifier.fillMaxWidth().padding(20.dp),
                 ) {
-                    Text("CTK 잔액", fontSize = 12.sp, color = Primary.copy(alpha = 0.8f))
+                    Text("보유 CTK 잔액", fontSize = 12.sp, color = Primary.copy(alpha = 0.8f))
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "%,d CTK".format(user.ctkBalance),
@@ -136,38 +136,22 @@ fun MyPageScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary),
                     ) {
-                        Text("지갑 관리", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = White)
+                        Text("지갑 보기", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = White)
                     }
                 }
             }
 
-            // Stats Grid
+            // Quick Links Grid (2x2)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard("보유 티켓", "$soldCount", Modifier.weight(1f))
-                StatCard("관람 완료", "$usedCount", Modifier.weight(1f))
-                StatCard(
-                    "찜한 콘서트",
-                    "$wishlistCount",
-                    Modifier.weight(1f).clickable(onClick = onWishlist),
-                )
+                QuickLinkCard("보유티켓", "$soldCount", Icons.Outlined.ConfirmationNumber, Modifier.weight(1f), onClick = {})
+                QuickLinkCard("관람완료", "$usedCount", Icons.Outlined.CheckCircle, Modifier.weight(1f), onClick = {})
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuickLinkCard("찜한공연", "$wishlistCount", Icons.Outlined.FavoriteBorder, Modifier.weight(1f), onClick = onWishlist)
+                QuickLinkCard("거래내역", "", Icons.Outlined.Receipt, Modifier.weight(1f), onClick = onTxHistory)
             }
 
-            // Ticket history button
-            Surface(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onTxHistory),
-                shape = RoundedCornerShape(12.dp),
-                color = Muted,
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("티켓 거래 내역", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = OnBackground, modifier = Modifier.weight(1f))
-                    Icon(Icons.Outlined.ChevronRight, null, tint = SubText, modifier = Modifier.size(20.dp))
-                }
-            }
-
-            // Settings button
+            // Settings
             Surface(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onSettings),
                 shape = RoundedCornerShape(12.dp),
@@ -184,20 +168,22 @@ fun MyPageScreen(
                 }
             }
 
-            // Info Items
+            // Menu section
+            Text("계정 및 서비스", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MutedForeground, modifier = Modifier.padding(top = 4.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
             ) {
                 Column {
-                    MenuItem(Icons.Outlined.Notifications, "공지사항", onClick = {})
-                    HorizontalDivider(color = BorderColor, modifier = Modifier.padding(horizontal = 16.dp))
                     MenuItem(Icons.Outlined.Description, "이용약관", onClick = {})
                     HorizontalDivider(color = BorderColor, modifier = Modifier.padding(horizontal = 16.dp))
                     MenuItem(Icons.Outlined.Shield, "개인정보처리방침", onClick = {})
                     HorizontalDivider(color = BorderColor, modifier = Modifier.padding(horizontal = 16.dp))
-                    MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, "고객센터", onClick = {})
+                    MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, "공연 문의내역", onClick = {})
+                    HorizontalDivider(color = BorderColor, modifier = Modifier.padding(horizontal = 16.dp))
+                    MenuItem(Icons.Outlined.Notifications, "공지사항", onClick = {})
                 }
             }
 
@@ -241,19 +227,27 @@ fun MyPageScreen(
 }
 
 @Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+private fun QuickLinkCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     Card(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
     ) {
         Column(
             Modifier.fillMaxWidth().padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = OnBackground)
-            Text(label, fontSize = 11.sp, color = MutedForeground)
+            Icon(icon, contentDescription = null, tint = Primary, modifier = Modifier.size(20.dp))
+            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = OnBackground)
+            if (value.isNotEmpty()) {
+                Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = OnBackground)
+            }
         }
     }
 }

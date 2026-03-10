@@ -109,12 +109,12 @@ fun TicketDetailScreen(
                     InfoRow(label = "장소", value = ticket.venue)
                     InfoRow(label = "좌석", value = ticket.seatLabel)
                     InfoRow(label = "등급", value = ticket.grade)
-                    InfoRow(label = "원가", value = formatPrice(ticket.originalPrice))
+                    InfoRow(label = "결제 금액", value = formatPrice(ticket.originalPrice))
 
                     if (ticket.status == TicketStatus.LISTED && ticket.resalePrice != null) {
                         HorizontalDivider(color = BorderColor)
                         InfoRow(
-                            label = "리세일 가격",
+                            label = "재판매 금액",
                             value = formatPrice(ticket.resalePrice),
                             valueColor = Primary,
                         )
@@ -217,7 +217,7 @@ fun TicketDetailScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Danger),
                     ) {
-                        Text("리스팅 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
+                        Text("판매 등록 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
                     }
                 }
 

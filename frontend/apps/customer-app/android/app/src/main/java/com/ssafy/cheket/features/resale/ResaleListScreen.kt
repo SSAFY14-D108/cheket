@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -33,12 +37,12 @@ fun ResaleListScreen(
     val groupedItems = remember { MockDataSource.getResaleGrouped() }
 
     Scaffold(
-        topBar = { AppHeader(title = "리세일", onBack = onBack) },
+        topBar = { AppHeader(title = "2차 거래소", onBack = onBack) },
     ) { innerPadding ->
         if (groupedItems.isEmpty()) {
             EmptyState(
-                title = "리세일 티켓이 없습니다",
-                description = "현재 판매 중인 리세일 티켓이 없어요",
+                title = "조건에 맞는 2차 거래 티켓이 없어요",
+                description = "검색어나 필터를 바꿔서 다시 확인해 보세요.",
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
@@ -72,7 +76,7 @@ private fun ResaleEventCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
     ) {
         Column {
@@ -82,8 +86,8 @@ private fun ResaleEventCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(3f / 4f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .height(112.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .background(Muted),
             )
             Column(
@@ -92,21 +96,52 @@ private fun ResaleEventCard(
             ) {
                 Text(
                     text = group.eventName,
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = OnBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp,
                 )
+                // Date
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    Icon(Icons.Outlined.CalendarMonth, null, tint = MutedForeground, modifier = Modifier.size(12.dp))
                     Text(
-                        text = "${group.count}개",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
+                        text = group.eventDate,
+                        fontSize = 10.sp,
                         color = MutedForeground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                // Venue
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(Icons.Outlined.LocationOn, null, tint = MutedForeground, modifier = Modifier.size(12.dp))
+                    Text(
+                        text = group.venue,
+                        fontSize = 10.sp,
+                        color = MutedForeground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                // Min price
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(Icons.Outlined.LocalOffer, null, tint = Primary, modifier = Modifier.size(12.dp))
+                    Text(
+                        text = "%,d CTK~".format(group.minPrice),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Primary,
                     )
                 }
             }

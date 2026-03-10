@@ -42,7 +42,7 @@ fun WishlistScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "찜한 콘서트",
+                title = "찜한 공연",
                 onBack = onBack,
                 actions = {
                     Row(
@@ -69,8 +69,8 @@ fun WishlistScreen(
     ) { innerPadding ->
         if (wishlistedEvents.isEmpty()) {
             EmptyState(
-                title = "찜한 공연이 없습니다",
-                description = "관심 있는 공연을 찜해보세요",
+                title = "아직 찜한 공연이 없습니다",
+                description = "관심 있는 공연의 하트를 눌러 찜 목록에 추가해 보세요.",
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {

@@ -30,6 +30,13 @@ data class EventDate(
     val day: String = "",   // e.g. "DAY 1"
 )
 
+data class RefundRule(
+    val id: String,
+    val daysBefore: Int,
+    val feeRate: Float,
+    val label: String,
+)
+
 data class Event(
     val id: String,
     val name: String,
@@ -44,6 +51,7 @@ data class Event(
     val grades: List<Grade>,
     val openDate: String? = null,
     val description: String? = null,
+    val refundRules: List<RefundRule> = emptyList(),
 )
 
 data class Ticket(

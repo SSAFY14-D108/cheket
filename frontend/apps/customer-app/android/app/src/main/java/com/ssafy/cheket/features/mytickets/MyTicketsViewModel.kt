@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 enum class TicketFilter(val label: String) {
-    ALL("전체"), SOLD("보유중"), LISTED("판매중"), USED("사용됨"), EXPIRED("만료됨")
+    ALL("전체"), SOLD("보유중"), LISTED("판매중")
 }
 
 data class MyTicketsUiState(
@@ -49,8 +49,6 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
             TicketFilter.ALL -> s.allTickets
             TicketFilter.SOLD -> s.allTickets.filter { it.status == TicketStatus.SOLD }
             TicketFilter.LISTED -> s.allTickets.filter { it.status == TicketStatus.LISTED }
-            TicketFilter.USED -> s.allTickets.filter { it.status == TicketStatus.USED }
-            TicketFilter.EXPIRED -> s.allTickets.filter { it.status == TicketStatus.EXPIRED }
         }
         _uiState.value = s.copy(filteredTickets = result)
     }

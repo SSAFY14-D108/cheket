@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.model.Event
+import com.ssafy.cheket.core.model.EventStatus
 import com.ssafy.cheket.ui.theme.*
 
 @Composable
@@ -23,17 +24,22 @@ fun EventCardItem(event: Event, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
             .background(CardBg).clickable(onClick = onClick).padding(12.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
             model = event.poster, contentDescription = event.name,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(80.dp)
+            modifier = Modifier
+                .width(84.dp)
+                .height(112.dp)
                 .clip(RoundedCornerShape(8.dp)).background(Muted),
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f).padding(vertical = 1.dp)) {
-            // Title + badge inline
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            // Title + badge inline (badge only for SOLD_OUT)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -44,7 +50,9 @@ fun EventCardItem(event: Event, onClick: () -> Unit = {}) {
                     color = OnBackground, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
-                EventStatusBadge(event.status)
+                if (event.status == EventStatus.SOLD_OUT) {
+                    EventStatusBadge(event.status)
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(event.date, fontSize = 12.sp, color = MutedForeground)
