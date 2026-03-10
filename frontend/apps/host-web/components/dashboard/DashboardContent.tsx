@@ -68,12 +68,23 @@ export function DashboardContent({ data }: DashboardContentProps) {
           <CardContent>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <span className="text-3xl font-bold text-foreground">
-                  {wallet.balance.toLocaleString()}원
-                </span>
-                <p className="mt-1 truncate text-xs text-muted-foreground">
-                  {wallet.walletAddress}
-                </p>
+                {wallet ? (
+                  <>
+                    <span className="text-3xl font-bold text-foreground">
+                      {wallet.balance.toLocaleString()} CTK
+                    </span>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {wallet.walletAddress}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-3xl font-bold text-foreground">-</span>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      지갑 정보를 불러오지 못했습니다.
+                    </p>
+                  </>
+                )}
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
