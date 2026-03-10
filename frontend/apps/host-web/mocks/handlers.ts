@@ -1,15 +1,16 @@
 import { http, HttpResponse } from "msw"
-import { mockEvents, mockSectionsByVenue, mockTicketEffects } from "@/lib/mock-data"
+import { mockEvents, mockSectionsByVenue, mockTicketEffects, mockVenues } from "@/lib/mock-data"
 
 const MOCK_ACCESS_TOKEN = "mock-token-1234"
 const MOCK_REFRESH_TOKEN = "mock-refresh-token-5678"
 const MOCK_NEW_ACCESS_TOKEN = "mock-access-token-new"
 const MOCK_NEW_REFRESH_TOKEN = "mock-refresh-token-new"
-let MOCK_HOST_PASSWORD = "Password123!"
+const MOCK_HOST_EMAIL = "ssafy@gmail.com"
+let MOCK_HOST_PASSWORD = "1qa2ws3ed!!"
 const MY_PAGE_COMPANY = {
   companyName: "스타라이트 엔터테인먼트",
   businessNo: "123-45-67890",
-  email: "admin@starlight-ent.com",
+  email: "ssafy@gmail.com",
 }
 const MY_WALLET_BALANCE = {
   balance: 350000,
@@ -148,7 +149,7 @@ const DASHBOARD_DATA_BY_SHOW_ID = {
     },
   },
 } as const
-const MY_PAGE_SHOWS = [
+const INITIAL_MY_PAGE_SHOWS = [
   {
     showId: 42,
     title: "CHEKET LIVE: Spring Night",
@@ -219,6 +220,26 @@ const MY_PAGE_SHOWS = [
   },
 ]
 
+function cloneMockEvent(event: (typeof mockEvents)[number]) {
+  return {
+    ...event,
+    venue: { ...event.venue },
+    show: { ...event.show },
+    reservation: { ...event.reservation },
+    grade: event.grade.map((grade) => ({ ...grade })),
+    stakeholders: event.stakeholders.map((stakeholder) => ({ ...stakeholder })),
+    refundPolicy: event.refundPolicy.map((policy) => ({ ...policy })),
+    sessionInfo: event.sessionInfo.map((session) => ({ ...session })),
+  }
+}
+
+let mockEventStore = mockEvents.map(cloneMockEvent)
+let myPageShowsStore = INITIAL_MY_PAGE_SHOWS.map((show) => ({
+  ...show,
+  show: { ...show.show },
+  reservation: { ...show.reservation },
+}))
+
 function isAuthorized(request: Request) {
   return Boolean(request.headers.get("Authorization"))
 }
@@ -240,7 +261,7 @@ function getShowDetailSnapshot(showIdValue: string | readonly string[] | undefin
     return null
   }
 
-  const event = mockEvents.find((item) => item.showId === showId)
+  const event = mockEventStore.find((item) => item.showId === showId)
 
   if (!event) {
     return null
@@ -281,6 +302,22 @@ function getShowDetailSnapshot(showIdValue: string | readonly string[] | undefin
     updatedAt: event.updatedAt,
     ticketEffectId: 1,
   }
+}
+
+function getNextShowId() {
+  const currentMaxShowId = mockEventStore.reduce(
+    (maxShowId, event) => Math.max(maxShowId, event.showId),
+    0
+  )
+
+  return currentMaxShowId + 1
+}
+
+function getVenueAddress(venueId: number) {
+  return (
+    mockEventStore.find((event) => event.venue.venueId === venueId)?.venue.address ??
+    "주소 정보 없음"
+  )
 }
 
 function createNotFoundResponse() {
@@ -351,10 +388,28 @@ export const handlers = [
   }),
   // 로그인
   http.post("*/api/v1/hosts/login", async ({ request }) => {
-    const body = (await request.json()) as { password?: string }
+    const body = (await request.json()) as { email?: string; password?: string }
+    const email = body.email?.trim() ?? ""
+    const password = body.password?.trim() ?? ""
 
-    if (body.password?.trim()) {
-      MOCK_HOST_PASSWORD = body.password
+    if (!email || !password) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "이메일과 비밀번호를 입력해주세요.",
+        },
+        { status: 400 }
+      )
+    }
+
+    if (email !== MOCK_HOST_EMAIL || password !== MOCK_HOST_PASSWORD) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "이메일 또는 비밀번호가 일치하지 않습니다.",
+        },
+        { status: 401 }
+      )
     }
 
     return HttpResponse.json(
@@ -489,7 +544,7 @@ export const handlers = [
     const page = Number(url.searchParams.get("page") ?? "0")
     const size = Number(url.searchParams.get("size") ?? "20")
     const startIndex = page * size
-    const pagedShows = MY_PAGE_SHOWS.slice(startIndex, startIndex + size)
+    const pagedShows = myPageShowsStore.slice(startIndex, startIndex + size)
 
     return HttpResponse.json(
       {
@@ -499,8 +554,8 @@ export const handlers = [
           shows: pagedShows,
           page,
           size,
-          totalElements: MY_PAGE_SHOWS.length,
-          totalPages: Math.ceil(MY_PAGE_SHOWS.length / size) || 1,
+          totalElements: myPageShowsStore.length,
+          totalPages: Math.ceil(myPageShowsStore.length / size) || 1,
         },
       },
       { status: 200 }
@@ -709,7 +764,35 @@ export const handlers = [
       )
     }
 
-    const body = (await request.json()) as { title?: string; venueId?: number }
+    const body = (await request.json()) as {
+      title?: string
+      posterUrl?: string
+      venueId?: number
+      artistName?: string
+      show?: { startAt?: string; endAt?: string }
+      reservation?: { openAt?: string; closeAt?: string }
+      description?: string
+      purchaseLimit?: number
+      grade?: Array<{
+        sectionId?: number[]
+        gradeName?: string
+        price?: number
+        colorCode?: string
+      }>
+      stakeholders?: Array<{
+        role?: "organizer" | "artist"
+        shareBps?: number
+      }>
+      refundPolicy?: Array<{
+        daysRemaining?: number
+        refundRate?: number
+      }>
+      sessionInfo?: Array<{
+        sessionId?: number
+        sessionDate?: string
+        sessionStartDate?: string
+      }>
+    }
 
     if (!body.title || !body.venueId) {
       return HttpResponse.json(
@@ -721,12 +804,91 @@ export const handlers = [
       )
     }
 
+    const nextShowId = getNextShowId()
+    const selectedVenue = mockVenues.find((venue) => venue.venueId === body.venueId)
+    const venueName = selectedVenue?.name ?? `공연장 ${body.venueId}`
+    const newShowListItem = {
+      showId: nextShowId,
+      title: body.title,
+      posterUrl: body.posterUrl ?? "/images/poster-1.jpg",
+      venue: venueName,
+      purchaseLimit: body.purchaseLimit ?? 1,
+      region: "SEOUL",
+      show: {
+        showStartDate: body.show?.startAt?.slice(0, 10) ?? "2026-01-01",
+        showEndDate: body.show?.endAt?.slice(0, 10) ?? body.show?.startAt?.slice(0, 10) ?? "2026-01-01",
+      },
+      reservation: {
+        startDate: body.reservation?.openAt ?? "2026-01-01T10:00:00",
+        endDate: body.reservation?.closeAt ?? "2026-01-02T10:00:00",
+      },
+      status: "DRAFT",
+    }
+    const newEvent = {
+      showId: nextShowId,
+      title: body.title,
+      artistName: body.artistName ?? "미정",
+      posterUrl: body.posterUrl ?? "/images/poster-1.jpg",
+      venue: {
+        venueId: body.venueId,
+        name: venueName,
+        address: getVenueAddress(body.venueId),
+      },
+      show: {
+        startAt: body.show?.startAt ?? "2026-01-01T19:00:00",
+        endAt: body.show?.endAt ?? "2026-01-01T21:00:00",
+      },
+      reservation: {
+        openAt: body.reservation?.openAt ?? "2026-01-01T10:00:00",
+        closeAt: body.reservation?.closeAt ?? "2026-01-02T10:00:00",
+      },
+      description: body.description ?? "",
+      purchaseLimit: body.purchaseLimit ?? 1,
+      grade:
+        body.grade?.map((grade) => ({
+          sectionId: grade.sectionId?.[0] ?? 1,
+          gradeName: grade.gradeName ?? "일반",
+          price: grade.price ?? 0,
+          colorCode: grade.colorCode ?? "#7C6EF0",
+        })) ?? [],
+      stakeholders:
+        body.stakeholders?.map((stakeholder, index) => ({
+          role: stakeholder.role ?? "artist",
+          name: stakeholder.role === "organizer" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
+          shareBps: stakeholder.shareBps ?? 0,
+        })) ?? [],
+      refundPolicy:
+        body.refundPolicy?.map((policy) => ({
+          daysRemaining: policy.daysRemaining ?? 0,
+          refundRate: policy.refundRate ?? 0,
+        })) ?? [],
+      sessionInfo:
+        body.sessionInfo?.map((session, index) => ({
+          sessionId: session.sessionId ?? index + 1,
+          sessionDate: session.sessionDate ?? "2026-01-01",
+          sessionStartDate: session.sessionStartDate ?? "19:00",
+          capacity: selectedVenue?.capacity ?? 1000,
+        })) ?? [],
+      status: "DRAFT",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      capacity: selectedVenue?.capacity ?? 1000,
+      soldSeats: 0,
+      enteredCount: 0,
+      notEnteredCount: 0,
+      emptyCount: selectedVenue?.capacity ?? 1000,
+      likes: 0,
+    }
+
+    myPageShowsStore.push(newShowListItem)
+    mockEventStore.push(newEvent)
+
     return HttpResponse.json(
       {
         httpStatusCode: 201,
         responseMessage: "공연 등록 완료",
         data: {
-          showId: 99,
+          showId: nextShowId,
         },
       },
       { status: 201 }
@@ -749,16 +911,91 @@ export const handlers = [
       return createNotFoundResponse()
     }
 
-    const body = (await request.json()) as { title?: string }
+    const body = (await request.json()) as {
+      title?: string
+      posterUrl?: string
+      artistName?: string
+      venueId?: number
+      show?: { startAt?: string; endAt?: string }
+      reservation?: { openAt?: string; closeAt?: string }
+      description?: string
+      purchaseLimit?: number
+    }
 
-    if (!body.title) {
+    if (
+      !body.title &&
+      !body.posterUrl &&
+      !body.artistName &&
+      !body.venueId &&
+      !body.show?.startAt &&
+      !body.show?.endAt &&
+      !body.reservation?.openAt &&
+      !body.reservation?.closeAt &&
+      !body.description &&
+      body.purchaseLimit === undefined
+    ) {
       return HttpResponse.json(
         {
           httpStatusCode: 400,
-          errorMessage: "필수 입력값이 누락되었습니다.",
+          errorMessage: "수정할 정보가 없습니다.",
         },
         { status: 400 }
       )
+    }
+
+    const showId = Number(params.showId)
+    const eventIndex = mockEventStore.findIndex((event) => event.showId === showId)
+    const myPageShowIndex = myPageShowsStore.findIndex((show) => show.showId === showId)
+
+    if (eventIndex >= 0) {
+      const previousEvent = mockEventStore[eventIndex]
+      const nextVenueId = body.venueId ?? previousEvent.venue.venueId
+      const selectedVenue = mockVenues.find((venue) => venue.venueId === nextVenueId)
+
+      mockEventStore[eventIndex] = {
+        ...previousEvent,
+        title: body.title ?? previousEvent.title,
+        artistName: body.artistName ?? previousEvent.artistName,
+        posterUrl: body.posterUrl ?? previousEvent.posterUrl,
+        venue: {
+          venueId: nextVenueId,
+          name: selectedVenue?.name ?? previousEvent.venue.name,
+          address: selectedVenue ? getVenueAddress(nextVenueId) : previousEvent.venue.address,
+        },
+        show: {
+          startAt: body.show?.startAt ?? previousEvent.show.startAt,
+          endAt: body.show?.endAt ?? previousEvent.show.endAt,
+        },
+        reservation: {
+          openAt: body.reservation?.openAt ?? previousEvent.reservation.openAt,
+          closeAt: body.reservation?.closeAt ?? previousEvent.reservation.closeAt,
+        },
+        description: body.description ?? previousEvent.description,
+        purchaseLimit: body.purchaseLimit ?? previousEvent.purchaseLimit,
+        updatedAt: new Date().toISOString(),
+      }
+    }
+
+    if (myPageShowIndex >= 0) {
+      const previousShow = myPageShowsStore[myPageShowIndex]
+      const nextVenueId = body.venueId ?? mockEventStore[eventIndex]?.venue.venueId
+      const selectedVenue = mockVenues.find((venue) => venue.venueId === nextVenueId)
+
+      myPageShowsStore[myPageShowIndex] = {
+        ...previousShow,
+        title: body.title ?? previousShow.title,
+        posterUrl: body.posterUrl ?? previousShow.posterUrl,
+        venue: selectedVenue?.name ?? previousShow.venue,
+        purchaseLimit: body.purchaseLimit ?? previousShow.purchaseLimit,
+        show: {
+          showStartDate: body.show?.startAt?.slice(0, 10) ?? previousShow.show.showStartDate,
+          showEndDate: body.show?.endAt?.slice(0, 10) ?? previousShow.show.showEndDate,
+        },
+        reservation: {
+          startDate: body.reservation?.openAt ?? previousShow.reservation.startDate,
+          endDate: body.reservation?.closeAt ?? previousShow.reservation.endDate,
+        },
+      }
     }
 
     return HttpResponse.json(
@@ -785,6 +1022,11 @@ export const handlers = [
     if (!snapshot) {
       return createNotFoundResponse()
     }
+
+    const showId = Number(params.showId)
+
+    myPageShowsStore = myPageShowsStore.filter((show) => show.showId !== showId)
+    mockEventStore = mockEventStore.filter((event) => event.showId !== showId)
 
     return HttpResponse.json(
       {
