@@ -34,7 +34,7 @@ export function AppShell({
     <div className="flex flex-col h-full">
       {/* AppBar */}
       <header className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border flex-shrink-0 z-40">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {showBack ? (
             <button
               onClick={onBack}
@@ -45,7 +45,7 @@ export function AppShell({
             </button>
           ) : null}
           {title ? (
-            <h1 className="font-semibold text-base text-foreground">{title}</h1>
+            <h1 className="truncate font-semibold text-base text-foreground">{title}</h1>
           ) : (
             !showBack && (
               <Image

@@ -1047,6 +1047,79 @@ export function generateSeats(
   return seats;
 }
 
+type SeatLayoutProfile = "arena" | "stadium" | "theater" | "club";
+
+function getSeatLayoutProfile(event?: Pick<Event, "venue" | "name">): SeatLayoutProfile {
+  const text = `${event?.venue ?? ""} ${event?.name ?? ""}`;
+
+  if (text.includes("체조경기장") || text.includes("아레나") || text.includes("실내체육관") || text.includes("체육관")) {
+    return "arena";
+  }
+
+  if (text.includes("주경기장") || text.includes("월드컵경기장") || text.includes("스타디움") || text.includes("고척")) {
+    return "stadium";
+  }
+
+  if (text.includes("대학로") || text.includes("아트홀") || text.includes("소극장") || text.includes("씨어터") || text.includes("홀")) {
+    return "theater";
+  }
+
+  return "club";
+}
+
+function getRowCount(profile: SeatLayoutProfile, gradeIndex: number) {
+  if (profile === "stadium") return [6, 7, 8, 9][Math.min(gradeIndex, 3)];
+  if (profile === "arena") return [5, 6, 7, 8][Math.min(gradeIndex, 3)];
+  if (profile === "theater") return [4, 5, 6, 6][Math.min(gradeIndex, 3)];
+  return [3, 4, 5, 5][Math.min(gradeIndex, 3)];
+}
+
+function getSeatsPerRow(profile: SeatLayoutProfile, gradeIndex: number, rowIndex: number) {
+  if (profile === "stadium") return Math.max(8, 14 - gradeIndex - Math.floor(rowIndex / 3));
+  if (profile === "arena") return Math.max(8, 12 - gradeIndex + (rowIndex % 2 === 0 ? 1 : 0));
+  if (profile === "theater") return Math.max(6, 10 - gradeIndex - (rowIndex % 3 === 0 ? 1 : 0));
+  return Math.max(5, 8 - gradeIndex - (rowIndex % 2));
+}
+
+function getGeneratedSeatStatus(gradeRemaining: number, seed: number): SeatStatus {
+  if (gradeRemaining === 0) return "SOLD";
+
+  const mod = seed % 11;
+  if (mod === 2 || mod === 7) return "SOLD";
+  if (mod === 5) return "LOCKED";
+  return "AVAILABLE";
+}
+
+export function generateVenueSeats(event: Pick<Event, "id" | "venue" | "name" | "grades">): Seat[] {
+  const seats: Seat[] = [];
+  const profile = getSeatLayoutProfile(event);
+  const rowLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  event.grades.forEach((grade, gradeIndex) => {
+    const rowCount = getRowCount(profile, gradeIndex);
+
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+      const seatsPerRow = getSeatsPerRow(profile, gradeIndex, rowIndex);
+      const rowLabel = `${grade.name}-${rowLetters[rowIndex]}`;
+
+      for (let seatNumber = 1; seatNumber <= seatsPerRow; seatNumber++) {
+        const seed = gradeIndex * 1000 + rowIndex * 100 + seatNumber;
+
+        seats.push({
+          id: `${event.id}_${grade.name}_${rowLetters[rowIndex]}${seatNumber}`,
+          row: rowLabel,
+          number: seatNumber,
+          grade: grade.name,
+          price: grade.price,
+          status: getGeneratedSeatStatus(grade.remaining, seed),
+        });
+      }
+    }
+  });
+
+  return seats;
+}
+
 export const MOCK_TICKETS: Ticket[] = [
   {
     id: "tkt_001",

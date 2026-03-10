@@ -5,6 +5,16 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'www.kopis.or.kr',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.kopis.or.kr',
+      },
+    ],
   },
 }
 
