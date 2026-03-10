@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Search } from "lucide-react"
 import type { Stakeholder, RefundItem } from "./showFormTypes"
-import { mockAuthUsers } from "@/lib/mock-data"
+import { mockAuthUsers } from "@/mocks/data/user-store"
 
 interface SettingsCardPoliciesProps {
     stakeholders: Stakeholder[]
