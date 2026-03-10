@@ -1,11 +1,14 @@
 package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.dto.host.request.HostSignupRequest;
+import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
+import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
 import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
+import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +80,22 @@ public class HostServiceImpl implements HostService {
         }
 
         return new CheckBusinessNoDuplicateResponse(false);
+    }
+
+    // 회사 정보 조회
+    @Override
+    public GetHostInfoResponse getHostInfo(Long id) {
+        Host host = hostRepository.findById(id).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        return new GetHostInfoResponse(host.getCompanyName(), host.getBusinessNo(), host.getEmail());
+    }
+
+    // 회사 정보 수정
+    @Override
+    public void modifyHostInfo(Long id, ModifyHostInfoRequest request) {
+        Host host = hostRepository.findById(id).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        host.setCompanyName(request.companyName());
+        host.setEmail(request.email());
+        hostRepository.save(host);
     }
 
 }
