@@ -59,5 +59,5 @@ export interface DashboardData {
     bookingRate: DashboardBookingRate
     revenueSplit: DashboardRevenueSplit
     reservations: DashboardReservations
-    wallet: WalletBalance
+    wallet: WalletBalance | null
 }
