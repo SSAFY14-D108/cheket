@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll() // 로그인, 로그아웃, SMS
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/hosts/login").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
                 .requestMatchers("/collection/**").permitAll() // 컬렉션 WebView (인증 불필요)
                 .requestMatchers("/api/v1/hosts/business-no/duplicate").permitAll()
