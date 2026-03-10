@@ -10,7 +10,7 @@ export interface Grade {
 export interface Stakeholder {
     role: 'organizer' | 'artist'
     userId?: number
-    name?: string
+    name: string
     phone?: string
     businessNo?: string
     shareBps: string
@@ -19,10 +19,6 @@ export interface Stakeholder {
 export interface RefundItem {
     daysRemaining: string
     refundRate: string
-}
-
-export interface ShowFormData {
-    // Ticket effect moved to Grade
 }
 
 export interface SessionItem {

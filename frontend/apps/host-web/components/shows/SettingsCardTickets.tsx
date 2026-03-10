@@ -10,8 +10,14 @@ import { Plus, Trash2, Ticket, X, ZoomIn, ChevronDown } from "lucide-react"
 import { useState, useEffect } from "react"
 import type { Grade, SessionItem } from "./showFormTypes"
 import { DateTimePicker } from "@/components/common/DateTimePicker"
-import { mockSectionsByVenue, type Section, mockTicketEffects, type TicketEffect } from "@/lib/mock-data"
 import { TicketEffectPreview } from "./TicketEffectPreview"
+import { ApiError } from "@/lib/api"
+import {
+    fetchShowSections,
+    fetchTicketEffects as fetchTicketEffectOptions,
+    type HostShowSection,
+    type HostShowTicketEffect,
+} from "@/lib/show-manage-api"
 
 interface SettingsCardTicketsProps {
     venueId: string
@@ -58,54 +64,58 @@ export function SettingsCardTickets({
     const mapImageSrc = getVenueMapImg(venueId)
 
     // 선택된 장소의 구역(Section) 정보 API 연동 (상태 관리)
-    const [availableSections, setAvailableSections] = useState<Section[]>([])
+    const [availableSections, setAvailableSections] = useState<HostShowSection[]>([])
 
-    // venueId가 바뀔 때마다 백엔드 API를 찔러서 구역 데이터를 가져옵니다.
     useEffect(() => {
-        if (!venueId) {
-            setAvailableSections([])
-            return
-        }
+        let isCancelled = false
 
         const fetchSections = async () => {
             try {
-                // 향후 실제 API 연결 시 아래의 주석 처리된 코드를 사용하면 완벽히 똑같습니다.
-                // const response = await fetch(`https://api.cheket.com/api/v1/venues/${venueId}/sections`);
-                // const json = await response.json();
-                // setAvailableSections(json.data); // "data: []" 배열만 바로 State에 저장
+                const sections = venueId ? await fetchShowSections(venueId) : []
 
-                // --- (현재는 API가 없으므로) 모의 데이터로 대체 ---
-                const mockResponseData = mockSectionsByVenue[Number(venueId)] || []
-                setAvailableSections(mockResponseData)
+                if (!isCancelled) {
+                    setAvailableSections(sections)
+                }
             } catch (error) {
-                console.error("구역 정보를 불러오는데 실패했습니다.", error)
-                setAvailableSections([])
+                if (!isCancelled) {
+                    console.error("구역 정보를 불러오는데 실패했습니다.", error)
+                    setAvailableSections([])
+                }
             }
         }
 
-        fetchSections()
+        void fetchSections()
+
+        return () => {
+            isCancelled = true
+        }
     }, [venueId])
 
-    // 티켓 효과 목록 API 연동 (상태 관리)
-    const [ticketEffects, setTicketEffects] = useState<TicketEffect[]>([])
+    const [ticketEffects, setTicketEffects] = useState<HostShowTicketEffect[]>([])
 
-    // 컴포넌트 마운트 시 티켓 효과 목록을 가져옵니다.
     useEffect(() => {
-        const fetchTicketEffects = async () => {
-            try {
-                // 향후 실제 API 연결 시 아래 주석 처리된 코드를 사용하면 됩니다.
-                // const response = await fetch('https://api.cheket.com/api/v1/ticket-effects');
-                // const json = await response.json();
-                // setTicketEffects(json.data);
+        let isCancelled = false
 
-                // --- 모의 데이터 대체 ---
-                setTicketEffects(mockTicketEffects)
+        const loadTicketEffects = async () => {
+            try {
+                const effects = await fetchTicketEffectOptions()
+
+                if (!isCancelled) {
+                    setTicketEffects(effects)
+                }
             } catch (error) {
-                console.error("티켓 효과 목록을 불러오는데 실패했습니다.", error)
-                setTicketEffects([])
+                if (!(error instanceof ApiError && error.status === 401) && !isCancelled) {
+                    console.error("티켓 효과 목록을 불러오는데 실패했습니다.", error)
+                    setTicketEffects([])
+                }
             }
         }
-        fetchTicketEffects()
+
+        void loadTicketEffects()
+
+        return () => {
+            isCancelled = true
+        }
     }, [])
 
     // ESC 키로 모달 닫기

@@ -1,6 +1,4 @@
-import { mockEvents } from "@/lib/mock-data"
-import { notFound } from "next/navigation"
-import { ShowDetailView } from "@/components/shows/ShowDetailView"
+import { ShowDetailContent } from "@/components/shows/ShowDetailContent"
 
 interface ShowDetailPageProps {
     params: Promise<{ showId: string }>
@@ -8,11 +6,5 @@ interface ShowDetailPageProps {
 
 export default async function ShowDetailPage({ params }: ShowDetailPageProps) {
     const { showId } = await params
-    const event = mockEvents.find((e) => e.showId.toString() === showId)
-
-    if (!event) {
-        notFound()
-    }
-
-    return <ShowDetailView event={event} />
+    return <ShowDetailContent showId={showId} />
 }

@@ -14,7 +14,7 @@ interface SettingsCardPoliciesProps {
     refundPolicy: RefundItem[]
     onAddStakeholder: () => void
     onRemoveStakeholder: (idx: number) => void
-    onUpdateStakeholder: (idx: number, field: keyof Stakeholder, val: string) => void
+    onUpdateStakeholder: (idx: number, field: keyof Stakeholder, val: string | number) => void
     onAddRefund: () => void
     onRemoveRefund: (idx: number) => void
     onUpdateRefund: (idx: number, field: keyof RefundItem, val: string) => void
@@ -40,9 +40,10 @@ export function SettingsCardPolicies({
 
         // 0.3초 딜레이(통신하는 척)
         setTimeout(() => {
-            const foundUser = mockAuthUsers.find((u: { phone: string; name: string }) => u.phone === value.replace(/-/g, ''));
+            const foundUser = mockAuthUsers.find((user) => user.phone === value.replace(/-/g, ''));
             if (foundUser) {
                 onUpdateStakeholder(idx, 'name', foundUser.name);
+                onUpdateStakeholder(idx, 'userId', foundUser.userId);
                 alert(`[조회 성공] ${foundUser.name}님이 확인되었습니다.`);
             } else {
                 alert("일치하는 회원을 찾을 수 없습니다.");

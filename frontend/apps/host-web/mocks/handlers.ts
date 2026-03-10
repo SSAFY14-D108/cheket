@@ -1,4 +1,5 @@
 import { http, HttpResponse } from "msw"
+import { mockEvents, mockSectionsByVenue, mockTicketEffects } from "@/lib/mock-data"
 
 const MOCK_ACCESS_TOKEN = "mock-token-1234"
 const MOCK_REFRESH_TOKEN = "mock-refresh-token-5678"
@@ -231,6 +232,56 @@ function getDashboardSnapshot(showIdValue: string | readonly string[] | undefine
   return DASHBOARD_DATA_BY_SHOW_ID[showId as keyof typeof DASHBOARD_DATA_BY_SHOW_ID] ?? null
 }
 
+function getShowDetailSnapshot(showIdValue: string | readonly string[] | undefined) {
+  const showId = Number(showIdValue)
+
+  if (!Number.isInteger(showId)) {
+    return null
+  }
+
+  const event = mockEvents.find((item) => item.showId === showId)
+
+  if (!event) {
+    return null
+  }
+
+  return {
+    showId: event.showId,
+    title: event.title,
+    posterUrl: event.posterUrl,
+    artistName: event.artistName,
+    venue: {
+      venueId: event.venue.venueId,
+      name: event.venue.name,
+      address: event.venue.address,
+    },
+    show: {
+      showStartDate: event.show.startAt.slice(0, 10),
+      showEndDate: event.show.endAt.slice(0, 10),
+    },
+    reservation: {
+      startDate: event.reservation.openAt,
+      endDate: event.reservation.closeAt,
+    },
+    description: event.description,
+    purchaseLimit: event.purchaseLimit,
+    likeCount: event.likes,
+    grade: event.grade,
+    stakeholders: event.stakeholders.map((stakeholder, index) => ({
+      role: stakeholder.role,
+      userId: 15 + index,
+      shareBps: stakeholder.shareBps,
+      name: stakeholder.name,
+    })),
+    refundPolicy: event.refundPolicy,
+    sessionInfo: event.sessionInfo,
+    status: event.status,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+    ticketEffectId: 1,
+  }
+}
+
 function createNotFoundResponse() {
   return HttpResponse.json(
     {
@@ -447,6 +498,170 @@ export const handlers = [
         httpStatusCode: 200,
         responseMessage: "총 판매금액 조회 완료",
         data: snapshot.totalSales,
+      },
+      { status: 200 }
+    )
+  }),
+  http.get("*/api/v1/hosts/shows/effect", async ({ request }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "티켓 효과 목록 조회 완료",
+        data: mockTicketEffects,
+      },
+      { status: 200 }
+    )
+  }),
+  http.get("*/api/v1/hosts/shows/:venueId/sections", async ({ request, params }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const venueId = Number(params.venueId)
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "구역 목록 조회 완료",
+        data: mockSectionsByVenue[venueId] ?? [],
+      },
+      { status: 200 }
+    )
+  }),
+  http.get("*/api/v1/hosts/shows/:showId", async ({ request, params }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const snapshot = getShowDetailSnapshot(params.showId)
+
+    if (!snapshot) {
+      return createNotFoundResponse()
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "공연 상세 조회 성공",
+        data: snapshot,
+      },
+      { status: 200 }
+    )
+  }),
+  http.post("*/api/v1/hosts/shows", async ({ request }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const body = (await request.json()) as { title?: string; venueId?: number }
+
+    if (!body.title || !body.venueId) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "필수 입력값이 누락되었습니다.",
+        },
+        { status: 400 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 201,
+        responseMessage: "공연 등록 완료",
+        data: {
+          showId: 99,
+        },
+      },
+      { status: 201 }
+    )
+  }),
+  http.put("*/api/v1/hosts/shows/:showId", async ({ request, params }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const snapshot = getShowDetailSnapshot(params.showId)
+
+    if (!snapshot) {
+      return createNotFoundResponse()
+    }
+
+    const body = (await request.json()) as { title?: string }
+
+    if (!body.title) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "필수 입력값이 누락되었습니다.",
+        },
+        { status: 400 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "수정이 완료되었습니다.",
+      },
+      { status: 200 }
+    )
+  }),
+  http.delete("*/api/v1/hosts/shows/:showId", async ({ request, params }) => {
+    if (!isAuthorized(request)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 401,
+          errorMessage: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      )
+    }
+
+    const snapshot = getShowDetailSnapshot(params.showId)
+
+    if (!snapshot) {
+      return createNotFoundResponse()
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "공연 정보 삭제가 완료되었습니다.",
       },
       { status: 200 }
     )
