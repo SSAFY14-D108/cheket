@@ -2,7 +2,9 @@ package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.SeatGrade;
+import com.ssafy.cheket.entity.show.Section;
 import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.entity.show.Venue;
 import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.NotFoundException;
@@ -31,6 +33,8 @@ public class ShowServiceImpl implements ShowService {
     private final SectionRepository sectionRepository;
     private final SessionRepository sessionRepository;
     private final SessionSeatRepository sessionSeatRepository;
+    private final VenueRepository venueRepository;
+    private final SeatRepository seatRepository;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -118,6 +122,18 @@ public class ShowServiceImpl implements ShowService {
 
         return grouped.values().stream().map(group -> new GetSeatsResponse(group.sectionId(), group.sectionName(),
             group.gradeName(), group.price(), group.colorCode(), group.seats())).toList();
+    }
+
+    // 공연장 목록 조회
+    @Override
+    public List<GetVenuesResponse> getVenues() {
+        List<Venue> venues = venueRepository.findAll();
+        return venues.stream().map(venue -> {
+            List<Section> sections = sectionRepository.findByVenueId(venue.getId());
+            List<Long> sectionIds = sections.stream().map(Section::getId).toList();
+            int capacity = sectionIds.isEmpty() ? 0 : seatRepository.countBySectionIdIn(sectionIds);
+            return new GetVenuesResponse(venue.getId(), venue.getName(), capacity);
+        }).toList();
     }
 
     private record SectionGroup(Long sectionId, String sectionName, String gradeName, Integer price, String colorCode,
