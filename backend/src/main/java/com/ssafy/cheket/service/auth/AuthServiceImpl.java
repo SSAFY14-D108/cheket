@@ -4,12 +4,16 @@ import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.LoginRequest;
 import com.ssafy.cheket.dto.auth.request.ReissueRequest;
 import com.ssafy.cheket.dto.auth.response.LoginResponse;
+import com.ssafy.cheket.dto.auth.response.SearchUserResponse;
+import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.UserType;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.exception.common.UnauthorizedException;
 import com.ssafy.cheket.repository.auth.AuthRepository;
+import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.service.sms.SmsService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
     private final StringRedisTemplate redisTemplate;
     private final AuthRepository authRepository;
     private final SmsService smsService;
+    private final HostRepository hostRepository;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -126,6 +131,32 @@ public class AuthServiceImpl implements AuthService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    // 회원 검색
+    @Override
+    public SearchUserResponse searchUser(String userType, String number) {
+        UserType type;
+
+        try {
+            type = UserType.valueOf(userType.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new BadRequestException("유효하지 않은 요청입니다.");
+        }
+
+        switch (type) {
+            case USER -> {
+                User user = userRepository.findByPhoneNumber(number)
+                    .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+                return new SearchUserResponse(user.getId(), user.getUsername(), user.getPhoneNumber());
+            }
+            case HOST -> {
+                Host host = hostRepository.findByBusinessNo(number)
+                    .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+                return new SearchUserResponse(host.getId(), host.getCompanyName(), host.getBusinessNo());
+            }
+            default -> throw new BadRequestException("유효하지 않은 요청입니다.");
+        }
     }
 
 }
