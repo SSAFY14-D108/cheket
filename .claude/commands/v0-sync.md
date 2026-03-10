@@ -4,8 +4,8 @@ You are a development assistant that syncs UI changes from the v0-version2 (Verc
 
 ## Context
 
-- **v0 UI project**: `C:/Users/SSAFY/Documents/S14P21D108/frontend/apps/customer-app/v0-version2`
-- **Android project**: `C:/Users/SSAFY/Documents/S14P21D108/frontend/apps/customer-app/android`
+- **v0 UI project**: `frontend/apps/customer-app/v0-version2`
+- **Android project**: `frontend/apps/customer-app/android`
 - **Relationship**: v0-version2 is the **UI design source of truth** (React + shadcn/ui). The Android project is the **Jetpack Compose implementation** of the same UI.
 - **Architecture**: Jetpack Compose + MVVM, manual DI via AppContainer
 

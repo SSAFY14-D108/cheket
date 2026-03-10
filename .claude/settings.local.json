@@ -6,7 +6,29 @@
       "Bash(./gradlew compileDebugKotlin:*)",
       "Bash(chmod +x:*)",
       "Bash(./gradlew assembleDebug:*)",
-      "Bash(./gradlew clean:*)"
+      "Bash(./gradlew clean:*)",
+      "Bash(glab auth status)",
+      "Bash(choco install glab -y)",
+      "Bash(curl -sL \"https://gitlab.com/gitlab-org/cli/-/releases/v1.89.0/downloads/glab_1.89.0_windows_amd64.zip\" -o /tmp/glab.zip)",
+      "Read(//tmp/**)",
+      "Read(//c/tmp/**)",
+      "Bash(unzip -o glab.zip -d glab_extracted)",
+      "Bash(mkdir -p ~/bin)",
+      "Bash(cp /tmp/glab_extracted/bin/glab.exe ~/bin/)",
+      "Bash(export PATH=\"$HOME/bin:$PATH\")",
+      "Bash(glab version)",
+      "Bash(glab auth login --hostname lab.ssafy.com --token -)",
+      "Bash(\"$HOME/bin/glab\" auth login --hostname lab.ssafy.com --token -)",
+      "Bash(/c/Users/SSAFY/bin/glab.exe auth login --hostname lab.ssafy.com --token -)",
+      "Bash(/c/Users/SSAFY/bin/glab.exe auth status --hostname lab.ssafy.com)",
+      "Bash(curl -s -w \"\\\\nHTTP_CODE:%{http_code}\" -H \"PRIVATE-TOKEN: EI2iL0hcNr8HNmae9WQioW86MQp1Om0zMQk.01.0z0bzqvaa\" \"https://lab.ssafy.com/api/v4/user\")",
+      "Bash(/c/Users/SSAFY/bin/glab.exe config set -h lab.ssafy.com api_protocol https)",
+      "Bash(/c/Users/SSAFY/bin/glab.exe config set -h lab.ssafy.com git_protocol https)",
+      "Bash(/c/Users/SSAFY/bin/glab.exe config set api_protocol https --host lab.ssafy.com)",
+      "Bash(/c/Users/SSAFY/bin/glab.exe config set git_protocol https --host lab.ssafy.com)",
+      "Bash(/c/Users/SSAFY/bin/glab.exe config set token \"EI2iL0hcNr8HNmae9WQioW86MQp1Om0zMQk.01.0z0bzqvaa\" --host lab.ssafy.com)",
+      "Bash(powershell -Command \"Get-Process | Where-Object { $_.ProcessName -match ''git'' } | Select-Object Id, ProcessName, StartTime\")",
+      "Bash(powershell.exe -NoProfile -Command 'Get-Process git* 2>$null | Format-Table Id,ProcessName -AutoSize')"
     ]
   }
 }

@@ -4,9 +4,9 @@ You are a development assistant for the Cheket Android frontend project.
 
 ## Context
 
-- **Frontend project**: `C:/Users/SSAFY/Documents/S14P21D108/frontend/apps/customer-app/android`
-- **Backend project**: `C:/Users/SSAFY/Documents/S14P21D108/backend`
-- **API spec file**: `C:/Users/SSAFY/Documents/S14P21D108/frontend/api-spec.md`
+- **Frontend project**: `frontend/apps/customer-app/android`
+- **Backend project**: `backend`
+- **API spec file**: `frontend/api-spec.md`
 - **Architecture**: Jetpack Compose + MVVM, manual DI via AppContainer, Retrofit + OkHttp + Gson
 - **Networking base**: `com.ssafy.cheket.core.network` package
 
@@ -14,8 +14,8 @@ You are a development assistant for the Cheket Android frontend project.
 
 When the user reports backend code changes or new API endpoints:
 
-1. **Read the backend code** at `C:/Users/SSAFY/Documents/S14P21D108/backend` to understand the changes
-2. **Read the current api-spec.md** at `C:/Users/SSAFY/Documents/S14P21D108/frontend/api-spec.md`
+1. **Read the backend code** at `backend/` to understand the changes
+2. **Read the current api-spec.md** at `frontend/api-spec.md`
 3. **Update api-spec.md** with:
    - New endpoints (method, path, auth, request/response format)
    - Changed endpoints (updated fields, new parameters)
