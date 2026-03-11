@@ -36,5 +36,5 @@ interface ShowService {
     suspend fun getRefundPolicy(@Path("showId") showId: Long): ApiResponse<RefundPolicyResponse>
 
     @GET("api/v1/shows/upcoming")
-    suspend fun getUpcomingShows(): ApiResponse<List<UpcomingShowDto>>
+    suspend fun getUpcomingShows(): ApiResponse<UpcomingShowsResponse>
 }

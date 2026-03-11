@@ -22,12 +22,12 @@ class EventRepositoryImpl(
                 Event(
                     id = dto.showId.toString(),
                     name = dto.title,
-                    date = dto.showStartDate,
+                    date = dto.show?.showStartDate ?: "",
                     venue = dto.venue,
                     region = dto.region,
                     poster = dto.posterUrl,
-                    status = if (dto.showStatus == "SOLD_OUT") EventStatus.SOLD_OUT else EventStatus.ON_SALE,
-                    maxPerUser = 4,
+                    status = if (dto.status == "SOLD_OUT") EventStatus.SOLD_OUT else EventStatus.ON_SALE,
+                    maxPerUser = dto.purchaseLimit ?: 4,
                     grades = emptyList(),
                 )
             } ?: emptyList()
@@ -60,13 +60,13 @@ class EventRepositoryImpl(
         Log.d(TAG, "getOpenSchedule()")
         try {
             val response = showService.getUpcomingShows()
-            Log.d(TAG, "getOpenSchedule() statusCode=${response.httpStatusCode}, count=${response.data?.size}")
-            val items = response.data?.map { dto ->
+            Log.d(TAG, "getOpenSchedule() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
+            val items = response.data?.shows?.map { dto ->
                 OpenScheduleItem(
                     id = dto.showId.toString(),
                     eventId = dto.showId.toString(),
                     name = dto.title,
-                    openLabel = dto.reservationDate,
+                    openLabel = dto.reservation?.startDate ?: "",
                     openType = dto.status,
                     tags = emptyList(),
                     poster = dto.posterUrl,
@@ -96,11 +96,11 @@ class EventRepositoryImpl(
                     id = dto.showId.toString(),
                     name = dto.title,
                     artistName = dto.artist,
-                    date = dto.showStartDate,
+                    date = dto.show?.showStartDate ?: "",
                     venue = dto.venue,
                     region = dto.region,
                     poster = dto.posterUrl,
-                    status = if (dto.showStatus == "SOLD_OUT") EventStatus.SOLD_OUT else EventStatus.ON_SALE,
+                    status = if (dto.status == "SOLD_OUT") EventStatus.SOLD_OUT else EventStatus.ON_SALE,
                     maxPerUser = 4,
                     grades = dto.grade.map { g ->
                         Grade(name = g.gradeName, price = g.price, remaining = 0)

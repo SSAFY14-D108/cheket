@@ -17,10 +17,21 @@ data class ShowSummaryDto(
     @SerializedName("title") val title: String,
     @SerializedName("posterUrl") val posterUrl: String,
     @SerializedName("venue") val venue: String,
-    @SerializedName("showStartDate") val showStartDate: String,
-    @SerializedName("showEndDate") val showEndDate: String?,
+    @SerializedName("purchaseLimit") val purchaseLimit: Int? = null,
     @SerializedName("region") val region: String,
-    @SerializedName("showStatus") val showStatus: String,
+    @SerializedName("show") val show: ShowPeriodDto? = null,
+    @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
+    @SerializedName("status") val status: String,
+)
+
+data class ShowPeriodDto(
+    @SerializedName("showStartDate") val showStartDate: String? = null,
+    @SerializedName("showEndDate") val showEndDate: String? = null,
+)
+
+data class ReservationPeriodDto(
+    @SerializedName("startDate") val startDate: String? = null,
+    @SerializedName("endDate") val endDate: String? = null,
 )
 
 // ── Show Detail ──
@@ -32,10 +43,10 @@ data class ShowDetailDto(
     @SerializedName("description") val description: String?,
     @SerializedName("artist") val artist: String?,
     @SerializedName("venue") val venue: String,
-    @SerializedName("showStartDate") val showStartDate: String,
-    @SerializedName("showEndDate") val showEndDate: String?,
+    @SerializedName("show") val show: ShowPeriodDto? = null,
+    @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
     @SerializedName("region") val region: String,
-    @SerializedName("showStatus") val showStatus: String,
+    @SerializedName("status") val status: String,
     @SerializedName("isLiked") val isLiked: Boolean,
     @SerializedName("likeCount") val likeCount: Int,
     @SerializedName("grade") val grade: List<GradeDto>,
@@ -92,11 +103,6 @@ data class RefundPolicyResponse(
 
 // ── Upcoming Shows ──
 
-data class UpcomingShowDto(
-    @SerializedName("showId") val showId: Long,
-    @SerializedName("title") val title: String,
-    @SerializedName("posterUrl") val posterUrl: String,
-    @SerializedName("venue") val venue: String,
-    @SerializedName("reservationDate") val reservationDate: String,
-    @SerializedName("status") val status: String,
+data class UpcomingShowsResponse(
+    @SerializedName("shows") val shows: List<ShowSummaryDto>,
 )

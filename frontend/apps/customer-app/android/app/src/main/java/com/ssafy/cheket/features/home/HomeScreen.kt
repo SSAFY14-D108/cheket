@@ -589,6 +589,7 @@ private fun ResaleDiscountSection(
 ) {
     val discounted = remember(resaleItems) {
         resaleItems.mapNotNull { item ->
+            if (item.originalPrice <= 0) return@mapNotNull null
             val pct = ((item.originalPrice - item.resalePrice).toFloat() / item.originalPrice * 100)
                 .roundToInt()
             if (pct > 0) item to pct else null
