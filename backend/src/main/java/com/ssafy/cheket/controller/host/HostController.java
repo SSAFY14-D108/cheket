@@ -2,11 +2,9 @@ package com.ssafy.cheket.controller.host;
 
 import com.ssafy.cheket.dto.host.request.HostSignupRequest;
 import com.ssafy.cheket.dto.common.ApiResponse;
-import com.ssafy.cheket.dto.host.request.LoginRequest;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
-import com.ssafy.cheket.dto.host.response.LoginResponse;
 import com.ssafy.cheket.service.host.HostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -22,13 +20,6 @@ import org.springframework.web.bind.annotation.*;
 public class HostController {
 
     private final HostService hostService;
-
-    @PostMapping("/login")
-    @Operation(summary = "주최측 로그인")
-    public ResponseEntity<ApiResponse<LoginResponse>> hostLogin(@RequestBody LoginRequest request) {
-        LoginResponse response = hostService.hostLogin(request);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그인 성공", response));
-    }
 
     @PostMapping
     @Operation(summary = "주최측 회원가입")

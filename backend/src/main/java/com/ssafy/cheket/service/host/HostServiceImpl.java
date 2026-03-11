@@ -1,18 +1,14 @@
 package com.ssafy.cheket.service.host;
 
-import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.host.request.HostSignupRequest;
-import com.ssafy.cheket.dto.host.request.LoginRequest;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
-import com.ssafy.cheket.dto.host.response.LoginResponse;
 import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
-import com.ssafy.cheket.exception.common.UnauthorizedException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +29,6 @@ public class HostServiceImpl implements HostService {
     private final HostRepository hostRepository;
     private final WalletRepository walletRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${wallet.keystore.password}")
     private String keystorePassword;
@@ -43,24 +38,6 @@ public class HostServiceImpl implements HostService {
 
     // 사업자 등록번호 확인 정규식
     private static final String REGEX = "^\\d{3}-\\d{2}-\\d{5}$";
-
-    // 주최측 로그인
-    @Override
-    public LoginResponse hostLogin(LoginRequest request) {
-        // 1. 클라이언트가 보낸 이메일로 해당 유저 조회 - 없으면 404
-        Host host = hostRepository.findByEmail(request.email())
-            .orElseThrow(() -> new NotFoundException("존재하지 않는 회원입니다."));
-        // 2. 비밀번호 검증 - 틀리면 401
-        if (!passwordEncoder.matches(request.password(), host.getPassword())) {
-            throw new UnauthorizedException("이메일 또는 비밀번호가 일치하지 않습니다.");
-        }
-
-        String accessToken = jwtTokenProvider.generateAccessToken(host.getId(), host.getEmail(), "HOST");
-        String refreshToken = jwtTokenProvider.generateRefreshToken(host.getId(), host.getEmail(), "HOST");
-
-        return new LoginResponse(accessToken, refreshToken);
-
-    }
 
     // 주최측 회원가입
     @Override
