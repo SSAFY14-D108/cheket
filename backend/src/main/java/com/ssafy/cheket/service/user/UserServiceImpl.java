@@ -9,6 +9,7 @@ import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
+import com.ssafy.cheket.service.wallet.WalletService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +27,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final WalletService walletService;
 
     @Value("${wallet.keystore.password}")
     private String keystorePassword;
@@ -54,7 +56,11 @@ public class UserServiceImpl implements UserService {
         User user = User.builder().walletId(wallet.getId()).username(request.username())
             .phoneNumber(request.phoneNumber()).email(request.email())
             .password(passwordEncoder.encode(request.password())).notificationEnable(true).build(); // 최종 객체 생성
+
         userRepository.save(user);
+
+        // 3단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
+        walletService.transferInitialFunds(address);
     }
 
     // 이메일 찾기

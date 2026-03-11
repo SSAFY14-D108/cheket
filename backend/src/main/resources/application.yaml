@@ -40,6 +40,6 @@ solapi:
     sender: ${SOLAPI_SENDER_NUMBER}
 
 blockchain:
-    rpc-url: https://rpc.ssafy.io
+    rpc-url: ${BLOCKCHAIN_RPC_URL}
     platform-private-key: ${PRIVATE_KEY}
-    initial-transfer-amount: 1000
+    initial-transfer-amount: ${BLOCKCHAIN_INITIAL_TRANSFER_AMOUNT}
