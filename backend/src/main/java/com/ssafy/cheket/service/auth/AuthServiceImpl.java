@@ -134,6 +134,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // 회원 검색
+    // TODO: 정규식으로 전화번호와 사업자 등록번호 검증하기
     @Override
     public SearchUserResponse searchUser(String userType, String number) {
         UserType type;
