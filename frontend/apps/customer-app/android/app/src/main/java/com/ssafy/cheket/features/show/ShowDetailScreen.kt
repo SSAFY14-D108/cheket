@@ -26,8 +26,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
+import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.core.model.Grade
 import com.ssafy.cheket.core.model.RefundRule
@@ -42,17 +44,44 @@ fun ShowDetailScreen(
     showId: String,
     onNavigateToDateSelection: (showId: String) -> Unit,
     onBack: () -> Unit,
+    viewModel: ShowDetailViewModel = viewModel(factory = ShowDetailViewModel.factory(showId)),
 ) {
-    val show = remember { MockDataSource.mockShows.find { it.id == showId } }
-    var isWishlisted by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (show == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("이벤트를 찾을 수 없습니다.", color = MutedForeground, fontSize = 16.sp)
+    when (val state = uiState) {
+        is ShowDetailViewModel.UiState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Primary)
+            }
         }
-        return
+        is ShowDetailViewModel.UiState.Error -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(state.message, color = MutedForeground, fontSize = 16.sp)
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { viewModel.loadShow() }) {
+                        Text("다시 시도")
+                    }
+                }
+            }
+        }
+        is ShowDetailViewModel.UiState.Success -> {
+            ShowDetailContent(
+                show = state.show,
+                onNavigateToDateSelection = onNavigateToDateSelection,
+                onBack = onBack,
+            )
+        }
     }
+}
 
+@Composable
+private fun ShowDetailContent(
+    show: Show,
+    onNavigateToDateSelection: (showId: String) -> Unit,
+    onBack: () -> Unit,
+) {
+    var isWishlisted by remember { mutableStateOf(false) }
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
 
     Scaffold(
