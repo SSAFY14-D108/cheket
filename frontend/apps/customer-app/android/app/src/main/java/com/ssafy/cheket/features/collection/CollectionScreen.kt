@@ -201,19 +201,24 @@ private fun TicketOverlay(
                                 override fun onPageFinished(view: WebView?, u: String?) {
                                     Log.d("CollectionWV", "✅ onPageFinished: $u")
 
-                                    // 서버 HTML의 body height 0 문제 + 센터링 런타임 수정
+                                    // WebView에서 vh 단위가 0 으로 잡히는 문제 우회:
+                                    // body를 fixed 전체 화면으로 잡고 flex 센터링 + scene 애니메이션 제거
                                     view?.evaluateJavascript(
                                         """
-                                        document.documentElement.style.height='100vh';
-                                        document.body.style.height='100vh';
-                                        document.body.style.overflow='visible';
+                                        var b=document.body;
+                                        b.style.position='fixed';
+                                        b.style.inset='0';
+                                        b.style.width='100%';
+                                        b.style.height='100%';
+                                        b.style.display='flex';
+                                        b.style.alignItems='center';
+                                        b.style.justifyContent='center';
+                                        b.style.overflow='hidden';
                                         var s=document.querySelector('.scene');
                                         if(s){
-                                          s.style.position='fixed';
-                                          s.style.top='50%';
-                                          s.style.left='50%';
-                                          s.style.transform='translate(-50%,-50%)';
+                                          s.style.animation='none';
                                           s.style.opacity='1';
+                                          s.style.transform='scale(1) rotateX(0deg)';
                                         }
                                         """.trimIndent(),
                                         null,
@@ -252,12 +257,18 @@ private fun TicketOverlay(
                                 }
                             }
 
+                            // 하드웨어 가속 렌더링
+                            setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
+
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
                                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 useWideViewPort = true
                                 loadWithOverviewMode = true
+                                cacheMode = WebSettings.LOAD_DEFAULT
+                                loadsImagesAutomatically = true
+                                blockNetworkImage = false
                             }
                             Log.d("CollectionWV", "🚀 loadUrl: $url")
                             loadUrl(url)
