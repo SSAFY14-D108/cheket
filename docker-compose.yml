@@ -24,6 +24,8 @@ services:
       # Wallet
       KEYSTORE_PASSWORD: ${KEYSTORE_PASSWORD}
       KEYSTORE_DIR: ${KEYSTORE_DIR}
+      # Blockchain (플랫폼 지갑)
+      PRIVATE_KEY: ${PRIVATE_KEY}
       # Solapi (SMS)
       SOLAPI_API_KEY: ${SOLAPI_API_KEY}
       SOLAPI_API_SECRET: ${SOLAPI_API_SECRET}
@@ -32,6 +34,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - keystore_data:${KEYSTORE_DIR}
     depends_on:
       mysql:
         condition: service_healthy
@@ -90,6 +94,7 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  keystore_data:
 
 networks:
   cheket_network:

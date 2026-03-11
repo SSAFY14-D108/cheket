@@ -36,13 +36,8 @@ public class WalletServiceImpl implements WalletService {
             Credentials platformCredentials = Credentials.create(platformPrivateKey);
 
             // SSF 전송 (네이티브 토큰이므로 ETHER 단위 사용)
-            Transfer.sendFunds(
-                web3j,
-                platformCredentials,
-                toAddress,
-                BigDecimal.valueOf(initialTransferAmount),
-                Convert.Unit.ETHER
-            ).send();
+            Transfer.sendFunds(web3j, platformCredentials, toAddress, BigDecimal.valueOf(initialTransferAmount),
+                Convert.Unit.ETHER).send();
 
             log.info("초기 SSF 전송 성공: {} → {} SSF", toAddress, initialTransferAmount);
         } catch (Exception e) {

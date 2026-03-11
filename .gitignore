@@ -3,3 +3,7 @@
 .DS_Store
 .idea/
 *.iml
+node_modules/
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
