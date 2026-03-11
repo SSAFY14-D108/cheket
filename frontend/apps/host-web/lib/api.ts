@@ -36,6 +36,7 @@ const RETRY_HEADER = "X-Auth-Retry"
 const PUBLIC_AUTH_REQUESTS = [
   { method: "POST", path: "/api/v1/hosts" },
   { method: "POST", path: "/api/v1/hosts/login" },
+  { method: "POST", path: "/api/v1/hosts/business-no/duplicate" },
 ] as const
 
 let refreshPromise: Promise<TokenReissueResponse["data"]> | null = null

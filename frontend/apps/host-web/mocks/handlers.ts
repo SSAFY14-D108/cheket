@@ -293,6 +293,45 @@ function createNotFoundResponse() {
 }
 
 export const handlers = [
+  http.post("*/api/v1/hosts/business-no/duplicate", async ({ request }) => {
+    const body = (await request.json()) as { businessNo?: string }
+    const businessNo = body.businessNo?.trim() ?? ""
+    const businessNoPattern = /^\d{3}-\d{2}-\d{5}$/
+
+    if (!businessNoPattern.test(businessNo)) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "잘못된 사업자번호 형식입니다.",
+        },
+        { status: 400 }
+      )
+    }
+
+    if (businessNo === "000-00-00000") {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 409,
+          errorMessage: "이미 등록된 사업자번호입니다.",
+          data: {
+            isDuplicate: true,
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "사용 가능한 사업자번호입니다.",
+        data: {
+          isDuplicate: false,
+        },
+      },
+      { status: 200 }
+    )
+  }),
   // 회원가입
   http.post("*/api/v1/hosts", async () => {
     return HttpResponse.json(
