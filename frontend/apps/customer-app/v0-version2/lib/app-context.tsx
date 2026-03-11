@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type {
   Event,
   NavParams,
@@ -16,6 +16,7 @@ import type {
   WalletTxType,
 } from './types'
 import { MOCK_EVENTS, MOCK_RESALE_ITEMS, MOCK_TICKETS, MOCK_USER } from './mock-data'
+import { REGION_TO_SIGNGU } from './kopis'
 
 function randomHex(length: number) {
   return Array.from({ length }, () => Math.floor(Math.random() * 16).toString(16)).join('')
@@ -102,6 +103,7 @@ interface AppContextValue {
   eventsLoading: boolean
   eventsSource: 'mock' | 'kopis'
   eventsError: string | null
+  loadEventsByRegion: (region: string | string[]) => void
   updateEvent: (id: string, updates: Partial<Event>) => void
   addTicket: (ticket: Ticket) => void
   updateTicketStatus: (id: string, updates: Partial<Ticket>) => void
@@ -155,13 +157,14 @@ const MOCK_PHONE_BOOK: Record<string, string> = {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const latestEventsRequestRef = useRef(0)
   const [user, setUser] = useState<User | null>(null)
   const [screen, setScreen] = useState<Screen>('login')
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [navParams, setNavParams] = useState<NavParams>({})
   const [screenHistory, setScreenHistory] = useState<Array<{ screen: Screen; params: NavParams }>>([])
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS)
-  const [resaleItems, setResaleItems] = useState<ResaleItem[]>(MOCK_RESALE_ITEMS)
+  const [resaleItems, setResaleItems] = useState<ResaleItem[]>([])
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsSource, setEventsSource] = useState<'mock' | 'kopis'>('mock')
@@ -171,43 +174,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [walletTxs, setWalletTxs] = useState<WalletTx[]>(INITIAL_WALLET_TXS)
   const [allowNotifications, setAllowNotifications] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
+  const loadKopisEvents = useCallback(async (signgucodes?: string[]) => {
+    const requestId = latestEventsRequestRef.current + 1
+    latestEventsRequestRef.current = requestId
 
-    async function loadKopisEvents() {
-      try {
-        setEventsLoading(true)
-        const response = await fetch('/api/kopis/events?rows=30', { cache: 'no-store' })
-        const data = await response.json()
+    try {
+      setEventsLoading(true)
+      const codes = signgucodes?.filter(Boolean) ?? []
+      const requestCodes = codes.length > 0 ? [...new Set(codes)] : ['']
+      const responses = await Promise.all(
+        requestCodes.map(async (code) => {
+          const params = new URLSearchParams({ rows: '30' })
+          if (code) params.set('signgucode', code)
+          const response = await fetch(`/api/kopis/events?${params.toString()}`, { cache: 'no-store' })
+          return response.json()
+        })
+      )
 
-        if (cancelled) return
+      if (latestEventsRequestRef.current !== requestId) return
 
-        if (Array.isArray(data.items) && data.items.length > 0) {
-          setEvents(data.items)
-          setEventsSource('kopis')
-          setEventsError(null)
-        } else {
-          setEvents(MOCK_EVENTS)
-          setEventsSource('mock')
-          setEventsError(typeof data.error === 'string' ? data.error : null)
-        }
-      } catch (error) {
-        if (cancelled) return
+      const mergedItems = responses.flatMap((data) => (Array.isArray(data.items) ? data.items : []))
+      const dedupedItems = Array.from(new Map(mergedItems.map((item: Event) => [item.id, item])).values())
+      const firstError = responses.find((data) => typeof data.error === 'string')?.error ?? null
+
+      if (dedupedItems.length > 0) {
+        setEvents(dedupedItems)
+        setEventsSource('kopis')
+        setEventsError(firstError)
+      } else {
         setEvents(MOCK_EVENTS)
         setEventsSource('mock')
-        setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
-      } finally {
-        if (!cancelled) {
-          setEventsLoading(false)
-        }
+        setEventsError(firstError)
+      }
+    } catch (error) {
+      if (latestEventsRequestRef.current !== requestId) return
+
+      setEvents(MOCK_EVENTS)
+      setEventsSource('mock')
+      setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
+    } finally {
+      if (latestEventsRequestRef.current === requestId) {
+        setEventsLoading(false)
       }
     }
+  }, [])
 
+  const loadEventsByRegion = useCallback((region: string | string[]) => {
+    const regions = Array.isArray(region) ? region : [region]
+    const signgucodes = regions
+      .filter((value) => value && value !== '전체')
+      .map((value) => REGION_TO_SIGNGU[value])
+      .filter((value): value is string => Boolean(value))
+
+    void loadKopisEvents(signgucodes)
+  }, [loadKopisEvents])
+
+  useEffect(() => {
     void loadKopisEvents()
-
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   const login = useCallback((id: string, _password: string) => {
@@ -479,6 +502,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         eventsLoading,
         eventsSource,
         eventsError,
+        loadEventsByRegion,
         updateEvent,
         addTicket,
         updateTicketStatus,

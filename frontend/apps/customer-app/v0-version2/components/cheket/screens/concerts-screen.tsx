@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import { cn } from '@/lib/utils'
+import { REGION_TO_SIGNGU } from '@/lib/kopis'
 import { AppShell } from '../app-shell'
 import { EmptyState } from '../empty-state'
 import { EventCard } from '../event-card'
@@ -21,7 +22,7 @@ function popularityScore(id: string) {
 }
 
 export function ConcertsScreen() {
-  const { navigate, events, eventsError, eventsLoading, eventsSource } = useApp()
+  const { navigate, events, eventsError, eventsLoading, eventsSource, loadEventsByRegion } = useApp()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [query, setQuery] = useState('')
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
@@ -40,6 +41,10 @@ export function ConcertsScreen() {
     )
   }
 
+  useEffect(() => {
+    loadEventsByRegion(selectedRegions)
+  }, [loadEventsByRegion, selectedRegions])
+
   const filtered = useMemo(() => {
     let list = events.filter((event) => {
       const keyword = query.trim().toLowerCase()
@@ -49,7 +54,13 @@ export function ConcertsScreen() {
         event.venue.toLowerCase().includes(keyword) ||
         (event.artistName ?? '').toLowerCase().includes(keyword)
 
-      const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(event.region)
+      const selectedRegionCodes = selectedRegions
+        .map((region) => REGION_TO_SIGNGU[region])
+        .filter((code): code is string => Boolean(code))
+      const eventRegionCode = event.regionCode ?? REGION_TO_SIGNGU[event.region]
+      const matchRegion =
+        selectedRegionCodes.length === 0 ||
+        (eventRegionCode ? selectedRegionCodes.includes(eventRegionCode) : selectedRegions.includes(event.region))
       return matchQuery && matchRegion
     })
 

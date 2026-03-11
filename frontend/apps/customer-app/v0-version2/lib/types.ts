@@ -104,6 +104,7 @@ export interface Event {
   dates?: EventDate[]   // multiple performance dates
   venue: string
   region: string        // e.g. "서울", "경기", "부산"
+  regionCode?: string
   poster: string
   status: EventStatus
   maxPerUser: number

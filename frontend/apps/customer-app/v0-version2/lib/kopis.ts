@@ -36,6 +36,42 @@ const PRICE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#0
 
 const SEOUL_HINTS = ['서울', '대학로', '예술의전당', '올림픽', '잠실', '고척', '세종']
 
+/** KOPIS signgucode → UI region label */
+export const SIGNGU_TO_REGION: Record<string, string> = {
+  '11': '서울',
+  '41': '경기',
+  '28': '인천',
+  '26': '부산',
+  '27': '대구',
+  '29': '광주',
+  '30': '대전',
+  '48': '경남',
+  '45': '전북',
+  '50': '제주',
+}
+
+/** UI region label → KOPIS signgucode */
+export const REGION_TO_SIGNGU: Record<string, string> = Object.fromEntries(
+  Object.entries(SIGNGU_TO_REGION).map(([code, name]) => [name, code])
+)
+
+function normalizeRegionLabel(value: string) {
+  const normalized = safeKopisText(value, '').trim()
+  if (!normalized) return ''
+
+  if (normalized.includes('서울')) return '서울'
+  if (normalized.includes('경기')) return '경기'
+  if (normalized.includes('인천')) return '인천'
+  if (normalized.includes('부산')) return '부산'
+  if (normalized.includes('대구')) return '대구'
+  if (normalized.includes('광주')) return '광주'
+  if (normalized.includes('대전')) return '대전'
+  if (normalized.includes('경남')) return '경남'
+  if (normalized.includes('전북')) return '전북'
+  if (normalized.includes('제주')) return '제주'
+  return normalized
+}
+
 function looksMojibake(value: string) {
   if (!value) return false
   return /[ÃÂÐØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïð]/.test(value)
@@ -160,7 +196,7 @@ function mapStatus(state: string): EventStatus {
 }
 
 function mapRegion(area: string, venue: string) {
-  const normalizedArea = safeKopisText(area, '').trim()
+  const normalizedArea = normalizeRegionLabel(area)
   if (normalizedArea) return normalizedArea
 
   if (SEOUL_HINTS.some((keyword) => venue.includes(keyword))) return '서울'
@@ -286,10 +322,15 @@ export function parseKopisPerformanceDetail(xml: string): KopisPerformanceDetail
   }
 }
 
-export function mapKopisPerformanceToEvent(performance: KopisPerformance): Event {
+export function mapKopisPerformanceToEvent(
+  performance: KopisPerformance,
+  regionHint?: string,
+  regionCodeHint?: string
+): Event {
   const status = mapStatus(performance.state)
   const eventId = `kopis_${performance.id}`
-  const region = mapRegion(performance.area, performance.venue)
+  const region = regionHint || mapRegion(performance.area, performance.venue)
+  const regionCode = regionCodeHint || REGION_TO_SIGNGU[region]
   const date = formatEventPeriod(performance.startDate, performance.endDate)
   const name = safeKopisText(performance.name, `KOPIS 공연 ${performance.id}`)
   const genre = safeKopisText(performance.genre, '공연')
@@ -310,6 +351,7 @@ export function mapKopisPerformanceToEvent(performance: KopisPerformance): Event
     dates: buildEventDates(eventId, performance.startDate, performance.endDate, ''),
     venue: venueName ? `${venueName}, ${region}` : region,
     region,
+    regionCode,
     poster: performance.poster || '/posters/concert1.jpg',
     status,
     maxPerUser: 4,

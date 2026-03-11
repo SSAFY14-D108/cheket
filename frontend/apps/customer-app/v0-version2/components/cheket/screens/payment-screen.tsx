@@ -59,11 +59,12 @@ export function PaymentScreen() {
 
   if (success) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-6 bg-background p-6 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary bg-primary/10">
-          <CheckCircle className="h-10 w-10 text-primary" />
-        </div>
-        <div>
+      <div className="flex h-full flex-col bg-background relative">
+        <div className="flex flex-col items-center flex-1 overflow-y-auto px-6 pt-10 pb-24 text-center">
+          <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary/10">
+            <CheckCircle className="h-10 w-10 text-primary" />
+          </div>
+          <div>
           <h2 className="mb-2 text-xl font-bold text-foreground">예매가 완료되었습니다</h2>
           <p className="text-sm text-muted-foreground">
             구매한 티켓은 내 티켓에서 바로 확인할 수 있습니다.
@@ -121,6 +122,7 @@ export function PaymentScreen() {
         >
           내 티켓 보기
         </button>
+        </div>
       </div>
     )
   }
