@@ -139,8 +139,7 @@ function buildCreateShowPath() {
 }
 
 function buildShowSectionsPath(venueId: string | number) {
-  // Inference: the docs currently overlap this route with show detail.
-  // We use a nested path until the backend contract is clarified.
+  // 공연장 구역 목록 조회
   return `/api/v1/hosts/shows/${venueId}/sections`
 }
 

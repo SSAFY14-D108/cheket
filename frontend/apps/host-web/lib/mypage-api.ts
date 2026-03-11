@@ -6,6 +6,11 @@ interface ApiResponse<T> {
   data: T
 }
 
+interface ApiMessageResponse {
+  httpStatusCode: number
+  responseMessage: string
+}
+
 export interface MyCompanyInfo {
   companyName: string
   businessNo: string
@@ -84,4 +89,23 @@ export async function fetchMyWalletBalance() {
   })
 
   return response.data
+}
+
+interface UpdateMyCompanyInfoParams {
+  companyName?: string
+  email?: string
+}
+
+export async function updateMyCompanyInfo(payload: UpdateMyCompanyInfoParams) {
+  return apiFetch<ApiMessageResponse>("/api/v1/hosts", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteMyAccount(password: string) {
+  return apiFetch<ApiMessageResponse>("/api/v1/hosts", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  })
 }

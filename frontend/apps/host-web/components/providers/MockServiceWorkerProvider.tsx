@@ -1,10 +1,29 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 
 let isWorkerStarted = false
+let workerStartPromise: Promise<void> | null = null
 
-export function MockServiceWorkerProvider() {
+interface MockServiceWorkerProviderProps {
+  children: ReactNode
+}
+
+function ensureWorkerStarted() {
+  if (!workerStartPromise) {
+    workerStartPromise = import("@/mocks/browser")
+      .then(({ worker }) => worker.start({ onUnhandledRequest: "bypass" }))
+      .then(() => {
+        isWorkerStarted = true
+      })
+  }
+
+  return workerStartPromise
+}
+
+export function MockServiceWorkerProvider({ children }: MockServiceWorkerProviderProps) {
+  const [isReady, setIsReady] = useState(process.env.NODE_ENV !== "development" || isWorkerStarted)
+
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") {
       return
@@ -14,14 +33,19 @@ export function MockServiceWorkerProvider() {
       return
     }
 
-    isWorkerStarted = true
-
-    void import("@/mocks/browser")
-      .then(({ worker }) => worker.start({ onUnhandledRequest: "bypass" }))
+    void ensureWorkerStarted()
+      .then(() => {
+        setIsReady(true)
+      })
       .catch((error) => {
         console.error("Failed to start MSW worker", error)
+        setIsReady(true)
       })
   }, [])
 
-  return null
+  if (!isReady) {
+    return null
+  }
+
+  return <>{children}</>
 }

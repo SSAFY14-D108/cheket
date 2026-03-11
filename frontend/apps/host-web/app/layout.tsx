@@ -44,10 +44,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geist.className} ${geistMono.variable} font-sans antialiased`}>
-        <MockServiceWorkerProvider />
-        {children}
-        <Toaster />
-        <Analytics />
+        <MockServiceWorkerProvider>
+          {children}
+          <Toaster />
+          <Analytics />
+        </MockServiceWorkerProvider>
       </body>
     </html>
   )
