@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .requestMatchers("/collection/**").permitAll() // 컬렉션 WebView (인증 불필요)
                 .requestMatchers("/api/v1/hosts/business-no/duplicate").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/resales").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/resales/{showId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/resales/shows/{showId}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows/venue").permitAll()
                 .requestMatchers("/api/v1/shows/{showId}/refund").permitAll()
