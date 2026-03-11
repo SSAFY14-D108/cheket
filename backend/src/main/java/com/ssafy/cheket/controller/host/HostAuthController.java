@@ -22,4 +22,5 @@ public class HostAuthController {
         LoginResponse response = hostAuthService.hostLogin(request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그인 성공", response));
     }
+
 }

@@ -1,3 +1,6 @@
+server:
+    forward-headers-strategy: framework
+
 spring:
     application:
         name: cheket
@@ -35,3 +38,8 @@ solapi:
     api-key: ${SOLAPI_API_KEY}
     api-secret: ${SOLAPI_API_SECRET}
     sender: ${SOLAPI_SENDER_NUMBER}
+
+blockchain:
+    rpc-url: https://rpc.ssafy.io
+    platform-private-key: ${PRIVATE_KEY}
+    initial-transfer-amount: 1000
