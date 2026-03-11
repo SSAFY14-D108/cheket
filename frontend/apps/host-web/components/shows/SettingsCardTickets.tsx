@@ -50,6 +50,12 @@ export function SettingsCardTickets({
 }: SettingsCardTicketsProps) {
     const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
+    const parseSelectedSectionIds = (sectionIdValue: string) =>
+        sectionIdValue
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean)
+
     // 장소 ID에 따른 도면 이미지 매핑
     const getVenueMapImg = (id: string) => {
         switch (id) {
@@ -226,8 +232,13 @@ export function SettingsCardTickets({
                                 </div>
                                 <div className="w-[35%] shrink-0">
                                     {(() => {
-                                        const rawSelected = grade.sectionId ? grade.sectionId.split(',').map(s => s.trim()).filter(Boolean) : []
+                                        const rawSelected = grade.sectionId ? parseSelectedSectionIds(grade.sectionId) : []
                                         const validSelected = rawSelected.filter(id => availableSections.some(sec => sec.sectionId.toString() === id))
+                                        const usedSectionIds = new Set(
+                                            grades.flatMap((otherGrade, otherIndex) =>
+                                                otherIndex === idx ? [] : parseSelectedSectionIds(otherGrade.sectionId)
+                                            )
+                                        )
 
                                         return (
                                             <Popover>
@@ -251,15 +262,21 @@ export function SettingsCardTickets({
                                                         <>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {availableSections.map(section => {
-                                                                    const selectedSections = grade.sectionId ? grade.sectionId.split(',').map(s => s.trim()) : []
-                                                                    const isSelected = selectedSections.includes(section.sectionId.toString())
+                                                                    const selectedSections = grade.sectionId ? parseSelectedSectionIds(grade.sectionId) : []
+                                                                    const sectionIdString = section.sectionId.toString()
+                                                                    const isSelected = selectedSections.includes(sectionIdString)
+                                                                    const isDisabled = usedSectionIds.has(sectionIdString)
 
                                                                     const toggleSelection = () => {
+                                                                        if (isDisabled && !isSelected) {
+                                                                            return
+                                                                        }
+
                                                                         let newSelected;
                                                                         if (isSelected) {
-                                                                            newSelected = selectedSections.filter(s => s !== section.sectionId.toString())
+                                                                            newSelected = selectedSections.filter(s => s !== sectionIdString)
                                                                         } else {
-                                                                            newSelected = [...selectedSections, section.sectionId.toString()]
+                                                                            newSelected = [...selectedSections, sectionIdString]
                                                                         }
                                                                         onUpdateGrade(idx, 'sectionId', newSelected.sort((a, b) => Number(a) - Number(b)).join(', '))
                                                                     }
@@ -268,16 +285,24 @@ export function SettingsCardTickets({
                                                                         <div
                                                                             key={section.sectionId}
                                                                             onClick={toggleSelection}
-                                                                            className={`flex items-center justify-center px-3 h-8 text-xs font-medium rounded-md cursor-pointer transition-colors border ${isSelected
+                                                                            className={`flex items-center justify-center px-3 h-8 text-xs font-medium rounded-md transition-colors border ${isSelected
                                                                                 ? 'bg-primary text-primary-foreground border-primary'
+                                                                                : isDisabled
+                                                                                    ? 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-50'
                                                                                 : 'bg-background hover:bg-muted border-border'
                                                                                 }`}
+                                                                            aria-disabled={isDisabled && !isSelected}
                                                                         >
                                                                             {section.sectionName}
                                                                         </div>
                                                                     )
                                                                 })}
                                                             </div>
+                                                            {usedSectionIds.size > 0 && (
+                                                                <div className="mt-3 pt-2 text-[11px] text-muted-foreground border-t">
+                                                                    다른 등급에서 이미 선택한 구역은 비활성화됩니다.
+                                                                </div>
+                                                            )}
                                                             {validSelected.length > 0 && (
                                                                 <div className="mt-3 pt-2 text-muted-foreground border-t whitespace-normal break-words leading-relaxed">
                                                                     선택됨: {

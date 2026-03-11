@@ -3,6 +3,7 @@ export interface Grade {
   gradeName: string
   price: number
   colorCode: string
+  ticketEffectId?: number
 }
 
 export interface Stakeholder {
@@ -158,9 +159,9 @@ export const mockEvents: Event[] = [
       "CHEKET 아티스트들과 함께하는 단독 공연입니다.\n- 전석 지정좌석\n- 만 7세 이상 관람가",
     purchaseLimit: 2,
     grade: [
-      { sectionId: 1, gradeName: "VIP", price: 150000, colorCode: "#7C6EF0" },
-      { sectionId: 1, gradeName: "GOLD", price: 120000, colorCode: "#c8ff00ff" },
-      { sectionId: 2, gradeName: "S", price: 100000, colorCode: "#aaaaaa" },
+      { sectionId: 1, gradeName: "VIP", price: 150000, colorCode: "#7C6EF0", ticketEffectId: 1 },
+      { sectionId: 1, gradeName: "GOLD", price: 120000, colorCode: "#c8ff00ff", ticketEffectId: 2 },
+      { sectionId: 2, gradeName: "S", price: 100000, colorCode: "#aaaaaa", ticketEffectId: 3 },
     ],
     stakeholders: [
       { role: "organizer", name: "뮤직페스티벌 주최사", businessNo: "123-45-67890", shareBps: 7000 },
@@ -207,7 +208,7 @@ export const mockEvents: Event[] = [
     description:
       "봄밤의 감성을 채워줄 재즈 공연. 국내외 최고의 재즈 뮤지션들이 펼치는 특별한 무대입니다.",
     purchaseLimit: 4,
-    grade: [{ sectionId: 3, gradeName: "일반", price: 80000, colorCode: "#000000" }],
+    grade: [{ sectionId: 3, gradeName: "일반", price: 80000, colorCode: "#000000", ticketEffectId: 1 }],
     stakeholders: [
       { role: "organizer", name: "재즈협회", businessNo: "222-22", shareBps: 5000 },
       { role: "artist", name: "재즈밴드", phone: "010-1111-2222", shareBps: 5000 },
@@ -250,7 +251,7 @@ export const mockEvents: Event[] = [
     description:
       "대한민국 인디 록의 중심, 롤링홀에서 펼쳐지는 뜨거운 인디 밴드들의 릴레이 공연! 스트레스를 날려버릴 강렬한 사운드가 여러분을 기다립니다.",
     purchaseLimit: 4,
-    grade: [{ sectionId: 4, gradeName: "스탠딩", price: 55000, colorCode: "#FF5733" }],
+    grade: [{ sectionId: 4, gradeName: "스탠딩", price: 55000, colorCode: "#FF5733", ticketEffectId: 4 }],
     stakeholders: [
       { role: "organizer", name: "인디뮤직네트워크", businessNo: "333-33-33333", shareBps: 8000 },
       { role: "artist", name: "록 밴드 연합", phone: "010-3333-3333", shareBps: 2000 },
@@ -294,9 +295,9 @@ export const mockEvents: Event[] = [
       "무더운 여름을 시원하게 날려버릴 한강 최대의 야외 음악 축제! 2일 동안 펼쳐지는 국내외 최정상급 아티스트들의 무대와 다채로운 즐길거리가 풍성하게 준비되어 있습니다.",
     purchaseLimit: 4,
     grade: [
-      { sectionId: 5, gradeName: "2일권", price: 180000, colorCode: "#1D4ED8" },
-      { sectionId: 6, gradeName: "1일권(토)", price: 110000, colorCode: "#3B82F6" },
-      { sectionId: 7, gradeName: "1일권(일)", price: 110000, colorCode: "#60A5FA" },
+      { sectionId: 5, gradeName: "2일권", price: 180000, colorCode: "#1D4ED8", ticketEffectId: 2 },
+      { sectionId: 6, gradeName: "1일권(토)", price: 110000, colorCode: "#3B82F6", ticketEffectId: 3 },
+      { sectionId: 7, gradeName: "1일권(일)", price: 110000, colorCode: "#60A5FA", ticketEffectId: 4 },
     ],
     stakeholders: [
       { role: "organizer", name: "썸머페스트 조직위", businessNo: "444-44-44444", shareBps: 6000 },
@@ -480,7 +481,6 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
     status: event.status,
     createdAt: event.createdAt,
     updatedAt: event.updatedAt,
-    ticketEffectId: 1,
   }
 }
 
