@@ -37,4 +37,36 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
             s.reservationStartDate asc
         """)
     List<Show> findUpcomingTop5ByLikeCount(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"venue"})
+    @Query(value = """
+        select s
+        from Show s
+        join s.venue v
+        left join Session sess on sess.showId = s.id
+        left join SessionSeat ss on ss.sessionId = sess.id
+        left join Ticket t on t.sessionSeatId = ss.id
+        where (:region is null or v.region = :region)
+          and (
+                :keyword is null
+                or lower(s.title) like lower(concat('%', :keyword, '%'))
+                or lower(s.artist) like lower(concat('%', :keyword, '%'))
+                or lower(v.name) like lower(concat('%', :keyword, '%'))
+          )
+        group by s
+        order by count(t.id) desc, s.id desc
+        """, countQuery = """
+        select count(s)
+        from Show s
+        join s.venue v
+        where (:region is null or v.region = :region)
+          and (
+                :keyword is null
+                or lower(s.title) like lower(concat('%', :keyword, '%'))
+                or lower(s.artist) like lower(concat('%', :keyword, '%'))
+                or lower(v.name) like lower(concat('%', :keyword, '%'))
+          )
+        """)
+    Page<Show> searchOrderByPopular(@Param("region") Region region, @Param("keyword") String keyword,
+        Pageable pageable);
 }
