@@ -84,11 +84,8 @@ public class HostServiceImpl implements HostService {
             throw new BadRequestException("잘못된 사업자 등록번호 형식입니다.");
         }
 
-        if (hostRepository.existsByBusinessNo(businessNo)) {
-            throw new ConflictException("이미 등록된 사업자 등록번호입니다.");
-        }
-
-        return new CheckBusinessNoDuplicateResponse(false);
+        boolean status = hostRepository.existsByBusinessNo(businessNo);
+        return new CheckBusinessNoDuplicateResponse(status);
     }
 
     // 회사 정보 조회

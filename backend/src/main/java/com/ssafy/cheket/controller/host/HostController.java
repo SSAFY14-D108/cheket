@@ -33,7 +33,8 @@ public class HostController {
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<CheckBusinessNoDuplicateResponse>> checkBusinessNoDuplicate(String businessNo) {
         CheckBusinessNoDuplicateResponse response = hostService.checkBusinessNoDuplicate(businessNo);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "사용 가능한 사업자 등록번호 입니다.", response));
+        String message = response.isDuplicated() ? "이미 등록된 사업자 등록번호입니다." : "사용 가능한 사업자 등록번호입니다.";
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, message, response));
     }
 
     @GetMapping
