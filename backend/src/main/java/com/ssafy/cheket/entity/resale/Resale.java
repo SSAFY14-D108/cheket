@@ -28,7 +28,7 @@ public class Resale {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "buyer_id", nullable = false)
+    @Column(name = "buyer_id")
     private Long buyerId;
 
     @Column(name = "original_price", nullable = false)
@@ -39,6 +39,9 @@ public class Resale {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

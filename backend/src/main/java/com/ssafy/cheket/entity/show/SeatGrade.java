@@ -30,6 +30,6 @@ public class SeatGrade {
     @Column(name = "color_code", nullable = false, length = 10)
     private String colorCode;
 
-    @Column(name = "ticket_effect_id", nullable = false)
+    @Column(name = "ticket_effect_id")
     private Long ticketEffectId;
 }
