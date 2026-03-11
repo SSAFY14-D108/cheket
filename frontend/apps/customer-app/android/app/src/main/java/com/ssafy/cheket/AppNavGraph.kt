@@ -118,6 +118,7 @@ val bottomTabRoutes = listOf(
 @Composable
 fun AppNavGraph(
     appContainer: AppContainer,
+    startLoggedIn: Boolean = false,
     navController: NavHostController = rememberNavController(),
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -143,7 +144,7 @@ fun AppNavGraph(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Routes.LOGIN,
+            startDestination = if (startLoggedIn) Routes.HOME else Routes.LOGIN,
             modifier = Modifier.padding(innerPadding),
         ) {
             // ── Auth ──

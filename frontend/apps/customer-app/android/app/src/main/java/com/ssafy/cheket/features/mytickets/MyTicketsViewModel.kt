@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.mytickets
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -30,8 +31,10 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
     val uiState: StateFlow<MyTicketsUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d(TAG, "init — loading tickets")
         viewModelScope.launch {
             ticketRepository.getTickets().collect { tickets ->
+                Log.d(TAG, "getTickets() received ${tickets.size} tickets")
                 _uiState.value = _uiState.value.copy(allTickets = tickets, isLoading = false)
                 applyFilter()
             }
@@ -39,6 +42,7 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
     }
 
     fun onFilterChange(filter: TicketFilter) {
+        Log.d(TAG, "onFilterChange() filter=$filter")
         _uiState.value = _uiState.value.copy(selectedFilter = filter)
         applyFilter()
     }
@@ -50,10 +54,13 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
             TicketFilter.SOLD -> s.allTickets.filter { it.status == TicketStatus.SOLD }
             TicketFilter.LISTED -> s.allTickets.filter { it.status == TicketStatus.LISTED }
         }
+        Log.d(TAG, "applyFilter() filter=${s.selectedFilter}, resultCount=${result.size}")
         _uiState.value = s.copy(filteredTickets = result)
     }
 
     companion object {
+        private const val TAG = "MyTicketsViewModel"
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication

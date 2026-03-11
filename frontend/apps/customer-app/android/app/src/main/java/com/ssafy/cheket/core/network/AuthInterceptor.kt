@@ -1,5 +1,6 @@
 package com.ssafy.cheket.core.network
 
+import android.util.Log
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -10,6 +11,7 @@ class AuthInterceptor(private val authDataStore: AuthDataStore) : Interceptor {
         val url = originalRequest.url.toString()
 
         if (isAuthEndpoint(url)) {
+            Log.d(TAG, "intercept() skipping auth header for auth endpoint: $url")
             return chain.proceed(originalRequest)
         }
 
@@ -17,9 +19,11 @@ class AuthInterceptor(private val authDataStore: AuthDataStore) : Interceptor {
         val tokenType = authDataStore.getTokenType()
 
         if (token == null) {
+            Log.d(TAG, "intercept() no access token, proceeding without auth header")
             return chain.proceed(originalRequest)
         }
 
+        Log.d(TAG, "intercept() attaching $tokenType token to ${originalRequest.method} $url")
         val authenticatedRequest = originalRequest.newBuilder()
             .header("Authorization", "$tokenType $token")
             .build()
@@ -31,5 +35,9 @@ class AuthInterceptor(private val authDataStore: AuthDataStore) : Interceptor {
         return url.contains("/auth/login") ||
                 url.contains("/auth/reissue") ||
                 url.contains("/auth/signup")
+    }
+
+    companion object {
+        private const val TAG = "AuthInterceptor"
     }
 }

@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.resale
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -23,14 +24,18 @@ class ResaleViewModel(private val resaleRepository: ResaleRepository) : ViewMode
     val uiState: StateFlow<ResaleUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d(TAG, "init — loading resale grouped items")
         viewModelScope.launch {
             resaleRepository.getResaleGrouped().collect { items ->
+                Log.d(TAG, "getResaleGrouped() received ${items.size} groups")
                 _uiState.value = ResaleUiState(groupedItems = items, isLoading = false)
             }
         }
     }
 
     companion object {
+        private const val TAG = "ResaleViewModel"
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication

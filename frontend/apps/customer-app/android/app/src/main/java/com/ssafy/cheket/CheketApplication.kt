@@ -1,6 +1,7 @@
 package com.ssafy.cheket
 
 import android.app.Application
+import android.util.Log
 import coil.Coil
 import coil.ImageLoader
 import com.ssafy.cheket.core.network.AuthDataStore
@@ -17,6 +18,7 @@ class CheketApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "onCreate() — initializing application")
 
         val secureStorage = EncryptedSharedPrefManager(this)
         authDataStore = AuthDataStore(secureStorage)
@@ -30,6 +32,11 @@ class CheketApplication : Application() {
         )
 
         // Mock API 사용 (서버 준비되면 RealAppContainer()로 변경)
-        appContainer = RealAppContainer()
+        appContainer = RealAppContainer(authDataStore)
+        Log.d(TAG, "onCreate() — using ${appContainer::class.simpleName}")
+    }
+
+    companion object {
+        private const val TAG = "CheketApplication"
     }
 }

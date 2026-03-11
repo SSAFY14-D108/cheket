@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.purchase
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -38,7 +39,9 @@ class PaymentViewModel(
     val uiState: StateFlow<PaymentUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d(TAG, "init — eventId=$eventId")
         val event = MockDataSource.mockEvents.find { it.id == eventId }
+        Log.d(TAG, "init — event found: ${event != null}, seats=${NavParams.selectedSeats.size}, totalPrice=${NavParams.totalPrice}")
         _uiState.value = PaymentUiState(
             event = event,
             selectedSeats = NavParams.selectedSeats,
@@ -48,13 +51,17 @@ class PaymentViewModel(
     }
 
     fun toggleFailureSimulation() {
-        _uiState.update { it.copy(simulateFailure = !it.simulateFailure) }
+        val newValue = !_uiState.value.simulateFailure
+        Log.d(TAG, "toggleFailureSimulation() simulateFailure=$newValue")
+        _uiState.update { it.copy(simulateFailure = newValue) }
     }
 
     fun approve() {
+        Log.d(TAG, "approve() — starting blockchain approval")
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true) }
             delay(1200) // Simulate blockchain approval
+            Log.d(TAG, "approve() — approval complete")
             _uiState.update {
                 it.copy(
                     step = PaymentStep.APPROVED,
@@ -65,6 +72,7 @@ class PaymentViewModel(
     }
 
     fun confirmPurchase() {
+        Log.d(TAG, "confirmPurchase() — starting purchase confirmation")
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true) }
             delay(1500) // Simulate purchase confirmation
@@ -72,6 +80,7 @@ class PaymentViewModel(
             val state = _uiState.value
             if (state.simulateFailure) {
                 val reason = "INSUFFICIENT_BALANCE"
+                Log.w(TAG, "confirmPurchase() — simulated failure: $reason")
                 NavParams.failureReason = reason
                 _uiState.update {
                     it.copy(
@@ -81,6 +90,7 @@ class PaymentViewModel(
                     )
                 }
             } else {
+                Log.d(TAG, "confirmPurchase() — purchase success")
                 _uiState.update {
                     it.copy(
                         step = PaymentStep.SUCCESS,
@@ -92,6 +102,8 @@ class PaymentViewModel(
     }
 
     companion object {
+        private const val TAG = "PaymentViewModel"
+
         fun factory(eventId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 PaymentViewModel(eventId)

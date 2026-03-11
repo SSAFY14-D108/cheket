@@ -1,5 +1,6 @@
 package com.ssafy.cheket.core.network.mock
 
+import android.util.Log
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
@@ -16,6 +17,7 @@ class MockInterceptor : Interceptor {
     private val json = "application/json".toMediaType()
 
     companion object {
+        private const val TAG = "MockInterceptor"
         private const val P = "file:///android_asset/posters"
     }
 
@@ -25,8 +27,12 @@ class MockInterceptor : Interceptor {
         val method = request.method
 
         val mockBody = route(method, path)
-            ?: return chain.proceed(request) // 매칭 안 되면 실제 서버로
+        if (mockBody == null) {
+            Log.d(TAG, "intercept() no mock for $method $path — forwarding to server")
+            return chain.proceed(request)
+        }
 
+        Log.d(TAG, "intercept() mocking $method $path")
         return Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)
