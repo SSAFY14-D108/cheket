@@ -40,10 +40,10 @@ import java.util.Locale
 
 @Composable
 fun SeatSelectionScreen(
-    eventId: String,
-    onNavigateToPayment: (eventId: String) -> Unit,
+    showId: String,
+    onNavigateToPayment: (showId: String) -> Unit,
     onBack: () -> Unit,
-    viewModel: SeatSelectionViewModel = viewModel(factory = SeatSelectionViewModel.factory(eventId)),
+    viewModel: SeatSelectionViewModel = viewModel(factory = SeatSelectionViewModel.factory(showId)),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
@@ -85,7 +85,7 @@ fun SeatSelectionScreen(
             ) { step ->
                 when (step) {
                     SeatSelectionStep.GRADE -> GradeSelectionContent(
-                        grades = uiState.event?.grades ?: emptyList(),
+                        grades = uiState.show?.grades ?: emptyList(),
                         numberFormat = numberFormat,
                         onSelectGrade = viewModel::selectGrade,
                     )
@@ -97,7 +97,7 @@ fun SeatSelectionScreen(
                         onToggleSeat = viewModel::toggleSeat,
                         onNavigateToPayment = {
                             viewModel.saveToNavParams()
-                            onNavigateToPayment(eventId)
+                            onNavigateToPayment(showId)
                         },
                     )
                 }

@@ -111,7 +111,7 @@ fun TransferCompleteScreen(
                         // Poster strip
                         AsyncImage(
                             model = ticket.poster,
-                            contentDescription = ticket.eventName,
+                            contentDescription = ticket.showName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .width(72.dp)
@@ -129,7 +129,7 @@ fun TransferCompleteScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
-                                ticket.eventName,
+                                ticket.showName,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = OnBackground,
@@ -137,7 +137,7 @@ fun TransferCompleteScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                ticket.eventDate,
+                                ticket.showDate,
                                 fontSize = 12.sp,
                                 color = MutedForeground,
                             )

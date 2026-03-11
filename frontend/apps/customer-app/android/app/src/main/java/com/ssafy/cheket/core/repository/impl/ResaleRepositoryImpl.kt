@@ -24,9 +24,9 @@ class ResaleRepositoryImpl(
                 ResaleItem(
                     id = dto.showId.toString(),
                     ticketId = "",
-                    eventId = dto.showId.toString(),
-                    eventName = dto.title,
-                    eventDate = dto.showStartDate,
+                    showId = dto.showId.toString(),
+                    showName = dto.title,
+                    showDate = dto.showStartDate,
                     venue = dto.venue,
                     poster = dto.posterUrl,
                     seatLabel = "",
@@ -50,11 +50,11 @@ class ResaleRepositoryImpl(
             Log.d(TAG, "getResaleGrouped() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
             val groups = response.data?.shows?.map { dto ->
                 ResaleGroupItem(
-                    eventId = dto.showId.toString(),
-                    eventName = dto.title,
+                    showId = dto.showId.toString(),
+                    showName = dto.title,
                     poster = dto.posterUrl,
                     venue = dto.venue,
-                    eventDate = dto.showStartDate,
+                    showDate = dto.showStartDate,
                     count = dto.ticketCount,
                     minPrice = 0, // TODO: 최소 가격은 getResaleTickets 에서 조회 필요
                     items = emptyList(),

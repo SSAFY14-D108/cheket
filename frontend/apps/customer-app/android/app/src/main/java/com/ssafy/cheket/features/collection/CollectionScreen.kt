@@ -80,9 +80,9 @@ fun CollectionScreen(
                         onClick = {
                             selectedTicket = Ticket(
                                 id = "9999",
-                                eventId = "1",
-                                eventName = "CHEKET 테스트 콘서트",
-                                eventDate = "2026-03-15",
+                                showId = "1",
+                                showName = "CHEKET 테스트 콘서트",
+                                showDate = "2026-03-15",
                                 venue = "SSAFY 서울캠퍼스",
                                 poster = "https://picsum.photos/400/600",
                                 seatId = "A-12",
@@ -166,8 +166,8 @@ private fun TicketOverlay(
         val url = ticket?.let {
             Uri.parse(COLLECTION_BASE_URL)
                 .buildUpon()
-                .appendQueryParameter("name", it.eventName)
-                .appendQueryParameter("date", it.eventDate)
+                .appendQueryParameter("name", it.showName)
+                .appendQueryParameter("date", it.showDate)
                 .appendQueryParameter("venue", it.venue)
                 .appendQueryParameter("seat", it.seatLabel)
                 .appendQueryParameter("grade", it.grade)
@@ -323,7 +323,7 @@ private fun CompactTicketCard(ticket: Ticket, isGold: Boolean, onClick: () -> Un
             .then(if (isGold) Modifier.border(1.5.dp, GoldColor, RoundedCornerShape(10.dp)) else Modifier)
     ) {
         AsyncImage(
-            ticket.poster, ticket.eventName,
+            ticket.poster, ticket.showName,
             contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
         )
         Box(
@@ -354,7 +354,7 @@ private fun CompactTicketCard(ticket: Ticket, isGold: Boolean, onClick: () -> Un
                 color = if (isGold) GoldColor else White, letterSpacing = (-0.5).sp
             )
             Text(
-                ticket.eventName, fontSize = 8.sp, fontWeight = FontWeight.Bold,
+                ticket.showName, fontSize = 8.sp, fontWeight = FontWeight.Bold,
                 color = White.copy(alpha = 0.9f),
                 maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 11.sp
             )

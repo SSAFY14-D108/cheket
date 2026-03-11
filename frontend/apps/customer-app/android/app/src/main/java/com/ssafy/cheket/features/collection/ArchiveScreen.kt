@@ -111,7 +111,7 @@ private fun ArchiveTicketCard(
             // Poster
             AsyncImage(
                 model = ticket.poster,
-                contentDescription = ticket.eventName,
+                contentDescription = ticket.showName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -153,7 +153,7 @@ private fun ArchiveTicketCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    ticket.eventName,
+                    ticket.showName,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = White,
@@ -162,7 +162,7 @@ private fun ArchiveTicketCard(
                     lineHeight = 15.sp,
                 )
                 Text(
-                    ticket.eventDate,
+                    ticket.showDate,
                     fontSize = 10.sp,
                     color = White.copy(alpha = 0.7f),
                 )

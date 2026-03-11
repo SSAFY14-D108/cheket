@@ -93,7 +93,7 @@ fun ResaleCreateScreen(
                     colors = CardDefaults.cardColors(containerColor = CardBg),
                 ) {
                     Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(ticket.eventName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+                        Text(ticket.showName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
                         Spacer(Modifier.height(4.dp))
                         Text("${ticket.seatLabel} (${ticket.grade})", fontSize = 13.sp, color = MutedForeground)
                         Spacer(Modifier.height(4.dp))
@@ -164,7 +164,7 @@ fun ResaleCreateScreen(
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
                         model = ticket.poster,
-                        contentDescription = ticket.eventName,
+                        contentDescription = ticket.showName,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(width = 70.dp, height = 94.dp)
@@ -174,14 +174,14 @@ fun ResaleCreateScreen(
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            ticket.eventName,
+                            ticket.showName,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = OnBackground,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        CreateInfoRow(Icons.Outlined.CalendarMonth, ticket.eventDate)
+                        CreateInfoRow(Icons.Outlined.CalendarMonth, ticket.showDate)
                         CreateInfoRow(Icons.Outlined.LocationOn, ticket.venue)
                         CreateInfoRow(Icons.Outlined.EventSeat, "${ticket.seatLabel} (${ticket.grade})")
                         Text(

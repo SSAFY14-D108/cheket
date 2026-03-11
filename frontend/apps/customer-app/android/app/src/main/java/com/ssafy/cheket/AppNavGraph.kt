@@ -21,7 +21,7 @@ import com.ssafy.cheket.features.collection.ArchiveScreen
 import com.ssafy.cheket.features.collection.CollectibleTicketDetailScreen
 import com.ssafy.cheket.features.collection.CollectionScreen
 import com.ssafy.cheket.features.concerts.ConcertsScreen
-import com.ssafy.cheket.features.event.EventDetailScreen
+import com.ssafy.cheket.features.show.ShowDetailScreen
 import com.ssafy.cheket.features.home.HomeScreen
 import com.ssafy.cheket.features.mypage.MyPageScreen
 import com.ssafy.cheket.features.mytickets.MyTicketsScreen
@@ -49,7 +49,7 @@ import com.ssafy.cheket.features.auth.FindAccountScreen
 import com.ssafy.cheket.features.auth.PasswordResetScreen
 import com.ssafy.cheket.features.resale.ResaleListScreen
 import com.ssafy.cheket.features.resale.ResaleTicketsScreen
-import com.ssafy.cheket.features.event.EventDateSelectionScreen
+import com.ssafy.cheket.features.show.ShowDateSelectionScreen
 
 object Routes {
     const val LOGIN = "login"
@@ -61,12 +61,12 @@ object Routes {
     const val COLLECTION = "collection"
 
     // Detail / Flow screens
-    const val EVENT_DETAIL = "event_detail/{eventId}"
-    const val EVENT_DATE_SELECTION = "event_date_selection/{eventId}"
-    const val WAITING_QUEUE = "waiting_queue/{eventId}/{eventDateId}"
-    const val SEAT_SELECTION = "seat_selection/{eventId}/{eventDateId}"
-    const val PAYMENT = "payment/{eventId}"
-    const val PURCHASE_FAILED = "purchase_failed/{eventId}/{reason}"
+    const val SHOW_DETAIL = "show_detail/{showId}"
+    const val SHOW_DATE_SELECTION = "show_date_selection/{showId}"
+    const val WAITING_QUEUE = "waiting_queue/{showId}/{showDateId}"
+    const val SEAT_SELECTION = "seat_selection/{showId}/{showDateId}"
+    const val PAYMENT = "payment/{showId}"
+    const val PURCHASE_FAILED = "purchase_failed/{showId}/{reason}"
     const val TICKET_DETAIL = "ticket_detail/{ticketId}"
     const val QR_CHECKIN = "qr_checkin/{ticketId}"
     const val TRANSFER = "transfer/{ticketId}"
@@ -90,15 +90,15 @@ object Routes {
     const val FIND_ACCOUNT = "find_account"
     const val PASSWORD_RESET = "password_reset"
     const val RESALE_LIST = "resale_list"
-    const val RESALE_TICKETS = "resale_tickets/{eventId}"
+    const val RESALE_TICKETS = "resale_tickets/{showId}"
 
     // Helper functions for building routes with args
-    fun eventDetail(eventId: String) = "event_detail/$eventId"
-    fun eventDateSelection(eventId: String) = "event_date_selection/$eventId"
-    fun waitingQueue(eventId: String, eventDateId: String) = "waiting_queue/$eventId/$eventDateId"
-    fun seatSelection(eventId: String, eventDateId: String) = "seat_selection/$eventId/$eventDateId"
-    fun payment(eventId: String) = "payment/$eventId"
-    fun purchaseFailed(eventId: String, reason: String) = "purchase_failed/$eventId/${java.net.URLEncoder.encode(reason, "UTF-8")}"
+    fun showDetail(showId: String) = "show_detail/$showId"
+    fun showDateSelection(showId: String) = "show_date_selection/$showId"
+    fun waitingQueue(showId: String, showDateId: String) = "waiting_queue/$showId/$showDateId"
+    fun seatSelection(showId: String, showDateId: String) = "seat_selection/$showId/$showDateId"
+    fun payment(showId: String) = "payment/$showId"
+    fun purchaseFailed(showId: String, reason: String) = "purchase_failed/$showId/${java.net.URLEncoder.encode(reason, "UTF-8")}"
     fun ticketDetail(ticketId: String) = "ticket_detail/$ticketId"
     fun qrCheckin(ticketId: String) = "qr_checkin/$ticketId"
     fun transfer(ticketId: String) = "transfer/$ticketId"
@@ -108,7 +108,7 @@ object Routes {
     fun resalePurchaseComplete(ticketId: String) = "resale_purchase_complete/$ticketId"
     fun resaleCreate(ticketId: String) = "resale_create/$ticketId"
     fun collectibleDetail(ticketId: String) = "collectible_detail/$ticketId"
-    fun resaleTickets(eventId: String) = "resale_tickets/$eventId"
+    fun resaleTickets(showId: String) = "resale_tickets/$showId"
 }
 
 val bottomTabRoutes = listOf(
@@ -175,20 +175,20 @@ fun AppNavGraph(
             composable(Routes.HOME) {
                 HomeScreen(
                     appContainer = appContainer,
-                    onEventClick = { eventId -> navController.navigate(Routes.eventDetail(eventId)) },
+                    onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                     onMyPage = { navController.navigate(Routes.MY_PAGE) },
                 )
             }
             composable(Routes.CONCERTS) {
                 ConcertsScreen(
                     appContainer = appContainer,
-                    onEventClick = { eventId -> navController.navigate(Routes.eventDetail(eventId)) },
+                    onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                 )
             }
             composable(Routes.RESALE) {
                 ResaleScreen(
                     appContainer = appContainer,
-                    onResaleItemClick = { eventId -> navController.navigate(Routes.resaleTickets(eventId)) },
+                    onResaleItemClick = { showId -> navController.navigate(Routes.resaleTickets(showId)) },
                 )
             }
             composable(Routes.MY_TICKETS) {
@@ -201,29 +201,29 @@ fun AppNavGraph(
                 CollectionScreen(appContainer = appContainer)
             }
 
-            // ── Event Detail ──
+            // ── Show Detail ──
             composable(
-                route = Routes.EVENT_DETAIL,
-                arguments = listOf(navArgument("eventId") { type = NavType.StringType }),
+                route = Routes.SHOW_DETAIL,
+                arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
-                EventDetailScreen(
-                    eventId = eventId,
-                    onNavigateToDateSelection = { navController.navigate(Routes.eventDateSelection(it)) },
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
+                ShowDetailScreen(
+                    showId = showId,
+                    onNavigateToDateSelection = { navController.navigate(Routes.showDateSelection(it)) },
                     onBack = { navController.popBackStack() },
                 )
             }
 
             // ── Purchase Flow ──
             composable(
-                route = Routes.EVENT_DATE_SELECTION,
-                arguments = listOf(navArgument("eventId") { type = NavType.StringType }),
+                route = Routes.SHOW_DATE_SELECTION,
+                arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
-                EventDateSelectionScreen(
-                    eventId = eventId,
-                    onDateSelected = { evtId, dateId ->
-                        navController.navigate(Routes.waitingQueue(evtId, dateId))
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
+                ShowDateSelectionScreen(
+                    showId = showId,
+                    onDateSelected = { sId, dateId ->
+                        navController.navigate(Routes.waitingQueue(sId, dateId))
                     },
                     onBack = { navController.popBackStack() },
                 )
@@ -231,16 +231,16 @@ fun AppNavGraph(
             composable(
                 route = Routes.WAITING_QUEUE,
                 arguments = listOf(
-                    navArgument("eventId") { type = NavType.StringType },
-                    navArgument("eventDateId") { type = NavType.StringType },
+                    navArgument("showId") { type = NavType.StringType },
+                    navArgument("showDateId") { type = NavType.StringType },
                 ),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
-                val eventDateId = backStackEntry.arguments?.getString("eventDateId") ?: ""
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
+                val showDateId = backStackEntry.arguments?.getString("showDateId") ?: ""
                 WaitingQueueScreen(
-                    eventId = eventId,
-                    onComplete = { navController.navigate(Routes.seatSelection(it, eventDateId)) {
-                        popUpTo(Routes.waitingQueue(eventId, eventDateId)) { inclusive = true }
+                    showId = showId,
+                    onComplete = { navController.navigate(Routes.seatSelection(it, showDateId)) {
+                        popUpTo(Routes.waitingQueue(showId, showDateId)) { inclusive = true }
                     } },
                     onBack = { navController.popBackStack() },
                 )
@@ -248,33 +248,33 @@ fun AppNavGraph(
             composable(
                 route = Routes.SEAT_SELECTION,
                 arguments = listOf(
-                    navArgument("eventId") { type = NavType.StringType },
-                    navArgument("eventDateId") { type = NavType.StringType },
+                    navArgument("showId") { type = NavType.StringType },
+                    navArgument("showDateId") { type = NavType.StringType },
                 ),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
                 SeatSelectionScreen(
-                    eventId = eventId,
+                    showId = showId,
                     onNavigateToPayment = { navController.navigate(Routes.payment(it)) },
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(
                 route = Routes.PAYMENT,
-                arguments = listOf(navArgument("eventId") { type = NavType.StringType }),
+                arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
                 PaymentScreen(
-                    eventId = eventId,
+                    showId = showId,
                     onSuccess = {
                         navController.navigate(Routes.MY_TICKETS) {
                             popUpTo(Routes.HOME) { saveState = true }
                             launchSingleTop = true
                         }
                     },
-                    onFailure = { evtId, reason ->
-                        navController.navigate(Routes.purchaseFailed(evtId, reason)) {
-                            popUpTo(Routes.eventDetail(evtId)) { inclusive = false }
+                    onFailure = { sId, reason ->
+                        navController.navigate(Routes.purchaseFailed(sId, reason)) {
+                            popUpTo(Routes.showDetail(sId)) { inclusive = false }
                         }
                     },
                     onBack = { navController.popBackStack() },
@@ -283,18 +283,18 @@ fun AppNavGraph(
             composable(
                 route = Routes.PURCHASE_FAILED,
                 arguments = listOf(
-                    navArgument("eventId") { type = NavType.StringType },
+                    navArgument("showId") { type = NavType.StringType },
                     navArgument("reason") { type = NavType.StringType },
                 ),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
                 val reason = try {
                     java.net.URLDecoder.decode(backStackEntry.arguments?.getString("reason") ?: "", "UTF-8")
                 } catch (_: Exception) { backStackEntry.arguments?.getString("reason") ?: "" }
                 PurchaseFailedScreen(
-                    eventId = eventId,
+                    showId = showId,
                     reason = reason,
-                    onRetry = { navController.navigate(Routes.eventDetail(it)) {
+                    onRetry = { navController.navigate(Routes.showDetail(it)) {
                         popUpTo(Routes.HOME)
                     } },
                     onGoHome = { navController.navigate(Routes.HOME) {
@@ -428,7 +428,7 @@ fun AppNavGraph(
             // ── Utility Screens ──
             composable(Routes.WISHLIST) {
                 WishlistScreen(
-                    onEventClick = { eventId -> navController.navigate(Routes.eventDetail(eventId)) },
+                    onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -490,17 +490,17 @@ fun AppNavGraph(
             }
             composable(Routes.RESALE_LIST) {
                 ResaleListScreen(
-                    onEventClick = { eventId -> navController.navigate(Routes.resaleTickets(eventId)) },
+                    onShowClick = { showId -> navController.navigate(Routes.resaleTickets(showId)) },
                     onBack = { navController.popBackStack() },
                 )
             }
             composable(
                 route = Routes.RESALE_TICKETS,
-                arguments = listOf(navArgument("eventId") { type = NavType.StringType }),
+                arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
-                val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
                 ResaleTicketsScreen(
-                    eventId = eventId,
+                    showId = showId,
                     onResaleItemClick = { resaleId -> navController.navigate(Routes.resaleDetail(resaleId)) },
                     onBack = { navController.popBackStack() },
                 )

@@ -70,7 +70,7 @@ fun TicketDetailScreen(
             ) {
                 AsyncImage(
                     model = ticket.poster,
-                    contentDescription = ticket.eventName,
+                    contentDescription = ticket.showName,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -95,7 +95,7 @@ fun TicketDetailScreen(
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = ticket.eventName,
+                        text = ticket.showName,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground,
@@ -105,7 +105,7 @@ fun TicketDetailScreen(
 
                     HorizontalDivider(color = BorderColor)
 
-                    InfoRow(label = "일시", value = ticket.eventDate)
+                    InfoRow(label = "일시", value = ticket.showDate)
                     InfoRow(label = "장소", value = ticket.venue)
                     InfoRow(label = "좌석", value = ticket.seatLabel)
                     InfoRow(label = "등급", value = ticket.grade)

@@ -98,8 +98,8 @@ fun ResalePurchaseCompleteScreen(
             }
 
             // Ticket Card
-            val eventName = ticket?.eventName ?: resaleItem?.eventName ?: "알 수 없음"
-            val eventDate = ticket?.eventDate ?: resaleItem?.eventDate ?: ""
+            val showName = ticket?.showName ?: resaleItem?.showName ?: "알 수 없음"
+            val showDate = ticket?.showDate ?: resaleItem?.showDate ?: ""
             val venue = ticket?.venue ?: resaleItem?.venue ?: ""
             val poster = ticket?.poster ?: resaleItem?.poster ?: ""
             val seatLabel = ticket?.seatLabel ?: resaleItem?.seatLabel ?: ""
@@ -117,7 +117,7 @@ fun ResalePurchaseCompleteScreen(
                     ) {
                         AsyncImage(
                             model = poster,
-                            contentDescription = eventName,
+                            contentDescription = showName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(width = 70.dp, height = 94.dp)
@@ -127,14 +127,14 @@ fun ResalePurchaseCompleteScreen(
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                eventName,
+                                showName,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OnBackground,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            DetailRow(Icons.Outlined.CalendarMonth, eventDate)
+                            DetailRow(Icons.Outlined.CalendarMonth, showDate)
                             DetailRow(Icons.Outlined.LocationOn, venue)
                             DetailRow(Icons.Outlined.EventSeat, "$seatLabel ($grade)")
                         }

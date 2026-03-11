@@ -115,7 +115,7 @@ fun ResaleDetailScreen(
             // Poster
             AsyncImage(
                 model = resaleItem.poster,
-                contentDescription = resaleItem.eventName,
+                contentDescription = resaleItem.showName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,14 +132,14 @@ fun ResaleDetailScreen(
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        resaleItem.eventName,
+                        resaleItem.showName,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    InfoRow(Icons.Outlined.CalendarMonth, resaleItem.eventDate, tint = Primary)
+                    InfoRow(Icons.Outlined.CalendarMonth, resaleItem.showDate, tint = Primary)
                     InfoRow(Icons.Outlined.LocationOn, resaleItem.venue, tint = Primary)
                 }
             }

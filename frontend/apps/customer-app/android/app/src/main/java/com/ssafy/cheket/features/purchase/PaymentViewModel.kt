@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.Event
+import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.model.Seat
 import com.ssafy.cheket.core.model.User
 import com.ssafy.cheket.core.navigation.NavParams
@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 enum class PaymentStep { REVIEW, APPROVED, SUCCESS, FAILURE }
 
 data class PaymentUiState(
-    val event: Event? = null,
+    val show: Show? = null,
     val selectedSeats: List<Seat> = emptyList(),
     val totalPrice: Int = 0,
     val user: User = MockDataSource.mockUser,
@@ -32,18 +32,18 @@ data class PaymentUiState(
 )
 
 class PaymentViewModel(
-    private val eventId: String,
+    private val showId: String,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PaymentUiState())
     val uiState: StateFlow<PaymentUiState> = _uiState.asStateFlow()
 
     init {
-        Log.d(TAG, "init — eventId=$eventId")
-        val event = MockDataSource.mockEvents.find { it.id == eventId }
-        Log.d(TAG, "init — event found: ${event != null}, seats=${NavParams.selectedSeats.size}, totalPrice=${NavParams.totalPrice}")
+        Log.d(TAG, "init — showId=$showId")
+        val show = MockDataSource.mockShows.find { it.id == showId }
+        Log.d(TAG, "init — show found: ${show != null}, seats=${NavParams.selectedSeats.size}, totalPrice=${NavParams.totalPrice}")
         _uiState.value = PaymentUiState(
-            event = event,
+            show = show,
             selectedSeats = NavParams.selectedSeats,
             totalPrice = NavParams.totalPrice,
             user = MockDataSource.mockUser,
@@ -104,9 +104,9 @@ class PaymentViewModel(
     companion object {
         private const val TAG = "PaymentViewModel"
 
-        fun factory(eventId: String): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(showId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                PaymentViewModel(eventId)
+                PaymentViewModel(showId)
             }
         }
     }

@@ -31,7 +31,7 @@ import com.ssafy.cheket.ui.theme.*
 
 @Composable
 fun ResaleListScreen(
-    onEventClick: (eventId: String) -> Unit,
+    onShowClick: (showId: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val groupedItems = remember { MockDataSource.getResaleGrouped() }
@@ -56,10 +56,10 @@ fun ResaleListScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(groupedItems, key = { it.eventId }) { group ->
+                items(groupedItems, key = { it.showId }) { group ->
                     ResaleEventCard(
                         group = group,
-                        onClick = { onEventClick(group.eventId) },
+                        onClick = { onShowClick(group.showId) },
                     )
                 }
             }
@@ -82,7 +82,7 @@ private fun ResaleEventCard(
         Column {
             AsyncImage(
                 model = group.poster,
-                contentDescription = group.eventName,
+                contentDescription = group.showName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -95,7 +95,7 @@ private fun ResaleEventCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = group.eventName,
+                    text = group.showName,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = OnBackground,
@@ -110,7 +110,7 @@ private fun ResaleEventCard(
                 ) {
                     Icon(Icons.Outlined.CalendarMonth, null, tint = MutedForeground, modifier = Modifier.size(12.dp))
                     Text(
-                        text = group.eventDate,
+                        text = group.showDate,
                         fontSize = 10.sp,
                         color = MutedForeground,
                         maxLines = 1,

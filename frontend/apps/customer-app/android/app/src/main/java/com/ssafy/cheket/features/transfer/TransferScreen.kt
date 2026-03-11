@@ -76,7 +76,7 @@ fun TransferScreen(
                     ) {
                         AsyncImage(
                             model = ticket.poster,
-                            contentDescription = ticket.eventName,
+                            contentDescription = ticket.showName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .width(56.dp)
@@ -88,7 +88,7 @@ fun TransferScreen(
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(
-                                ticket.eventName,
+                                ticket.showName,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = OnBackground,
@@ -96,7 +96,7 @@ fun TransferScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                ticket.eventDate,
+                                ticket.showDate,
                                 fontSize = 12.sp,
                                 color = MutedForeground,
                             )

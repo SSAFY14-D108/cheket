@@ -36,12 +36,12 @@ private enum class SortMode(val label: String) {
 
 @Composable
 fun ResaleTicketsScreen(
-    eventId: String,
+    showId: String,
     onResaleItemClick: (resaleItemId: String) -> Unit,
     onBack: () -> Unit,
 ) {
-    val allItems = remember { MockDataSource.mockResaleItems.filter { it.eventId == eventId } }
-    val event = remember { MockDataSource.mockEvents.find { it.id == eventId } }
+    val allItems = remember { MockDataSource.mockResaleItems.filter { it.showId == showId } }
+    val show = remember { MockDataSource.mockShows.find { it.id == showId } }
 
     var sortMode by remember { mutableStateOf(SortMode.LATEST) }
 
@@ -52,7 +52,7 @@ fun ResaleTicketsScreen(
         }
     }
 
-    if (event == null) {
+    if (show == null) {
         Scaffold(topBar = { AppHeader(title = "2차 거래소", onBack = onBack) }) { innerPadding ->
             EmptyState(
                 title = "공연 정보를 찾을 수 없습니다.",
@@ -72,7 +72,7 @@ fun ResaleTicketsScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
-            // Event info card
+            // Show info card
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,10 +87,10 @@ fun ResaleTicketsScreen(
                     modifier = Modifier.padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    // Event poster
+                    // Show poster
                     AsyncImage(
-                        model = event.poster,
-                        contentDescription = event.name,
+                        model = show.poster,
+                        contentDescription = show.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .width(80.dp)
@@ -103,7 +103,7 @@ fun ResaleTicketsScreen(
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            text = event.name,
+                            text = show.name,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = OnBackground,
@@ -124,7 +124,7 @@ fun ResaleTicketsScreen(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = event.date,
+                                text = show.date,
                                 fontSize = 12.sp,
                                 color = MutedForeground,
                                 maxLines = 1,
@@ -144,7 +144,7 @@ fun ResaleTicketsScreen(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = event.venue,
+                                text = show.venue,
                                 fontSize = 12.sp,
                                 color = MutedForeground,
                                 maxLines = 1,
@@ -204,7 +204,7 @@ fun ResaleTicketsScreen(
             if (sortedItems.isEmpty()) {
                 EmptyState(
                     title = "등록된 재판매 티켓이 없습니다.",
-                    description = "${event.name} 재판매 티켓이 등록되면 여기에서 확인할 수 있습니다.",
+                    description = "${show.name} 재판매 티켓이 등록되면 여기에서 확인할 수 있습니다.",
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -281,7 +281,7 @@ private fun ResaleTicketCard(
 
                 Spacer(Modifier.height(2.dp))
 
-                // Event date
+                // Show date
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -293,7 +293,7 @@ private fun ResaleTicketCard(
                         modifier = Modifier.size(12.dp),
                     )
                     Text(
-                        text = item.eventDate,
+                        text = item.showDate,
                         fontSize = 11.sp,
                         color = MutedForeground,
                         maxLines = 1,

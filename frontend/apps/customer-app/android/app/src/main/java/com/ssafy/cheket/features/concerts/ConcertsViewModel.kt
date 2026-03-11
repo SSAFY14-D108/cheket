@@ -7,8 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
-import com.ssafy.cheket.core.model.Event
-import com.ssafy.cheket.core.repository.EventRepository
+import com.ssafy.cheket.core.model.Show
+import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +17,8 @@ import kotlinx.coroutines.launch
 enum class SortOption(val label: String) { POPULAR("인기순"), LATEST("최신순"), CLOSING("오픈임박순") }
 
 data class ConcertsUiState(
-    val allEvents: List<Event> = emptyList(),
-    val filteredEvents: List<Event> = emptyList(),
+    val allShows: List<Show> = emptyList(),
+    val filteredShows: List<Show> = emptyList(),
     val searchQuery: String = "",
     val sortBy: SortOption = SortOption.POPULAR,
     val selectedRegions: List<String> = emptyList(),
@@ -26,18 +26,18 @@ data class ConcertsUiState(
     val isLoading: Boolean = true,
 )
 
-class ConcertsViewModel(private val eventRepository: EventRepository) : ViewModel() {
+class ConcertsViewModel(private val showRepository: ShowRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ConcertsUiState())
     val uiState: StateFlow<ConcertsUiState> = _uiState.asStateFlow()
     val regions = listOf("서울", "경기", "인천", "부산", "대구", "대전", "광주", "제주")
     private val popularityOrder = listOf("evt_001", "evt_002", "evt_004", "evt_006", "evt_007", "evt_008")
 
     init {
-        Log.d(TAG, "init — loading events")
+        Log.d(TAG, "init — loading shows")
         viewModelScope.launch {
-            eventRepository.getEvents().collect { events ->
-                Log.d(TAG, "getEvents() received ${events.size} events")
-                _uiState.value = _uiState.value.copy(allEvents = events, isLoading = false)
+            showRepository.getShows().collect { shows ->
+                Log.d(TAG, "getShows() received ${shows.size} shows")
+                _uiState.value = _uiState.value.copy(allShows = shows, isLoading = false)
                 applyFilters()
             }
         }
@@ -72,7 +72,7 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
 
     private fun applyFilters() {
         val s = _uiState.value
-        var result = s.allEvents
+        var result = s.allShows
 
         if (s.searchQuery.isNotBlank()) {
             val keyword = s.searchQuery.trim().lowercase()
@@ -97,7 +97,7 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
         }
 
         Log.d(TAG, "applyFilters() query='${s.searchQuery}', regions=${s.selectedRegions}, sort=${s.sortBy}, resultCount=${result.size}")
-        _uiState.value = s.copy(filteredEvents = result)
+        _uiState.value = s.copy(filteredShows = result)
     }
 
     companion object {
@@ -106,7 +106,7 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                ConcertsViewModel(app.appContainer.eventRepository)
+                ConcertsViewModel(app.appContainer.showRepository)
             }
         }
     }

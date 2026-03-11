@@ -25,13 +25,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.ui.component.EmptyState
-import com.ssafy.cheket.core.ui.component.EventCardItem
+import com.ssafy.cheket.core.ui.component.ShowCardItem
 import com.ssafy.cheket.ui.theme.*
 
 @Composable
 fun ConcertsScreen(
     appContainer: AppContainer,
-    onEventClick: (String) -> Unit = {},
+    onShowClick: (String) -> Unit = {},
     viewModel: ConcertsViewModel = viewModel(factory = ConcertsViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -191,13 +191,13 @@ fun ConcertsScreen(
         ) {
             // Result count
             Text(
-                "총 ${uiState.filteredEvents.size}개의 공연",
+                "총 ${uiState.filteredShows.size}개의 공연",
                 fontSize = 12.sp,
                 color = MutedForeground,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            if (uiState.filteredEvents.isEmpty() && !uiState.isLoading) {
+            if (uiState.filteredShows.isEmpty() && !uiState.isLoading) {
                 EmptyState(
                     "공연이 없어요",
                     "검색어나 필터를 바꿔서 다시 확인해 보세요.",
@@ -209,8 +209,8 @@ fun ConcertsScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(uiState.filteredEvents) { event ->
-                        EventCardItem(event = event, onClick = { onEventClick(event.id) })
+                    items(uiState.filteredShows) { show ->
+                        ShowCardItem(event = show, onClick = { onShowClick(show.id) })
                     }
                     item { Spacer(Modifier.height(16.dp)) }
                 }

@@ -8,7 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.model.*
-import com.ssafy.cheket.core.repository.EventRepository
+import com.ssafy.cheket.core.repository.ShowRepository
 import com.ssafy.cheket.core.repository.ResaleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,12 +21,12 @@ data class HomeUiState(
     val rankingItems: List<RankingItem> = emptyList(),
     val openSchedule: List<OpenScheduleItem> = emptyList(),
     val resaleItems: List<ResaleItem> = emptyList(),
-    val events: List<Event> = emptyList(),
+    val shows: List<Show> = emptyList(),
     val isLoading: Boolean = true,
 )
 
 class HomeViewModel(
-    private val eventRepository: EventRepository,
+    private val showRepository: ShowRepository,
     private val resaleRepository: ResaleRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -39,33 +39,33 @@ class HomeViewModel(
 
     private fun load() {
         viewModelScope.launch {
-            eventRepository.getBannerSlides().collect {
+            showRepository.getBannerSlides().collect {
                 Log.d(TAG, "getBannerSlides() received ${it.size} slides")
                 _uiState.value = _uiState.value.copy(bannerSlides = it)
             }
         }
         viewModelScope.launch {
-            eventRepository.getCategories().collect {
+            showRepository.getCategories().collect {
                 Log.d(TAG, "getCategories() received ${it.size} categories")
                 _uiState.value = _uiState.value.copy(categories = it)
             }
         }
         viewModelScope.launch {
-            eventRepository.getRankingItems().collect {
+            showRepository.getRankingItems().collect {
                 Log.d(TAG, "getRankingItems() received ${it.size} items")
                 _uiState.value = _uiState.value.copy(rankingItems = it)
             }
         }
         viewModelScope.launch {
-            eventRepository.getOpenSchedule().collect {
+            showRepository.getOpenSchedule().collect {
                 Log.d(TAG, "getOpenSchedule() received ${it.size} items")
                 _uiState.value = _uiState.value.copy(openSchedule = it)
             }
         }
         viewModelScope.launch {
-            eventRepository.getEvents().collect {
-                Log.d(TAG, "getEvents() received ${it.size} events")
-                _uiState.value = _uiState.value.copy(events = it)
+            showRepository.getShows().collect {
+                Log.d(TAG, "getShows() received ${it.size} shows")
+                _uiState.value = _uiState.value.copy(shows = it)
             }
         }
         viewModelScope.launch {
@@ -82,7 +82,7 @@ class HomeViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                HomeViewModel(app.appContainer.eventRepository, app.appContainer.resaleRepository)
+                HomeViewModel(app.appContainer.showRepository, app.appContainer.resaleRepository)
             }
         }
     }

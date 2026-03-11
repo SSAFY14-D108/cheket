@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.event
+package com.ssafy.cheket.features.show
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.EventDate
+import com.ssafy.cheket.core.model.ShowDate
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
 import java.util.Calendar
@@ -40,28 +40,28 @@ private fun parseDateFromLabel(label: String): Triple<Int, Int, Int>? {
 }
 
 @Composable
-fun EventDateSelectionScreen(
-    eventId: String,
-    onDateSelected: (eventId: String, eventDateId: String) -> Unit,
+fun ShowDateSelectionScreen(
+    showId: String,
+    onDateSelected: (showId: String, showDateId: String) -> Unit,
     onBack: () -> Unit,
 ) {
-    val event = remember { MockDataSource.mockEvents.find { it.id == eventId } }
-    var selectedDayShows by remember { mutableStateOf<List<EventDate>>(emptyList()) }
+    val show = remember { MockDataSource.mockShows.find { it.id == showId } }
+    var selectedDayShows by remember { mutableStateOf<List<ShowDate>>(emptyList()) }
 
-    if (event == null) {
+    if (show == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("공연을 찾을 수 없습니다.", color = MutedForeground, fontSize = 16.sp)
         }
         return
     }
 
-    val eventDates = remember(event) {
-        if (event.dates.isNotEmpty()) event.dates
-        else listOf(EventDate(id = "${event.id}_d1", label = event.date, day = "DAY 1"))
+    val showDates = remember(show) {
+        if (show.dates.isNotEmpty()) show.dates
+        else listOf(ShowDate(id = "${show.id}_d1", label = show.date, day = "DAY 1"))
     }
 
-    val firstParsed = remember(eventDates) {
-        parseDateFromLabel(eventDates.first().label) ?: Triple(2026, 1, 1)
+    val firstParsed = remember(showDates) {
+        parseDateFromLabel(showDates.first().label) ?: Triple(2026, 1, 1)
     }
     val calYear = firstParsed.first
     val calMonth = firstParsed.second
@@ -80,9 +80,9 @@ fun EventDateSelectionScreen(
         list
     }
 
-    val availableMap = remember(eventDates) {
-        val map = mutableMapOf<String, MutableList<EventDate>>()
-        eventDates.forEach { d ->
+    val availableMap = remember(showDates) {
+        val map = mutableMapOf<String, MutableList<ShowDate>>()
+        showDates.forEach { d ->
             val parsed = parseDateFromLabel(d.label) ?: return@forEach
             val key = "${parsed.first}-${parsed.second.toString().padStart(2, '0')}-${parsed.third.toString().padStart(2, '0')}"
             map.getOrPut(key) { mutableListOf() }.add(d)
@@ -253,7 +253,7 @@ fun EventDateSelectionScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onDateSelected(event.id, d.id) },
+                            .clickable { onDateSelected(show.id, d.id) },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = CardBg),
                     ) {
@@ -293,7 +293,7 @@ fun EventDateSelectionScreen(
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                event.grades.forEach { g ->
+                                show.grades.forEach { g ->
                                     val gradeColor = g.color?.let {
                                         try { Color(android.graphics.Color.parseColor(it)) }
                                         catch (_: Exception) { MutedForeground }

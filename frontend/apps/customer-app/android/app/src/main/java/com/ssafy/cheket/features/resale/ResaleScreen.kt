@@ -60,10 +60,10 @@ fun ResaleScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(uiState.groupedItems, key = { it.eventId }) { group ->
+                    items(uiState.groupedItems, key = { it.showId }) { group ->
                         ResaleEventCard(
                             group = group,
-                            onClick = { onResaleItemClick(group.eventId) },
+                            onClick = { onResaleItemClick(group.showId) },
                         )
                     }
                 }
@@ -90,7 +90,7 @@ private fun ResaleEventCard(
             // Poster image
             AsyncImage(
                 model = group.poster,
-                contentDescription = group.eventName,
+                contentDescription = group.showName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,7 +105,7 @@ private fun ResaleEventCard(
             ) {
                 // Event name
                 Text(
-                    text = group.eventName,
+                    text = group.showName,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = OnBackground,
