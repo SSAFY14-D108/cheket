@@ -43,16 +43,20 @@ public class HostServiceImpl implements HostService {
     @Override
     @Transactional
     public void hostSignup(HostSignupRequest request) throws Exception {
-        // 1단계: 이메일 중복 체크
+        // 1단계: 사업자등록번호 형식 검증
+        if (!request.businessNo().matches(REGEX)) {
+            throw new BadRequestException("잘못된 사업자 등록번호 형식입니다.");
+        }
+        // 2단계: 이메일 중복 체크
         if (hostRepository.existsByEmail(request.email())) {
             throw new ConflictException("이미 존재하는 이메일 입니다.");
         }
-        // 2단계: 사업자등록번호 중복 체크
+        // 3단계: 사업자등록번호 중복 체크
         if (hostRepository.existsByBusinessNo(request.businessNo())) {
             throw new ConflictException("이미 존재하는 사업자 등록번호입니다.");
         }
 
-        // 3단계: 지갑 생성
+        // 4단계: 지갑 생성
         String filename = WalletUtils.generateNewWalletFile(keystorePassword, new File(keystoreDirectory));
         Credentials credentials = WalletUtils.loadCredentials(keystorePassword,
             new File(keystoreDirectory + "/" + filename));
