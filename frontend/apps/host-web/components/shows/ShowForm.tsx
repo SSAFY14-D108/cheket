@@ -192,6 +192,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
             <SettingsCardTickets
               venueId={venueId}
+              showStartAt={showStartAt}
+              showEndAt={showEndAt}
               posterPreview={posterPreview}
               purchaseLimit={purchaseLimit}
               grades={grades}

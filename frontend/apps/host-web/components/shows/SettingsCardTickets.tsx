@@ -21,6 +21,8 @@ import {
 
 interface SettingsCardTicketsProps {
     venueId: string
+    showStartAt: string
+    showEndAt: string
     posterPreview: string | null
     purchaseLimit: string
     grades: Grade[]
@@ -36,6 +38,8 @@ interface SettingsCardTicketsProps {
 
 export function SettingsCardTickets({
     venueId,
+    showStartAt,
+    showEndAt,
     posterPreview,
     purchaseLimit,
     grades,
@@ -49,12 +53,31 @@ export function SettingsCardTickets({
     onUpdateSession,
 }: SettingsCardTicketsProps) {
     const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+    const [sectionsError, setSectionsError] = useState<string | null>(null)
+    const [ticketEffectsError, setTicketEffectsError] = useState<string | null>(null)
+    const [sectionsRetryKey, setSectionsRetryKey] = useState(0)
+    const [ticketEffectsRetryKey, setTicketEffectsRetryKey] = useState(0)
 
     const parseSelectedSectionIds = (sectionIdValue: string) =>
         sectionIdValue
             .split(",")
             .map((value) => value.trim())
             .filter(Boolean)
+
+    const invalidSessionCount =
+        showStartAt && showEndAt
+            ? sessionInfo.filter((session) => {
+                if (!session.sessionDate || !session.sessionStartDate) {
+                    return false
+                }
+
+                const sessionTimestamp = new Date(`${session.sessionDate}T${session.sessionStartDate}`).getTime()
+                const showStartTimestamp = new Date(showStartAt).getTime()
+                const showEndTimestamp = new Date(showEndAt).getTime()
+
+                return sessionTimestamp < showStartTimestamp || sessionTimestamp > showEndTimestamp
+            }).length
+            : 0
 
     // 장소 ID에 따른 도면 이미지 매핑
     const getVenueMapImg = (id: string) => {
@@ -81,11 +104,13 @@ export function SettingsCardTickets({
 
                 if (!isCancelled) {
                     setAvailableSections(sections)
+                    setSectionsError(null)
                 }
             } catch (error) {
                 if (!isCancelled) {
                     console.error("구역 정보를 불러오는데 실패했습니다.", error)
                     setAvailableSections([])
+                    setSectionsError("구역 정보를 불러오지 못했습니다. 다시 시도해주세요.")
                 }
             }
         }
@@ -95,7 +120,7 @@ export function SettingsCardTickets({
         return () => {
             isCancelled = true
         }
-    }, [venueId])
+    }, [venueId, sectionsRetryKey])
 
     const [ticketEffects, setTicketEffects] = useState<HostShowTicketEffect[]>([])
 
@@ -108,11 +133,20 @@ export function SettingsCardTickets({
 
                 if (!isCancelled) {
                     setTicketEffects(effects)
+                    setTicketEffectsError(null)
                 }
             } catch (error) {
+                if (!isCancelled) {
+                    setTicketEffects([])
+                }
+
                 if (!(error instanceof ApiError && error.status === 401) && !isCancelled) {
                     console.error("티켓 효과 목록을 불러오는데 실패했습니다.", error)
-                    setTicketEffects([])
+                    setTicketEffectsError("티켓 효과 목록을 불러오지 못했습니다. 다시 시도해주세요.")
+                }
+
+                if (error instanceof ApiError && error.status === 401 && !isCancelled) {
+                    setTicketEffectsError("티켓 효과 목록을 불러오지 못했습니다. 다시 시도해주세요.")
                 }
             }
         }
@@ -122,7 +156,7 @@ export function SettingsCardTickets({
         return () => {
             isCancelled = true
         }
-    }, [])
+    }, [ticketEffectsRetryKey])
 
     // ESC 키로 모달 닫기
     useEffect(() => {
@@ -184,6 +218,27 @@ export function SettingsCardTickets({
                             </div>
                         </div>
                     </div>
+                    {(sectionsError || ticketEffectsError) && (
+                        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                            {sectionsError || ticketEffectsError}
+                            <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto px-1 py-0 text-[11px] text-amber-700"
+                                onClick={() => {
+                                    if (sectionsError) {
+                                        setSectionsRetryKey((previous) => previous + 1)
+                                    }
+
+                                    if (ticketEffectsError) {
+                                        setTicketEffectsRetryKey((previous) => previous + 1)
+                                    }
+                                }}
+                            >
+                                다시 시도
+                            </Button>
+                        </div>
+                    )}
                     {grades.map((grade, idx) => (
                         <div key={'grade' + idx} className="flex flex-col gap-2 p-3 pl-5 bg-muted/10 border rounded-lg overflow-hidden relative group transition-colors hover:border-primary/40 shadow-sm">
                             {/* 왼쪽 색상 바 (클릭하면 색상 변경) */}
@@ -375,6 +430,11 @@ export function SettingsCardTickets({
                             <Plus className="size-3" />
                         </Button>
                     </div>
+                    {invalidSessionCount > 0 && (
+                        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                            회차 {invalidSessionCount}개가 전체 공연 일정 범위를 벗어났습니다.
+                        </div>
+                    )}
                     {sessionInfo.map((sess, idx) => (
                         <div key={'sess' + idx} className="flex flex-col gap-2 bg-muted/40 p-3 rounded border text-xs">
                             <div className="flex justify-between items-center font-medium">
