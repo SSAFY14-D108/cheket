@@ -11,6 +11,7 @@ import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
+import com.ssafy.cheket.service.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -28,6 +29,7 @@ public class HostServiceImpl implements HostService {
 
     private final HostRepository hostRepository;
     private final WalletRepository walletRepository;
+    private final WalletService walletService;
     private final BCryptPasswordEncoder passwordEncoder;
 
     @Value("${wallet.keystore.password}")
@@ -70,6 +72,9 @@ public class HostServiceImpl implements HostService {
             .password(passwordEncoder.encode(request.password())).build();
 
         hostRepository.save(host);
+
+        // 5단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
+        walletService.transferInitialFunds(address);
     }
 
     // 사업자 등록번호 중복 확인
