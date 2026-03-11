@@ -36,6 +36,8 @@ data class EmailFindRequest(
     val phoneNumber: String,
 )
 
+data class EmailDuplicateRequest(val email: String)
+
 // ── Responses ──
 
 data class LoginResponse(
@@ -52,7 +54,7 @@ data class EmailFindResponse(
 )
 
 data class UserSearchResponse(
-    @SerializedName("userId") val userId: Long,
+    @SerializedName("id") val id: Long,
     @SerializedName("name") val name: String,
-    @SerializedName("phone") val phone: String,
+    @SerializedName("number") val number: String,
 )
