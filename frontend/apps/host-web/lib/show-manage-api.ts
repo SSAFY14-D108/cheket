@@ -32,6 +32,7 @@ export interface HostShowGrade {
   gradeName: string
   price: number
   colorCode: string
+  ticketEffectId?: number | null
 }
 
 export interface HostShowStakeholder {
@@ -71,7 +72,6 @@ export interface HostShowDetail {
   status: string
   createdAt: string
   updatedAt: string
-  ticketEffectId?: number | null
 }
 
 export interface HostShowSection {
@@ -99,12 +99,12 @@ export interface ShowFormPayload {
   }
   description: string
   purchaseLimit: number
-  ticketEffectId?: number
   grade: Array<{
     sectionId: number[]
     gradeName: string
     price: number
     colorCode: string
+    ticketEffectId?: number
   }>
   stakeholders: Array<{
     role: "organizer" | "artist"
