@@ -37,16 +37,29 @@ export function ResaleListScreen() {
     return Array.from(groupedByEvent.entries())
       .map(([eventId, items]) => {
         const event = events.find((value) => value.id === eventId)
-        if (!event) return null
+
+        // Build display info from event or fallback to resaleItem data
+        const firstItem = items[0]
+        const displayEvent = event ?? {
+          id: eventId,
+          name: firstItem.eventName,
+          date: firstItem.eventDate,
+          venue: firstItem.venue,
+          poster: firstItem.poster,
+          region: '',
+          status: 'ON_SALE' as const,
+          maxPerUser: 4,
+          grades: [],
+          artistName: '',
+        }
 
         const minPrice = Math.min(...items.map((item) => item.resalePrice))
         return {
-          event,
+          event: displayEvent,
           itemCount: items.length,
           minPrice,
         }
       })
-      .filter((value): value is NonNullable<typeof value> => value !== null)
       .filter(({ event }) => {
         const matchQuery =
           keyword.length === 0 ||
@@ -138,9 +151,9 @@ export function ResaleListScreen() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
-              {visibleEvents.map(({ event, minPrice }) => (
+              {visibleEvents.map(({ event, minPrice }, index) => (
                 <button
-                  key={event.id}
+                  key={`${event.id}-${event.date}-${event.venue}-${index}`}
                   onClick={() =>
                     navigate('resale-tickets', {
                       eventId: event.id,

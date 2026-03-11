@@ -21,7 +21,7 @@ function popularityScore(id: string) {
 }
 
 export function ConcertsScreen() {
-  const { navigate, events, eventsError, eventsLoading, eventsSource } = useApp()
+  const { navigate, events, eventsError, eventsLoading, eventsSource, loadEventsByRegion } = useApp()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [query, setQuery] = useState('')
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
@@ -29,15 +29,25 @@ export function ConcertsScreen() {
   const [showFilters, setShowFilters] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
+  // 다른 페이지에서 돌아왔을 때 전체 이벤트 다시 로드
+  useEffect(() => {
+    loadEventsByRegion('')
+  }, [loadEventsByRegion])
+
   const toggleRegion = (region: string) => {
     if (region === '전체') {
       setSelectedRegions([])
+      loadEventsByRegion('')
       return
     }
 
-    setSelectedRegions((prev) =>
-      prev.includes(region) ? prev.filter((item) => item !== region) : [...prev, region]
-    )
+    setSelectedRegions((prev) => {
+      const next = prev.includes(region) ? prev.filter((item) => item !== region) : [...prev, region]
+      // Load from KOPIS with first selected region, or all if none selected
+      const primaryRegion = next.length > 0 ? next[0] : ''
+      loadEventsByRegion(primaryRegion)
+      return next
+    })
   }
 
   const filtered = useMemo(() => {

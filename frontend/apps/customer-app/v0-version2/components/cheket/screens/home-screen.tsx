@@ -7,13 +7,6 @@ import { useApp } from '@/lib/app-context'
 import type { Event } from '@/lib/types'
 import { AppShell } from '../app-shell'
 
-const CATEGORY_ITEMS = [
-  { id: 'concert', label: '콘서트', icon: '🎤' },
-  { id: 'musical', label: '뮤지컬', icon: '🎭' },
-  { id: 'play', label: '연극', icon: '🎬' },
-  { id: 'classic', label: '클래식', icon: '🎹' },
-  { id: 'festival', label: '페스티벌', icon: '🎪' },
-]
 
 function getLowestPrice(event: Event) {
   const prices = event.grades.map((grade) => grade.price).filter((price) => price > 0)
@@ -25,7 +18,8 @@ function getVenueLabel(venue: string) {
 }
 
 function getBannerSubtitle(event: Event) {
-  return event.artistName || event.region || 'KOPIS'
+  const artist = event.artistName && event.artistName !== '대중음악' ? event.artistName : ''
+  return artist || event.region || ''
 }
 
 function getOpenLabel(event: Event) {
@@ -90,20 +84,6 @@ function HeroBanner({
   )
 }
 
-function CategoryGrid() {
-  return (
-    <div className="grid grid-cols-5 gap-y-4 px-4 py-4">
-      {CATEGORY_ITEMS.map((item) => (
-        <div key={item.id} className="flex flex-col items-center gap-1.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-2xl">
-            {item.icon}
-          </div>
-          <span className="text-center text-[10px] font-medium leading-tight text-foreground">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }) {
   return (
@@ -136,7 +116,7 @@ function ConcertRanking({
 
   return (
     <section className="pb-4 pt-5">
-      <SectionHeader title="콘서트 랭킹" />
+      <SectionHeader title="랭킹" />
       <div className="scrollbar-hide flex gap-3 overflow-x-auto px-4 pb-1">
         {events.map((event, index) => (
           <button key={event.id} onClick={() => onEventClick(event.id)} className="flex w-32 flex-shrink-0 flex-col gap-1.5 text-left">
@@ -319,8 +299,6 @@ export function HomeScreen() {
   return (
     <AppShell>
       <HeroBanner events={heroEvents} onEventClick={goToEvent} />
-      <div className="h-px bg-border" />
-      <CategoryGrid />
       <ConcertRanking events={rankingEvents} onEventClick={goToEvent} />
       <div className="h-2 bg-secondary/60" />
       <OpenSchedule events={openEvents} onEventClick={goToEvent} />

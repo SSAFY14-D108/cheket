@@ -38,12 +38,26 @@ export function ResaleTicketsScreen() {
   )
 
   const eventId = navParams.eventId as string | undefined
-  const event = events.find((item) => item.id === eventId)
+  const foundEvent = events.find((item) => item.id === eventId)
 
   const eventItems = useMemo(
     () => resaleItems.filter((item) => item.eventId === eventId),
     [eventId, resaleItems]
   )
+
+  // Build fallback event from resaleItem data when event is not in current events list
+  const firstItem = eventItems[0]
+  const event = foundEvent ?? (firstItem ? {
+    id: eventId ?? '',
+    name: firstItem.eventName,
+    date: firstItem.eventDate,
+    venue: firstItem.venue,
+    poster: firstItem.poster,
+    region: '',
+    status: 'ON_SALE' as const,
+    maxPerUser: 4,
+    grades: [],
+  } : null)
 
   const sessionOptions = useMemo(() => {
     const uniqueDates = Array.from(new Set(eventItems.map((item) => item.eventDate)))

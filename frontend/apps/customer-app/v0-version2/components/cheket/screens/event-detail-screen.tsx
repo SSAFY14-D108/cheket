@@ -120,7 +120,7 @@ export function EventDetailScreen() {
         <div className="flex flex-col gap-4 px-4 pb-4 pt-16">
           <div>
             <h2 className="mb-2 text-lg font-bold leading-tight text-foreground">{displayEvent.name}</h2>
-            {displayEvent.artistName && <p className="mb-2 text-sm text-muted-foreground">{displayEvent.artistName}</p>}
+            {displayEvent.artistName && displayEvent.artistName !== '대중음악' && <p className="mb-2 text-sm text-muted-foreground">{displayEvent.artistName}</p>}
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -246,15 +246,21 @@ export function EventDetailScreen() {
             </div>
           )}
 
-          <button
-            onClick={() => navigate('event-date-selection', { eventId: displayEvent.id })}
-            disabled={!canBuy}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            예매하기
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          {/* spacer for fixed bottom button */}
+          <div className="h-16" />
         </div>
+      </div>
+
+      {/* Fixed bottom CTA */}
+      <div className="sticky bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
+        <button
+          onClick={() => navigate('event-date-selection', { eventId: displayEvent.id })}
+          disabled={!canBuy}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          예매하기
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </AppShell>
   )

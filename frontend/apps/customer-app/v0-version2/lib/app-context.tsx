@@ -16,6 +16,7 @@ import type {
   WalletTxType,
 } from './types'
 import { MOCK_EVENTS, MOCK_RESALE_ITEMS, MOCK_TICKETS, MOCK_USER } from './mock-data'
+import { REGION_TO_SIGNGU } from './kopis'
 
 function randomHex(length: number) {
   return Array.from({ length }, () => Math.floor(Math.random() * 16).toString(16)).join('')
@@ -102,6 +103,7 @@ interface AppContextValue {
   eventsLoading: boolean
   eventsSource: 'mock' | 'kopis'
   eventsError: string | null
+  loadEventsByRegion: (region: string) => void
   updateEvent: (id: string, updates: Partial<Event>) => void
   addTicket: (ticket: Ticket) => void
   updateTicketStatus: (id: string, updates: Partial<Ticket>) => void
@@ -161,7 +163,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [navParams, setNavParams] = useState<NavParams>({})
   const [screenHistory, setScreenHistory] = useState<Array<{ screen: Screen; params: NavParams }>>([])
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS)
-  const [resaleItems, setResaleItems] = useState<ResaleItem[]>(MOCK_RESALE_ITEMS)
+  const [resaleItems, setResaleItems] = useState<ResaleItem[]>([])
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsSource, setEventsSource] = useState<'mock' | 'kopis'>('mock')
@@ -171,43 +173,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [walletTxs, setWalletTxs] = useState<WalletTx[]>(INITIAL_WALLET_TXS)
   const [allowNotifications, setAllowNotifications] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
+  const loadKopisEvents = useCallback(async (signgucode?: string) => {
+    try {
+      setEventsLoading(true)
+      const params = new URLSearchParams({ rows: '30' })
+      if (signgucode) params.set('signgucode', signgucode)
+      const response = await fetch(`/api/kopis/events?${params.toString()}`, { cache: 'no-store' })
+      const data = await response.json()
 
-    async function loadKopisEvents() {
-      try {
-        setEventsLoading(true)
-        const response = await fetch('/api/kopis/events?rows=30', { cache: 'no-store' })
-        const data = await response.json()
-
-        if (cancelled) return
-
-        if (Array.isArray(data.items) && data.items.length > 0) {
-          setEvents(data.items)
-          setEventsSource('kopis')
-          setEventsError(null)
-        } else {
-          setEvents(MOCK_EVENTS)
-          setEventsSource('mock')
-          setEventsError(typeof data.error === 'string' ? data.error : null)
-        }
-      } catch (error) {
-        if (cancelled) return
+      if (Array.isArray(data.items) && data.items.length > 0) {
+        setEvents(data.items)
+        setEventsSource('kopis')
+        setEventsError(null)
+      } else {
         setEvents(MOCK_EVENTS)
         setEventsSource('mock')
-        setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
-      } finally {
-        if (!cancelled) {
-          setEventsLoading(false)
-        }
+        setEventsError(typeof data.error === 'string' ? data.error : null)
       }
+    } catch (error) {
+      setEvents(MOCK_EVENTS)
+      setEventsSource('mock')
+      setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
+    } finally {
+      setEventsLoading(false)
     }
+  }, [])
 
+  const loadEventsByRegion = useCallback((region: string) => {
+    const signgucode = region && region !== '전체' ? REGION_TO_SIGNGU[region] : undefined
+    void loadKopisEvents(signgucode)
+  }, [loadKopisEvents])
+
+  useEffect(() => {
     void loadKopisEvents()
-
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   const login = useCallback((id: string, _password: string) => {
@@ -479,6 +477,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         eventsLoading,
         eventsSource,
         eventsError,
+        loadEventsByRegion,
         updateEvent,
         addTicket,
         updateTicketStatus,

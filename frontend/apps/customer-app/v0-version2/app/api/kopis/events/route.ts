@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { mapKopisPerformanceToEvent, parseKopisPerformanceList } from '@/lib/kopis'
+import { mapKopisPerformanceToEvent, parseKopisPerformanceList, SIGNGU_TO_REGION } from '@/lib/kopis'
 
 export const dynamic = 'force-dynamic'
 const DEFAULT_GENRE_CODE = 'CCCD'
@@ -71,6 +71,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const { start, end } = getDefaultDateRange()
 
+  const signgucode = searchParams.get('signgucode') ?? ''
+
   const params = new URLSearchParams({
     service: serviceKey,
     stdate: searchParams.get('stdate') ?? start,
@@ -79,6 +81,10 @@ export async function GET(request: Request) {
     rows: searchParams.get('rows') ?? '30',
     shcate: searchParams.get('shcate') ?? DEFAULT_GENRE_CODE,
   })
+
+  if (signgucode) {
+    params.set('signgucode', signgucode)
+  }
 
   try {
     const response = await fetch(`https://www.kopis.or.kr/openApi/restful/pblprfr?${params.toString()}`, {
@@ -97,15 +103,18 @@ export async function GET(request: Request) {
     }
 
     const xml = await readKopisXml(response)
+    const regionHint = signgucode ? (SIGNGU_TO_REGION[signgucode] ?? '') : ''
     const performances = parseKopisPerformanceList(xml).filter(
       (item) => item.id.length > 0 && item.name.length > 0
     )
-    const items = performances.map(mapKopisPerformanceToEvent)
+    const items = performances.map((p) => mapKopisPerformanceToEvent(p, regionHint))
 
     return NextResponse.json({
       items,
       source: 'kopis',
       total: items.length,
+      signgucode: signgucode || undefined,
+      region: regionHint || undefined,
     })
   } catch (error) {
     return NextResponse.json(

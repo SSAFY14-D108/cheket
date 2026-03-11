@@ -36,6 +36,25 @@ const PRICE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#0
 
 const SEOUL_HINTS = ['서울', '대학로', '예술의전당', '올림픽', '잠실', '고척', '세종']
 
+/** KOPIS signgucode → UI region label */
+export const SIGNGU_TO_REGION: Record<string, string> = {
+  '11': '서울',
+  '41': '경기',
+  '28': '인천',
+  '26': '부산',
+  '27': '대구',
+  '29': '광주',
+  '30': '대전',
+  '48': '경남',
+  '45': '전북',
+  '50': '제주',
+}
+
+/** UI region label → KOPIS signgucode */
+export const REGION_TO_SIGNGU: Record<string, string> = Object.fromEntries(
+  Object.entries(SIGNGU_TO_REGION).map(([code, name]) => [name, code])
+)
+
 function looksMojibake(value: string) {
   if (!value) return false
   return /[ÃÂÐØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïð]/.test(value)
@@ -286,10 +305,10 @@ export function parseKopisPerformanceDetail(xml: string): KopisPerformanceDetail
   }
 }
 
-export function mapKopisPerformanceToEvent(performance: KopisPerformance): Event {
+export function mapKopisPerformanceToEvent(performance: KopisPerformance, regionHint?: string): Event {
   const status = mapStatus(performance.state)
   const eventId = `kopis_${performance.id}`
-  const region = mapRegion(performance.area, performance.venue)
+  const region = regionHint || mapRegion(performance.area, performance.venue)
   const date = formatEventPeriod(performance.startDate, performance.endDate)
   const name = safeKopisText(performance.name, `KOPIS 공연 ${performance.id}`)
   const genre = safeKopisText(performance.genre, '공연')
