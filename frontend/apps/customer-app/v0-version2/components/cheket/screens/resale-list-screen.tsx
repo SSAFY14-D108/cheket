@@ -47,6 +47,7 @@ export function ResaleListScreen() {
           venue: firstItem.venue,
           poster: firstItem.poster,
           region: '',
+          regionCode: '',
           status: 'ON_SALE' as const,
           maxPerUser: 4,
           grades: [],

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type {
   Event,
   NavParams,
@@ -103,7 +103,7 @@ interface AppContextValue {
   eventsLoading: boolean
   eventsSource: 'mock' | 'kopis'
   eventsError: string | null
-  loadEventsByRegion: (region: string) => void
+  loadEventsByRegion: (region: string | string[]) => void
   updateEvent: (id: string, updates: Partial<Event>) => void
   addTicket: (ticket: Ticket) => void
   updateTicketStatus: (id: string, updates: Partial<Ticket>) => void
@@ -157,6 +157,7 @@ const MOCK_PHONE_BOOK: Record<string, string> = {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const latestEventsRequestRef = useRef(0)
   const [user, setUser] = useState<User | null>(null)
   const [screen, setScreen] = useState<Screen>('login')
   const [activeTab, setActiveTab] = useState<Tab>('home')
@@ -173,35 +174,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [walletTxs, setWalletTxs] = useState<WalletTx[]>(INITIAL_WALLET_TXS)
   const [allowNotifications, setAllowNotifications] = useState(true)
 
-  const loadKopisEvents = useCallback(async (signgucode?: string) => {
+  const loadKopisEvents = useCallback(async (signgucodes?: string[]) => {
+    const requestId = latestEventsRequestRef.current + 1
+    latestEventsRequestRef.current = requestId
+
     try {
       setEventsLoading(true)
-      const params = new URLSearchParams({ rows: '30' })
-      if (signgucode) params.set('signgucode', signgucode)
-      const response = await fetch(`/api/kopis/events?${params.toString()}`, { cache: 'no-store' })
-      const data = await response.json()
+      const codes = signgucodes?.filter(Boolean) ?? []
+      const requestCodes = codes.length > 0 ? [...new Set(codes)] : ['']
+      const responses = await Promise.all(
+        requestCodes.map(async (code) => {
+          const params = new URLSearchParams({ rows: '30' })
+          if (code) params.set('signgucode', code)
+          const response = await fetch(`/api/kopis/events?${params.toString()}`, { cache: 'no-store' })
+          return response.json()
+        })
+      )
 
-      if (Array.isArray(data.items) && data.items.length > 0) {
-        setEvents(data.items)
+      if (latestEventsRequestRef.current !== requestId) return
+
+      const mergedItems = responses.flatMap((data) => (Array.isArray(data.items) ? data.items : []))
+      const dedupedItems = Array.from(new Map(mergedItems.map((item: Event) => [item.id, item])).values())
+      const firstError = responses.find((data) => typeof data.error === 'string')?.error ?? null
+
+      if (dedupedItems.length > 0) {
+        setEvents(dedupedItems)
         setEventsSource('kopis')
-        setEventsError(null)
+        setEventsError(firstError)
       } else {
         setEvents(MOCK_EVENTS)
         setEventsSource('mock')
-        setEventsError(typeof data.error === 'string' ? data.error : null)
+        setEventsError(firstError)
       }
     } catch (error) {
+      if (latestEventsRequestRef.current !== requestId) return
+
       setEvents(MOCK_EVENTS)
       setEventsSource('mock')
       setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
     } finally {
-      setEventsLoading(false)
+      if (latestEventsRequestRef.current === requestId) {
+        setEventsLoading(false)
+      }
     }
   }, [])
 
-  const loadEventsByRegion = useCallback((region: string) => {
-    const signgucode = region && region !== '전체' ? REGION_TO_SIGNGU[region] : undefined
-    void loadKopisEvents(signgucode)
+  const loadEventsByRegion = useCallback((region: string | string[]) => {
+    const regions = Array.isArray(region) ? region : [region]
+    const signgucodes = regions
+      .filter((value) => value && value !== '전체')
+      .map((value) => REGION_TO_SIGNGU[value])
+      .filter((value): value is string => Boolean(value))
+
+    void loadKopisEvents(signgucodes)
   }, [loadKopisEvents])
 
   useEffect(() => {

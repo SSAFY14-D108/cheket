@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import { cn } from '@/lib/utils'
+import { REGION_TO_SIGNGU } from '@/lib/kopis'
 import { AppShell } from '../app-shell'
 import { EmptyState } from '../empty-state'
 import { EventCard } from '../event-card'
@@ -29,26 +30,20 @@ export function ConcertsScreen() {
   const [showFilters, setShowFilters] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
-  // 다른 페이지에서 돌아왔을 때 전체 이벤트 다시 로드
-  useEffect(() => {
-    loadEventsByRegion('')
-  }, [loadEventsByRegion])
-
   const toggleRegion = (region: string) => {
     if (region === '전체') {
       setSelectedRegions([])
-      loadEventsByRegion('')
       return
     }
 
-    setSelectedRegions((prev) => {
-      const next = prev.includes(region) ? prev.filter((item) => item !== region) : [...prev, region]
-      // Load from KOPIS with first selected region, or all if none selected
-      const primaryRegion = next.length > 0 ? next[0] : ''
-      loadEventsByRegion(primaryRegion)
-      return next
-    })
+    setSelectedRegions((prev) =>
+      prev.includes(region) ? prev.filter((item) => item !== region) : [...prev, region]
+    )
   }
+
+  useEffect(() => {
+    loadEventsByRegion(selectedRegions)
+  }, [loadEventsByRegion, selectedRegions])
 
   const filtered = useMemo(() => {
     let list = events.filter((event) => {
@@ -59,7 +54,13 @@ export function ConcertsScreen() {
         event.venue.toLowerCase().includes(keyword) ||
         (event.artistName ?? '').toLowerCase().includes(keyword)
 
-      const matchRegion = selectedRegions.length === 0 || selectedRegions.includes(event.region)
+      const selectedRegionCodes = selectedRegions
+        .map((region) => REGION_TO_SIGNGU[region])
+        .filter((code): code is string => Boolean(code))
+      const eventRegionCode = event.regionCode ?? REGION_TO_SIGNGU[event.region]
+      const matchRegion =
+        selectedRegionCodes.length === 0 ||
+        (eventRegionCode ? selectedRegionCodes.includes(eventRegionCode) : selectedRegions.includes(event.region))
       return matchQuery && matchRegion
     })
 

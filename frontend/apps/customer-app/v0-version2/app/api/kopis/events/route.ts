@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     const performances = parseKopisPerformanceList(xml).filter(
       (item) => item.id.length > 0 && item.name.length > 0
     )
-    const items = performances.map((p) => mapKopisPerformanceToEvent(p, regionHint))
+    const items = performances.map((p) => mapKopisPerformanceToEvent(p, regionHint, signgucode || undefined))
 
     return NextResponse.json({
       items,
