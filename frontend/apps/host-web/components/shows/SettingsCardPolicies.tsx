@@ -30,6 +30,12 @@ export function SettingsCardPolicies({
     onRemoveRefund,
     onUpdateRefund,
 }: SettingsCardPoliciesProps) {
+    const stakeholderShareSum = stakeholders.reduce(
+        (sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0),
+        0
+    )
+    const remainingShareBps = 10000 - stakeholderShareSum
+    const isStakeholderShareValid = stakeholderShareSum === 10000
 
     // 목업 데이터를 활용한 간단한 가짜 API 시뮬레이션
     const handleVerify = (idx: number, type: 'phone' | 'businessNo', value: string) => {
@@ -73,6 +79,15 @@ export function SettingsCardPolicies({
                     </div>
                     <div className="text-[10px] text-muted-foreground leading-tight">
                         플랫폼 8% 선공제 후 나머지 금액 분배. 총합 10000bps=100%
+                    </div>
+                    <div
+                        className={`rounded-md border px-3 py-2 text-[11px] ${isStakeholderShareValid
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                : "border-amber-300 bg-amber-50 text-amber-700"
+                            }`}
+                    >
+                        현재 합계 {stakeholderShareSum.toLocaleString()} / 10,000bps
+                        {!isStakeholderShareValid && `, ${remainingShareBps > 0 ? `${remainingShareBps.toLocaleString()}bps 더 입력` : `${Math.abs(remainingShareBps).toLocaleString()}bps 초과`}`}
                     </div>
 
                     {stakeholders.map((sh, idx) => (

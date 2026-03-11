@@ -81,6 +81,7 @@ export const showHandlers = [
         gradeName?: string
         price?: number
         colorCode?: string
+        ticketEffectId?: number
       }>
       stakeholders?: Array<{
         role?: "organizer" | "artist"
@@ -154,6 +155,7 @@ export const showHandlers = [
           gradeName: grade.gradeName ?? "일반",
           price: grade.price ?? 0,
           colorCode: grade.colorCode ?? "#7C6EF0",
+          ...(grade.ticketEffectId ? { ticketEffectId: grade.ticketEffectId } : {}),
         })) ?? [],
       stakeholders:
         body.stakeholders?.map((stakeholder, index) => ({
@@ -218,6 +220,26 @@ export const showHandlers = [
       reservation?: { openAt?: string; closeAt?: string }
       description?: string
       purchaseLimit?: number
+      grade?: Array<{
+        sectionId?: number[]
+        gradeName?: string
+        price?: number
+        colorCode?: string
+        ticketEffectId?: number
+      }>
+      stakeholders?: Array<{
+        role?: "organizer" | "artist"
+        shareBps?: number
+      }>
+      refundPolicy?: Array<{
+        daysRemaining?: number
+        refundRate?: number
+      }>
+      sessionInfo?: Array<{
+        sessionId?: number
+        sessionDate?: string
+        sessionStartDate?: string
+      }>
     }
 
     if (
@@ -230,7 +252,11 @@ export const showHandlers = [
       !body.reservation?.openAt &&
       !body.reservation?.closeAt &&
       !body.description &&
-      body.purchaseLimit === undefined
+      body.purchaseLimit === undefined &&
+      !body.grade &&
+      !body.stakeholders &&
+      !body.refundPolicy &&
+      !body.sessionInfo
     ) {
       return HttpResponse.json(
         {
@@ -270,6 +296,32 @@ export const showHandlers = [
         },
         description: body.description ?? previousEvent.description,
         purchaseLimit: body.purchaseLimit ?? previousEvent.purchaseLimit,
+        grade:
+          body.grade?.map((grade) => ({
+            sectionId: grade.sectionId?.[0] ?? previousEvent.grade[0]?.sectionId ?? 1,
+            gradeName: grade.gradeName ?? "일반",
+            price: grade.price ?? 0,
+            colorCode: grade.colorCode ?? "#7C6EF0",
+            ...(grade.ticketEffectId ? { ticketEffectId: grade.ticketEffectId } : {}),
+          })) ?? previousEvent.grade,
+        stakeholders:
+          body.stakeholders?.map((stakeholder, index) => ({
+            role: stakeholder.role ?? "artist",
+            name: stakeholder.role === "organizer" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
+            shareBps: stakeholder.shareBps ?? 0,
+          })) ?? previousEvent.stakeholders,
+        refundPolicy:
+          body.refundPolicy?.map((policy) => ({
+            daysRemaining: policy.daysRemaining ?? 0,
+            refundRate: policy.refundRate ?? 0,
+          })) ?? previousEvent.refundPolicy,
+        sessionInfo:
+          body.sessionInfo?.map((session, index) => ({
+            sessionId: session.sessionId ?? index + 1,
+            sessionDate: session.sessionDate ?? "2026-01-01",
+            sessionStartDate: session.sessionStartDate ?? "19:00",
+            capacity: selectedVenue?.capacity ?? previousEvent.capacity,
+          })) ?? previousEvent.sessionInfo,
         updatedAt: new Date().toISOString(),
       }
     }

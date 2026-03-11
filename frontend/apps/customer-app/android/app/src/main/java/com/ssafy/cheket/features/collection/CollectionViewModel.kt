@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.collection
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -23,14 +24,18 @@ class CollectionViewModel(private val ticketRepository: TicketRepository) : View
     val uiState: StateFlow<CollectionUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d(TAG, "init — loading used tickets")
         viewModelScope.launch {
             ticketRepository.getUsedTickets().collect { tickets ->
+                Log.d(TAG, "getUsedTickets() received ${tickets.size} tickets")
                 _uiState.value = CollectionUiState(usedTickets = tickets, isLoading = false)
             }
         }
     }
 
     companion object {
+        private const val TAG = "CollectionViewModel"
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication

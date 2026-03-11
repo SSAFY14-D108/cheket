@@ -1,5 +1,6 @@
 package com.ssafy.cheket.core.network
 
+import android.util.Log
 import com.ssafy.cheket.core.network.mock.MockInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -9,7 +10,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val TAG = "RetrofitClient"
+    private const val BASE_URL = "https://j14d108.p.ssafy.io/"
     private const val TIMEOUT_SECONDS = 5L
 
     private lateinit var regularClient: OkHttpClient
@@ -19,6 +21,8 @@ object RetrofitClient {
     private lateinit var mockRetrofit: Retrofit
 
     fun init(authDataStore: AuthDataStore) {
+        Log.d(TAG, "init() — BASE_URL=$BASE_URL, timeout=${TIMEOUT_SECONDS}s")
+
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
@@ -66,15 +70,19 @@ object RetrofitClient {
             .client(mockClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+
+        Log.d(TAG, "init() — all Retrofit instances created (real, refresh, mock)")
     }
 
     /** 실제 서버 연결용 Retrofit */
     fun <T> createService(serviceClass: Class<T>): T {
+        Log.d(TAG, "createService() — ${serviceClass.simpleName}")
         return retrofit.create(serviceClass)
     }
 
     /** MockInterceptor가 붙은 Retrofit (FakeAppContainer에서 사용) */
     fun <T> createMockService(serviceClass: Class<T>): T {
+        Log.d(TAG, "createMockService() — ${serviceClass.simpleName}")
         return mockRetrofit.create(serviceClass)
     }
 }

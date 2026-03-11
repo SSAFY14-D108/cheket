@@ -82,8 +82,6 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   }
 
   const addGrade = () => {
-    const sharedTicketEffectId = grades.find((grade) => grade.ticketEffectId)?.ticketEffectId ?? ""
-
     setGrades((previous) => [
       ...previous,
       {
@@ -91,7 +89,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
         gradeName: "",
         price: "",
         colorCode: "#aaaaaa",
-        ticketEffectId: sharedTicketEffectId,
+        ticketEffectId: "",
       },
     ])
   }
@@ -101,18 +99,11 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   }
 
   const updateGrade = (targetIndex: number, field: keyof Grade, value: string) => {
-    setGrades((previous) => {
-      if (field === "ticketEffectId") {
-        return previous.map((grade) => ({
-          ...grade,
-          ticketEffectId: value,
-        }))
-      }
-
-      return previous.map((grade, index) =>
+    setGrades((previous) =>
+      previous.map((grade, index) =>
         index === targetIndex ? { ...grade, [field]: value } : grade
       )
-    })
+    )
   }
 
   const addStakeholder = () => {

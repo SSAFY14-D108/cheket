@@ -46,6 +46,10 @@ function toApiDateTimeValue(value: string) {
   return value.length === 16 ? `${value}:00` : value
 }
 
+function toSessionTimestamp(sessionDate: string, sessionStartDate: string) {
+  return new Date(`${sessionDate}T${sessionStartDate}`).getTime()
+}
+
 export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
   if (!initialData?.grade?.length) {
     return [{ gradeName: "", price: "", colorCode: "#7C6EF0", sectionId: "", ticketEffectId: "" }]
@@ -56,7 +60,7 @@ export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
     price: String(grade.price),
     colorCode: grade.colorCode,
     sectionId: String(grade.sectionId),
-    ticketEffectId: initialData.ticketEffectId ? String(initialData.ticketEffectId) : "",
+    ticketEffectId: grade.ticketEffectId ? String(grade.ticketEffectId) : "",
   }))
 }
 
@@ -189,11 +193,29 @@ export function buildValidationMessage(values: ShowFormValues) {
     return "회차 정보의 날짜와 시간을 모두 입력해주세요."
   }
 
+  const showStartDate = new Date(values.showStartAt).getTime()
+  const showEndDate = new Date(values.showEndAt).getTime()
+
+  if (
+    values.sessionInfo.some((session) => {
+      const sessionTimestamp = toSessionTimestamp(session.sessionDate, session.sessionStartDate)
+
+      return sessionTimestamp < showStartDate || sessionTimestamp > showEndDate
+    })
+  ) {
+    return "회차 일자가 전체 일정 범위에 포함되지 않습니다."
+  }
+
   return null
 }
 
 export function buildPayload(values: Omit<ShowFormValues, "mode">): ShowFormPayload {
-  const sharedTicketEffectId = values.grades.find((grade) => grade.ticketEffectId)?.ticketEffectId
+  const sortedSessionInfo = [...values.sessionInfo].sort((left, right) => {
+    const leftTimestamp = toSessionTimestamp(left.sessionDate, left.sessionStartDate)
+    const rightTimestamp = toSessionTimestamp(right.sessionDate, right.sessionStartDate)
+
+    return leftTimestamp - rightTimestamp
+  })
 
   const payload: ShowFormPayload = {
     title: values.title.trim(),
@@ -214,6 +236,7 @@ export function buildPayload(values: Omit<ShowFormValues, "mode">): ShowFormPayl
       gradeName: grade.gradeName.trim(),
       price: Number(grade.price),
       colorCode: grade.colorCode,
+      ...(grade.ticketEffectId ? { ticketEffectId: Number(grade.ticketEffectId) } : {}),
     })),
     stakeholders: values.stakeholders.map((stakeholder) => ({
       role: stakeholder.role,
@@ -224,7 +247,7 @@ export function buildPayload(values: Omit<ShowFormValues, "mode">): ShowFormPayl
       daysRemaining: Number(item.daysRemaining),
       refundRate: Number(item.refundRate),
     })),
-    sessionInfo: values.sessionInfo.map((session, index) => ({
+    sessionInfo: sortedSessionInfo.map((session, index) => ({
       sessionId: Number(session.sessionId) || index + 1,
       sessionDate: session.sessionDate,
       sessionStartDate: session.sessionStartDate,
@@ -233,10 +256,6 @@ export function buildPayload(values: Omit<ShowFormValues, "mode">): ShowFormPayl
 
   if (values.artistName.trim()) {
     payload.artistName = values.artistName.trim()
-  }
-
-  if (sharedTicketEffectId) {
-    payload.ticketEffectId = Number(sharedTicketEffectId)
   }
 
   return payload

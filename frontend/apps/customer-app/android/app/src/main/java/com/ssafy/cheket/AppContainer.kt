@@ -1,8 +1,10 @@
 package com.ssafy.cheket
 
+import com.ssafy.cheket.core.network.AuthDataStore
 import com.ssafy.cheket.core.network.RetrofitClient
 import com.ssafy.cheket.core.network.service.*
 import com.ssafy.cheket.core.repository.*
+import com.ssafy.cheket.core.repository.fake.*
 import com.ssafy.cheket.core.repository.impl.*
 
 interface AppContainer {
@@ -22,8 +24,10 @@ interface AppContainer {
     val userService: UserService
 }
 
-/** 실제 서버 연결 시 사용 */
-class RealAppContainer : AppContainer {
+/**
+ * A: 실제 서버 연결 — Real Service + Real RepositoryImpl (API 호출)
+ */
+class RealAppContainer(private val authDataStore: AuthDataStore) : AppContainer {
     override val showService: ShowService by lazy { RetrofitClient.createService(ShowService::class.java) }
     override val ticketService: TicketService by lazy { RetrofitClient.createService(TicketService::class.java) }
     override val queueService: QueueService by lazy { RetrofitClient.createService(QueueService::class.java) }
@@ -32,14 +36,35 @@ class RealAppContainer : AppContainer {
     override val resaleService: ResaleService by lazy { RetrofitClient.createService(ResaleService::class.java) }
     override val userService: UserService by lazy { RetrofitClient.createService(UserService::class.java) }
 
-    override val authRepository: AuthRepository by lazy { AuthRepositoryImpl() }
-    override val eventRepository: EventRepository by lazy { EventRepositoryImpl() }
-    override val ticketRepository: TicketRepository by lazy { TicketRepositoryImpl() }
-    override val resaleRepository: ResaleRepository by lazy { ResaleRepositoryImpl() }
-    override val userRepository: UserRepository by lazy { UserRepositoryImpl() }
+    override val authRepository: AuthRepository by lazy { AuthRepositoryImpl(authService, userService, authDataStore) }
+    override val eventRepository: EventRepository by lazy { EventRepositoryImpl(showService) }
+    override val ticketRepository: TicketRepository by lazy { TicketRepositoryImpl(ticketService) }
+    override val resaleRepository: ResaleRepository by lazy { ResaleRepositoryImpl(resaleService) }
+    override val userRepository: UserRepository by lazy { UserRepositoryImpl(userService) }
 }
 
-/** MockInterceptor를 통한 mock API 사용 (서버 미완성 시) */
+/**
+ * B: MockInterceptor — Mock Service (HTTP 레벨 모킹) + Real RepositoryImpl (API 호출)
+ */
+class MockAppContainer(private val authDataStore: AuthDataStore) : AppContainer {
+    override val showService: ShowService by lazy { RetrofitClient.createMockService(ShowService::class.java) }
+    override val ticketService: TicketService by lazy { RetrofitClient.createMockService(TicketService::class.java) }
+    override val queueService: QueueService by lazy { RetrofitClient.createMockService(QueueService::class.java) }
+    override val walletService: WalletService by lazy { RetrofitClient.createMockService(WalletService::class.java) }
+    override val authService: AuthService by lazy { RetrofitClient.createMockService(AuthService::class.java) }
+    override val resaleService: ResaleService by lazy { RetrofitClient.createMockService(ResaleService::class.java) }
+    override val userService: UserService by lazy { RetrofitClient.createMockService(UserService::class.java) }
+
+    override val authRepository: AuthRepository by lazy { AuthRepositoryImpl(authService, userService, authDataStore) }
+    override val eventRepository: EventRepository by lazy { EventRepositoryImpl(showService) }
+    override val ticketRepository: TicketRepository by lazy { TicketRepositoryImpl(ticketService) }
+    override val resaleRepository: ResaleRepository by lazy { ResaleRepositoryImpl(resaleService) }
+    override val userRepository: UserRepository by lazy { UserRepositoryImpl(userService) }
+}
+
+/**
+ * C: FakeRepository — MockDataSource 직접 사용 (Service 무관)
+ */
 class FakeAppContainer : AppContainer {
     override val showService: ShowService by lazy { RetrofitClient.createMockService(ShowService::class.java) }
     override val ticketService: TicketService by lazy { RetrofitClient.createMockService(TicketService::class.java) }
@@ -49,9 +74,9 @@ class FakeAppContainer : AppContainer {
     override val resaleService: ResaleService by lazy { RetrofitClient.createMockService(ResaleService::class.java) }
     override val userService: UserService by lazy { RetrofitClient.createMockService(UserService::class.java) }
 
-    override val authRepository: AuthRepository by lazy { AuthRepositoryImpl() }
-    override val eventRepository: EventRepository by lazy { EventRepositoryImpl() }
-    override val ticketRepository: TicketRepository by lazy { TicketRepositoryImpl() }
-    override val resaleRepository: ResaleRepository by lazy { ResaleRepositoryImpl() }
-    override val userRepository: UserRepository by lazy { UserRepositoryImpl() }
+    override val authRepository: AuthRepository by lazy { FakeAuthRepository() }
+    override val eventRepository: EventRepository by lazy { FakeEventRepository() }
+    override val ticketRepository: TicketRepository by lazy { FakeTicketRepository() }
+    override val resaleRepository: ResaleRepository by lazy { FakeResaleRepository() }
+    override val userRepository: UserRepository by lazy { FakeUserRepository() }
 }

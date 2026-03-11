@@ -3,6 +3,11 @@ package com.ssafy.cheket.features.collection
 import android.annotation.SuppressLint
 import android.graphics.Color as AndroidColor
 import android.net.Uri
+import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -40,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.Ticket
+import com.ssafy.cheket.core.model.TicketStatus
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
@@ -61,10 +67,37 @@ fun CollectionScreen(
             topBar = { AppHeader(title = "컬렉션") }
         ) { innerPadding ->
             if (uiState.usedTickets.isEmpty() && !uiState.isLoading) {
-                EmptyState(
-                    "아직 컬렉션이 없어요", "공연을 관람하면 티켓이 여기에 모입니다",
-                    Modifier.fillMaxSize().padding(innerPadding)
-                )
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(innerPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    EmptyState(
+                        "아직 컬렉션이 없어요", "공연을 관람하면 티켓이 여기에 모입니다",
+                        Modifier.weight(1f)
+                    )
+                    // ── 테스트 버튼: 더미 데이터로 WebView 확인 ──
+                    Button(
+                        onClick = {
+                            selectedTicket = Ticket(
+                                id = "9999",
+                                eventId = "1",
+                                eventName = "CHEKET 테스트 콘서트",
+                                eventDate = "2026-03-15",
+                                venue = "SSAFY 서울캠퍼스",
+                                poster = "https://picsum.photos/400/600",
+                                seatId = "A-12",
+                                seatLabel = "A구역 12번",
+                                grade = "VIP",
+                                originalPrice = 99000,
+                                status = TicketStatus.USED,
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                        modifier = Modifier.padding(bottom = 32.dp),
+                    ) {
+                        Text("🎫 WebView 테스트", color = White)
+                    }
+                }
             } else {
                 Column(Modifier.fillMaxSize().background(Background).padding(innerPadding)) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
@@ -114,8 +147,7 @@ fun CollectionScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Full-screen transparent WebView overlay
-// WebView 배경 투명 → 웹 페이지가 자체적으로 반투명 배경 + 3D 티켓 렌더링
+// Full-screen WebView overlay with transparent background
 // ─────────────────────────────────────────────────────────────────────
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -141,40 +173,85 @@ private fun TicketOverlay(
                 .appendQueryParameter("grade", it.grade)
                 .appendQueryParameter("poster", it.poster)
                 .appendQueryParameter("id", it.id)
+                .appendQueryParameter("price", it.originalPrice.toString())
                 .build()
                 .toString()
         } ?: ""
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // 반투명 배경 (WebView 로드 전에도 보임)
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.7f))
-            )
-
-            // 전체화면 투명 WebView
+            // WebView (HTML 자체가 반투명 배경 + 센터링 처리)
             if (ticket != null) {
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
-                            // WebView 자체 배경 투명
-                            setBackgroundColor(AndroidColor.TRANSPARENT)
-                            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                            setBackgroundColor(AndroidColor.BLACK)
+
+                            webChromeClient = object : WebChromeClient() {
+                                override fun onConsoleMessage(cm: ConsoleMessage?): Boolean {
+                                    Log.d("CollectionWV", "[JS] ${cm?.message()} (${cm?.sourceId()}:${cm?.lineNumber()})")
+                                    return true
+                                }
+                            }
 
                             webViewClient = object : WebViewClient() {
+                                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                                    Log.d("CollectionWV", "▶ onPageStarted: $url")
+                                }
+
                                 override fun onPageFinished(view: WebView?, u: String?) {
-                                    // 웹 페이지 html/body 배경도 투명으로
+                                    Log.d("CollectionWV", "✅ onPageFinished: $u")
+
+                                    // 서버 HTML의 body height 0 문제 + 센터링 런타임 수정
                                     view?.evaluateJavascript(
                                         """
-                                        document.documentElement.style.background='transparent';
-                                        document.body.style.background='transparent';
+                                        document.documentElement.style.height='100vh';
+                                        document.body.style.height='100vh';
+                                        document.body.style.overflow='visible';
+                                        var s=document.querySelector('.scene');
+                                        if(s){
+                                          s.style.position='fixed';
+                                          s.style.top='50%';
+                                          s.style.left='50%';
+                                          s.style.transform='translate(-50%,-50%)';
+                                          s.style.opacity='1';
+                                        }
                                         """.trimIndent(),
                                         null,
                                     )
+
+                                    // DOM 디버그
+                                    view?.evaluateJavascript(
+                                        """
+                                        (function(){
+                                          var s=document.querySelector('.scene');
+                                          var cf=document.querySelector('.card-flip');
+                                          var b=document.body;
+                                          var poster=document.querySelector('.poster');
+                                          var holo=document.querySelector('.holo-layer');
+                                          return 'scene='+(!s?'null':(s.offsetWidth+'x'+s.offsetHeight))
+                                            +' cardFlip='+(!cf?'null':(cf.offsetWidth+'x'+cf.offsetHeight))
+                                            +' bodyW='+b.offsetWidth+' bodyH='+b.offsetHeight
+                                            +' vpH='+window.innerHeight
+                                            +' holo='+(!holo?'null':(holo.offsetWidth+'x'+holo.offsetHeight))
+                                            +' poster='+(!poster?'null':(poster.naturalWidth+'x'+poster.naturalHeight+' loaded='+poster.complete))
+                                            +' title='+document.title;
+                                        })()
+                                        """.trimIndent(),
+                                    ) { result ->
+                                        Log.d("CollectionWV", "🔍 DOM: $result")
+                                    }
+
                                     isLoading = false
                                 }
+
+                                override fun onReceivedError(
+                                    view: WebView?, request: WebResourceRequest?,
+                                    error: WebResourceError?,
+                                ) {
+                                    Log.e("CollectionWV", "❌ Error: ${error?.description} (${error?.errorCode}) url=${request?.url}")
+                                }
                             }
+
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
@@ -182,6 +259,7 @@ private fun TicketOverlay(
                                 useWideViewPort = true
                                 loadWithOverviewMode = true
                             }
+                            Log.d("CollectionWV", "🚀 loadUrl: $url")
                             loadUrl(url)
                         }
                     },
