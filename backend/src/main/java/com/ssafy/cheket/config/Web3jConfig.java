@@ -10,7 +10,7 @@ import org.web3j.protocol.http.HttpService;
 @Configuration
 public class Web3jConfig {
     // SSAFY 네트워크 RPC URL
-    @Value("${blockchain.rpc-url")
+    @Value("${blockchain.rpc-url}")
     private String rpcUrl;
 
     // Web3j 빈 등록 — 블록체인 트랜잭션 전송 시 사용
