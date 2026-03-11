@@ -124,7 +124,7 @@ fun HomeScreen(
             // 4. Recommendation
             item {
                 RecommendationSection(
-                    events = uiState.shows,
+                    shows = uiState.shows,
                     onShowClick = onShowClick,
                 )
             }
@@ -458,7 +458,7 @@ private fun OpenScheduleSection(
 @Composable
 private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Unit) {
     val wishlistCount = 3 // mock
-    val recommendedShow = events.firstOrNull() ?: return
+    val recommendedShow = shows.firstOrNull() ?: return
 
     Column(Modifier.padding(vertical = 20.dp)) {
         HomeSectionHeader(title = "사용자 추천 콘서트")

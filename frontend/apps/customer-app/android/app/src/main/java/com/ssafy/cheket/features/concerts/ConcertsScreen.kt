@@ -210,7 +210,7 @@ fun ConcertsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(uiState.filteredShows) { show ->
-                        ShowCardItem(event = show, onClick = { onShowClick(show.id) })
+                        ShowCardItem(show = show, onClick = { onShowClick(show.id) })
                     }
                     item { Spacer(Modifier.height(16.dp)) }
                 }
