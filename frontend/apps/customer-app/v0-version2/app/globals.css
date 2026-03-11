@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -57,7 +58,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), "Inter", sans-serif;
+  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -211,6 +212,41 @@
   );
   background-size: 210% 100%;
   animation: gold-sheen-move 5.8s linear infinite;
+}
+
+/* =================================================================
+   ORIGINAL TICKET SHAPE
+   ================================================================= */
+
+.ticket-shape-megabox {
+  /* Authentically "bitten out" scalloped edges using mask intersection */
+  --r: 12px;  /* Larger radius for deeper bites */
+  --s: 34px;  /* Wider spacing for fewer bites (approx 8 across) */
+
+  -webkit-mask:
+    radial-gradient(var(--r) at 50% 0, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x,
+    radial-gradient(var(--r) at 50% 100%, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x;
+  -webkit-mask-composite: source-in;
+
+  mask:
+    radial-gradient(var(--r) at 50% 0, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x,
+    radial-gradient(var(--r) at 50% 100%, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x;
+  mask-composite: intersect;
+}
+
+.ticket-perforation-line {
+  position: absolute;
+  bottom: 80px; /* Adjust according to design */
+  left: 14px;
+  right: 14px;
+  height: 0;
+  border-top: 2px dashed rgba(255, 255, 255, 0.25);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.ticket-perforation-line-dark {
+  border-top-color: rgba(0, 0, 0, 0.15);
 }
 
 /* ===== HOLOGRAPHIC CARD EFFECT ===== */
@@ -394,4 +430,705 @@
 /* ---- CARD GLOW on hover ---- */
 .ticket-holo-tilt:hover {
   filter: drop-shadow(0 0 15px rgba(120, 200, 255, 0.3));
+}
+
+.collection-carousel-shell {
+  width: 100%;
+  position: relative;
+  min-height: 600px;
+  padding: 0;
+  perspective: 2200px;
+  perspective-origin: 50% 30%;
+  isolation: isolate;
+}
+
+.collection-carousel-shell::after {
+  content: "";
+  position: absolute;
+  inset: 12px -32px 36px;
+  border-radius: 48px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(191, 244, 216, 0.34), transparent 36%),
+    radial-gradient(circle at 78% 50%, rgba(197, 226, 255, 0.3), transparent 40%),
+    radial-gradient(circle at 18% 34%, rgba(218, 198, 255, 0.3), transparent 34%),
+    linear-gradient(90deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74) 48%, rgba(202, 230, 255, 0.76));
+  filter: blur(22px);
+  z-index: -2;
+}
+
+.collection-carousel-shell::before {
+  content: "";
+  position: absolute;
+  left: 26%;
+  right: 26%;
+  bottom: 40px;
+  height: 84px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0));
+  filter: blur(22px);
+  z-index: -1;
+}
+
+.collection-carousel-viewport {
+  position: relative;
+  height: 600px;
+  overflow: visible;
+  touch-action: pan-y;
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+.collection-carousel-drag {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  transform-style: preserve-3d;
+  cursor: grab;
+}
+
+.collection-carousel-drag:active {
+  cursor: grabbing;
+}
+
+.collection-carousel-rotator {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.collection-carousel-arm {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 150px;
+  margin-left: -75px;
+  transform-style: preserve-3d;
+}
+
+.collection-carousel-card-anchor {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.collection-carousel-card {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  transform-style: preserve-3d;
+}
+
+.collection-carousel-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 28px;
+  background: radial-gradient(circle at center, rgba(0, 197, 152, 0.18), transparent 62%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+.collection-carousel-glow.is-active {
+  opacity: 1;
+}
+
+@media (max-width: 420px) {
+  .collection-carousel-shell {
+    min-height: 540px;
+  }
+
+  .collection-carousel-shell::after {
+    inset: 16px -20px 40px;
+  }
+
+  .collection-carousel-viewport {
+    height: 540px;
+    width: min(100%, 440px);
+  }
+
+  .collection-carousel-arm {
+    top: 28px;
+  }
+}
+
+/* =================================================================
+   POKEMON-STYLE HOLOGRAPHIC EFFECTS (ported from poke-holo open src)
+   ================================================================= */
+
+.ticket-poke-shine,
+.ticket-poke-shine::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  mix-blend-mode: color-dodge;
+  opacity: 0.35;
+  transition: opacity 350ms ease;
+}
+
+.ticket-poke-shine::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* Same opacity when active (hovering) so it doesn't get unnaturally stronger */
+.ticket-poke-shine.is-active {
+  opacity: 0.35;
+}
+
+.ticket-poke-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 7;
+  opacity: 0.25;
+  mix-blend-mode: overlay;
+  transition: opacity 350ms ease;
+  background-image: radial-gradient(
+    farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.8) 10%,
+    rgba(255, 255, 255, 0.45) 20%,
+    rgba(0, 0, 0, 0.5) 90%
+  );
+}
+
+.ticket-poke-glare.is-active {
+  opacity: 0.25;
+}
+
+/* --- HOLO: classic bar pattern --- */
+.ticket-poke-shine[data-effect="poke-holo"] {
+  --space: 2px;
+  --h: 21;
+  --s: 70%;
+  --l: 50%;
+
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      hsl(calc(var(--h) * 0), var(--s), var(--l)) calc(var(--space) * 0),
+      hsl(calc(var(--h) * 0), var(--s), var(--l)) calc(var(--space) * 1),
+      black calc(var(--space) * 1.001), black calc(var(--space) * 1.999),
+      hsl(calc(var(--h) * 1), var(--s), var(--l)) calc(var(--space) * 2),
+      hsl(calc(var(--h) * 1), var(--s), var(--l)) calc(var(--space) * 3),
+      black calc(var(--space) * 3.001), black calc(var(--space) * 3.999),
+      hsl(calc(var(--h) * 2), var(--s), var(--l)) calc(var(--space) * 4),
+      hsl(calc(var(--h) * 2), var(--s), var(--l)) calc(var(--space) * 5),
+      black calc(var(--space) * 5.001), black calc(var(--space) * 5.999),
+      hsl(calc(var(--h) * 3), var(--s), var(--l)) calc(var(--space) * 6),
+      hsl(calc(var(--h) * 3), var(--s), var(--l)) calc(var(--space) * 7),
+      black calc(var(--space) * 7.001), black calc(var(--space) * 7.999),
+      hsl(calc(var(--h) * 4), var(--s), var(--l)) calc(var(--space) * 8),
+      hsl(calc(var(--h) * 4), var(--s), var(--l)) calc(var(--space) * 9),
+      black calc(var(--space) * 9.001), black calc(var(--space) * 9.999),
+      hsl(calc(var(--h) * 5), var(--s), var(--l)) calc(var(--space) * 10),
+      hsl(calc(var(--h) * 5), var(--s), var(--l)) calc(var(--space) * 11),
+      black calc(var(--space) * 11.001), black calc(var(--space) * 11.999),
+      hsl(calc(var(--h) * 6), var(--s), var(--l)) calc(var(--space) * 12),
+      hsl(calc(var(--h) * 6), var(--s), var(--l)) calc(var(--space) * 13),
+      black calc(var(--space) * 13.001), black calc(var(--space) * 13.999),
+      hsl(calc(var(--h) * 7), var(--s), var(--l)) calc(var(--space) * 14),
+      hsl(calc(var(--h) * 7), var(--s), var(--l)) calc(var(--space) * 15),
+      black calc(var(--space) * 15.001), black calc(var(--space) * 15.999)
+    ),
+    repeating-linear-gradient(
+      90deg, #f80e7b, #eedf10, #21e985, #0dbde9, #c929f1, #f80e7b
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(230,230,230,0.85) 0%, rgba(200,200,200,0.1) 25%, rgb(0,0,0) 90%
+    );
+
+  background-blend-mode: soft-light, soft-light, screen;
+  background-position: center,
+    calc(((50% - var(--posx, 50%)) * 25) + 50%) center,
+    var(--posx, 50%) var(--posy, 50%);
+  background-size: 100% 100%, 200% 200%, 120% 120%;
+  filter: brightness(0.9) contrast(3.2) saturate(0.66);
+}
+
+/* --- GALAXY: galaxy texture overlay --- */
+.ticket-poke-shine[data-effect="poke-galaxy"] {
+  --space: 80px;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/galaxy.png"),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/galaxy.png"),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/galaxy.png"),
+    repeating-linear-gradient(
+      82deg,
+      rgb(218,56,50) calc(var(--space) * 1),
+      rgb(219,204,86) calc(var(--space) * 2),
+      rgb(121,199,58) calc(var(--space) * 3),
+      rgb(58,192,183) calc(var(--space) * 4),
+      rgb(71,98,207) calc(var(--space) * 5),
+      rgb(170,69,209) calc(var(--space) * 6),
+      rgb(218,56,50) calc(var(--space) * 10)
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(255,255,255,0.6) 5%,
+      rgba(150,150,150,0.3) 40%,
+      rgb(0,0,0) 100%
+    );
+
+  background-blend-mode: color-dodge, color-burn, saturation, screen;
+  background-position: center, center, center,
+    calc(((50% - var(--posx, 50%)) * 2.5) + 50%)
+    calc(((50% - var(--posy, 50%)) * 2.5) + 50%),
+    center;
+  background-size: cover, cover, cover, 600% 1200%, cover;
+  filter: brightness(0.75) contrast(1.2) saturate(1.5);
+  mix-blend-mode: color-dodge;
+}
+
+/* --- V: grain texture + dual layer --- */
+.ticket-poke-shine[data-effect="poke-v"],
+.ticket-poke-shine[data-effect="poke-v"]::after {
+  --space: 5%;
+  --angle: 133deg;
+  --grain: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCI+CjxmaWx0ZXIgaWQ9Im4iPgo8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjciIG51bU9jdGF2ZXM9IjEwIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIj48L2ZlVHVyYnVsZW5jZT4KPC9maWx0ZXI+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMDAwIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiBmaWx0ZXI9InVybCgjbikiIG9wYWNpdHk9IjAuMyI+PC9yZWN0Pgo8L3N2Zz4=");
+
+  background-image:
+    var(--grain),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: screen, hue, hard-light;
+  background-size: 500px, 200% 700%, 300%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.8) contrast(2.95) saturate(0.5);
+}
+
+.ticket-poke-shine[data-effect="poke-v"]::after {
+  background-position: center, 0% var(--posy, 50%),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
+    var(--posx, 50%) var(--posy, 50%);
+  background-size: 500px, 200% 400%, 195%, 200%;
+  filter: brightness(1) contrast(2.5) saturate(1.75);
+  mix-blend-mode: soft-light;
+}
+
+/* --- VMAX: dedicated background + color-burn --- */
+.ticket-poke-shine[data-effect="poke-vmax"] {
+  --space: 6%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/vmaxbg.webp"),
+    repeating-linear-gradient(
+      -33deg,
+      rgb(206,42,36) calc(var(--space) * 1),
+      rgb(157,170,223) calc(var(--space) * 2),
+      rgb(45,153,146) calc(var(--space) * 3),
+      rgb(29,151,36) calc(var(--space) * 4),
+      rgb(181,64,228) calc(var(--space) * 5),
+      rgb(206,42,36) calc(var(--space) * 6)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(14,21,46,0.5) 0%, hsl(180,10%,50%) 2.5%, hsl(83,50%,35%) 5%,
+      hsl(180,10%,50%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(6,218,255,0.6) 0%, rgba(38,235,127,0.6) 25%,
+      rgba(155,78,228,0.6) 50%, rgba(228,78,90,0.6) 75%
+    );
+
+  background-blend-mode: color-burn, screen, soft-light;
+  background-size: 60% 30%, 1100% 1100%, 600% 600%, 200% 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.65) contrast(2.5) saturate(0.6);
+}
+
+/* --- RAINBOW: rainbow secret --- */
+.ticket-poke-shine[data-effect="poke-rainbow"],
+.ticket-poke-shine[data-effect="poke-rainbow"]::after {
+  --space: 7%;
+  --angle: -20deg;
+  --angle2: 130deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      var(--angle),
+      rgb(253,71,65) calc(var(--space) * 1),
+      rgb(255,243,151) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgb(75,198,255) calc(var(--space) * 5),
+      rgb(255,73,246) calc(var(--space) * 6),
+      rgb(255,56,49) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle2),
+      rgba(89,46,80,0.5) 0%, hsl(118,43%,76%) 2.5%, rgb(223,96,202) 5%,
+      hsl(180,57%,56%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    ),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/illusion2.webp");
+
+  background-size: 50% 50%, 500% 500%, 1000% 1000%, 540px 700px;
+  background-position: center,
+    0% calc(var(--posy, 50%) * 1.5),
+    var(--posx, 50%) var(--posy, 50%), center;
+  background-blend-mode: color-burn, soft-light, normal;
+  filter: brightness(0.75) contrast(2) saturate(0.95);
+}
+
+.ticket-poke-shine[data-effect="poke-rainbow"]::after {
+  background-position: center,
+    0% calc(var(--posy, 50%) * -1),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1), center;
+  mix-blend-mode: exclusion;
+}
+
+/* --- GOLD SECRET: metal texture --- */
+.ticket-poke-shine[data-effect="poke-secret"],
+.ticket-poke-shine[data-effect="poke-secret"]::after {
+  --angle: 110deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(89,46,80,0.5) 0%, hsl(39,37%,60%) 2.5%, rgb(216,183,92) 5%,
+      hsl(39,37%,60%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    ),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/metal.webp");
+
+  background-size: 50% 50%, 600% 600%, 250px;
+  background-position: center, var(--posx, 50%) var(--posy, 50%), center;
+  background-blend-mode: color-burn, darken;
+  filter: brightness(0.8) contrast(3) saturate(0.66);
+}
+
+.ticket-poke-shine[data-effect="poke-secret"]::after {
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(89,46,80,0.5) 0%, hsl(39,37%,60%) 2.5%, rgb(216,183,92) 5%,
+      hsl(39,37%,60%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    );
+  background-position: center,
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1), center;
+  filter: brightness(0.8) contrast(2.5) saturate(0.66);
+  mix-blend-mode: exclusion;
+}
+
+/* --- VSTAR: ancient texture + exclusion --- */
+.ticket-poke-shine[data-effect="poke-vstar"],
+.ticket-poke-shine[data-effect="poke-vstar"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/ancient.webp"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: soft-light, hue, hard-light;
+  background-size: 30%, 200% 700%, 300%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.8) contrast(2) saturate(0.75);
+}
+
+.ticket-poke-shine[data-effect="poke-vstar"]::after {
+  background-size: 30%, 200% 400%, 195%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(1.2) contrast(1.5) saturate(1.75);
+  mix-blend-mode: exclusion;
+}
+
+/* --- FULL ART: illusion texture + exclusion dual layer --- */
+.ticket-poke-shine[data-effect="poke-fullart"],
+.ticket-poke-shine[data-effect="poke-fullart"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/illusion.webp"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: exclusion, hue, hard-light;
+  background-size: 50%, 200% 700%, 300%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.6) contrast(2) saturate(1.5);
+}
+
+.ticket-poke-shine[data-effect="poke-fullart"]::after {
+  background-size: 50%, 200% 400%, 195%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.9) contrast(1.6) saturate(1.4);
+  mix-blend-mode: exclusion;
+}
+
+/* --- TRAINER: trainerbg + difference blend --- */
+.ticket-poke-shine[data-effect="poke-trainer"],
+.ticket-poke-shine[data-effect="poke-trainer"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/trainerbg.jpg"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: difference, hue, hard-light;
+  background-size: 50%, 200% 700%, 300%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.75) contrast(2.5) saturate(0.75);
+}
+
+.ticket-poke-shine[data-effect="poke-trainer"]::after {
+  background-size: 50%, 200% 400%, 195%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(1.2) contrast(1) saturate(1.75);
+  mix-blend-mode: exclusion;
+}
+
+/* --- RADIANT: crosshatch bar pattern + 3-layer --- */
+.ticket-poke-shine[data-effect="poke-radiant"] {
+  --barwidth: 1.2%;
+  --space: 200px;
+
+  background-image:
+    repeating-linear-gradient(
+      55deg,
+      rgb(255,161,158) calc(var(--space) * 1),
+      rgb(85,178,255) calc(var(--space) * 2),
+      rgb(255,199,146) calc(var(--space) * 3),
+      rgb(130,255,213) calc(var(--space) * 4),
+      rgb(253,170,240) calc(var(--space) * 5),
+      rgb(148,241,255) calc(var(--space) * 6),
+      rgb(255,161,158) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      45deg,
+      hsl(0,0%,10%) 0%, hsl(0,0%,10%) var(--barwidth),
+      hsl(0,0%,20%) calc(var(--barwidth) + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 2),
+      hsl(0,0%,35%) calc(var(--barwidth) * 2 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 3),
+      hsl(0,0%,42.5%) calc(var(--barwidth) * 3 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 4),
+      hsl(0,0%,50%) calc(var(--barwidth) * 4 + 0.01%), hsl(0,0%,50%) calc(var(--barwidth) * 5),
+      hsl(0,0%,42.5%) calc(var(--barwidth) * 5 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 6),
+      hsl(0,0%,35%) calc(var(--barwidth) * 6 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 7),
+      hsl(0,0%,20%) calc(var(--barwidth) * 7 + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 8),
+      hsl(0,0%,10%) calc(var(--barwidth) * 8 + 0.01%), hsl(0,0%,10%) calc(var(--barwidth) * 9),
+      hsl(0,0%,0%) calc(var(--barwidth) * 9 + 0.01%), hsl(0,0%,0%) calc(var(--barwidth) * 10)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      hsl(0,0%,10%) 0%, hsl(0,0%,10%) var(--barwidth),
+      hsl(0,0%,20%) calc(var(--barwidth) + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 2),
+      hsl(0,0%,35%) calc(var(--barwidth) * 2 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 3),
+      hsl(0,0%,42.5%) calc(var(--barwidth) * 3 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 4),
+      hsl(0,0%,50%) calc(var(--barwidth) * 4 + 0.01%), hsl(0,0%,50%) calc(var(--barwidth) * 5),
+      hsl(0,0%,42.5%) calc(var(--barwidth) * 5 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 6),
+      hsl(0,0%,35%) calc(var(--barwidth) * 6 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 7),
+      hsl(0,0%,20%) calc(var(--barwidth) * 7 + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 8),
+      hsl(0,0%,10%) calc(var(--barwidth) * 8 + 0.01%), hsl(0,0%,10%) calc(var(--barwidth) * 9),
+      hsl(0,0%,0%) calc(var(--barwidth) * 9 + 0.01%), hsl(0,0%,0%) calc(var(--barwidth) * 10)
+    );
+
+  background-size: 400% 400%, 210% 210%, 210% 210%;
+  background-position:
+    calc(((var(--posx, 50%) - 50%) * -2.5) + 50%)
+    calc(((var(--posy, 50%) - 50%) * -2.5) + 50%),
+    calc(((var(--posx, 50%) - 50%) * 1.5) + 50%)
+    calc(((var(--posy, 50%) - 50%) * 1.5) + 50%),
+    calc(((var(--posx, 50%) - 50%) * 1.5) + 50%)
+    calc(((var(--posy, 50%) - 50%) * 1.5) + 50%);
+  background-blend-mode: exclusion, darken, color-dodge;
+  filter: brightness(0.95) contrast(4) saturate(0.75);
+  mix-blend-mode: color-dodge;
+}
+
+.ticket-poke-shine[data-effect="poke-radiant"]::after {
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      55deg,
+      rgb(255,161,158) calc(200px * 1),
+      rgb(85,178,255) calc(200px * 2),
+      rgb(255,199,146) calc(200px * 3),
+      rgb(130,255,213) calc(200px * 4),
+      rgb(253,170,240) calc(200px * 5),
+      rgb(148,241,255) calc(200px * 6),
+      rgb(255,161,158) calc(200px * 7)
+    );
+  background-size: 40%, 400%;
+  background-position: center,
+    calc(((var(--posx, 50%) - 50%) * -2.5) + 50%)
+    calc(((var(--posy, 50%) - 50%) * -2.5) + 50%);
+  filter: brightness(1) contrast(1) saturate(0);
+  mix-blend-mode: soft-light;
+  background-blend-mode: multiply;
+}
+
+/* --- GALLERY HOLO: full-art holo variant --- */
+.ticket-poke-shine[data-effect="poke-gallery-holo"] {
+  --space: 5%;
+  --angle: -22deg;
+
+  background-image:
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(174,102,202,0.75) calc(var(--space) * 1),
+      rgba(228,77,72,0.75) calc(var(--space) * 2),
+      rgba(216,197,55,0.75) calc(var(--space) * 3),
+      rgba(124,201,62,0.75) calc(var(--space) * 4),
+      rgba(80,177,170,0.75) calc(var(--space) * 5),
+      rgba(136,160,255,0.75) calc(var(--space) * 6),
+      rgba(176,105,204,0.75) calc(var(--space) * 7)
+    );
+
+  background-blend-mode: color-dodge;
+  background-size: 200% 400%, 300%, 200%;
+  background-position: 0% calc(var(--posy, 50%) * 1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.7) contrast(2.3) saturate(1.1);
+}
+
+.ticket-poke-shine[data-effect="poke-gallery-holo"]::after {
+  background-image: radial-gradient(
+    farthest-corner ellipse at calc(((var(--mx, 50%)) * 0.5) + 25%)
+      calc(((var(--my, 50%)) * 0.5) + 25%),
+    rgb(255,255,255) 5%,
+    rgba(55,0,55,0.6) 25%,
+    rgb(55,55,55) 90%
+  );
+  background-position: center;
+  background-size: 200% 200%;
+  filter: brightness(0.5) contrast(0.85) saturate(1.1);
+  mix-blend-mode: hard-light;
+}
+
+/* --- GALLERY V: full-art V variant --- */
+.ticket-poke-shine[data-effect="poke-gallery-v"],
+.ticket-poke-shine[data-effect="poke-gallery-v"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/illusion.webp"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: exclusion, hue, hard-light;
+  background-size: 60%, 200% 700%, 300%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.6) contrast(2.5) saturate(1);
+}
+
+.ticket-poke-shine[data-effect="poke-gallery-v"]::after {
+  background-size: 60%, 200% 400%, 195%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.8) contrast(2) saturate(1);
+  mix-blend-mode: exclusion;
 }
