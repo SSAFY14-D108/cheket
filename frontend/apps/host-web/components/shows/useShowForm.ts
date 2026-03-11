@@ -4,7 +4,7 @@ import { useState, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
-import { mockVenues } from "@/lib/mock-data"
+import { mockVenues } from "@/mocks/data/show-store"
 import { createShow, updateShow, type HostShowDetail } from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 import {

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { DateTimeRangePicker } from "@/components/common/DateTimeRangePicker"
-import { mockVenues } from "@/lib/mock-data"
+import { mockVenues } from "@/mocks/data/show-store"
 
 interface SettingsCardBasicProps {
     venueId: string

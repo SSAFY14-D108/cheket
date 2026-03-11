@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Search } from "lucide-react"
 import type { Stakeholder, RefundItem } from "./showFormTypes"
-import { mockAuthUsers } from "@/lib/mock-data"
+import { mockAuthUsers } from "@/mocks/data/user-store"
 
 interface SettingsCardPoliciesProps {
     stakeholders: Stakeholder[]
@@ -40,7 +40,14 @@ export function SettingsCardPolicies({
 
         // 0.3초 딜레이(통신하는 척)
         setTimeout(() => {
-            const foundUser = mockAuthUsers.find((user) => user.phone === value.replace(/-/g, ''));
+            const normalizedValue = value.replace(/-/g, '');
+            const foundUser = mockAuthUsers.find((user) => {
+                if (type === 'businessNo') {
+                    return user.businessNo?.replace(/-/g, '') === normalizedValue;
+                }
+
+                return user.phone.replace(/-/g, '') === normalizedValue;
+            });
             if (foundUser) {
                 onUpdateStakeholder(idx, 'name', foundUser.name);
                 onUpdateStakeholder(idx, 'userId', foundUser.userId);
