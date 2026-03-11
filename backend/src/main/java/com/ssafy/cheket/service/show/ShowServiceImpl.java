@@ -35,7 +35,7 @@ public class ShowServiceImpl implements ShowService {
 
     // 공연 검색 및 목록 조회
     @Override
-    public GetShowListResponse getShowList(Region region, ShowSort sort, String keyword, int page, int size) {
+    public GetShowListResponse<ShowItem> getShowList(Region region, ShowSort sort, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100), toSort(sort));
 
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
@@ -43,7 +43,7 @@ public class ShowServiceImpl implements ShowService {
 
         List<ShowItem> items = result.getContent().stream().map(this::toShowItem).toList();
 
-        return new GetShowListResponse(items, result.getNumber(), result.getSize(), result.getTotalElements(),
+        return new GetShowListResponse<>(items, result.getNumber(), result.getSize(), result.getTotalElements(),
             result.getTotalPages());
     }
 

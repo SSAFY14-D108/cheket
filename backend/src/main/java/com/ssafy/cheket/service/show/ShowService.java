@@ -7,7 +7,7 @@ import com.ssafy.cheket.enums.ShowSort;
 import java.util.List;
 
 public interface ShowService {
-    GetShowListResponse getShowList(Region region, ShowSort sort, String keyword, int page, int size);
+    GetShowListResponse<ShowItem> getShowList(Region region, ShowSort sort, String keyword, int page, int size);
 
     GetShowDetailResponse getShowDetail(Long showId);
 
