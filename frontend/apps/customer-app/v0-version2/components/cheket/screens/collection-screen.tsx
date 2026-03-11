@@ -1,74 +1,89 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 import ReactCardFlip from 'react-card-flip'
 import Tilt from 'react-parallax-tilt'
+import { ChevronLeft, ChevronRight, Music2, Settings2 } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
-import { Ticket } from '@/lib/types'
+import type { Ticket } from '@/lib/types'
 import { AppShell } from '../app-shell'
-import { Music2 } from 'lucide-react'
 
-// Vertical ticket size including scallop edges
-const CARD_WIDTH = 272
-const CARD_HEIGHT = 460
-const CARD_COMPACT_WIDTH = 152
-const CARD_COMPACT_HEIGHT = 258
+const CARD_WIDTH = 270
+const CARD_HEIGHT = 530
+const CARD_COMPACT_WIDTH = 150
+const CARD_COMPACT_HEIGHT = 295
 const CARD_COMPACT_SCALE = CARD_COMPACT_WIDTH / CARD_WIDTH
-const SCALLOP_H = 8
-const BODY_H = CARD_HEIGHT - SCALLOP_H * 2
 
 type HoloVariant = 'rainbow' | 'aurora' | 'prism' | 'cosmos' | 'sunset' | 'neon'
 const HOLO_VARIANTS: HoloVariant[] = ['rainbow', 'aurora', 'prism', 'cosmos', 'sunset', 'neon']
+
+type PokeEffect =
+  | 'poke-holo'
+  | 'poke-galaxy'
+  | 'poke-v'
+  | 'poke-vmax'
+  | 'poke-rainbow'
+  | 'poke-secret'
+  | 'poke-vstar'
+  | 'poke-fullart'
+  | 'poke-trainer'
+  | 'poke-radiant'
+  | 'poke-gallery-holo'
+  | 'poke-gallery-v'
+
+type EffectType = 'none' | 'gold' | HoloVariant | PokeEffect
+
+interface FaceProps {
+  ticket: Ticket
+  onFlip: () => void
+  isGold?: boolean
+  holoActive?: boolean
+  holoVariant?: HoloVariant
+  holoLayerRef?: React.RefObject<HTMLDivElement | null>
+  enableHolo?: boolean
+  pokeEffect?: PokeEffect
+}
 
 const GOLD_FOIL_BASE = {
   backgroundColor: '#d5b45a',
 }
 
 const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
-  VIP:       { bg: '#f59e0b', text: '#000' },
+  VIP: { bg: '#f59e0b', text: '#000' },
   'VIP PIT': { bg: '#f59e0b', text: '#000' },
-  R:         { bg: '#ef4444', text: '#fff' },
-  FLOOR:     { bg: '#3b82f6', text: '#fff' },
-  'GA PIT':  { bg: '#ef4444', text: '#fff' },
-  S:         { bg: '#3b82f6', text: '#fff' },
-  A:         { bg: '#22c55e', text: '#fff' },
-  STAND:     { bg: '#22c55e', text: '#fff' },
-  '2F':      { bg: '#a855f7', text: '#fff' },
-  '1F':      { bg: '#06b6d4', text: '#fff' },
-  GA:        { bg: '#3b82f6', text: '#fff' },
+  R: { bg: '#ef4444', text: '#fff' },
+  FLOOR: { bg: '#3b82f6', text: '#fff' },
+  'GA PIT': { bg: '#ef4444', text: '#fff' },
+  S: { bg: '#3b82f6', text: '#fff' },
+  A: { bg: '#22c55e', text: '#fff' },
+  STAND: { bg: '#22c55e', text: '#fff' },
+  '2F': { bg: '#a855f7', text: '#fff' },
+  '1F': { bg: '#06b6d4', text: '#fff' },
+  GA: { bg: '#3b82f6', text: '#fff' },
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function mod(value: number, length: number) {
+  if (length === 0) return 0
+  return ((value % length) + length) % length
 }
 
 function getGrade(grade: string) {
   return GRADE_COLORS[grade] ?? { bg: '#6b7280', text: '#fff' }
 }
 
-// Scallop edge ??half-circles punched out of the top or bottom edge
-function ScallopEdge({ position, pageBg }: { position: 'top' | 'bottom'; pageBg: string }) {
-  const r = 6
-  const count = 16
-  const W = count * r * 2
+function getTicketEffect(ticketId: string): EffectType {
+  const num = Number(ticketId.replace(/\D/g, '')) || 0
+  return HOLO_VARIANTS[num % HOLO_VARIANTS.length]
+}
 
-  const circles = Array.from({ length: count }).map((_, i) => {
-    const cx = i * r * 2 + r
-    return `M ${cx - r} ${position === 'top' ? 0 : r * 2} a ${r} ${r} 0 0 ${position === 'top' ? 1 : 0} ${r * 2} 0`
-  })
-
-  const path =
-    position === 'top'
-      ? `M0,0 ${circles.join(' ')} L${W},0 L${W},${r} L0,${r} Z`
-      : `M0,${r} ${circles.join(' ')} L${W},${r * 2} L0,${r * 2} Z`
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${r * 2}`}
-      style={{ width: '100%', height: r * 2, display: 'block' }}
-      preserveAspectRatio="none"
-    >
-      <rect width={W} height={r * 2} fill="#0b0f1a" />
-      <path d={path} fill={pageBg} />
-    </svg>
-  )
+function isPokeEffect(effect: EffectType): effect is PokeEffect {
+  return effect !== 'none' && effect.startsWith('poke-')
 }
 
 function GoldFoilLayer() {
@@ -81,66 +96,48 @@ function GoldFoilLayer() {
   )
 }
 
-interface FaceProps {
-  ticket: Ticket
-  pageBg: string
-  onFlip: () => void
-  isGold?: boolean
-  holoActive?: boolean
-  holoVariant?: HoloVariant
-  holoLayerRef?: React.RefObject<HTMLDivElement | null>
-  enableHolo?: boolean
-}
-
-// ?? FRONT FACE ??????????????????????????????????????????????????????????????
 function TicketFront({
   ticket,
-  pageBg,
   onFlip,
   isGold = false,
   holoActive = false,
   holoVariant = 'rainbow',
   holoLayerRef,
   enableHolo = false,
+  pokeEffect,
 }: FaceProps) {
-  const ticketNo = `No.${ticket.id.replace('tkt_', '').padStart(4, '0')}`
-
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', height: CARD_HEIGHT, cursor: 'pointer' }}
+      style={{ display: 'flex', flexDirection: 'column', height: CARD_HEIGHT, cursor: 'pointer', position: 'relative' }}
       onClick={onFlip}
     >
-      <ScallopEdge position="top" pageBg={pageBg} />
-
-      <div style={{ height: BODY_H, position: 'relative', overflow: 'visible' }}>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            overflow: 'hidden',
-            ...(isGold ? GOLD_FOIL_BASE : { background: '#0b0f1a' }),
-          }}
-        >
-          {isGold && <GoldFoilLayer />}
-
-          <div style={{ position: 'relative', width: '100%', height: '100%', zIndex: 3 }}>
-            <Image
-              src={ticket.poster}
-              alt={ticket.eventName}
-              fill
-              sizes={`${CARD_WIDTH}px`}
-              style={{ objectFit: 'cover' }}
-            />
-            {enableHolo && (
-              <div
-                ref={holoLayerRef}
-                className="ticket-holo-front-layer"
-                style={
-                  {
-                    '--mx': '50%',
-                    '--my': '50%',
-                    '--rx': '0deg',
-                    '--ry': '0deg',
+      <div
+        className="ticket-shape-megabox"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          ...(isGold ? GOLD_FOIL_BASE : { background: '#0b0f1a' }),
+        }}
+      >
+        <div style={{ position: 'relative', width: '100%', height: '100%', zIndex: 3 }}>
+          <Image
+            src={ticket.poster}
+            alt={ticket.eventName}
+            fill
+            sizes={`${CARD_WIDTH}px`}
+            style={{ objectFit: 'cover', opacity: isGold ? 0.7 : 1 }}
+          />
+          {enableHolo && !pokeEffect && (
+            <div
+              ref={holoLayerRef}
+              className="ticket-holo-front-layer"
+              style={
+                {
+                  '--mx': '50%',
+                  '--my': '50%',
+                  '--rx': '0deg',
+                  '--ry': '0deg',
                 } as CSSProperties
               }
             >
@@ -149,275 +146,240 @@ function TicketFront({
               <div className={`ticket-holo-foil ticket-holo-${holoVariant}${holoActive ? ' is-active' : ''}`} />
               <div className={`ticket-holo-noise ticket-holo-${holoVariant}`} />
             </div>
-            )}
+          )}
+          {pokeEffect && (
             <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: isGold
-                  ? 'linear-gradient(to top, rgba(49,34,8,0.58) 10%, rgba(49,34,8,0.15) 48%, rgba(255,234,180,0.16) 100%)'
-                  : 'linear-gradient(to top, rgba(11,15,26,0.82) 12%, rgba(11,15,26,0.2) 52%, rgba(11,15,26,0.08) 100%)',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 30%)',
-              }}
-            />
-
-            <div style={{ position: 'absolute', left: 14, right: 14, top: 12, zIndex: 4 }}>
-              <p
-                style={{
-                  fontSize: 8,
-                  letterSpacing: '0.26em',
-                  textTransform: 'uppercase',
-                  color: isGold ? 'rgba(24,20,10,0.72)' : 'rgba(255,255,255,0.82)',
-                  fontWeight: 700,
-                }}
-              >
-                Concert Ticket
-              </p>
-            </div>
-
-            <div style={{ position: 'absolute', left: 14, right: 14, top: 44, zIndex: 4 }}>
-              <h3
-                style={{
-                  fontSize: 42,
-                  fontWeight: 900,
-                  lineHeight: 0.9,
-                  letterSpacing: '-0.03em',
-                  color: isGold ? 'rgba(125,26,26,0.86)' : 'rgba(255,255,255,0.95)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                CHEKET
-              </h3>
-              <p
-                style={{
-                  marginTop: 3,
-                  fontSize: 18,
-                  fontWeight: 800,
-                  lineHeight: 1.06,
-                  color: isGold ? 'rgba(100,22,22,0.84)' : 'rgba(255,255,255,0.95)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {ticket.eventName}
-              </p>
-            </div>
-
-            <div
-              style={{
-                position: 'absolute',
-                left: 14,
-                right: 14,
-                bottom: 12,
-                zIndex: 4,
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'space-between',
-              }}
+              ref={holoLayerRef}
+              className="ticket-holo-front-layer"
+              style={
+                {
+                  '--mx': '50%',
+                  '--my': '50%',
+                  '--posx': '50%',
+                  '--posy': '50%',
+                } as CSSProperties
+              }
             >
-              <div>
-                <p
-                  style={{
-                    fontSize: 7.5,
-                    letterSpacing: '0.24em',
-                    textTransform: 'uppercase',
-                    color: isGold ? 'rgba(24,20,10,0.62)' : 'rgba(255,255,255,0.7)',
-                    fontWeight: 700,
-                  }}
-                >
-                  CHEKET
-                </p>
-                <p
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: 9,
-                    color: isGold ? 'rgba(24,20,10,0.7)' : 'rgba(255,255,255,0.82)',
-                  }}
-                >
-                  {ticketNo}
-                </p>
-              </div>
-              <p
-                style={{
-                  fontSize: 8,
-                  letterSpacing: '0.12em',
-                  color: isGold ? 'rgba(24,20,10,0.58)' : 'rgba(255,255,255,0.68)',
-                }}
-              >
-                TAP
-              </p>
+              <div className={`ticket-poke-shine${holoActive ? ' is-active' : ''}`} data-effect={pokeEffect} />
+              <div className={`ticket-poke-glare${holoActive ? ' is-active' : ''}`} />
             </div>
-          </div>
-        </div>
-      </div>
-
-      <ScallopEdge position="bottom" pageBg={pageBg} />
-    </div>
-  )
-}
-
-function TicketBack({ ticket, pageBg, onFlip, isGold = false }: FaceProps) {
-  const ticketNo = `No.${ticket.id.replace('tkt_', '').padStart(4, '0')}`
-  const g = getGrade(ticket.grade)
-
-  return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', height: CARD_HEIGHT, cursor: 'pointer' }}
-      onClick={onFlip}
-    >
-      <ScallopEdge position="top" pageBg={pageBg} />
-
-      <div style={{ height: BODY_H, position: 'relative', overflow: 'visible' }}>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            overflow: 'hidden',
-            ...(isGold ? GOLD_FOIL_BASE : { background: '#0b0f1a' }),
-          }}
-        >
-          {isGold && <GoldFoilLayer />}
-
-          <Image
-            src={ticket.poster}
-            alt={ticket.eventName}
-            fill
-            sizes={`${CARD_WIDTH}px`}
-            style={{ objectFit: 'cover', opacity: 0.26 }}
-          />
+          )}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               background: isGold
-                ? 'linear-gradient(to bottom, rgba(70,44,14,0.66) 0%, rgba(55,36,11,0.74) 100%)'
-                : 'linear-gradient(to bottom, rgba(9,13,24,0.9) 0%, rgba(9,13,24,0.93) 100%)',
-              zIndex: 2,
+                ? 'linear-gradient(to top, rgba(49,34,8,0.58) 10%, rgba(49,34,8,0.15) 48%, rgba(255,234,180,0.16) 100%)'
+                : 'linear-gradient(to top, rgba(11,15,26,0.82) 12%, rgba(11,15,26,0.2) 52%, rgba(11,15,26,0.08) 100%)',
             }}
           />
-
           <div
             style={{
-              position: 'relative',
-              zIndex: 3,
-              height: '100%',
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              color: isGold ? '#f8efd0' : 'rgba(255,255,255,0.9)',
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 30%)',
             }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontSize: 8, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.9 }}>
-                IU WORLD TOUR CONCERT
-              </p>
-              <p style={{ fontSize: 8, fontFamily: 'monospace', opacity: 0.9 }}>{ticketNo}</p>
+          />
+          {isGold && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 2, opacity: 0.55, mixBlendMode: 'overlay' }}>
+              <GoldFoilLayer />
             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
-            <div style={{ marginTop: 10 }}>
-              <p style={{ fontSize: 10, fontWeight: 900, lineHeight: 1.15, textTransform: 'uppercase' }}>
-                {ticket.eventName}
-              </p>
-            </div>
+function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
+  const grade = getGrade(ticket.grade)
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.28)', marginTop: 10, paddingTop: 10, display: 'grid', gap: 7 }}>
-              <BackRow label="Date" value={ticket.eventDate} isGold={isGold} />
-              <BackRow label="Venue" value={ticket.venue} isGold={isGold} />
-            </div>
+  return (
+    <div
+      style={{ display: 'flex', flexDirection: 'column', height: CARD_HEIGHT, cursor: 'pointer', position: 'relative' }}
+      onClick={onFlip}
+    >
+      <div
+        className="ticket-shape-megabox"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          ...(isGold ? GOLD_FOIL_BASE : { background: '#0b0f1a' }),
+        }}
+      >
+        {isGold && <GoldFoilLayer />}
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.22)', marginTop: 10, paddingTop: 10 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                <SeatBox label="Grade" value={ticket.grade} accent={isGold ? undefined : g.bg} isGold={isGold} />
-                <SeatBox label="Seat" value={ticket.seatLabel} accent={isGold ? undefined : '#f8e28a'} isGold={isGold} />
-              </div>
-            </div>
+        <Image
+          src={ticket.poster}
+          alt={ticket.eventName}
+          fill
+          sizes={`${CARD_WIDTH}px`}
+          style={{ objectFit: 'cover', opacity: 0.26 }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: isGold
+              ? 'linear-gradient(to bottom, rgba(70,44,14,0.66) 0%, rgba(55,36,11,0.74) 100%)'
+              : 'linear-gradient(to bottom, rgba(9,13,24,0.9) 0%, rgba(9,13,24,0.93) 100%)',
+            zIndex: 2,
+          }}
+        />
 
-            <div style={{ marginTop: 'auto', borderTop: '1px dashed rgba(255,255,255,0.24)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontSize: 16, fontWeight: 900 }}>
-                {ticket.originalPrice.toLocaleString()}
-                <span style={{ fontSize: 9, marginLeft: 3, opacity: 0.8 }}>원</span>
-              </p>
-              <p style={{ fontSize: 8, letterSpacing: '0.12em', opacity: 0.8 }}>TAP</p>
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 3,
+            height: '100%',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            color: isGold ? '#f8efd0' : 'rgba(255,255,255,0.9)',
+          }}
+        >
+          <p style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.7, fontWeight: 600 }}>
+            Collectible Ticket
+          </p>
+
+          <div style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.2, textTransform: 'uppercase' }}>
+              {ticket.eventName}
+            </p>
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.28)', marginTop: 18, paddingTop: 14, display: 'grid', gap: 10 }}>
+            <BackRow label="Date" value={ticket.attendedDate ?? ticket.eventDate.split(' ')[0]} isGold={isGold} />
+            <BackRow label="Venue" value={ticket.venue} isGold={isGold} />
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.22)', marginTop: 18, paddingTop: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <SeatBox label="Grade" value={ticket.grade} accent={isGold ? undefined : grade.bg} isGold={isGold} />
+              <SeatBox label="Seat" value={ticket.seatLabel} accent={isGold ? undefined : '#f8e28a'} isGold={isGold} />
             </div>
           </div>
         </div>
       </div>
-
-      <ScallopEdge position="bottom" pageBg={pageBg} />
     </div>
   )
 }
 
 function BackRow({ label, value, isGold = false }: { label: string; value: string; isGold?: boolean }) {
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-      <span style={{
-        fontSize: 6.5, letterSpacing: '0.12em', textTransform: 'uppercase',
-        color: isGold ? 'rgba(24,20,10,0.58)' : 'rgba(255,255,255,0.22)', fontWeight: 700, minWidth: 20, flexShrink: 0,
-      }}>{label}</span>
-      <span style={{
-        fontSize: 9, fontWeight: 600, color: isGold ? 'rgba(24,20,10,0.74)' : 'rgba(255,255,255,0.65)',
-        lineHeight: 1.3, wordBreak: 'keep-all',
-      }}>{value}</span>
+    <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+      <span
+        style={{
+          fontSize: 9,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: isGold ? 'rgba(24,20,10,0.58)' : 'rgba(255,255,255,0.3)',
+          fontWeight: 700,
+          minWidth: 36,
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: 600,
+          color: isGold ? 'rgba(24,20,10,0.74)' : 'rgba(255,255,255,0.75)',
+          lineHeight: 1.3,
+          wordBreak: 'keep-all',
+        }}
+      >
+        {value}
+      </span>
     </div>
   )
 }
 
-function SeatBox({ label, value, accent, isGold = false }: {
-  label: string; value: string; accent?: string; isGold?: boolean
+function SeatBox({
+  label,
+  value,
+  accent,
+  isGold = false,
+}: {
+  label: string
+  value: string
+  accent?: string
+  isGold?: boolean
 }) {
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 3, paddingTop: 5, paddingBottom: 5, borderRadius: 7,
-      backgroundColor: isGold ? 'rgba(20,18,10,0.07)' : accent ? `${accent}20` : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${isGold ? 'rgba(20,18,10,0.2)' : accent ? `${accent}40` : 'rgba(255,255,255,0.07)'}`,
-    }}>
-      <span style={{
-        fontSize: 6, textTransform: 'uppercase', letterSpacing: '0.15em',
-        color: isGold ? 'rgba(24,20,10,0.54)' : 'rgba(255,255,255,0.25)', fontWeight: 600,
-      }}>{label}</span>
-      <span style={{
-        fontSize: 10, fontWeight: 800, lineHeight: 1,
-        color: isGold ? '#231b09' : accent ? accent : 'rgba(255,255,255,0.82)',
-      }}>{value}</span>
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 5,
+        paddingTop: 10,
+        paddingBottom: 10,
+        borderRadius: 10,
+        backgroundColor: isGold ? 'rgba(20,18,10,0.07)' : accent ? `${accent}20` : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${isGold ? 'rgba(20,18,10,0.2)' : accent ? `${accent}40` : 'rgba(255,255,255,0.07)'}`,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 9,
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          color: isGold ? 'rgba(24,20,10,0.54)' : 'rgba(255,255,255,0.3)',
+          fontWeight: 600,
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 16,
+          fontWeight: 800,
+          lineHeight: 1,
+          color: isGold ? '#231b09' : accent ?? 'rgba(255,255,255,0.82)',
+        }}
+      >
+        {value}
+      </span>
     </div>
   )
 }
 
-// ?? HOLOGRAPHIC OVERLAY ??????????????????????????????????????????????????????
 function CollectibleTicketCard({
   ticket,
   isGold = false,
   compact = false,
   onOpen,
   holoVariant = 'rainbow',
+  enableHolo,
+  pokeEffect,
+  displayScale,
 }: {
   ticket: Ticket
   isGold?: boolean
   compact?: boolean
   onOpen?: () => void
   holoVariant?: HoloVariant
+  enableHolo?: boolean
+  pokeEffect?: PokeEffect
+  displayScale?: number
 }) {
+  const showHolo = enableHolo ?? !isGold
   const [flipped, setFlipped] = useState(false)
   const [holoActive, setHoloActive] = useState(false)
   const holoHostRef = useRef<HTMLDivElement>(null)
   const holoLayerRef = useRef<HTMLDivElement>(null)
   const holoRafRef = useRef<number | null>(null)
-  const pageBg = '#FAFAFA'
 
-  // Toggle flip on click - handle at the wrapper level
   const handleClick = useCallback(() => {
     if (compact) {
       onOpen?.()
       return
     }
-    setFlipped(prev => !prev)
+    setFlipped((prev) => !prev)
   }, [compact, onOpen])
 
   useEffect(() => {
@@ -434,8 +396,8 @@ function CollectibleTicketCard({
     const rect = host.getBoundingClientRect()
     if (!rect.width || !rect.height) return
 
-    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
-    const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))
+    const x = clamp((clientX - rect.left) / rect.width, 0, 1)
+    const y = clamp((clientY - rect.top) / rect.height, 0, 1)
     const mx = x * 100
     const my = y * 100
     const rx = (0.5 - y) * 10
@@ -444,6 +406,7 @@ function CollectibleTicketCard({
     if (holoRafRef.current !== null) {
       cancelAnimationFrame(holoRafRef.current)
     }
+
     holoRafRef.current = requestAnimationFrame(() => {
       const live = holoLayerRef.current
       if (!live) return
@@ -451,14 +414,20 @@ function CollectibleTicketCard({
       live.style.setProperty('--my', `${my}%`)
       live.style.setProperty('--rx', `${rx}deg`)
       live.style.setProperty('--ry', `${ry}deg`)
+      live.style.setProperty('--posx', `${mx}%`)
+      live.style.setProperty('--posy', `${my}%`)
     })
   }, [])
+
+  const resolvedScale = compact ? CARD_COMPACT_SCALE : displayScale ?? 1
+  const frameWidth = CARD_WIDTH * resolvedScale
+  const frameHeight = CARD_HEIGHT * resolvedScale
 
   return (
     <div
       style={{
-        width: compact ? CARD_COMPACT_WIDTH : `min(100%, ${CARD_WIDTH}px)`,
-        height: compact ? CARD_COMPACT_HEIGHT : CARD_HEIGHT,
+        width: frameWidth,
+        height: frameHeight,
         cursor: 'pointer',
         margin: '0 auto',
       }}
@@ -470,17 +439,24 @@ function CollectibleTicketCard({
           width: CARD_WIDTH,
           height: CARD_HEIGHT,
           transformOrigin: 'top left',
-          transform: compact ? `scale(${CARD_COMPACT_SCALE})` : 'none',
+          transform: resolvedScale === 1 ? 'none' : `scale(${resolvedScale})`,
         }}
       >
         {compact ? (
-          <TicketFront ticket={ticket} pageBg={pageBg} onFlip={() => {}} isGold={isGold} />
+          <TicketFront
+            ticket={ticket}
+            onFlip={() => {}}
+            isGold={isGold}
+            enableHolo={showHolo}
+            holoVariant={holoVariant}
+            pokeEffect={pokeEffect}
+          />
         ) : (
           <div
             ref={holoHostRef}
             className="ticket-holo-tilt"
             onMouseEnter={() => setHoloActive(true)}
-            onMouseMove={(e) => updateHoloFromPointer(e.clientX, e.clientY)}
+            onMouseMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
             onMouseLeave={() => {
               setHoloActive(false)
               const layer = holoLayerRef.current
@@ -489,39 +465,34 @@ function CollectibleTicketCard({
               layer.style.setProperty('--my', '50%')
               layer.style.setProperty('--rx', '0deg')
               layer.style.setProperty('--ry', '0deg')
+              layer.style.setProperty('--posx', '50%')
+              layer.style.setProperty('--posy', '50%')
             }}
           >
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              perspective={1200}
-              scale={1.02}
-              transitionSpeed={220}
-              glareEnable={false}
-            >
-            <ReactCardFlip
-              isFlipped={flipped}
-              flipDirection="horizontal"
-              flipSpeedFrontToBack={0.7}
-              flipSpeedBackToFront={0.7}
-              containerStyle={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
-            >
-              <div key="front" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-                <TicketFront
-                  ticket={ticket}
-                  pageBg={pageBg}
-                  onFlip={() => {}}
-                  isGold={isGold}
-                  enableHolo
-                  holoActive={holoActive}
-                  holoVariant={holoVariant}
-                  holoLayerRef={holoLayerRef}
-                />
-              </div>
-              <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-                <TicketBack ticket={ticket} pageBg={pageBg} onFlip={() => {}} isGold={isGold} />
-              </div>
-            </ReactCardFlip>
+            <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
+              <ReactCardFlip
+                isFlipped={flipped}
+                flipDirection="horizontal"
+                flipSpeedFrontToBack={0.7}
+                flipSpeedBackToFront={0.7}
+                containerStyle={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
+              >
+                <div key="front" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+                  <TicketFront
+                    ticket={ticket}
+                    onFlip={() => {}}
+                    isGold={isGold}
+                    enableHolo={showHolo}
+                    holoActive={holoActive}
+                    holoVariant={holoVariant}
+                    holoLayerRef={holoLayerRef}
+                    pokeEffect={pokeEffect}
+                  />
+                </div>
+                <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+                  <TicketBack ticket={ticket} onFlip={() => {}} isGold={isGold} />
+                </div>
+              </ReactCardFlip>
             </Tilt>
           </div>
         )}
@@ -530,91 +501,260 @@ function CollectibleTicketCard({
   )
 }
 
-// ?? SCREEN ???????????????????????????????????????????????????????????????????
+function CollectionCoverFlow({
+  tickets,
+  activeIndex,
+  onActiveIndexChange,
+  getEffect,
+}: {
+  tickets: Ticket[]
+  activeIndex: number
+  onActiveIndexChange: (index: number) => void
+  getEffect: (ticketId: string) => EffectType
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const [viewportWidth, setViewportWidth] = useState(360)
+
+  useEffect(() => {
+    const node = viewportRef.current
+    if (!node) return
+
+    const update = () => setViewportWidth(node.clientWidth || 360)
+    update()
+
+    const observer = new ResizeObserver(update)
+    observer.observe(node)
+
+    return () => observer.disconnect()
+  }, [])
+
+  const angleStep = tickets.length > 0 ? 360 / tickets.length : 0
+  const normalizedIndex = mod(activeIndex, tickets.length)
+  const baseRotation = -activeIndex * angleStep
+  const radius = clamp(viewportWidth * 0.31, 112, 152)
+
+  return (
+    <div className="collection-carousel-shell">
+      <div ref={viewportRef} className="collection-carousel-viewport">
+        <motion.div
+          className="collection-carousel-rotator"
+          animate={{ rotateY: baseRotation }}
+          transition={{ type: 'spring', stiffness: 120, damping: 20, mass: 0.9 }}
+        >
+          {tickets.map((ticket, index) => {
+            const rawOffset = index - normalizedIndex
+            const offset =
+              tickets.length > 0
+                ? rawOffset - Math.round(rawOffset / tickets.length) * tickets.length
+                : rawOffset
+            const absOffset = Math.abs(offset)
+            const effect = getEffect(ticket.id)
+            const pokeEffect = isPokeEffect(effect) ? effect : undefined
+            const armRotation = index * angleStep
+            const isFocus = absOffset < 0.45
+
+            return (
+              <div
+                key={ticket.id}
+                className="collection-carousel-arm"
+                style={{
+                  transform: `rotateY(${armRotation}deg) translateZ(${radius}px)`,
+                  zIndex: isFocus ? 20 : 10 - Math.round(absOffset),
+                }}
+              >
+                <div className="collection-carousel-card-anchor">
+                  <motion.div
+                    className="collection-carousel-card"
+                    initial={false}
+                    animate={{
+                      y: isFocus ? -6 : absOffset * 8 - 6,
+                      scale: isFocus ? 1.02 : clamp(0.88 - absOffset * 0.12, 0.68, 0.88),
+                      opacity: isFocus ? 1 : clamp(0.78 - absOffset * 0.22, 0.12, 0.78),
+                      filter: `brightness(${isFocus ? 1.04 : clamp(0.95 - absOffset * 0.1, 0.72, 0.95)}) saturate(${isFocus ? 1.04 : clamp(0.98 - absOffset * 0.06, 0.84, 0.98)})`,
+                    }}
+                    transition={{ type: 'spring', stiffness: 180, damping: 24, mass: 0.7 }}
+                    onClick={() => {
+                      if (!isFocus) {
+                        const delta = offset > 0 ? 1 : -1
+                        onActiveIndexChange(activeIndex + delta)
+                      }
+                    }}
+                    style={{ pointerEvents: isFocus || absOffset <= 1.2 ? 'auto' : 'none' }}
+                  >
+                    <div className={`collection-carousel-glow${isFocus ? ' is-active' : ''}`} />
+                    <CollectibleTicketCard
+                      ticket={ticket}
+                      compact={!isFocus}
+                      displayScale={isFocus ? 0.8 : undefined}
+                      isGold={effect === 'gold'}
+                      holoVariant={!pokeEffect && effect !== 'gold' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
+                      enableHolo={!pokeEffect && effect !== 'gold' && effect !== 'none'}
+                      pokeEffect={pokeEffect}
+                    />
+                  </motion.div>
+                </div>
+              </div>
+            )
+          })}
+        </motion.div>
+      </div>
+    </div>
+  )
+}
+
 export function CollectionScreen() {
   const { navigateTab, tickets } = useApp()
-  const collected = tickets.filter((t) => t.status === 'USED')
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const getVariant = (ticket: Ticket) => {
-    const num = Number(ticket.id.replace(/\D/g, '')) || 0
-    return HOLO_VARIANTS[num % HOLO_VARIANTS.length]
-  }
+  const collected = useMemo(() => tickets.filter((ticket) => ticket.status === 'USED'), [tickets])
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [effectPickerOpen, setEffectPickerOpen] = useState(false)
+  const [effectMap, setEffectMap] = useState<Record<string, EffectType>>({})
+
+  const allEffects: { key: EffectType; label: string }[] = [
+    { key: 'none', label: 'None' },
+    { key: 'gold', label: 'Gold' },
+    { key: 'rainbow', label: 'Rainbow' },
+    { key: 'aurora', label: 'Aurora' },
+    { key: 'prism', label: 'Prism' },
+    { key: 'cosmos', label: 'Cosmos' },
+    { key: 'sunset', label: 'Sunset' },
+    { key: 'neon', label: 'Neon' },
+    { key: 'poke-holo', label: 'Poke Holo' },
+    { key: 'poke-galaxy', label: 'Galaxy' },
+    { key: 'poke-v', label: 'Poke V' },
+    { key: 'poke-vmax', label: 'VMAX' },
+    { key: 'poke-vstar', label: 'VSTAR' },
+    { key: 'poke-rainbow', label: 'Secret Rainbow' },
+    { key: 'poke-secret', label: 'Secret Gold' },
+    { key: 'poke-fullart', label: 'Full Art' },
+    { key: 'poke-trainer', label: 'Trainer' },
+    { key: 'poke-radiant', label: 'Radiant' },
+    { key: 'poke-gallery-holo', label: 'Gallery Holo' },
+    { key: 'poke-gallery-v', label: 'Gallery V' },
+  ]
+
+  useEffect(() => {
+    if (collected.length === 0) {
+      setActiveIndex(0)
+      return
+    }
+
+    setActiveIndex((prev) => mod(prev, collected.length))
+  }, [collected.length])
+
+  const getEffect = useCallback(
+    (ticketId: string): EffectType => effectMap[ticketId] ?? getTicketEffect(ticketId),
+    [effectMap]
+  )
+
+  const setTicketEffect = useCallback((ticketId: string, effect: EffectType) => {
+    setEffectMap((prev) => ({ ...prev, [ticketId]: effect }))
+  }, [])
+
+  const normalizedActiveIndex = mod(activeIndex, collected.length)
+  const activeTicket = collected[normalizedActiveIndex] ?? null
+  const handlePrev = useCallback(() => {
+    setActiveIndex((prev) => prev - 1)
+  }, [])
+
+  const handleNext = useCallback(() => {
+    setActiveIndex((prev) => prev + 1)
+  }, [])
 
   return (
     <AppShell title="컬렉션">
-      <div className="flex flex-col h-full overflow-y-auto pb-24">
-        <div className="px-4 pt-4 pb-2">
-          <div className="mb-2">
-            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {collected.length}장
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            관람한 공연의 소장 티켓을 모아보세요. 카드를 탭하면 상세 정보를 볼 수 있어요.
-          </p>
-        </div>
-
+      <div className="flex h-full flex-col overflow-hidden pb-24">
         {collected.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-4 px-8 py-16">
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-              <Music2 className="w-8 h-8 text-muted-foreground" />
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <Music2 className="h-8 w-8 text-muted-foreground" />
             </div>
-            <div className="text-center">
-              <p className="font-semibold text-foreground">아직 컬렉션이 없어요</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                공연을 관람하면 티켓이 여기에 모입니다
+            <div>
+              <p className="font-semibold text-foreground">No collected tickets yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tickets marked as used will appear here as collectible cards.
               </p>
             </div>
             <button
               onClick={() => navigateTab('concerts')}
-              className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
+              className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground"
             >
-              공연 둘러보기
+              Browse concerts
             </button>
           </div>
         ) : (
-          <div className="px-4 pt-2 grid grid-cols-2 gap-3 justify-items-center">
-            {collected.map((ticket, idx) => (
-              <CollectibleTicketCard
-                key={ticket.id}
-                ticket={ticket}
-                isGold={idx === 0}
-                compact
-                holoVariant={getVariant(ticket)}
-                onOpen={() => setSelectedTicket(ticket)}
-              />
-            ))}
+          <div className="flex flex-1 flex-col px-4 pt-4">
+            <div className="min-h-[108px] pt-10 text-center">
+              {activeTicket && (
+                <div className="flex items-start justify-center gap-2">
+                  <h2 className="text-lg font-semibold leading-tight text-foreground">{activeTicket.eventName}</h2>
+                  <button
+                    type="button"
+                    aria-label="Open effect settings"
+                    onClick={() => setEffectPickerOpen((prev) => !prev)}
+                    className="mt-0.5 text-foreground/70 transition hover:text-foreground"
+                  >
+                    <Settings2 className="h-5 w-5 stroke-[1.8]" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {effectPickerOpen && activeTicket && (
+              <div className="mx-auto mb-4 flex w-full max-w-xl flex-wrap justify-center gap-2 rounded-2xl bg-white/75 px-3 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+                {allEffects.map(({ key, label }) => {
+                  const isActive = getEffect(activeTicket.id) === key
+                  const isGoldBtn = key === 'gold'
+
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setTicketEffect(activeTicket.id, key)}
+                      className="rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
+                      style={{
+                        border: isActive
+                          ? isGoldBtn
+                            ? '2px solid #d5b45a'
+                            : '2px solid #00c598'
+                          : '1px solid #d7d7d7',
+                        background: isActive ? (isGoldBtn ? '#fdf3d7' : '#e6faf5') : '#f5f5f5',
+                        color: isActive ? (isGoldBtn ? '#9a7b2a' : '#00a37d') : '#777',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <div className="mx-auto grid w-full max-w-[640px] grid-cols-[48px_minmax(0,1fr)_48px] items-start gap-2 pt-2">
+              <button
+                type="button"
+                aria-label="Previous ticket"
+                onClick={handlePrev}
+                className="mt-[220px] flex h-14 w-12 items-center justify-center text-foreground/85 transition hover:text-foreground"
+              >
+                <ChevronLeft className="h-10 w-10 stroke-[1.6]" />
+              </button>
+              <div className="min-w-0">
+                <CollectionCoverFlow
+                  tickets={collected}
+                  activeIndex={activeIndex}
+                  onActiveIndexChange={setActiveIndex}
+                  getEffect={getEffect}
+                />
+              </div>
+              <button
+                type="button"
+                aria-label="Next ticket"
+                onClick={handleNext}
+                className="mt-[220px] flex h-14 w-12 items-center justify-center text-foreground/85 transition hover:text-foreground"
+              >
+                <ChevronRight className="h-10 w-10 stroke-[1.6]" />
+              </button>
+            </div>
           </div>
         )}
       </div>
-
-      {selectedTicket && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
-          onClick={() => setSelectedTicket(null)}
-        >
-          <div
-            className="relative w-full max-w-sm flex flex-col items-center gap-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CollectibleTicketCard
-              ticket={selectedTicket}
-              isGold={selectedTicket.id === collected[0]?.id}
-              holoVariant={getVariant(selectedTicket)}
-            />
-            <button
-              type="button"
-              onClick={() => setSelectedTicket(null)}
-              className="px-4 py-2 rounded-lg bg-white text-black text-sm font-semibold"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
     </AppShell>
   )
 }
-
-
-
