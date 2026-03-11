@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.purchase
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
@@ -35,7 +36,9 @@ class SeatSelectionViewModel(
     val uiState: StateFlow<SeatSelectionUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d(TAG, "init — eventId=$eventId")
         val event = MockDataSource.mockEvents.find { it.id == eventId }
+        Log.d(TAG, "init — event found: ${event != null}, maxPerUser=${event?.maxPerUser}")
         _uiState.value = SeatSelectionUiState(
             event = event,
             maxSeats = event?.maxPerUser ?: 4,
@@ -43,7 +46,9 @@ class SeatSelectionViewModel(
     }
 
     fun selectGrade(grade: Grade) {
+        Log.d(TAG, "selectGrade() grade=${grade.name}")
         val seats = MockDataSource.generateSeats(eventId, grade.name)
+        Log.d(TAG, "selectGrade() generated ${seats.size} seats")
         _uiState.update {
             it.copy(
                 selectedGrade = grade,
@@ -55,18 +60,23 @@ class SeatSelectionViewModel(
     }
 
     fun toggleSeat(seat: Seat) {
-        if (seat.status != SeatStatus.AVAILABLE) return
+        if (seat.status != SeatStatus.AVAILABLE) {
+            Log.d(TAG, "toggleSeat() seat=${seat.id} not available (status=${seat.status})")
+            return
+        }
 
         _uiState.update { state ->
             val currentSelected = state.selectedSeats
             val isAlreadySelected = currentSelected.any { it.id == seat.id }
             val newSelected = if (isAlreadySelected) {
+                Log.d(TAG, "toggleSeat() deselecting seat=${seat.id}")
                 currentSelected.filter { it.id != seat.id }
             } else {
                 if (currentSelected.size >= state.maxSeats) {
-                    // Already at max, don't add
+                    Log.d(TAG, "toggleSeat() max seats reached (${state.maxSeats}), ignoring seat=${seat.id}")
                     return@update state
                 }
+                Log.d(TAG, "toggleSeat() selecting seat=${seat.id}")
                 currentSelected + seat
             }
             state.copy(selectedSeats = newSelected)
@@ -74,6 +84,7 @@ class SeatSelectionViewModel(
     }
 
     fun goBackToGradeStep() {
+        Log.d(TAG, "goBackToGradeStep()")
         _uiState.update {
             it.copy(
                 step = SeatSelectionStep.GRADE,
@@ -88,12 +99,15 @@ class SeatSelectionViewModel(
         val state = _uiState.value
         NavParams.selectedSeats = state.selectedSeats
         NavParams.totalPrice = state.selectedSeats.sumOf { it.price }
+        Log.d(TAG, "saveToNavParams() seats=${state.selectedSeats.size}, totalPrice=${NavParams.totalPrice}")
     }
 
     val totalPrice: Int
         get() = _uiState.value.selectedSeats.sumOf { it.price }
 
     companion object {
+        private const val TAG = "SeatSelectionViewModel"
+
         fun factory(eventId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 SeatSelectionViewModel(eventId)

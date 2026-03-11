@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.concerts
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -32,18 +33,28 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
     private val popularityOrder = listOf("evt_001", "evt_002", "evt_004", "evt_006", "evt_007", "evt_008")
 
     init {
+        Log.d(TAG, "init — loading events")
         viewModelScope.launch {
             eventRepository.getEvents().collect { events ->
+                Log.d(TAG, "getEvents() received ${events.size} events")
                 _uiState.value = _uiState.value.copy(allEvents = events, isLoading = false)
                 applyFilters()
             }
         }
     }
 
-    fun onSearchChange(query: String) { _uiState.value = _uiState.value.copy(searchQuery = query); applyFilters() }
-    fun onSortChange(sort: SortOption) { _uiState.value = _uiState.value.copy(sortBy = sort); applyFilters() }
+    fun onSearchChange(query: String) {
+        Log.d(TAG, "onSearchChange() query=$query")
+        _uiState.value = _uiState.value.copy(searchQuery = query); applyFilters()
+    }
+
+    fun onSortChange(sort: SortOption) {
+        Log.d(TAG, "onSortChange() sort=$sort")
+        _uiState.value = _uiState.value.copy(sortBy = sort); applyFilters()
+    }
 
     fun onRegionToggle(region: String?) {
+        Log.d(TAG, "onRegionToggle() region=$region")
         if (region == null) {
             _uiState.value = _uiState.value.copy(selectedRegions = emptyList())
         } else {
@@ -55,7 +66,7 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
     }
 
     fun toggleFilter() { _uiState.value = _uiState.value.copy(isFilterExpanded = !_uiState.value.isFilterExpanded) }
-    fun resetFilters() { _uiState.value = _uiState.value.copy(selectedRegions = emptyList()); applyFilters() }
+    fun resetFilters() { Log.d(TAG, "resetFilters()"); _uiState.value = _uiState.value.copy(selectedRegions = emptyList()); applyFilters() }
     fun hasActiveFilters(): Boolean = _uiState.value.selectedRegions.isNotEmpty()
     fun activeFilterCount(): Int = _uiState.value.selectedRegions.size
 
@@ -85,10 +96,13 @@ class ConcertsViewModel(private val eventRepository: EventRepository) : ViewMode
             SortOption.CLOSING -> result.sortedBy { it.openDate ?: "9999" }
         }
 
+        Log.d(TAG, "applyFilters() query='${s.searchQuery}', regions=${s.selectedRegions}, sort=${s.sortBy}, resultCount=${result.size}")
         _uiState.value = s.copy(filteredEvents = result)
     }
 
     companion object {
+        private const val TAG = "ConcertsViewModel"
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
