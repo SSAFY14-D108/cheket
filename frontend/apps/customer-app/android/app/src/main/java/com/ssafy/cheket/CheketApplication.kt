@@ -30,6 +30,6 @@ class CheketApplication : Application() {
         )
 
         // Mock API 사용 (서버 준비되면 RealAppContainer()로 변경)
-        appContainer = FakeAppContainer()
+        appContainer = RealAppContainer()
     }
 }

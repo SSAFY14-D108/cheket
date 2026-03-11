@@ -2,6 +2,7 @@ package com.ssafy.cheket.features.collection
 
 import android.annotation.SuppressLint
 import android.graphics.Color as AndroidColor
+import android.net.Uri
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -43,7 +44,7 @@ import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
 
-private const val COLLECTION_BASE_URL = "http://10.0.2.2:3000/collection/"
+private const val COLLECTION_BASE_URL = "https://j14d108.p.ssafy.io/collection/index.html"
 
 @Composable
 fun CollectionScreen(
@@ -52,7 +53,7 @@ fun CollectionScreen(
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTicketId by remember { mutableStateOf<String?>(null) }
+    var selectedTicket by remember { mutableStateOf<Ticket?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // ── Collection grid ──
@@ -96,7 +97,7 @@ fun CollectionScreen(
                             CompactTicketCard(
                                 ticket = ticket,
                                 isGold = index == 0,
-                                onClick = { selectedTicketId = ticket.id },
+                                onClick = { selectedTicket = ticket },
                             )
                         }
                     }
@@ -106,8 +107,8 @@ fun CollectionScreen(
 
         // ── Overlay modal with WebView ──
         TicketOverlay(
-            ticketId = selectedTicketId,
-            onDismiss = { selectedTicketId = null },
+            ticket = selectedTicket,
+            onDismiss = { selectedTicket = null },
         )
     }
 }
@@ -119,10 +120,10 @@ fun CollectionScreen(
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun TicketOverlay(
-    ticketId: String?,
+    ticket: Ticket?,
     onDismiss: () -> Unit,
 ) {
-    val visible = ticketId != null
+    val visible = ticket != null
 
     AnimatedVisibility(
         visible = visible,
@@ -130,7 +131,19 @@ private fun TicketOverlay(
         exit = fadeOut(tween(250)),
     ) {
         var isLoading by remember { mutableStateOf(true) }
-        val url = ticketId?.let { "$COLLECTION_BASE_URL$it" } ?: ""
+        val url = ticket?.let {
+            Uri.parse(COLLECTION_BASE_URL)
+                .buildUpon()
+                .appendQueryParameter("name", it.eventName)
+                .appendQueryParameter("date", it.eventDate)
+                .appendQueryParameter("venue", it.venue)
+                .appendQueryParameter("seat", it.seatLabel)
+                .appendQueryParameter("grade", it.grade)
+                .appendQueryParameter("poster", it.poster)
+                .appendQueryParameter("id", it.id)
+                .build()
+                .toString()
+        } ?: ""
 
         Box(modifier = Modifier.fillMaxSize()) {
             // 반투명 배경 (WebView 로드 전에도 보임)
@@ -141,7 +154,7 @@ private fun TicketOverlay(
             )
 
             // 전체화면 투명 WebView
-            if (ticketId != null) {
+            if (ticket != null) {
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {

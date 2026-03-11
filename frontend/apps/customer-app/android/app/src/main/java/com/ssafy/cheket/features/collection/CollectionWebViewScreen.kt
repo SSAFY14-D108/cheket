@@ -19,10 +19,9 @@ import com.ssafy.cheket.ui.theme.Primary
 /**
  * WebView로 홀로그래픽 티켓 상세 UI를 띄우는 화면.
  *
- * 개발 시: v0 Next.js 앱을 로컬에서 실행 → http://10.0.2.2:3000/collection/{ticketId}
- * 배포 시: 실제 서버 URL로 교체
+ * 서버: https://j14d108.p.ssafy.io/collection/{ticketId}
  */
-private const val COLLECTION_BASE_URL = "http://10.0.2.2:3000/collection/"
+private const val COLLECTION_BASE_URL = "https://j14d108.p.ssafy.io/collection/"
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
