@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ssafy.cheket.core.model.EventStatus
+import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.core.model.TicketStatus
 import com.ssafy.cheket.ui.theme.*
 
@@ -27,10 +27,10 @@ fun TicketStatusBadge(status: TicketStatus) {
 }
 
 @Composable
-fun EventStatusBadge(status: EventStatus) {
+fun ShowStatusBadge(status: ShowStatus) {
     val (bg, text, label) = when (status) {
-        EventStatus.ON_SALE -> Triple(StatusOnSale.copy(alpha = 0.15f), StatusOnSale, "판매중")
-        EventStatus.SOLD_OUT -> Triple(StatusSoldOut.copy(alpha = 0.15f), StatusSoldOut, "매진")
+        ShowStatus.ON_SALE -> Triple(StatusOnSale.copy(alpha = 0.15f), StatusOnSale, "판매중")
+        ShowStatus.SOLD_OUT -> Triple(StatusSoldOut.copy(alpha = 0.15f), StatusSoldOut, "매진")
     }
     StatusLabel(bg = bg, text = text, label = label)
 }

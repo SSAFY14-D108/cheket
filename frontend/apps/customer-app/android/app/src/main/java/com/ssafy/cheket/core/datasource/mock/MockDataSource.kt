@@ -15,21 +15,21 @@ object MockDataSource {
 
     private const val P = "file:///android_asset/posters"
 
-    val mockEvents = listOf(
-        Event(
+    val mockShows = listOf(
+        Show(
             id = "evt_001",
             name = "AESPA WORLD TOUR 2026",
             artistName = "aespa",
             date = "2026.04.12 (토) ~ 04.13 (일)",
             dates = listOf(
-                EventDate("evt_001_d1", "2026.04.12 (토) 18:00", "DAY 1"),
-                EventDate("evt_001_d2", "2026.04.12 (토) 21:00", "DAY 1 (야간)"),
-                EventDate("evt_001_d3", "2026.04.13 (일) 18:00", "DAY 2"),
+                ShowDate("evt_001_d1", "2026.04.12 (토) 18:00", "DAY 1"),
+                ShowDate("evt_001_d2", "2026.04.12 (토) 21:00", "DAY 1 (야간)"),
+                ShowDate("evt_001_d3", "2026.04.13 (일) 18:00", "DAY 2"),
             ),
             venue = "올림픽체조경기장, 서울",
             region = "서울",
             poster = "$P/aespa.webp",
-            status = EventStatus.ON_SALE,
+            status = ShowStatus.ON_SALE,
             maxPerUser = 4,
             openDate = "2026-04-12",
             grades = listOf(
@@ -46,19 +46,19 @@ object MockDataSource {
                 RefundRule("rr_001_4", 0, 1f, "공연 당일 이후"),
             ),
         ),
-        Event(
+        Show(
             id = "evt_002",
             name = "METALLICA M72 WORLD TOUR",
             artistName = "Metallica",
             date = "2026.05.24 (토) ~ 05.25 (일)",
             dates = listOf(
-                EventDate("evt_002_d1", "2026.05.24 (토) 18:00", "DAY 1"),
-                EventDate("evt_002_d2", "2026.05.25 (일) 18:00", "DAY 2"),
+                ShowDate("evt_002_d1", "2026.05.24 (토) 18:00", "DAY 1"),
+                ShowDate("evt_002_d2", "2026.05.25 (일) 18:00", "DAY 2"),
             ),
             venue = "고척스카이돔, 서울",
             region = "서울",
             poster = "$P/metallica.webp",
-            status = EventStatus.ON_SALE,
+            status = ShowStatus.ON_SALE,
             maxPerUser = 2,
             openDate = "2026-05-24",
             grades = listOf(
@@ -75,7 +75,7 @@ object MockDataSource {
                 RefundRule("rr_002_4", 0, 1f, "공연 1일 전 및 당일"),
             ),
         ),
-        Event(
+        Show(
             id = "evt_003",
             artistName = "Seoul Philharmonic Orchestra",
             name = "서울 필하모닉 뉴이어 콘서트",
@@ -83,7 +83,7 @@ object MockDataSource {
             venue = "예술의전당 콘서트홀, 서울",
             region = "서울",
             poster = "$P/philharmonic.webp",
-            status = EventStatus.SOLD_OUT,
+            status = ShowStatus.SOLD_OUT,
             maxPerUser = 6,
             openDate = "2026-01-01",
             grades = listOf(
@@ -99,19 +99,19 @@ object MockDataSource {
                 RefundRule("rr_003_4", 0, 1f, "공연 당일 이후"),
             ),
         ),
-        Event(
+        Show(
             id = "evt_004",
             name = "ULTRA KOREA 2026",
             artistName = "Martin Garrix, Armin van Buuren 외",
             date = "2026.06.07 (토) ~ 06.08 (일)",
             dates = listOf(
-                EventDate("evt_004_d1", "2026.06.07 (토) 14:00", "DAY 1"),
-                EventDate("evt_004_d2", "2026.06.08 (일) 14:00", "DAY 2"),
+                ShowDate("evt_004_d1", "2026.06.07 (토) 14:00", "DAY 1"),
+                ShowDate("evt_004_d2", "2026.06.08 (일) 14:00", "DAY 2"),
             ),
             venue = "잠실종합운동장, 서울",
             region = "서울",
             poster = "$P/ultrakorea.webp",
-            status = EventStatus.ON_SALE,
+            status = ShowStatus.ON_SALE,
             maxPerUser = 4,
             openDate = "2026-06-07",
             grades = listOf(
@@ -126,7 +126,7 @@ object MockDataSource {
                 RefundRule("rr_004_4", 0, 1f, "공연 2일 전 및 당일"),
             ),
         ),
-        Event(
+        Show(
             id = "evt_005",
             name = "JARASUM JAZZ FESTIVAL",
             artistName = "Pat Metheny, Snarky Puppy 외",
@@ -134,7 +134,7 @@ object MockDataSource {
             venue = "자라섬, 가평",
             region = "경기",
             poster = "$P/jarasum.webp",
-            status = EventStatus.SOLD_OUT,
+            status = ShowStatus.SOLD_OUT,
             maxPerUser = 8,
             openDate = "2026-10-05",
             grades = listOf(
@@ -267,9 +267,9 @@ object MockDataSource {
 
     // ── Seat generation (matches v0 logic) ──
 
-    fun generateSeats(eventId: String, gradeName: String? = null): List<Seat> {
-        val event = mockEvents.find { it.id == eventId } ?: return emptyList()
-        val grades = event.grades
+    fun generateSeats(showId: String, gradeName: String? = null): List<Seat> {
+        val show = mockShows.find { it.id == showId } ?: return emptyList()
+        val grades = show.grades
         val cols = 10
         val rowsPerGrade = 4
         val seats = mutableListOf<Seat>()
@@ -290,7 +290,7 @@ object MockDataSource {
                         else -> SeatStatus.AVAILABLE
                     }
                     seats.add(Seat(
-                        id = "${eventId}_${grade.name}_${rowLetters[r]}$num",
+                        id = "${showId}_${grade.name}_${rowLetters[r]}$num",
                         row = rowLabel,
                         number = num,
                         grade = grade.name,
@@ -304,13 +304,13 @@ object MockDataSource {
     }
 
     fun getResaleGrouped(): List<ResaleGroupItem> =
-        mockResaleItems.groupBy { it.eventId }.map { (eventId, items) ->
+        mockResaleItems.groupBy { it.showId }.map { (showId, items) ->
             ResaleGroupItem(
-                eventId = eventId,
-                eventName = items.first().eventName,
+                showId = showId,
+                showName = items.first().showName,
                 poster = items.first().poster,
                 venue = items.first().venue,
-                eventDate = items.first().eventDate,
+                showDate = items.first().showDate,
                 count = items.size,
                 minPrice = items.minOf { it.resalePrice },
                 items = items,

@@ -3,37 +3,37 @@ package com.ssafy.cheket.core.repository.impl
 import android.util.Log
 import com.ssafy.cheket.core.model.*
 import com.ssafy.cheket.core.network.service.ShowService
-import com.ssafy.cheket.core.repository.EventRepository
+import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-private const val TAG = "EventRepositoryImpl"
+private const val TAG = "ShowRepositoryImpl"
 
-class EventRepositoryImpl(
+class ShowRepositoryImpl(
     private val showService: ShowService,
-) : EventRepository {
+) : ShowRepository {
 
-    override fun getEvents(): Flow<List<Event>> = flow {
-        Log.d(TAG, "getEvents()")
+    override fun getShows(): Flow<List<Show>> = flow {
+        Log.d(TAG, "getShows()")
         try {
             val response = showService.getShows()
-            Log.d(TAG, "getEvents() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
-            val events = response.data?.shows?.map { dto ->
-                Event(
+            Log.d(TAG, "getShows() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
+            val shows = response.data?.shows?.map { dto ->
+                Show(
                     id = dto.showId.toString(),
                     name = dto.title,
                     date = dto.show?.showStartDate ?: "",
                     venue = dto.venue,
                     region = dto.region,
                     poster = dto.posterUrl,
-                    status = if (dto.status == "SOLD_OUT") EventStatus.SOLD_OUT else EventStatus.ON_SALE,
+                    status = if (dto.status == "SOLD_OUT") ShowStatus.SOLD_OUT else ShowStatus.ON_SALE,
                     maxPerUser = dto.purchaseLimit ?: 4,
                     grades = emptyList(),
                 )
             } ?: emptyList()
-            emit(events)
+            emit(shows)
         } catch (e: Exception) {
-            Log.e(TAG, "getEvents() error", e)
+            Log.e(TAG, "getShows() error", e)
             emit(emptyList())
         }
     }
@@ -64,7 +64,7 @@ class EventRepositoryImpl(
             val items = response.data?.shows?.map { dto ->
                 OpenScheduleItem(
                     id = dto.showId.toString(),
-                    eventId = dto.showId.toString(),
+                    showId = dto.showId.toString(),
                     name = dto.title,
                     openLabel = dto.reservation?.startDate ?: "",
                     openType = dto.status,
@@ -86,13 +86,13 @@ class EventRepositoryImpl(
         emit(emptyList())
     }
 
-    override suspend fun getEventById(id: String): Event? {
-        Log.d(TAG, "getEventById() id=$id")
+    override suspend fun getShowById(id: String): Show? {
+        Log.d(TAG, "getShowById() id=$id")
         return try {
             val response = showService.getShowDetail(id.toLong())
-            Log.d(TAG, "getEventById() statusCode=${response.httpStatusCode}")
+            Log.d(TAG, "getShowById() statusCode=${response.httpStatusCode}")
             response.data?.let { dto ->
-                Event(
+                Show(
                     id = dto.showId.toString(),
                     name = dto.title,
                     artistName = dto.artist,
@@ -100,7 +100,7 @@ class EventRepositoryImpl(
                     venue = dto.venue,
                     region = dto.region,
                     poster = dto.posterUrl,
-                    status = if (dto.status == "SOLD_OUT") EventStatus.SOLD_OUT else EventStatus.ON_SALE,
+                    status = if (dto.status == "SOLD_OUT") ShowStatus.SOLD_OUT else ShowStatus.ON_SALE,
                     maxPerUser = 4,
                     grades = dto.grade.map { g ->
                         Grade(name = g.gradeName, price = g.price, remaining = 0)
@@ -117,7 +117,7 @@ class EventRepositoryImpl(
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "getEventById() error", e)
+            Log.e(TAG, "getShowById() error", e)
             null
         }
     }

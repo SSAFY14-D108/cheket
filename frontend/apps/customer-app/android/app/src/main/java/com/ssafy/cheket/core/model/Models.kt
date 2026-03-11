@@ -1,7 +1,7 @@
 package com.ssafy.cheket.core.model
 
 enum class TicketStatus { SOLD, LISTED, USED, EXPIRED }
-enum class EventStatus { ON_SALE, SOLD_OUT }
+enum class ShowStatus { ON_SALE, SOLD_OUT }
 enum class SeatStatus { AVAILABLE, LOCKED, SOLD }
 
 enum class TxType { PURCHASE, RESALE_LIST, RESALE_BUY, TRANSFER }
@@ -24,7 +24,7 @@ data class Grade(
     val color: String? = null,
 )
 
-data class EventDate(
+data class ShowDate(
     val id: String,
     val label: String,      // e.g. "2026.04.12 (토) 18:00"
     val day: String = "",   // e.g. "DAY 1"
@@ -37,16 +37,16 @@ data class RefundRule(
     val label: String,
 )
 
-data class Event(
+data class Show(
     val id: String,
     val name: String,
     val artistName: String? = null,
     val date: String,
-    val dates: List<EventDate> = emptyList(),
+    val dates: List<ShowDate> = emptyList(),
     val venue: String,
     val region: String,
     val poster: String,
-    val status: EventStatus,
+    val status: ShowStatus,
     val maxPerUser: Int,
     val grades: List<Grade>,
     val openDate: String? = null,
@@ -56,9 +56,9 @@ data class Event(
 
 data class Ticket(
     val id: String,
-    val eventId: String,
-    val eventName: String,
-    val eventDate: String,
+    val showId: String,
+    val showName: String,
+    val showDate: String,
     val venue: String,
     val poster: String,
     val seatId: String,
@@ -91,9 +91,9 @@ data class Seat(
 data class ResaleItem(
     val id: String,
     val ticketId: String,
-    val eventId: String,
-    val eventName: String,
-    val eventDate: String,
+    val showId: String,
+    val showName: String,
+    val showDate: String,
     val venue: String,
     val poster: String,
     val seatLabel: String,
@@ -104,11 +104,11 @@ data class ResaleItem(
 )
 
 data class ResaleGroupItem(
-    val eventId: String,
-    val eventName: String,
+    val showId: String,
+    val showName: String,
     val poster: String,
     val venue: String,
-    val eventDate: String,
+    val showDate: String,
     val count: Int,
     val minPrice: Int,
     val items: List<ResaleItem>,
@@ -116,7 +116,7 @@ data class ResaleGroupItem(
 
 data class BannerSlide(
     val id: String,
-    val eventId: String,
+    val showId: String,
     val image: String,
     val title: String,
     val subtitle: String,
@@ -132,7 +132,7 @@ data class CategoryIcon(
 
 data class RankingItem(
     val rank: Int,
-    val eventId: String,
+    val showId: String,
     val name: String,
     val venue: String,
     val poster: String,
@@ -141,7 +141,7 @@ data class RankingItem(
 
 data class OpenScheduleItem(
     val id: String,
-    val eventId: String,
+    val showId: String,
     val name: String,
     val openLabel: String,
     val openType: String,
@@ -152,7 +152,7 @@ data class OpenScheduleItem(
 
 data class DiscountItem(
     val id: String,
-    val eventId: String,
+    val showId: String,
     val name: String,
     val venue: String,
     val dates: String,

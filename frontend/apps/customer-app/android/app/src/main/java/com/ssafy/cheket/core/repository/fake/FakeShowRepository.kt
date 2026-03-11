@@ -3,16 +3,16 @@ package com.ssafy.cheket.core.repository.fake
 import android.util.Log
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.model.*
-import com.ssafy.cheket.core.repository.EventRepository
+import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-private const val TAG = "FakeEventRepo"
+private const val TAG = "FakeShowRepo"
 
-class FakeEventRepository : EventRepository {
-    override fun getEvents(): Flow<List<Event>> = flow {
-        Log.d(TAG, "getEvents()")
-        emit(MockDataSource.mockEvents)
+class FakeShowRepository : ShowRepository {
+    override fun getShows(): Flow<List<Show>> = flow {
+        Log.d(TAG, "getShows()")
+        emit(MockDataSource.mockShows)
     }
 
     override fun getBannerSlides(): Flow<List<BannerSlide>> = flow {
@@ -40,8 +40,8 @@ class FakeEventRepository : EventRepository {
         emit(MockDataSource.discountItems)
     }
 
-    override suspend fun getEventById(id: String): Event? {
-        Log.d(TAG, "getEventById() id=$id")
-        return MockDataSource.mockEvents.find { it.id == id }
+    override suspend fun getShowById(id: String): Show? {
+        Log.d(TAG, "getShowById() id=$id")
+        return MockDataSource.mockShows.find { it.id == id }
     }
 }
