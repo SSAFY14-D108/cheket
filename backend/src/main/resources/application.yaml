@@ -43,3 +43,5 @@ blockchain:
     rpc-url: ${BLOCKCHAIN_RPC_URL}
     platform-private-key: ${PRIVATE_KEY}
     initial-transfer-amount: ${BLOCKCHAIN_INITIAL_TRANSFER_AMOUNT}
+    ssf-contract-address: ${BLOCKCHAIN_SSF_CONTRACT}
+    chain-id: ${BLOCKCHAIN_CHAIN_ID}
