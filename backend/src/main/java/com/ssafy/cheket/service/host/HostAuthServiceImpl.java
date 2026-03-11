@@ -8,9 +8,12 @@ import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.exception.common.UnauthorizedException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class HostAuthServiceImpl implements HostAuthService {
     private final HostRepository hostRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final StringRedisTemplate redisTemplate;
 
     // 주최측 로그인
     @Override
@@ -37,6 +41,17 @@ public class HostAuthServiceImpl implements HostAuthService {
 
         return new LoginResponse(accessToken, refreshToken);
 
+    }
+
+    // 주최측 로그아웃
+    // Access Token을 Redis 블랙리스트에 등록
+    // → JwtAuthenticationFilter가 매 요청마다 블랙리스트 확인
+    // → 블랙리스트에 있으면 인증 거부 (401)
+    // → TTL = 토큰 남은 만료시간 (만료되면 Redis에서 자동 삭제 → 쌓이지 않음)
+    @Override
+    public void hostLogout(String accessToken) {
+        long expiration = jwtTokenProvider.getRemainingExpiration(accessToken);
+        redisTemplate.opsForValue().set("blacklist:" + accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
     }
 
 }
