@@ -1,6 +1,15 @@
 import type { HostShowDetail, ShowFormPayload } from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 
+const FIXED_PLATFORM_STAKEHOLDER: Stakeholder = {
+  role: "organizer",
+  name: "CHEKET",
+  businessNo: "000-00-00000",
+  shareBps: "500",
+  verified: true,
+  isFixed: true,
+}
+
 export interface ShowFormValues {
   mode: "create" | "edit"
   title: string
@@ -66,18 +75,42 @@ export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
 
 export function buildInitialStakeholders(initialData?: HostShowDetail): Stakeholder[] {
   if (!initialData?.stakeholders?.length) {
-    return [
-      { role: "organizer", name: "", businessNo: "", shareBps: "" },
-      { role: "artist", name: "", phone: "", shareBps: "" },
-    ]
+    return [{ ...FIXED_PLATFORM_STAKEHOLDER }, { role: "artist", name: "", phone: "", shareBps: "" }]
   }
 
-  return initialData.stakeholders.map((stakeholder) => ({
+  const mappedStakeholders = initialData.stakeholders.map((stakeholder) => ({
     role: stakeholder.role,
     userId: stakeholder.userId,
     name: stakeholder.name ?? "",
     shareBps: String(stakeholder.shareBps),
+    verified: Boolean(stakeholder.userId),
+    isFixed: stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name,
+    ...(stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name
+      ? { businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo, verified: true, isFixed: true }
+      : {}),
   }))
+
+  const fixedStakeholderIndex = mappedStakeholders.findIndex(
+    (stakeholder) =>
+      stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name &&
+      stakeholder.businessNo === FIXED_PLATFORM_STAKEHOLDER.businessNo
+  )
+
+  if (fixedStakeholderIndex < 0) {
+    return [{ ...FIXED_PLATFORM_STAKEHOLDER }, ...mappedStakeholders]
+  }
+
+  const [fixedStakeholder] = mappedStakeholders.splice(fixedStakeholderIndex, 1)
+
+  return [
+    {
+      ...fixedStakeholder,
+      verified: true,
+      isFixed: true,
+      businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo,
+    },
+    ...mappedStakeholders,
+  ]
 }
 
 export function buildInitialRefundPolicy(initialData?: HostShowDetail): RefundItem[] {
@@ -161,6 +194,10 @@ export function buildValidationMessage(values: ShowFormValues) {
     )
   ) {
     return "수익 분배 비율을 올바르게 입력해주세요."
+  }
+
+  if (values.stakeholders.some((stakeholder) => !stakeholder.verified)) {
+    return "모든 이해관계자의 조회(인증)가 완료되어야 합니다."
   }
 
   const stakeholderShareSum = values.stakeholders.reduce(

@@ -107,17 +107,26 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   }
 
   const addStakeholder = () => {
-    setStakeholders((previous) => [...previous, { role: "artist", name: "", shareBps: "" }])
+    setStakeholders((previous) => [
+      ...previous,
+      { role: "artist", name: "", phone: "", shareBps: "", verified: false },
+    ])
   }
 
   const removeStakeholder = (targetIndex: number) => {
-    setStakeholders((previous) => previous.filter((_, index) => index !== targetIndex))
+    setStakeholders((previous) => {
+      if (previous[targetIndex]?.isFixed) {
+        return previous
+      }
+
+      return previous.filter((_, index) => index !== targetIndex)
+    })
   }
 
   const updateStakeholder = (
     targetIndex: number,
     field: keyof Stakeholder,
-    value: string | number
+    value: string | number | boolean
   ) => {
     setStakeholders((previous) =>
       previous.map((stakeholder, index) =>

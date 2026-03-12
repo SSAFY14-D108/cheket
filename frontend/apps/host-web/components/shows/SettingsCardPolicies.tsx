@@ -14,7 +14,7 @@ interface SettingsCardPoliciesProps {
     refundPolicy: RefundItem[]
     onAddStakeholder: () => void
     onRemoveStakeholder: (idx: number) => void
-    onUpdateStakeholder: (idx: number, field: keyof Stakeholder, val: string | number) => void
+    onUpdateStakeholder: (idx: number, field: keyof Stakeholder, val: string | number | boolean) => void
     onAddRefund: () => void
     onRemoveRefund: (idx: number) => void
     onUpdateRefund: (idx: number, field: keyof RefundItem, val: string) => void
@@ -57,8 +57,10 @@ export function SettingsCardPolicies({
             if (foundUser) {
                 onUpdateStakeholder(idx, 'name', foundUser.name);
                 onUpdateStakeholder(idx, 'userId', foundUser.userId);
+                onUpdateStakeholder(idx, 'verified', true);
                 alert(`[조회 성공] ${foundUser.name}님이 확인되었습니다.`);
             } else {
+                onUpdateStakeholder(idx, 'verified', false);
                 alert("일치하는 회원을 찾을 수 없습니다.");
             }
         }, 300);
@@ -92,40 +94,87 @@ export function SettingsCardPolicies({
 
                     {stakeholders.map((sh, idx) => (
                         <div key={'sh' + idx} className="flex flex-col gap-1 border-b pb-2 mb-1 last:border-0">
+                            {sh.isFixed && (
+                                <div className="text-[10px] font-medium text-muted-foreground">
+                                    🔒 플랫폼 수수료 (변경 불가)
+                                </div>
+                            )}
                             {/* 1줄: 역할 + 연락처/사업자번호 + 조회 + 삭제 */}
                             <div className="flex gap-1 items-center w-full">
                                 <select
-                                    className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shrink-0"
+                                    className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shrink-0 disabled:opacity-70"
                                     value={sh.role}
                                     onChange={e => onUpdateStakeholder(idx, 'role', e.target.value)}
+                                    disabled={sh.isFixed}
                                 >
                                     <option value="organizer">사업자</option>
                                     <option value="artist">개인</option>
                                 </select>
 
                                 {sh.role === 'organizer' ? (
-                                    <Input placeholder="사업자번호 (숫자만)" value={sh.businessNo ?? ""} onChange={e => onUpdateStakeholder(idx, 'businessNo', e.target.value)} className="h-8 text-xs flex-1 min-w-0" />
+                                    <Input
+                                        placeholder="사업자번호 (숫자만)"
+                                        value={sh.businessNo ?? ""}
+                                        onChange={e => {
+                                            onUpdateStakeholder(idx, 'businessNo', e.target.value)
+                                            onUpdateStakeholder(idx, 'verified', false)
+                                            onUpdateStakeholder(idx, 'name', '')
+                                            onUpdateStakeholder(idx, 'userId', 0)
+                                        }}
+                                        className={`h-8 text-xs flex-1 min-w-0 ${sh.isFixed ? 'bg-muted/50' : ''}`}
+                                        readOnly={sh.isFixed}
+                                    />
                                 ) : (
-                                    <Input placeholder="연락처 (숫자만)" value={sh.phone ?? ""} onChange={e => onUpdateStakeholder(idx, 'phone', e.target.value)} className="h-8 text-xs flex-1 min-w-0" />
+                                    <Input
+                                        placeholder="연락처 (숫자만)"
+                                        value={sh.phone ?? ""}
+                                        onChange={e => {
+                                            onUpdateStakeholder(idx, 'phone', e.target.value)
+                                            onUpdateStakeholder(idx, 'verified', false)
+                                            onUpdateStakeholder(idx, 'name', '')
+                                            onUpdateStakeholder(idx, 'userId', 0)
+                                        }}
+                                        className={`h-8 text-xs flex-1 min-w-0 ${sh.isFixed ? 'bg-muted/50' : ''}`}
+                                        readOnly={sh.isFixed}
+                                    />
                                 )}
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-2 text-xs shrink-0"
-                                    onClick={() => handleVerify(idx, sh.role === 'organizer' ? 'businessNo' : 'phone', sh.role === 'organizer' ? (sh.businessNo ?? "") : (sh.phone ?? ""))}
-                                >
-                                    <Search className="size-3 mr-1" />조회
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0" onClick={() => onRemoveStakeholder(idx)}>
-                                    <Trash2 className="size-3" />
-                                </Button>
+                                {!sh.isFixed && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs shrink-0"
+                                        onClick={() => handleVerify(idx, sh.role === 'organizer' ? 'businessNo' : 'phone', sh.role === 'organizer' ? (sh.businessNo ?? "") : (sh.phone ?? ""))}
+                                    >
+                                        <Search className="size-3 mr-1" />조회
+                                    </Button>
+                                )}
+                                {!sh.isFixed && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0" onClick={() => onRemoveStakeholder(idx)}>
+                                        <Trash2 className="size-3" />
+                                    </Button>
+                                )}
                             </div>
 
                             {/* 2줄: 이름(자동입력) + BPS 비율 */}
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <Input placeholder="이름/법인명 (조회 시 자동입력)" value={sh.name} onChange={e => onUpdateStakeholder(idx, 'name', e.target.value)} className="h-8 text-xs flex-1 bg-muted/30" readOnly />
-                                <Input type="number" placeholder="비율(BPS)" value={sh.shareBps} onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)} className="h-8 text-xs w-[100px]" />
+                                <span
+                                    className={`rounded-full px-2 py-1 text-[10px] font-medium ${sh.verified
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : 'bg-muted text-muted-foreground'
+                                        }`}
+                                >
+                                    {sh.verified ? '✓ 인증됨' : '미인증'}
+                                </span>
+                                <Input
+                                    type="number"
+                                    placeholder="비율(BPS)"
+                                    value={sh.shareBps}
+                                    onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)}
+                                    className={`h-8 text-xs w-[100px] ${sh.isFixed ? 'bg-muted/50' : ''}`}
+                                    readOnly={sh.isFixed}
+                                />
                                 <span className="text-[9px] text-muted-foreground shrink-0 whitespace-nowrap">예: 70%→7000</span>
                             </div>
                         </div>
