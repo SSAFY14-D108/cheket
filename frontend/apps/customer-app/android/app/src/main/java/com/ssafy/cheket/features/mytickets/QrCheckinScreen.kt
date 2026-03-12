@@ -99,7 +99,7 @@ fun QrCheckinScreen(
                     )
 
                     Text(
-                        ticket?.eventName ?: "",
+                        ticket?.showName ?: "",
                         fontSize = 14.sp,
                         color = MutedForeground,
                         textAlign = TextAlign.Center,
@@ -121,7 +121,7 @@ fun QrCheckinScreen(
             if (!isCheckedIn) {
                 // --- Event info ---
                 Text(
-                    text = ticket?.eventName ?: "알 수 없는 공연",
+                    text = ticket?.showName ?: "알 수 없는 공연",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = OnBackground,

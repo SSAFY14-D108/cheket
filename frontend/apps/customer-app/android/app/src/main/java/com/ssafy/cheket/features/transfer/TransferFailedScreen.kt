@@ -143,7 +143,7 @@ fun TransferFailedScreen(
 
                     FailedDetailRow(
                         label = "공연",
-                        value = ticket?.eventName ?: "-",
+                        value = ticket?.showName ?: "-",
                     )
                     FailedDetailRow(
                         label = "좌석",

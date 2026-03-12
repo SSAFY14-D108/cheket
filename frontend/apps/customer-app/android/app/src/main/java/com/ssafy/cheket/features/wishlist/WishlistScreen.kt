@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.Event
+import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
@@ -32,10 +32,10 @@ private val WISHLISTED_EVENT_IDS = setOf("evt_001", "evt_003", "evt_005")
 
 @Composable
 fun WishlistScreen(
-    onEventClick: (String) -> Unit,
+    onShowClick: (String) -> Unit,
     onBack: () -> Unit,
 ) {
-    val allEvents = remember { MockDataSource.mockEvents }
+    val allEvents = remember { MockDataSource.mockShows }
     var wishlistedIds by remember { mutableStateOf(WISHLISTED_EVENT_IDS) }
     val wishlistedEvents = allEvents.filter { it.id in wishlistedIds }
 
@@ -85,7 +85,7 @@ fun WishlistScreen(
                 items(wishlistedEvents, key = { it.id }) { event ->
                     WishlistItem(
                         event = event,
-                        onEventClick = { onEventClick(event.id) },
+                        onShowClick = { onShowClick(event.id) },
                         onRemove = { wishlistedIds = wishlistedIds - event.id },
                     )
                 }
@@ -96,14 +96,14 @@ fun WishlistScreen(
 
 @Composable
 private fun WishlistItem(
-    event: Event,
-    onEventClick: () -> Unit,
+    event: Show,
+    onShowClick: () -> Unit,
     onRemove: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onEventClick),
+            .clickable(onClick = onShowClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
     ) {

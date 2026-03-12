@@ -36,11 +36,11 @@ import java.util.Locale
 
 @Composable
 fun PaymentScreen(
-    eventId: String,
+    showId: String,
     onSuccess: () -> Unit,
-    onFailure: (eventId: String, reason: String) -> Unit,
+    onFailure: (showId: String, reason: String) -> Unit,
     onBack: () -> Unit,
-    viewModel: PaymentViewModel = viewModel(factory = PaymentViewModel.factory(eventId)),
+    viewModel: PaymentViewModel = viewModel(factory = PaymentViewModel.factory(showId)),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
@@ -55,7 +55,7 @@ fun PaymentScreen(
         }
         PaymentStep.FAILURE -> {
             LaunchedEffect(Unit) {
-                onFailure(eventId, uiState.failureReason)
+                onFailure(showId, uiState.failureReason)
             }
         }
         else -> {
@@ -80,7 +80,7 @@ private fun PaymentMainContent(
     onToggleFailure: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val event = uiState.event ?: return
+    val show = uiState.show ?: return
 
     Scaffold(
         topBar = {
@@ -158,7 +158,7 @@ private fun PaymentMainContent(
             // Step indicator
             StepIndicator(currentStep = uiState.step)
 
-            // Event summary card
+            // Show summary card
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,8 +172,8 @@ private fun PaymentMainContent(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     AsyncImage(
-                        model = event.poster,
-                        contentDescription = event.name,
+                        model = show.poster,
+                        contentDescription = show.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(width = 60.dp, height = 80.dp)
@@ -183,7 +183,7 @@ private fun PaymentMainContent(
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = event.name,
+                            text = show.name,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = OnBackground,
@@ -194,13 +194,13 @@ private fun PaymentMainContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.CalendarMonth, null, tint = SubText, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(event.date, fontSize = 12.sp, color = MutedForeground)
+                            Text(show.date, fontSize = 12.sp, color = MutedForeground)
                         }
                         Spacer(Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.LocationOn, null, tint = SubText, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(event.venue, fontSize = 12.sp, color = MutedForeground)
+                            Text(show.venue, fontSize = 12.sp, color = MutedForeground)
                         }
                     }
                 }
@@ -503,7 +503,7 @@ private fun PaymentSuccessContent(
     numberFormat: NumberFormat,
     onViewTickets: () -> Unit,
 ) {
-    val event = uiState.event ?: return
+    val show = uiState.show ?: return
 
     Scaffold(
         topBar = {
@@ -553,7 +553,7 @@ private fun PaymentSuccessContent(
 
             Spacer(Modifier.height(28.dp))
 
-            // Event info card
+            // Show info card
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -567,8 +567,8 @@ private fun PaymentSuccessContent(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         AsyncImage(
-                            model = event.poster,
-                            contentDescription = event.name,
+                            model = show.poster,
+                            contentDescription = show.name,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(width = 50.dp, height = 68.dp)
@@ -578,7 +578,7 @@ private fun PaymentSuccessContent(
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = event.name,
+                                text = show.name,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OnBackground,
@@ -587,7 +587,7 @@ private fun PaymentSuccessContent(
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "${event.date} | ${event.venue}",
+                                text = "${show.date} | ${show.venue}",
                                 fontSize = 12.sp,
                                 color = MutedForeground,
                             )

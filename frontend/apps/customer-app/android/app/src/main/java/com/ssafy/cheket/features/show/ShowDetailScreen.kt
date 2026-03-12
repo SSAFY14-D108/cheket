@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.event
+package com.ssafy.cheket.features.show
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,38 +26,108 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.EventStatus
+import com.ssafy.cheket.core.model.Show
+import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.core.model.Grade
 import com.ssafy.cheket.core.model.RefundRule
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.EventStatusBadge
+import com.ssafy.cheket.core.ui.component.ShowStatusBadge
 import com.ssafy.cheket.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun EventDetailScreen(
-    eventId: String,
-    onNavigateToDateSelection: (eventId: String) -> Unit,
+fun ShowDetailScreen(
+    showId: String,
+    onNavigateToDateSelection: (showId: String) -> Unit,
+    onBack: () -> Unit,
+    viewModel: ShowDetailViewModel = viewModel(factory = ShowDetailViewModel.factory(showId)),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    when (val state = uiState) {
+        is ShowDetailViewModel.UiState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Primary)
+            }
+        }
+        is ShowDetailViewModel.UiState.Error -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(state.message, color = MutedForeground, fontSize = 16.sp)
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { viewModel.loadShow() }) {
+                        Text("다시 시도")
+                    }
+                }
+            }
+        }
+        is ShowDetailViewModel.UiState.Success -> {
+            ShowDetailContent(
+                show = state.show,
+                isLiked = state.isLiked,
+                likeCount = state.likeCount,
+                onToggleLike = viewModel::toggleLike,
+                onNavigateToDateSelection = onNavigateToDateSelection,
+                onBack = onBack,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShowDetailContent(
+    show: Show,
+    isLiked: Boolean,
+    likeCount: Int,
+    onToggleLike: () -> Unit,
+    onNavigateToDateSelection: (showId: String) -> Unit,
     onBack: () -> Unit,
 ) {
-    val event = remember { MockDataSource.mockEvents.find { it.id == eventId } }
-    var isWishlisted by remember { mutableStateOf(false) }
-
-    if (event == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("이벤트를 찾을 수 없습니다.", color = MutedForeground, fontSize = 16.sp)
-        }
-        return
-    }
-
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
 
     Scaffold(
         topBar = {
             AppHeader(title = "공연 상세", onBack = onBack)
+        },
+        bottomBar = {
+            // Sticky CTA button (v0 스타일)
+            Surface(shadowElevation = 8.dp) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CardBg)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    Button(
+                        onClick = { onNavigateToDateSelection(show.id) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (show.status == ShowStatus.ON_SALE) Primary else MutedForeground,
+                            contentColor = White,
+                        ),
+                        enabled = show.status == ShowStatus.ON_SALE,
+                    ) {
+                        Text(
+                            text = when (show.status) {
+                                ShowStatus.ON_SALE -> "예매하기"
+                                ShowStatus.SOLD_OUT -> "매진"
+                            },
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        if (show.status == ShowStatus.ON_SALE) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+            }
         },
     ) { innerPadding ->
         Column(
@@ -74,8 +144,8 @@ fun EventDetailScreen(
                     .aspectRatio(3f / 2f)
             ) {
                 AsyncImage(
-                    model = event.poster,
-                    contentDescription = event.name,
+                    model = show.poster,
+                    contentDescription = show.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -97,7 +167,7 @@ fun EventDetailScreen(
                         .align(Alignment.BottomStart)
                         .padding(12.dp)
                 ) {
-                    EventStatusBadge(status = event.status)
+                    ShowStatusBadge(status = show.status)
                 }
                 // Wishlist button - top right with count badge
                 Box(
@@ -106,55 +176,56 @@ fun EventDetailScreen(
                         .padding(12.dp)
                 ) {
                     IconButton(
-                        onClick = { isWishlisted = !isWishlisted },
+                        onClick = onToggleLike,
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
                             .background(Black.copy(alpha = 0.45f))
                     ) {
                         Icon(
-                            imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (isWishlisted) "찜 해제" else "찜하기",
-                            tint = if (isWishlisted) Danger else White,
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isLiked) "찜 해제" else "찜하기",
+                            tint = if (isLiked) Danger else White,
                             modifier = Modifier.size(22.dp),
                         )
                     }
-                    // Wishlist count badge
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp)
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "3", // mock wishlist count
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = White,
-                        )
+                    if (likeCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "$likeCount",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = White,
+                            )
+                        }
                     }
                 }
             }
 
-            // Event title & info - below poster
+            // Show title & info - below poster
             Column(
                 modifier = Modifier.padding(16.dp),
             ) {
                 Text(
-                    text = event.name,
+                    text = show.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = OnBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (event.artistName != null) {
+                if (show.artistName != null && show.artistName != "대중음악") {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = event.artistName,
+                        text = show.artistName,
                         fontSize = 14.sp,
                         color = MutedForeground,
                     )
@@ -167,7 +238,7 @@ fun EventDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(Icons.Outlined.CalendarMonth, null, tint = Primary, modifier = Modifier.size(16.dp))
-                    Text(event.date, fontSize = 14.sp, color = MutedForeground)
+                    Text(show.date, fontSize = 14.sp, color = MutedForeground)
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -175,7 +246,7 @@ fun EventDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(Icons.Outlined.LocationOn, null, tint = Primary, modifier = Modifier.size(16.dp))
-                    Text(event.venue, fontSize = 14.sp, color = MutedForeground)
+                    Text(show.venue, fontSize = 14.sp, color = MutedForeground)
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -183,12 +254,12 @@ fun EventDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(Icons.Outlined.Person, null, tint = Primary, modifier = Modifier.size(16.dp))
-                    Text("1인 최대 ${event.maxPerUser}매", fontSize = 14.sp, color = MutedForeground)
+                    Text("1인 최대 ${show.maxPerUser}매", fontSize = 14.sp, color = MutedForeground)
                 }
             }
 
             // Description section
-            if (event.description != null) {
+            if (show.description != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -208,7 +279,7 @@ fun EventDetailScreen(
                         color = Muted,
                     ) {
                         Text(
-                            text = event.description,
+                            text = show.description,
                             fontSize = 14.sp,
                             color = MutedForeground,
                             lineHeight = 22.sp,
@@ -241,9 +312,9 @@ fun EventDetailScreen(
                     Column(
                         modifier = Modifier.padding(16.dp),
                     ) {
-                        event.grades.forEachIndexed { index, grade ->
+                        show.grades.forEachIndexed { index, grade ->
                             GradeRow(grade = grade, numberFormat = numberFormat)
-                            if (index < event.grades.size - 1) {
+                            if (index < show.grades.size - 1) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 8.dp),
                                     color = BorderColor,
@@ -255,9 +326,9 @@ fun EventDetailScreen(
             }
 
             // Refund Rules
-            if (event.refundRules.isNotEmpty()) {
+            if (show.refundRules.isNotEmpty()) {
                 RefundRulesSection(
-                    refundRules = event.refundRules,
+                    refundRules = show.refundRules,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -265,37 +336,7 @@ fun EventDetailScreen(
                 )
             }
 
-            // CTA Button - inline
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 24.dp)
-            ) {
-                Button(
-                    onClick = { onNavigateToDateSelection(event.id) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (event.status == EventStatus.ON_SALE) Primary else MutedForeground,
-                        contentColor = White,
-                    ),
-                    enabled = event.status == EventStatus.ON_SALE,
-                ) {
-                    Text(
-                        text = when (event.status) {
-                            EventStatus.ON_SALE -> "예매하기"
-                            EventStatus.SOLD_OUT -> "매진"
-                        },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    if (event.status == EventStatus.ON_SALE) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(20.dp))
-                    }
-                }
-            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

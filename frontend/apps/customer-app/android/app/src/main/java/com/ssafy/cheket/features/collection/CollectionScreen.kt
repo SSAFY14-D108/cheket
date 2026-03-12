@@ -80,9 +80,9 @@ fun CollectionScreen(
                         onClick = {
                             selectedTicket = Ticket(
                                 id = "9999",
-                                eventId = "1",
-                                eventName = "CHEKET 테스트 콘서트",
-                                eventDate = "2026-03-15",
+                                showId = "1",
+                                showName = "CHEKET 테스트 콘서트",
+                                showDate = "2026-03-15",
                                 venue = "SSAFY 서울캠퍼스",
                                 poster = "https://picsum.photos/400/600",
                                 seatId = "A-12",
@@ -166,8 +166,8 @@ private fun TicketOverlay(
         val url = ticket?.let {
             Uri.parse(COLLECTION_BASE_URL)
                 .buildUpon()
-                .appendQueryParameter("name", it.eventName)
-                .appendQueryParameter("date", it.eventDate)
+                .appendQueryParameter("name", it.showName)
+                .appendQueryParameter("date", it.showDate)
                 .appendQueryParameter("venue", it.venue)
                 .appendQueryParameter("seat", it.seatLabel)
                 .appendQueryParameter("grade", it.grade)
@@ -201,19 +201,24 @@ private fun TicketOverlay(
                                 override fun onPageFinished(view: WebView?, u: String?) {
                                     Log.d("CollectionWV", "✅ onPageFinished: $u")
 
-                                    // 서버 HTML의 body height 0 문제 + 센터링 런타임 수정
+                                    // WebView에서 vh 단위가 0 으로 잡히는 문제 우회:
+                                    // body를 fixed 전체 화면으로 잡고 flex 센터링 + scene 애니메이션 제거
                                     view?.evaluateJavascript(
                                         """
-                                        document.documentElement.style.height='100vh';
-                                        document.body.style.height='100vh';
-                                        document.body.style.overflow='visible';
+                                        var b=document.body;
+                                        b.style.position='fixed';
+                                        b.style.inset='0';
+                                        b.style.width='100%';
+                                        b.style.height='100%';
+                                        b.style.display='flex';
+                                        b.style.alignItems='center';
+                                        b.style.justifyContent='center';
+                                        b.style.overflow='hidden';
                                         var s=document.querySelector('.scene');
                                         if(s){
-                                          s.style.position='fixed';
-                                          s.style.top='50%';
-                                          s.style.left='50%';
-                                          s.style.transform='translate(-50%,-50%)';
+                                          s.style.animation='none';
                                           s.style.opacity='1';
+                                          s.style.transform='scale(1) rotateX(0deg)';
                                         }
                                         """.trimIndent(),
                                         null,
@@ -252,12 +257,18 @@ private fun TicketOverlay(
                                 }
                             }
 
+                            // 하드웨어 가속 렌더링
+                            setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
+
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
                                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 useWideViewPort = true
                                 loadWithOverviewMode = true
+                                cacheMode = WebSettings.LOAD_DEFAULT
+                                loadsImagesAutomatically = true
+                                blockNetworkImage = false
                             }
                             Log.d("CollectionWV", "🚀 loadUrl: $url")
                             loadUrl(url)
@@ -312,7 +323,7 @@ private fun CompactTicketCard(ticket: Ticket, isGold: Boolean, onClick: () -> Un
             .then(if (isGold) Modifier.border(1.5.dp, GoldColor, RoundedCornerShape(10.dp)) else Modifier)
     ) {
         AsyncImage(
-            ticket.poster, ticket.eventName,
+            ticket.poster, ticket.showName,
             contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
         )
         Box(
@@ -343,7 +354,7 @@ private fun CompactTicketCard(ticket: Ticket, isGold: Boolean, onClick: () -> Un
                 color = if (isGold) GoldColor else White, letterSpacing = (-0.5).sp
             )
             Text(
-                ticket.eventName, fontSize = 8.sp, fontWeight = FontWeight.Bold,
+                ticket.showName, fontSize = 8.sp, fontWeight = FontWeight.Bold,
                 color = White.copy(alpha = 0.9f),
                 maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 11.sp
             )

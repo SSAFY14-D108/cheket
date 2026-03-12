@@ -43,7 +43,7 @@ import kotlin.math.roundToInt
 @Composable
 fun HomeScreen(
     appContainer: AppContainer,
-    onEventClick: (String) -> Unit = {},
+    onShowClick: (String) -> Unit = {},
     onMyPage: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
@@ -89,20 +89,20 @@ fun HomeScreen(
             item {
                 HeroBanner(
                     slides = uiState.bannerSlides,
-                    onSlideClick = { onEventClick(it) },
+                    onSlideClick = { onShowClick(it) },
                 )
             }
 
             // thin divider
             item { Box(Modifier.fillMaxWidth().height(1.dp).background(BorderColor)) }
 
-            // 2. Concert Ranking
+            // 2. Ranking
             item {
                 Column(Modifier.padding(top = 20.dp, bottom = 16.dp)) {
-                    HomeSectionHeader(title = "콘서트 랭킹", onMore = {})
+                    HomeSectionHeader(title = "랭킹", onMore = {})
                     RankingSection(
                         items = uiState.rankingItems,
-                        onItemClick = { onEventClick(it) },
+                        onItemClick = { onShowClick(it) },
                     )
                 }
             }
@@ -114,7 +114,7 @@ fun HomeScreen(
             item {
                 OpenScheduleSection(
                     items = uiState.openSchedule,
-                    onItemClick = { onEventClick(it) },
+                    onItemClick = { onShowClick(it) },
                 )
             }
 
@@ -124,8 +124,8 @@ fun HomeScreen(
             // 4. Recommendation
             item {
                 RecommendationSection(
-                    events = uiState.events,
-                    onEventClick = onEventClick,
+                    shows = uiState.shows,
+                    onShowClick = onShowClick,
                 )
             }
 
@@ -136,7 +136,7 @@ fun HomeScreen(
             item {
                 ResaleDiscountSection(
                     resaleItems = uiState.resaleItems,
-                    onItemClick = { onEventClick(it) },
+                    onItemClick = { onShowClick(it) },
                 )
                 Spacer(Modifier.height(32.dp))
             }
@@ -166,7 +166,7 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clickable { onSlideClick(slide.eventId) },
+                    .clickable { onSlideClick(slide.showId) },
             ) {
                 AsyncImage(
                     slide.image,
@@ -294,7 +294,7 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
     }
 }
 
-// ── Concert Ranking (w-32 h-44 posters) ──
+// ── Ranking (w-32 h-44 posters) ──
 
 @Composable
 private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Unit) {
@@ -312,7 +312,7 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
             Column(
                 modifier = Modifier
                     .width(128.dp)
-                    .clickable { onItemClick(item.eventId) },
+                    .clickable { onItemClick(item.showId) },
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Box {
@@ -385,7 +385,7 @@ private fun OpenScheduleSection(
                         .clip(RoundedCornerShape(16.dp))
                         .background(CardBg)
                         .border(1.dp, BorderColor, RoundedCornerShape(16.dp))
-                        .clickable { onItemClick(item.eventId) }
+                        .clickable { onItemClick(item.showId) }
                         .padding(12.dp),
                 ) {
                     AsyncImage(
@@ -453,15 +453,15 @@ private fun OpenScheduleSection(
     }
 }
 
-// ── Recommendation Section (wishlist card + recommended event) ──
+// ── Recommendation Section (wishlist card + recommended show) ──
 
 @Composable
-private fun RecommendationSection(events: List<Event>, onEventClick: (String) -> Unit) {
+private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Unit) {
     val wishlistCount = 3 // mock
-    val recommendedEvent = events.firstOrNull() ?: return
+    val recommendedShow = shows.firstOrNull() ?: return
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "사용자 추천 콘서트")
+        HomeSectionHeader(title = "추천 공연")
         Row(
             Modifier.padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -505,7 +505,7 @@ private fun RecommendationSection(events: List<Event>, onEventClick: (String) ->
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            "찜한 콘서트",
+                            "찜한 공연",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = OnBackground,
@@ -520,19 +520,19 @@ private fun RecommendationSection(events: List<Event>, onEventClick: (String) ->
                 }
             }
 
-            // Recommended event card
+            // Recommended show card
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CardBg)
                     .border(1.dp, BorderColor, RoundedCornerShape(16.dp))
-                    .clickable { onEventClick(recommendedEvent.id) }
+                    .clickable { onShowClick(recommendedShow.id) }
                     .padding(12.dp),
             ) {
                 AsyncImage(
-                    recommendedEvent.poster,
-                    recommendedEvent.name,
+                    recommendedShow.poster,
+                    recommendedShow.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(width = 80.dp, height = 112.dp)
@@ -546,7 +546,7 @@ private fun RecommendationSection(events: List<Event>, onEventClick: (String) ->
                         .padding(vertical = 2.dp),
                 ) {
                     Text(
-                        recommendedEvent.name,
+                        recommendedShow.name,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = OnBackground,
@@ -555,19 +555,19 @@ private fun RecommendationSection(events: List<Event>, onEventClick: (String) ->
                         lineHeight = 18.sp,
                     )
                     Text(
-                        recommendedEvent.date,
+                        recommendedShow.date,
                         fontSize = 12.sp,
                         color = MutedForeground,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     Text(
-                        recommendedEvent.venue.split(",").first().trim(),
+                        recommendedShow.venue.split(",").first().trim(),
                         fontSize = 12.sp,
                         color = MutedForeground,
                     )
-                    if (recommendedEvent.grades.isNotEmpty()) {
+                    if (recommendedShow.grades.isNotEmpty()) {
                         Text(
-                            "%,d CTK~".format(recommendedEvent.grades.first().price),
+                            "%,d CTK~".format(recommendedShow.grades.first().price),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = Primary,
@@ -589,6 +589,7 @@ private fun ResaleDiscountSection(
 ) {
     val discounted = remember(resaleItems) {
         resaleItems.mapNotNull { item ->
+            if (item.originalPrice <= 0) return@mapNotNull null
             val pct = ((item.originalPrice - item.resalePrice).toFloat() / item.originalPrice * 100)
                 .roundToInt()
             if (pct > 0) item to pct else null
@@ -607,14 +608,14 @@ private fun ResaleDiscountSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onItemClick(item.eventId) }
+                        .clickable { onItemClick(item.showId) }
                         .padding(vertical = 16.dp),
                 ) {
                     // Poster with discount badge
                     Box {
                         AsyncImage(
                             item.poster,
-                            item.eventName,
+                            item.showName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(width = 96.dp, height = 128.dp)
@@ -664,7 +665,7 @@ private fun ResaleDiscountSection(
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            item.eventName,
+                            item.showName,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OnBackground,

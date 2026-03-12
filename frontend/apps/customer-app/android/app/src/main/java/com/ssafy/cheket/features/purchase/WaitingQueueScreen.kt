@@ -24,8 +24,8 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun WaitingQueueScreen(
-    eventId: String,
-    onComplete: (eventId: String) -> Unit,
+    showId: String,
+    onComplete: (showId: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val totalSeconds = 5
@@ -50,7 +50,7 @@ fun WaitingQueueScreen(
         remainingSeconds = 0
         queuePosition = 0
         delay(500L)
-        onComplete(eventId)
+        onComplete(showId)
     }
 
     // Spinning animation for the ring

@@ -15,19 +15,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.ssafy.cheket.core.model.Event
-import com.ssafy.cheket.core.model.EventStatus
+import com.ssafy.cheket.core.model.Show
+import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.ui.theme.*
 
 @Composable
-fun EventCardItem(event: Event, onClick: () -> Unit = {}) {
+fun ShowCardItem(show: Show, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
             .background(CardBg).clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
-            model = event.poster, contentDescription = event.name,
+            model = show.poster, contentDescription = show.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .width(84.dp)
@@ -46,17 +46,17 @@ fun EventCardItem(event: Event, onClick: () -> Unit = {}) {
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    event.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    show.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     color = OnBackground, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
-                if (event.status == EventStatus.SOLD_OUT) {
-                    EventStatusBadge(event.status)
+                if (show.status == ShowStatus.SOLD_OUT) {
+                    ShowStatusBadge(show.status)
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(event.date, fontSize = 12.sp, color = MutedForeground)
-            Text(event.venue, fontSize = 12.sp, color = MutedForeground,
+            Text(show.date, fontSize = 12.sp, color = MutedForeground)
+            Text(show.venue, fontSize = 12.sp, color = MutedForeground,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

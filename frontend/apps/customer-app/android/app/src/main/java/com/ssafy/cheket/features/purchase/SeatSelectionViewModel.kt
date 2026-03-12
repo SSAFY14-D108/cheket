@@ -7,7 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.Event
+import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.model.Grade
 import com.ssafy.cheket.core.model.Seat
 import com.ssafy.cheket.core.model.SeatStatus
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.update
 enum class SeatSelectionStep { GRADE, SEATS }
 
 data class SeatSelectionUiState(
-    val event: Event? = null,
+    val show: Show? = null,
     val step: SeatSelectionStep = SeatSelectionStep.GRADE,
     val selectedGrade: Grade? = null,
     val seats: List<Seat> = emptyList(),
@@ -29,25 +29,25 @@ data class SeatSelectionUiState(
 )
 
 class SeatSelectionViewModel(
-    private val eventId: String,
+    private val showId: String,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SeatSelectionUiState())
     val uiState: StateFlow<SeatSelectionUiState> = _uiState.asStateFlow()
 
     init {
-        Log.d(TAG, "init — eventId=$eventId")
-        val event = MockDataSource.mockEvents.find { it.id == eventId }
-        Log.d(TAG, "init — event found: ${event != null}, maxPerUser=${event?.maxPerUser}")
+        Log.d(TAG, "init — showId=$showId")
+        val show = MockDataSource.mockShows.find { it.id == showId }
+        Log.d(TAG, "init — show found: ${show != null}, maxPerUser=${show?.maxPerUser}")
         _uiState.value = SeatSelectionUiState(
-            event = event,
-            maxSeats = event?.maxPerUser ?: 4,
+            show = show,
+            maxSeats = show?.maxPerUser ?: 4,
         )
     }
 
     fun selectGrade(grade: Grade) {
         Log.d(TAG, "selectGrade() grade=${grade.name}")
-        val seats = MockDataSource.generateSeats(eventId, grade.name)
+        val seats = MockDataSource.generateSeats(showId, grade.name)
         Log.d(TAG, "selectGrade() generated ${seats.size} seats")
         _uiState.update {
             it.copy(
@@ -108,9 +108,9 @@ class SeatSelectionViewModel(
     companion object {
         private const val TAG = "SeatSelectionViewModel"
 
-        fun factory(eventId: String): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(showId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                SeatSelectionViewModel(eventId)
+                SeatSelectionViewModel(showId)
             }
         }
     }

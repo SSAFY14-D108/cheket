@@ -23,11 +23,17 @@ interface AuthService {
     @POST("api/v1/auth/password")
     suspend fun requestPasswordReset(@Body request: PasswordResetRequest): ApiResponse<Unit>
 
-    @PATCH("api/v1/auth/password")
+    @PATCH("api/v1/auth/reset-password")
     suspend fun resetPassword(@Body request: PasswordChangeRequest): ApiResponse<Unit>
 
-    @POST("api/v1/auth/email")
+    @POST("api/v1/users/email")
     suspend fun findEmail(@Body request: EmailFindRequest): ApiResponse<EmailFindResponse>
+
+    @POST("api/v1/auth/duplicate")
+    suspend fun checkEmailDuplicate(@Body request: EmailDuplicateRequest): ApiResponse<Unit>
+
+    @PATCH("api/v1/auth/change-password")
+    suspend fun changePassword(@Body request: PasswordChangeRequest): ApiResponse<Unit>
 
     @GET("api/v1/auth/search")
     suspend fun searchUser(

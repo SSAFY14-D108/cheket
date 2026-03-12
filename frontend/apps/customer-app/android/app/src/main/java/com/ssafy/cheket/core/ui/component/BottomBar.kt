@@ -20,7 +20,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Routes.HOME, "홈", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Routes.CONCERTS, "콘서트", Icons.Filled.MusicNote, Icons.Outlined.MusicNote),
+    BottomNavItem(Routes.SHOWS, "탐색", Icons.Filled.MusicNote, Icons.Outlined.MusicNote),
     BottomNavItem(Routes.RESALE, "2차거래소", Icons.Filled.LocalOffer, Icons.Outlined.LocalOffer),
     BottomNavItem(Routes.MY_TICKETS, "내 티켓", Icons.Filled.ConfirmationNumber, Icons.Outlined.ConfirmationNumber),
     BottomNavItem(Routes.COLLECTION, "컬렉션", Icons.Filled.CollectionsBookmark, Icons.Outlined.CollectionsBookmark),

@@ -22,9 +22,9 @@ class TicketRepositoryImpl(
             val tickets = response.data?.map { dto ->
                 Ticket(
                     id = dto.ticketId.toString(),
-                    eventId = dto.show.showId.toString(),
-                    eventName = dto.show.name,
-                    eventDate = dto.show.date,
+                    showId = dto.show.showId.toString(),
+                    showName = dto.show.name,
+                    showDate = dto.show.date,
                     venue = dto.show.venue,
                     poster = dto.posterUrl,
                     seatId = dto.seatId.toString(),
@@ -49,9 +49,9 @@ class TicketRepositoryImpl(
             val tickets = response.data?.map { dto ->
                 Ticket(
                     id = dto.ticketId.toString(),
-                    eventId = dto.show.showId.toString(),
-                    eventName = dto.show.name,
-                    eventDate = dto.show.date,
+                    showId = dto.show.showId.toString(),
+                    showName = dto.show.name,
+                    showDate = dto.show.date,
                     venue = dto.show.venue,
                     poster = dto.posterUrl,
                     seatId = dto.seatId.toString(),
@@ -76,9 +76,9 @@ class TicketRepositoryImpl(
             val tickets = response.data?.map { dto ->
                 Ticket(
                     id = dto.ticketId.toString(),
-                    eventId = dto.show.showId.toString(),
-                    eventName = dto.show.name,
-                    eventDate = dto.show.date,
+                    showId = dto.show.showId.toString(),
+                    showName = dto.show.name,
+                    showDate = dto.show.date,
                     venue = dto.show.venue,
                     poster = dto.posterUrl,
                     seatId = "",

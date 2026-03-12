@@ -64,9 +64,9 @@ private fun getFailureConfig(reason: String): FailureConfig {
 
 @Composable
 fun PurchaseFailedScreen(
-    eventId: String,
+    showId: String,
     reason: String,
-    onRetry: (eventId: String) -> Unit,
+    onRetry: (showId: String) -> Unit,
     onGoHome: () -> Unit,
 ) {
     val config = remember(reason) { getFailureConfig(reason) }
@@ -154,7 +154,7 @@ fun PurchaseFailedScreen(
             ) {
                 // Retry button
                 Button(
-                    onClick = { onRetry(eventId) },
+                    onClick = { onRetry(showId) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(

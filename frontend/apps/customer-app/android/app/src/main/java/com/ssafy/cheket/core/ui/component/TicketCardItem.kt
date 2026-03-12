@@ -26,7 +26,7 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
         verticalAlignment = Alignment.Top,
     ) {
         AsyncImage(
-            model = ticket.poster, contentDescription = ticket.eventName,
+            model = ticket.poster, contentDescription = ticket.showName,
             contentScale = ContentScale.Crop,
             modifier = Modifier.size(80.dp)
                 .clip(RoundedCornerShape(8.dp)).background(Muted),
@@ -40,7 +40,7 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    ticket.eventName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    ticket.showName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     color = OnBackground, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
@@ -49,7 +49,7 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(4.dp))
             Text("${ticket.seatLabel} · ${ticket.grade}", fontSize = 12.sp, color = MutedForeground)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(ticket.eventDate, fontSize = 12.sp, color = MutedForeground)
+            Text(ticket.showDate, fontSize = 12.sp, color = MutedForeground)
             Text(ticket.venue, fontSize = 12.sp, color = MutedForeground,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }

@@ -44,7 +44,7 @@ fun CollectibleTicketDetailScreen(
     }
 
     val tokenId = "#${ticket.id.hashCode().toUInt().toString(16).take(8).uppercase()}"
-    val contractAddress = "0xCheket${ticket.eventId.hashCode().toUInt().toString(16).padStart(8, '0')}...NFT"
+    val contractAddress = "0xCheket${ticket.showId.hashCode().toUInt().toString(16).padStart(8, '0')}...NFT"
 
     Scaffold(
         topBar = { AppHeader(title = "소장 티켓", onBack = onBack) },
@@ -81,7 +81,7 @@ fun CollectibleTicketDetailScreen(
             ) {
                 AsyncImage(
                     model = ticket.poster,
-                    contentDescription = ticket.eventName,
+                    contentDescription = ticket.showName,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -121,7 +121,7 @@ fun CollectibleTicketDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        ticket.eventName,
+                        ticket.showName,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = White,
@@ -130,7 +130,7 @@ fun CollectibleTicketDetailScreen(
                     )
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
-                        Text(ticket.eventDate, fontSize = 13.sp, color = White.copy(alpha = 0.8f))
+                        Text(ticket.showDate, fontSize = 13.sp, color = White.copy(alpha = 0.8f))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
@@ -156,7 +156,7 @@ fun CollectibleTicketDetailScreen(
 
                         DetailInfoRow("좌석", ticket.seatLabel)
                         DetailInfoRow("등급", ticket.grade)
-                        DetailInfoRow("관람일", ticket.attendedDate ?: ticket.eventDate)
+                        DetailInfoRow("관람일", ticket.attendedDate ?: ticket.showDate)
                         DetailInfoRow("상태", "관람 완료")
                     }
                 }
