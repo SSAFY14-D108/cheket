@@ -20,4 +20,6 @@ public interface ShowService {
     GetRefundResponse getRefund(Long showId);
 
     GetUpcomingResponse getUpcoming();
+
+    List<GetSectionsResponse> getSections(Long venueId);
 }

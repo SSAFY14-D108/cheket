@@ -163,6 +163,14 @@ public class ShowServiceImpl implements ShowService {
         return new GetUpcomingResponse(items);
     }
 
+    @Override
+    public List<GetSectionsResponse> getSections(Long venueId) {
+        List<Section> sections = sectionRepository.findByVenueId(venueId);
+
+        return sections.stream().map(section -> new GetSectionsResponse(section.getId(), section.getSectionName()))
+            .toList();
+    }
+
     private ShowItem toShowItem(Show s) {
         return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
             s.getVenue().getRegion().name(),
