@@ -40,9 +40,10 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "사용자 로그아웃")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization,
+        @RequestHeader(value = "Refresh-Token", required = false) String refreshToken) {
         String accessToken = authorization.replace("Bearer ", "");
-        authService.logout(accessToken);
+        authService.logout(accessToken, refreshToken);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그아웃 완료", null));
     }
 

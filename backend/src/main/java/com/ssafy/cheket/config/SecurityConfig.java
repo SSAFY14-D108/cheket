@@ -44,10 +44,17 @@ public class SecurityConfig {
             // URL별 접근 권한 설정
             .authorizeHttpRequests(auth -> auth
                 // 인증 없이 접근 가능한 API
-                .requestMatchers("/api/v1/auth/**").permitAll() // 로그인, 로그아웃, SMS
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/reissue").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/sms/send").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/sms/verify").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/duplicate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/password").permitAll()
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll().requestMatchers("/api/v1/hosts/auth/**")
-                .permitAll() // 주최측 로그인, 로그아웃
+                .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/hosts/auth/login").permitAll() // 주최측 로그인
+                .requestMatchers(HttpMethod.POST, "/api/v1/hosts/auth/logout").authenticated() // 주최측 로그아웃
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
                 .requestMatchers("/collection/**").permitAll() // 컬렉션 WebView (인증 불필요)
                 .requestMatchers("/api/v1/hosts/business-no/duplicate").permitAll()
