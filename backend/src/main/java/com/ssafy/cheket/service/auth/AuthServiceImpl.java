@@ -39,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
         // 1. 클라이언트가 보낸 이메일로 해당 유저 조회 - 없으면 401
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmailAndDeletedAtIsNull(request.email())
             .orElseThrow(() -> new UnauthorizedException("이메일 또는 비밀번호가 일치하지 않습니다."));
         // 2. 비밀번호 검증 - 틀리면 401
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -57,17 +57,27 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse reissue(ReissueRequest request) {
         String refreshToken = request.refreshToken();
 
-        // 1. Refresh Token 유효성 검증 - 만료되었거나 위조된 토큰이면 401
+        // 1. Refresh Token 유효성 검증
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new UnauthorizedException("유효하지 않은 Refresh Token입니다.");
         }
 
-        // 2. Refresh Token에서 정보 추출 — DB 조회 없이 토큰에서 바로 꺼냄
+        // 2. 블랙리스트 확인 (탈퇴된 토큰 차단)
+        Boolean isBlacklisted = redisTemplate.hasKey("blacklist:" + refreshToken);
+        if (Boolean.TRUE.equals(isBlacklisted)) {
+            throw new UnauthorizedException("이미 탈퇴하거나 로그아웃된 사용자입니다.");
+        }
+
+        // 3. Refresh Token에서 정보 추출
         Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
         String email = jwtTokenProvider.getEmailFromToken(refreshToken);
         String role = jwtTokenProvider.getRoleFromToken(refreshToken);
 
-        // 3. 새 토큰 발급 (Refresh Token Rotation — 둘 다 새로 발급)
+        // 4. 새 토큰 발급 전에 이전 Refresh Token 블랙리스트 등록
+        long oldRefreshExpiration = jwtTokenProvider.getRemainingExpiration(refreshToken);
+        redisTemplate.opsForValue().set("blacklist:" + refreshToken, "rotated", oldRefreshExpiration,
+            TimeUnit.MILLISECONDS);
+
         String newAccessToken = jwtTokenProvider.generateAccessToken(userId, email, role);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, email, role);
 
@@ -75,11 +85,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(String accessToken) {
-        // Access Token 남은 시간 뒤에 자동 삭제되도록 (블랙리스트에 쌓임 방지)
+    public void logout(String accessToken, String refreshToken) {
+        // Access Token 블랙리스트 등록
         long expiration = jwtTokenProvider.getRemainingExpiration(accessToken);
-        // 값 저장 (TTL 포함) set("키", "값", 만료시간, 시간단위)
         redisTemplate.opsForValue().set("blacklist:" + accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
+
+        // Refresh Token 블랙리스트 등록
+        if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
+            long refreshExpiration = jwtTokenProvider.getRemainingExpiration(refreshToken);
+            redisTemplate.opsForValue().set("blacklist:" + refreshToken, "logout", refreshExpiration,
+                TimeUnit.MILLISECONDS);
+        }
     }
 
     // 이메일 중복 확인
@@ -103,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("새 비밀번호는 필수입니다.");
         }
 
-        User user = authRepository.findByPhoneNumber(phoneNumber)
+        User user = authRepository.findByPhoneNumberAndDeletedAtIsNull(phoneNumber)
             .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -147,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
 
         switch (type) {
             case USER -> {
-                User user = userRepository.findByPhoneNumber(number)
+                User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(number)
                     .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
                 return new SearchUserResponse(user.getId(), user.getUsername(), user.getPhoneNumber());
             }

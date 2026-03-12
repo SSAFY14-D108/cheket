@@ -42,6 +42,9 @@ public class User {
     @Column(name = "notification_enable", nullable = false)
     private Boolean notificationEnable;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist // INSERT 직전 실행
     protected void onCreate() {
         this.createdAt = LocalDateTime.now(); // 생성 시간 자동 세팅

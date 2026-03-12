@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.user;
 
+import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
@@ -13,12 +14,15 @@ import com.ssafy.cheket.service.wallet.WalletService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,8 @@ public class UserServiceImpl implements UserService {
     private final WalletRepository walletRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final WalletService walletService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final StringRedisTemplate redisTemplate;
 
     @Value("${wallet.keystore.password}")
     private String keystorePassword;
@@ -68,9 +74,30 @@ public class UserServiceImpl implements UserService {
     // 이메일 찾기
     @Override
     public FindEmailResponse findEmail(FindEmailRequest request) {
-        User user = userRepository.findByUsernameAndPhoneNumber(request.username(), request.phoneNumber())
+        User user = userRepository
+            .findByUsernameAndPhoneNumberAndDeletedAtIsNull(request.username(), request.phoneNumber())
             .orElseThrow(() -> new NotFoundException("존재하지 않는 회원입니다."));
         return new FindEmailResponse(user.getEmail());
+    }
+
+    // 탈퇴
+    @Override
+    @Transactional
+    public void withdrawUser(Long userId, String accessToken, String refreshToken) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 유저입니다."));
+        user.setDeletedAt(LocalDateTime.now());
+
+        // Access Token 블랙리스트
+        long expiration = jwtTokenProvider.getRemainingExpiration(accessToken);
+        redisTemplate.opsForValue().set("blacklist:" + accessToken, "withdraw", expiration, TimeUnit.MILLISECONDS);
+
+        // Refresh Token도 블랙리스트 등록
+        if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
+            long refreshExpiration = jwtTokenProvider.getRemainingExpiration(refreshToken);
+            redisTemplate.opsForValue().set("blacklist:" + refreshToken, "withdraw", refreshExpiration,
+                TimeUnit.MILLISECONDS);
+        }
     }
 
 }

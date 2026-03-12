@@ -8,7 +8,7 @@ import com.ssafy.cheket.dto.auth.response.SearchUserResponse;
 public interface AuthService {
     LoginResponse login(LoginRequest request);
     LoginResponse reissue(ReissueRequest request);
-    void logout(String accessToken);
+    void logout(String accessToken, String refreshToken);
 
     // 이메일 중복 확인
     void checkEmailDuplicated(String email);

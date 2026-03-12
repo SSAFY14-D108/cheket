@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,4 +34,15 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "이메일 찾기에 성공했습니다.", response));
     }
 
+    @DeleteMapping
+    @Operation(summary = "회원 탈퇴")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> withdrawUser(Authentication authentication,
+        @RequestHeader("Authorization") String authHeader,
+        @RequestHeader(value = "Refresh-Token", required = false) String refreshToken) {
+        Long userId = Long.parseLong(authentication.getName());
+        String accessToken = authHeader.substring(7);
+        userService.withdrawUser(userId, accessToken, refreshToken);
+        return ResponseEntity.ok(ApiResponse.ok(200, "회원 탈퇴 완료", null));
+    }
 }
