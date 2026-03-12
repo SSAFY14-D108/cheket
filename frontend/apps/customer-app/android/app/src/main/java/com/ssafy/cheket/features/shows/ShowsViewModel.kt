@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.concerts
+package com.ssafy.cheket.features.shows
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 enum class SortOption(val label: String) { POPULAR("인기순"), LATEST("최신순"), CLOSING("오픈임박순") }
 
-data class ConcertsUiState(
+data class ShowsUiState(
     val allShows: List<Show> = emptyList(),
     val filteredShows: List<Show> = emptyList(),
     val searchQuery: String = "",
@@ -26,9 +26,9 @@ data class ConcertsUiState(
     val isLoading: Boolean = true,
 )
 
-class ConcertsViewModel(private val showRepository: ShowRepository) : ViewModel() {
-    private val _uiState = MutableStateFlow(ConcertsUiState())
-    val uiState: StateFlow<ConcertsUiState> = _uiState.asStateFlow()
+class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
+    private val _uiState = MutableStateFlow(ShowsUiState())
+    val uiState: StateFlow<ShowsUiState> = _uiState.asStateFlow()
     val regions = listOf("서울", "경기", "인천", "부산", "대구", "대전", "광주", "제주")
     private val popularityOrder = listOf("evt_001", "evt_002", "evt_004", "evt_006", "evt_007", "evt_008")
 
@@ -101,12 +101,12 @@ class ConcertsViewModel(private val showRepository: ShowRepository) : ViewModel(
     }
 
     companion object {
-        private const val TAG = "ConcertsViewModel"
+        private const val TAG = "ShowsViewModel"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                ConcertsViewModel(app.appContainer.showRepository)
+                ShowsViewModel(app.appContainer.showRepository)
             }
         }
     }

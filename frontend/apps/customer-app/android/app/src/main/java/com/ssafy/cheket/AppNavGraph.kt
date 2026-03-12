@@ -20,7 +20,7 @@ import com.ssafy.cheket.features.auth.SignupScreen
 import com.ssafy.cheket.features.collection.ArchiveScreen
 import com.ssafy.cheket.features.collection.CollectibleTicketDetailScreen
 import com.ssafy.cheket.features.collection.CollectionScreen
-import com.ssafy.cheket.features.concerts.ConcertsScreen
+import com.ssafy.cheket.features.shows.ShowsScreen
 import com.ssafy.cheket.features.show.ShowDetailScreen
 import com.ssafy.cheket.features.home.HomeScreen
 import com.ssafy.cheket.features.mypage.MyPageScreen
@@ -55,7 +55,7 @@ object Routes {
     const val LOGIN = "login"
     const val SIGNUP = "signup"
     const val HOME = "home"
-    const val CONCERTS = "concerts"
+    const val SHOWS = "shows"
     const val RESALE = "resale"
     const val MY_TICKETS = "my_tickets"
     const val COLLECTION = "collection"
@@ -112,7 +112,7 @@ object Routes {
 }
 
 val bottomTabRoutes = listOf(
-    Routes.HOME, Routes.CONCERTS, Routes.RESALE, Routes.MY_TICKETS, Routes.COLLECTION,
+    Routes.HOME, Routes.SHOWS, Routes.RESALE, Routes.MY_TICKETS, Routes.COLLECTION,
 )
 
 @Composable
@@ -179,8 +179,8 @@ fun AppNavGraph(
                     onMyPage = { navController.navigate(Routes.MY_PAGE) },
                 )
             }
-            composable(Routes.CONCERTS) {
-                ConcertsScreen(
+            composable(Routes.SHOWS) {
+                ShowsScreen(
                     appContainer = appContainer,
                     onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                 )

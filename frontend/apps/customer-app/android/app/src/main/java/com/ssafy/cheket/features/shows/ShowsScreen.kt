@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.concerts
+package com.ssafy.cheket.features.shows
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,10 +29,10 @@ import com.ssafy.cheket.core.ui.component.ShowCardItem
 import com.ssafy.cheket.ui.theme.*
 
 @Composable
-fun ConcertsScreen(
+fun ShowsScreen(
     appContainer: AppContainer,
     onShowClick: (String) -> Unit = {},
-    viewModel: ConcertsViewModel = viewModel(factory = ConcertsViewModel.Factory),
+    viewModel: ShowsViewModel = viewModel(factory = ShowsViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeFilterCount = viewModel.activeFilterCount()
