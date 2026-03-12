@@ -1,19 +1,23 @@
 package com.ssafy.cheket.service.host;
 
+import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.host.request.HostSignupRequest;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
 import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.wallet.Wallet;
+import com.ssafy.cheket.enums.ShowStatus;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
+import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import com.ssafy.cheket.service.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +25,8 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +37,9 @@ public class HostServiceImpl implements HostService {
     private final WalletRepository walletRepository;
     private final WalletService walletService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final StringRedisTemplate redisTemplate;
+    private final ShowRepository showRepository;
 
     @Value("${wallet.keystore.password}")
     private String keystorePassword;
@@ -94,17 +103,53 @@ public class HostServiceImpl implements HostService {
     // 회사 정보 조회
     @Override
     public GetHostInfoResponse getHostInfo(Long id) {
-        Host host = hostRepository.findById(id).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        Host host = hostRepository.findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         return new GetHostInfoResponse(host.getCompanyName(), host.getBusinessNo(), host.getEmail());
     }
 
     // 회사 정보 수정
     @Override
     public void modifyHostInfo(Long id, ModifyHostInfoRequest request) {
-        Host host = hostRepository.findById(id).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        Host host = hostRepository.findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         host.setCompanyName(request.companyName());
         host.setEmail(request.email());
         hostRepository.save(host);
+    }
+
+    // 주최측 회원 탈퇴 (soft delete + 토큰 블랙리스트)
+    @Override
+    @Transactional
+    public void withdrawHost(Long hostId, String password, String accessToken, String refreshToken) {
+        Host host = hostRepository.findByIdAndDeletedAtIsNull(hostId)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 호스트입니다."));
+
+        // 비밀번호 확인
+        if (!passwordEncoder.matches(password, host.getPassword())) {
+            throw new BadRequestException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 진행 중인 공연 확인 (CANCELLED 제외, 종료일이 안 지난 공연)
+        boolean hasActiveShow = showRepository.existsByHost_IdAndStatusNotAndShowEndDateAfter(hostId,
+            ShowStatus.CANCELLED, LocalDateTime.now());
+        if (hasActiveShow) {
+            throw new ConflictException("진행 중인 공연이 있어 탈퇴할 수 없습니다.");
+        }
+
+        // soft delete
+        host.setDeletedAt(LocalDateTime.now());
+
+        // Access Token 블랙리스트
+        long expiration = jwtTokenProvider.getRemainingExpiration(accessToken);
+        redisTemplate.opsForValue().set("blacklist:" + accessToken, "withdraw", expiration, TimeUnit.MILLISECONDS);
+
+        // Refresh Token 블랙리스트
+        if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
+            long refreshExpiration = jwtTokenProvider.getRemainingExpiration(refreshToken);
+            redisTemplate.opsForValue().set("blacklist:" + refreshToken, "withdraw", refreshExpiration,
+                TimeUnit.MILLISECONDS);
+        }
     }
 
 }

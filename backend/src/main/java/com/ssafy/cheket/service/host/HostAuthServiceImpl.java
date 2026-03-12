@@ -29,7 +29,7 @@ public class HostAuthServiceImpl implements HostAuthService {
     @Override
     public LoginResponse hostLogin(LoginRequest request) {
         // 1. 클라이언트가 보낸 이메일로 해당 유저 조회 - 없으면 404
-        Host host = hostRepository.findByEmail(request.email())
+        Host host = hostRepository.findByEmailAndDeletedAtIsNull(request.email())
             .orElseThrow(() -> new NotFoundException("이메일 또는 비밀번호가 일치하지 않습니다."));
         // 2. 비밀번호 검증 - 틀리면 401
         if (!passwordEncoder.matches(request.password(), host.getPassword())) {
@@ -49,9 +49,15 @@ public class HostAuthServiceImpl implements HostAuthService {
     // → 블랙리스트에 있으면 인증 거부 (401)
     // → TTL = 토큰 남은 만료시간 (만료되면 Redis에서 자동 삭제 → 쌓이지 않음)
     @Override
-    public void hostLogout(String accessToken) {
+    public void hostLogout(String accessToken, String refreshToken) {
         long expiration = jwtTokenProvider.getRemainingExpiration(accessToken);
         redisTemplate.opsForValue().set("blacklist:" + accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
+
+        if (refreshToken != null && jwtTokenProvider.validateToken(refreshToken)) {
+            long refreshExpiration = jwtTokenProvider.getRemainingExpiration(refreshToken);
+            redisTemplate.opsForValue().set("blacklist:" + refreshToken, "logout", refreshExpiration,
+                TimeUnit.MILLISECONDS);
+        }
     }
 
 }
