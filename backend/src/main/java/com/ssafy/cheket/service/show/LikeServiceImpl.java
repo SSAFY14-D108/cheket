@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.show;
 
+import com.ssafy.cheket.dto.show.response.GetLikesResponse;
 import com.ssafy.cheket.entity.show.Like;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
@@ -7,6 +8,8 @@ import com.ssafy.cheket.repository.show.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,5 +40,13 @@ public class LikeServiceImpl implements LikeService {
             throw new NotFoundException("존재하지 않는 공연입니다.");
 
         likeRepository.deleteByUserIdAndShowId(userId, showId);
+    }
+
+    @Override
+    public List<GetLikesResponse> getLikes(Long userId) {
+        return likeRepository.findLikedShowsByUserId(userId).stream()
+            .map(show -> new GetLikesResponse(show.getId(), show.getTitle(), show.getPosterUrl(),
+                show.getVenue().getName(), show.getShowStartDate().toLocalDate(), show.getStatus()))
+            .toList();
     }
 }
