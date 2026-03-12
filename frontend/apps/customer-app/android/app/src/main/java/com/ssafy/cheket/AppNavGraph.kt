@@ -1,11 +1,18 @@
 package com.ssafy.cheket
 
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -115,6 +122,43 @@ val bottomTabRoutes = listOf(
     Routes.HOME, Routes.SHOWS, Routes.RESALE, Routes.MY_TICKETS, Routes.COLLECTION,
 )
 
+private const val ANIM_DURATION = 300
+
+/**
+ * Slide-in composable: 화면 진입 시 오른쪽에서 슬라이드 인,
+ * 뒤로 갈 때 오른쪽으로 슬라이드 아웃.
+ * 엣지 스와이프 뒤로 가기 제스처도 자동 지원 (predictive back).
+ */
+private fun NavGraphBuilder.slideComposable(
+    route: String,
+    arguments: List<androidx.navigation.NamedNavArgument> = emptyList(),
+    content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
+) {
+    composable(
+        route = route,
+        arguments = arguments,
+        enterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                animationSpec = tween(ANIM_DURATION),
+            )
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(ANIM_DURATION))
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(ANIM_DURATION))
+        },
+        popExitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                animationSpec = tween(ANIM_DURATION),
+            )
+        },
+        content = content,
+    )
+}
+
 @Composable
 fun AppNavGraph(
     appContainer: AppContainer,
@@ -160,7 +204,7 @@ fun AppNavGraph(
                     onPasswordReset = { navController.navigate(Routes.PASSWORD_RESET) },
                 )
             }
-            composable(Routes.SIGNUP) {
+            slideComposable(Routes.SIGNUP) {
                 SignupScreen(
                     onSignupSuccess = {
                         navController.navigate(Routes.HOME) {
@@ -171,7 +215,7 @@ fun AppNavGraph(
                 )
             }
 
-            // ── Main tabs ──
+            // ── Main tabs (no slide animation — instant switch) ──
             composable(Routes.HOME) {
                 HomeScreen(
                     appContainer = appContainer,
@@ -202,7 +246,7 @@ fun AppNavGraph(
             }
 
             // ── Show Detail ──
-            composable(
+            slideComposable(
                 route = Routes.SHOW_DETAIL,
                 arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -215,7 +259,7 @@ fun AppNavGraph(
             }
 
             // ── Purchase Flow ──
-            composable(
+            slideComposable(
                 route = Routes.SHOW_DATE_SELECTION,
                 arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -228,7 +272,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.WAITING_QUEUE,
                 arguments = listOf(
                     navArgument("showId") { type = NavType.StringType },
@@ -245,7 +289,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.SEAT_SELECTION,
                 arguments = listOf(
                     navArgument("showId") { type = NavType.StringType },
@@ -259,7 +303,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.PAYMENT,
                 arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -280,7 +324,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.PURCHASE_FAILED,
                 arguments = listOf(
                     navArgument("showId") { type = NavType.StringType },
@@ -304,7 +348,7 @@ fun AppNavGraph(
             }
 
             // ── Ticket Detail & Actions ──
-            composable(
+            slideComposable(
                 route = Routes.TICKET_DETAIL,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -317,7 +361,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.QR_CHECKIN,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -329,7 +373,7 @@ fun AppNavGraph(
             }
 
             // ── Transfer Flow ──
-            composable(
+            slideComposable(
                 route = Routes.TRANSFER,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -345,7 +389,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.TRANSFER_COMPLETE,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -361,7 +405,7 @@ fun AppNavGraph(
                     } },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.TRANSFER_FAILED,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -379,7 +423,7 @@ fun AppNavGraph(
             }
 
             // ── Resale Flow ──
-            composable(
+            slideComposable(
                 route = Routes.RESALE_DETAIL,
                 arguments = listOf(navArgument("resaleItemId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -394,7 +438,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.RESALE_PURCHASE_COMPLETE,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -410,7 +454,7 @@ fun AppNavGraph(
                     } },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.RESALE_CREATE,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -426,13 +470,13 @@ fun AppNavGraph(
             }
 
             // ── Utility Screens ──
-            composable(Routes.WISHLIST) {
+            slideComposable(Routes.WISHLIST) {
                 WishlistScreen(
                     onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.MY_PAGE) {
+            slideComposable(Routes.MY_PAGE) {
                 MyPageScreen(
                     onWallet = { navController.navigate(Routes.WALLET) },
                     onWishlist = { navController.navigate(Routes.WISHLIST) },
@@ -447,54 +491,54 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.WALLET) {
+            slideComposable(Routes.WALLET) {
                 WalletScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.WALLET_HISTORY) {
+            slideComposable(Routes.WALLET_HISTORY) {
                 WalletHistoryScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.TX_HISTORY) {
+            slideComposable(Routes.TX_HISTORY) {
                 TxHistoryScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.WITHDRAW) {
+            slideComposable(Routes.WITHDRAW) {
                 WithdrawScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.SETTINGS) {
+            slideComposable(Routes.SETTINGS) {
                 SettingsScreen(
                     onPasswordChange = { navController.navigate(Routes.PASSWORD_CHANGE) },
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.PASSWORD_CHANGE) {
+            slideComposable(Routes.PASSWORD_CHANGE) {
                 PasswordChangeScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.FIND_ACCOUNT) {
+            slideComposable(Routes.FIND_ACCOUNT) {
                 FindAccountScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.PASSWORD_RESET) {
+            slideComposable(Routes.PASSWORD_RESET) {
                 PasswordResetScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.RESALE_LIST) {
+            slideComposable(Routes.RESALE_LIST) {
                 ResaleListScreen(
                     onShowClick = { showId -> navController.navigate(Routes.resaleTickets(showId)) },
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.RESALE_TICKETS,
                 arguments = listOf(navArgument("showId") { type = NavType.StringType }),
             ) { backStackEntry ->
@@ -505,14 +549,14 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.ARCHIVE) {
+            slideComposable(Routes.ARCHIVE) {
                 ArchiveScreen(
                     onTicketClick = { ticketId ->
                         navController.navigate(Routes.collectibleDetail(ticketId))
                     },
                 )
             }
-            composable(
+            slideComposable(
                 route = Routes.COLLECTIBLE_DETAIL,
                 arguments = listOf(navArgument("ticketId") { type = NavType.StringType }),
             ) { backStackEntry ->

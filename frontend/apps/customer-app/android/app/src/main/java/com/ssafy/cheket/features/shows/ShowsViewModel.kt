@@ -22,12 +22,20 @@ enum class SortOption(val label: String, val apiValue: String) {
     CLOSING("오픈임박순", "DEADLINE"),
 }
 
+/** 백엔드 Region enum에 대응하는 지역 필터 */
+enum class RegionOption(val label: String, val apiValue: String) {
+    SEOUL("서울", "SEOUL"),
+    BUSAN("부울경", "BUSAN"),
+    GUMI("구미", "GUMI"),
+    DAEJEON("대전", "DAEJEON"),
+    GWANGJU("광주", "GWANGJU"),
+}
+
 data class ShowsUiState(
     val shows: List<Show> = emptyList(),
     val searchQuery: String = "",
     val sortBy: SortOption = SortOption.POPULAR,
-    val selectedRegions: List<String> = emptyList(),
-    val isFilterExpanded: Boolean = false,
+    val selectedRegions: List<RegionOption> = emptyList(),
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val currentPage: Int = 0,
@@ -39,8 +47,6 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ShowsUiState())
     val uiState: StateFlow<ShowsUiState> = _uiState.asStateFlow()
 
-    val regions = listOf("서울", "경기", "인천", "부산", "대구", "대전", "광주", "제주")
-
     // 검색 디바운싱용
     private var searchJob: Job? = null
 
@@ -49,10 +55,10 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
         loadShows()
     }
 
+    // ── 검색: 텍스트 업데이트 + 디바운싱 API 호출 ──
     fun onSearchChange(query: String) {
         Log.d(TAG, "onSearchChange() query=$query")
         _uiState.value = _uiState.value.copy(searchQuery = query)
-        // 디바운싱: 타이핑 멈춘 후 400ms 뒤에 API 호출
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(400)
@@ -60,13 +66,22 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
         }
     }
 
+    // ── 검색: 키보드 Search 버튼 / 검색 아이콘 클릭 시 즉시 API 호출 ──
+    fun onSearchSubmit() {
+        Log.d(TAG, "onSearchSubmit() query=${_uiState.value.searchQuery}")
+        searchJob?.cancel()
+        loadShows(page = 0)
+    }
+
+    // ── 정렬 변경 → 즉시 API 호출 ──
     fun onSortChange(sort: SortOption) {
         Log.d(TAG, "onSortChange() sort=$sort")
         _uiState.value = _uiState.value.copy(sortBy = sort)
         loadShows(page = 0)
     }
 
-    fun onRegionToggle(region: String?) {
+    // ── 지역 필터 토글 → 즉시 API 호출 ──
+    fun onRegionToggle(region: RegionOption?) {
         Log.d(TAG, "onRegionToggle() region=$region")
         if (region == null) {
             _uiState.value = _uiState.value.copy(selectedRegions = emptyList())
@@ -91,10 +106,6 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
         loadShows(page = _uiState.value.currentPage)
     }
 
-    fun toggleFilter() {
-        _uiState.value = _uiState.value.copy(isFilterExpanded = !_uiState.value.isFilterExpanded)
-    }
-
     fun resetFilters() {
         Log.d(TAG, "resetFilters()")
         _uiState.value = _uiState.value.copy(selectedRegions = emptyList())
@@ -113,7 +124,7 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
 
             val keyword = s.searchQuery.trim().ifBlank { null }
             // 지역: 복수 선택 시 첫 번째만 전달 (API가 단일 값)
-            val region = s.selectedRegions.firstOrNull()
+            val region = s.selectedRegions.firstOrNull()?.apiValue
 
             val result = showRepository.getShowsPage(
                 region = region,

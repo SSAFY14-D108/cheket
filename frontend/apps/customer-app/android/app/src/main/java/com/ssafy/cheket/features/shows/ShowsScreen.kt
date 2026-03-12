@@ -1,5 +1,10 @@
 package com.ssafy.cheket.features.shows
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,19 +15,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,7 +49,8 @@ fun ShowsScreen(
     viewModel: ShowsViewModel = viewModel(factory = ShowsViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val activeFilterCount = viewModel.activeFilterCount()
+    val focusManager = LocalFocusManager.current
+    var isSearchFocused by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -52,7 +62,7 @@ fun ShowsScreen(
                         .padding(horizontal = 16.dp)
                         .padding(top = 12.dp, bottom = 8.dp)
                 ) {
-                    // Search bar + filter button side by side
+                    // ── Search bar + 검색 버튼 (포커스 시에만 표시) ──
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -62,47 +72,58 @@ fun ShowsScreen(
                             onValueChange = viewModel::onSearchChange,
                             placeholder = { Text("공연명, 아티스트, 장소 검색", fontSize = 14.sp) },
                             leadingIcon = { Icon(Icons.Default.Search, null, tint = MutedForeground) },
+                            trailingIcon = {
+                                if (uiState.searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        viewModel.onSearchChange("")
+                                        viewModel.onSearchSubmit()
+                                    }) {
+                                        Icon(Icons.Default.Close, "지우기", tint = MutedForeground, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            },
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                viewModel.onSearchSubmit()
+                                focusManager.clearFocus()
+                            }),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Primary,
                                 unfocusedBorderColor = BorderColor,
                                 focusedContainerColor = Surface,
                                 unfocusedContainerColor = Surface,
                             ),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .onFocusChanged { isSearchFocused = it.isFocused },
                         )
-                        // Separate filter toggle button
-                        Box {
-                            IconButton(
-                                onClick = viewModel::toggleFilter,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (uiState.isFilterExpanded) PrimaryLight else Muted),
-                            ) {
-                                Icon(
-                                    Icons.Outlined.Tune, "필터",
-                                    tint = if (uiState.isFilterExpanded) Primary else MutedForeground,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                            // Badge for active filter count
-                            if (activeFilterCount > 0) {
-                                Badge(
+
+                        // 검색 버튼: 포커스 시에만 표시
+                        AnimatedVisibility(
+                            visible = isSearchFocused,
+                            enter = fadeIn() + scaleIn(),
+                            exit = fadeOut() + scaleOut(),
+                        ) {
+                            FilledIconButton(
+                                onClick = {
+                                    viewModel.onSearchSubmit()
+                                    focusManager.clearFocus()
+                                },
+                                modifier = Modifier.size(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = IconButtonDefaults.filledIconButtonColors(
                                     containerColor = Primary,
                                     contentColor = White,
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 4.dp, y = (-4).dp),
-                                ) {
-                                    Text("$activeFilterCount", fontSize = 10.sp)
-                                }
+                                ),
+                            ) {
+                                Icon(Icons.Default.Search, "검색", modifier = Modifier.size(20.dp))
                             }
                         }
                     }
 
-                    // Sort pills
+                    // ── Sort pills ──
                     Row(
                         Modifier.padding(top = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -132,56 +153,35 @@ fun ShowsScreen(
                         }
                     }
 
-                    // Expandable filter panel
-                    if (uiState.isFilterExpanded) {
-                        Spacer(Modifier.height(8.dp))
-                        HorizontalDivider(color = BorderColor)
-                        Spacer(Modifier.height(8.dp))
-
-                        // Region pills (multi-select)
-                        Text("지역", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MutedForeground)
-                        Spacer(Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            RegionPill("전체", uiState.selectedRegions.isEmpty()) { viewModel.onRegionToggle(null) }
-                            viewModel.regions.forEach { region ->
-                                RegionPill(region, uiState.selectedRegions.contains(region)) { viewModel.onRegionToggle(region) }
-                            }
+                    // ── 지역 필터 (항상 표시) ──
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        RegionPill("전체", uiState.selectedRegions.isEmpty()) {
+                            viewModel.onRegionToggle(null)
                         }
-
-                        // Filter reset button
-                        if (viewModel.hasActiveFilters()) {
-                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .clickable { viewModel.resetFilters() }
-                                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp), tint = MutedForeground)
-                                Text("필터 초기화", fontSize = 12.sp, color = MutedForeground)
+                        RegionOption.entries.forEach { region ->
+                            RegionPill(region.label, uiState.selectedRegions.contains(region)) {
+                                viewModel.onRegionToggle(region)
                             }
                         }
                     }
 
-                    // Active filter chips (when panel is closed)
-                    if (!uiState.isFilterExpanded && viewModel.hasActiveFilters()) {
+                    // ── 필터 초기화 버튼 ──
+                    if (viewModel.hasActiveFilters()) {
+                        Spacer(Modifier.height(6.dp))
                         Row(
-                            modifier = Modifier.padding(top = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { viewModel.resetFilters() }
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            uiState.selectedRegions.forEach { region ->
-                                AssistChip(
-                                    onClick = { viewModel.onRegionToggle(region) },
-                                    label = { Text(region, fontSize = 11.sp) },
-                                    trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp)) },
-                                    shape = RoundedCornerShape(20.dp),
-                                )
-                            }
+                            Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp), tint = MutedForeground)
+                            Text("필터 초기화", fontSize = 12.sp, color = MutedForeground)
                         }
                     }
                 }
