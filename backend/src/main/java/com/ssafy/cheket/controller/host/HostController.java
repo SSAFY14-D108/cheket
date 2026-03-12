@@ -5,7 +5,9 @@ import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
+import com.ssafy.cheket.dto.show.response.GetSectionsResponse;
 import com.ssafy.cheket.service.host.HostService;
+import com.ssafy.cheket.service.show.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +16,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/hosts")
 public class HostController {
 
     private final HostService hostService;
+    private final ShowService showService;
 
     @PostMapping
     @Operation(summary = "주최측 회원가입")
@@ -52,6 +57,14 @@ public class HostController {
         @RequestBody ModifyHostInfoRequest request) {
         hostService.modifyHostInfo(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회사 정보가 수정되었습니다.", null));
+    }
+
+    @GetMapping("/venues/{venueId}/sections")
+    @Operation(summary = "구역 목록 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetSectionsResponse>>> getSections(@PathVariable Long venueId) {
+        List<GetSectionsResponse> response = showService.getSections(venueId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "구역 목록 조회 완료", response));
     }
 
 }
