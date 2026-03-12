@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.ticket;
 
+import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.entity.show.RefundPolicy;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
@@ -9,11 +10,13 @@ import com.ssafy.cheket.repository.show.RefundPolicyRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
+import com.ssafy.cheket.repository.ticket.projection.UpcomingTicketProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -60,6 +63,23 @@ public class TicketServiceImpl implements TicketService {
             // 6. 모든 로직을 완료하면 return 해줘야 다음 로직을 이행하지 않음.
             return;
         }
+    }
+
+    // 보관 목록 조회
+    @Override
+    public List<GetUpcomingTicketResponse> getUpcomingTickets(Long userId) {
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        List<UpcomingTicketProjection> tickets = ticketRepository.findUpcomingAvailableAndListedTicketsByUserId(userId,
+            now);
+
+        return tickets.stream()
+            .map(ticket -> new GetUpcomingTicketResponse(ticket.getTicketId(), ticket.getNumbering(),
+                ticket.getPosterUrl(),
+                new GetUpcomingTicketResponse.ShowInfo(ticket.getShowId(), ticket.getShowName(),
+                    ticket.getSessionDate(), ticket.getVenueName()),
+                ticket.getPrice(), ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade(),
+                ticket.getStatus()))
+            .toList();
     }
 
 }
