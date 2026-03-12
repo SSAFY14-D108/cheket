@@ -24,9 +24,17 @@ interface DateTimePickerProps {
     value?: string
     onChange: (value: string) => void
     placeholder?: string
+    minDate?: Date
+    maxDate?: Date
 }
 
-export function DateTimePicker({ value, onChange, placeholder = "날짜/시간 선택" }: DateTimePickerProps) {
+export function DateTimePicker({
+    value,
+    onChange,
+    placeholder = "날짜/시간 선택",
+    minDate,
+    maxDate,
+}: DateTimePickerProps) {
     const [date, setDate] = React.useState<Date | undefined>(
         value ? new Date(value) : undefined
     )
@@ -85,6 +93,26 @@ export function DateTimePicker({ value, onChange, placeholder = "날짜/시간 �
     const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
     const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'))
 
+    const normalizedMinDate = React.useMemo(() => {
+        if (!minDate) {
+            return undefined
+        }
+
+        const nextMinDate = new Date(minDate)
+        nextMinDate.setHours(0, 0, 0, 0)
+        return nextMinDate
+    }, [minDate])
+
+    const normalizedMaxDate = React.useMemo(() => {
+        if (!maxDate) {
+            return undefined
+        }
+
+        const nextMaxDate = new Date(maxDate)
+        nextMaxDate.setHours(23, 59, 59, 999)
+        return nextMaxDate
+    }, [maxDate])
+
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -111,6 +139,20 @@ export function DateTimePicker({ value, onChange, placeholder = "날짜/시간 �
                     selected={date}
                     onSelect={handleDateSelect}
                     initialFocus
+                    disabled={(day) => {
+                        const normalizedDay = new Date(day)
+                        normalizedDay.setHours(12, 0, 0, 0)
+
+                        if (normalizedMinDate && normalizedDay < normalizedMinDate) {
+                            return true
+                        }
+
+                        if (normalizedMaxDate && normalizedDay > normalizedMaxDate) {
+                            return true
+                        }
+
+                        return false
+                    }}
                 />
                 <div className="p-3 border-t flex items-center justify-center gap-2 bg-muted/20">
                     <Clock className="w-4 h-4 text-muted-foreground mr-1 flex-shrink-0" />

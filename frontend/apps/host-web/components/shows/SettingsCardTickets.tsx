@@ -454,6 +454,8 @@ export function SettingsCardTickets({
                                             onUpdateSession(idx, 'sessionStartDate', time)
                                         }}
                                         placeholder="공연 시작 날짜/시간"
+                                        minDate={showStartAt ? new Date(showStartAt) : undefined}
+                                        maxDate={showEndAt ? new Date(showEndAt) : undefined}
                                     />
                                 </div>
 
