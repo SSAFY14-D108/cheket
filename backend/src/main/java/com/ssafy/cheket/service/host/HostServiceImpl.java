@@ -74,7 +74,10 @@ public class HostServiceImpl implements HostService {
         hostRepository.save(host);
 
         // 5단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
-        walletService.transferInitialFunds(address);
+        // null 전달 → WalletServiceImpl에서 "호스트구나" 판단 → Transaction 기록 안 함
+        // 호스트는 공연 주최자로, 티켓을 사고파는 주체가 아님
+        // 블록체인 전송은 동일하게 수행되고, 이벤트 리스너가 잔액도 업데이트해줌
+        walletService.transferInitialFunds(address, null);
     }
 
     // 사업자 등록번호 중복 확인

@@ -60,7 +60,9 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         // 3단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
-        walletService.transferInitialFunds(address);
+        // user.getId()를 전달 → Transaction 레코드의 buyerId에 들어감
+        // 유저는 거래 주체이므로 Transaction DB에 기록해야 함
+        walletService.transferInitialFunds(address, user.getId());
     }
 
     // 이메일 찾기
