@@ -27,7 +27,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Session sess on sess.id = ss.sessionId
         join Show sh on sh.id = sess.showId
         join sh.venue v
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and (:region is null or v.region = :region)
           and (
               :keyword is null
@@ -44,7 +44,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Session sess on sess.id = ss.sessionId
         join Show sh on sh.id = sess.showId
         join sh.venue v
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and (:region is null or v.region = :region)
           and (
                 :keyword is null
@@ -71,7 +71,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Session sess on sess.id = ss.sessionId
         join Show sh on sh.id = sess.showId
         join sh.venue v
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and (:region is null or v.region = :region)
           and (
                 :keyword is null
@@ -105,7 +105,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Session sess on sess.id = ss.sessionId
         join Show sh on sh.id = sess.showId
         join sh.venue v
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and (:region is null or v.region = :region)
           and (
               :keyword is null
@@ -138,7 +138,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Seat seat on seat.id = ss.seatId
         join Section sec on sec.id = seat.sectionId
         join SeatGrade sg on sg.showId = sh.id and sg.sectionId = sec.id
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and r.status = com.ssafy.cheket.entity.resale.Resale.ResaleListingStatus.ACTIVE
           and sh.id = :showId
           and (:sessionId is null or sess.id = :sessionId)
@@ -150,7 +150,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join SessionSeat ss on ss.id = t.sessionSeatId
         join Session sess on sess.id = ss.sessionId
         join Show sh on sh.id = sess.showId
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and r.status = com.ssafy.cheket.entity.resale.Resale.ResaleListingStatus.ACTIVE
           and sh.id = :showId
           and (:sessionId is null or sess.id = :sessionId)
@@ -179,7 +179,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Seat seat on seat.id = ss.seatId
         join Section sec on sec.id = seat.sectionId
         join SeatGrade sg on sg.showId = sh.id and sg.sectionId = sec.id
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and r.status = com.ssafy.cheket.entity.resale.Resale.ResaleListingStatus.ACTIVE
           and sh.id = :showId
           and (:sessionId is null or sess.id = :sessionId)
@@ -191,7 +191,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join SessionSeat ss on ss.id = t.sessionSeatId
         join Session sess on sess.id = ss.sessionId
         join Show sh on sh.id = sess.showId
-        where t.resaleStatus = com.ssafy.cheket.entity.ticket.Ticket.ResaleStatus.LISTED
+        where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
           and r.status = com.ssafy.cheket.entity.resale.Resale.ResaleListingStatus.ACTIVE
           and sh.id = :showId
           and (:sessionId is null or sess.id = :sessionId)

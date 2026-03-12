@@ -1,16 +1,19 @@
 package com.ssafy.cheket.service.ticket;
 
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
+import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 import com.ssafy.cheket.entity.show.RefundPolicy;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
 import com.ssafy.cheket.entity.ticket.Ticket;
+import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.show.RefundPolicyRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.ticket.projection.UpcomingTicketProjection;
+import com.ssafy.cheket.repository.ticket.projection.UsedAndExpiredTicketProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +39,7 @@ public class TicketServiceImpl implements TicketService {
     public void refundTicket(Long ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
 
-        if (ticket.getResaleStatus().equals(Ticket.ResaleStatus.EXPIRED)) {
+        if (ticket.getResaleStatus().equals(ResaleStatus.EXPIRED)) {
             throw new NotFoundException("유효하지 않은 티켓입니다.");
         }
 
@@ -79,6 +82,20 @@ public class TicketServiceImpl implements TicketService {
                     ticket.getSessionDate(), ticket.getVenueName()),
                 ticket.getPrice(), ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade(),
                 ticket.getStatus()))
+            .toList();
+    }
+
+    // 관람 완료 / 만료 목록 조회
+    @Override
+    public List<GetUsedAndExpiredTicketResponse> getUsedAndExpiredTickets(Long userId) {
+        List<UsedAndExpiredTicketProjection> tickets = ticketRepository.findUsedAndExpiredTicketsByUserId(userId);
+
+        return tickets.stream()
+            .map(ticket -> new GetUsedAndExpiredTicketResponse(ticket.getTicketId(), ticket.getNumbering(),
+                ticket.getPosterUrl(),
+                new GetUsedAndExpiredTicketResponse.ShowInfo(ticket.getShowId(), ticket.getShowName(),
+                    ticket.getSessionDate(), ticket.getVenueName(), ticket.getEffect()),
+                ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade()))
             .toList();
     }
 

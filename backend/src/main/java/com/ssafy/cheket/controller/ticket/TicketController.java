@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.ticket;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
+import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 import com.ssafy.cheket.service.ticket.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -35,6 +36,15 @@ public class TicketController {
         @AuthenticationPrincipal Long userId) {
         List<GetUpcomingTicketResponse> response = ticketService.getUpcomingTickets(userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "볼 예정인 티켓 목록 조회에 성공했습니다.", response));
+    }
+
+    @GetMapping("/collection")
+    @Operation(summary = "관람 완료 및 만료 티켓 목록 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetUsedAndExpiredTicketResponse>>> getUsedAndExpiredTickets(
+        @AuthenticationPrincipal Long userId) {
+        List<GetUsedAndExpiredTicketResponse> response = ticketService.getUsedAndExpiredTickets(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "티켓 컬렉션 목록 조회에 성공했습니다.", response));
     }
 
 }
