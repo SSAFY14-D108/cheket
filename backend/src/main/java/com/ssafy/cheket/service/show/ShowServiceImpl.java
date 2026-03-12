@@ -65,10 +65,14 @@ public class ShowServiceImpl implements ShowService {
 
     // 공연 상세 조회
     @Override
-    public GetShowDetailResponse getShowDetail(Long showId) {
+    public GetShowDetailResponse getShowDetail(Long showId, Long userId) {
         Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
 
         int likeCount = likeRepository.countByShowId(showId);
+
+        boolean isLiked = false;
+        if (userId != null)
+            isLiked = likeRepository.existsByUserIdAndShowId(userId, showId);
 
         List<GetShowDetailResponse.GradeInfo> grades = seatGradeRepository.findByShowId(showId).stream()
             .sorted(Comparator.comparing(SeatGrade::getSectionId))
@@ -82,13 +86,12 @@ public class ShowServiceImpl implements ShowService {
                 refundPolicy.getRefundRate()))
             .toList();
 
-        // JWT 관련 추가된 후에 isLiked 수정하기
         return new GetShowDetailResponse(show.getId(), show.getTitle(), show.getPosterUrl(), show.getVenue().getName(),
             show.getPurchaseLimit(), show.getVenue().getRegion(),
             new GetShowDetailResponse.ShowPeriod(show.getShowStartDate().toLocalDate(),
                 show.getShowEndDate().toLocalDate()),
             new GetShowDetailResponse.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
-            show.getStatus(), show.getDescription(), show.getArtist(), false, likeCount, grades, refundPolicies);
+            show.getStatus(), show.getDescription(), show.getArtist(), isLiked, likeCount, grades, refundPolicies);
     }
 
     // 회차 목록 조회
