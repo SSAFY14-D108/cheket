@@ -289,9 +289,9 @@ export function SeatSelectionScreen() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {event.grades.map((g) => (
+                  {event.grades.map((g, index) => (
                     <div
-                      key={g.name}
+                      key={`${g.name}-${g.price}-${index}`}
                       className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
                       style={{
                         backgroundColor: `${g.color ?? '#6b7280'}22`,
@@ -355,13 +355,13 @@ export function SeatSelectionScreen() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">
-              {event.grades.map((grade) => {
+              {event.grades.map((grade, index) => {
                 const gradeSeats = seatsByGrade.get(grade.name) ?? []
                 const rows = Array.from(new Set(gradeSeats.map((s) => s.row)))
                 const color = grade.color ?? '#6366f1'
 
                 return (
-                  <div key={grade.name} className="flex flex-col items-center gap-1">
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="flex flex-col items-center gap-1">
                     <span
                       className="mb-1 rounded-full px-3 py-1 text-[10px] font-bold"
                       style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
@@ -429,8 +429,8 @@ export function SeatSelectionScreen() {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            {event.grades.map((g) => (
-              <div key={g.name} className="flex items-center gap-1.5 text-xs">
+            {event.grades.map((g, index) => (
+              <div key={`${g.name}-${g.price}-${index}`} className="flex items-center gap-1.5 text-xs">
                 <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: g.color ?? '#6366f1' }} />
                 <span className="font-medium text-muted-foreground">{g.name}</span>
                 <span className="text-muted-foreground/60">{g.price.toLocaleString()} CTK</span>
@@ -474,7 +474,14 @@ export function SeatSelectionScreen() {
           )}
 
           <button
-            onClick={() => navigate('payment', { eventId: event.id, seats: selectedSeats, totalPrice })}
+            onClick={() =>
+              navigate('payment', {
+                eventId: event.id,
+                eventDateId: selectedDate?.id ?? navParams.eventDateId,
+                seats: selectedSeats,
+                totalPrice,
+              })
+            }
             disabled={selectedSeats.length === 0 || detailLoading}
             className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >

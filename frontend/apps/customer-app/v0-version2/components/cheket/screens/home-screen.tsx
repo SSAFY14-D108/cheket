@@ -287,9 +287,9 @@ function RecommendationSection({
 }
 
 export function HomeScreen() {
-  const { navigate, events } = useApp()
+  const { navigate, allEvents } = useApp()
 
-  const visibleEvents = useMemo(() => events.filter((event) => event.poster), [events])
+  const visibleEvents = useMemo(() => allEvents.filter((event) => event.poster), [allEvents])
   const heroEvents = useMemo(() => visibleEvents.slice(0, 3), [visibleEvents])
   const rankingEvents = useMemo(() => visibleEvents.slice(0, 5), [visibleEvents])
   const openEvents = useMemo(() => visibleEvents.slice(5, 10), [visibleEvents])

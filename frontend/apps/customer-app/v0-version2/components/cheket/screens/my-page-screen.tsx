@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 export function MyPageScreen() {
-  const { user, logout, navigate, goBack, wishlist, tickets } = useApp()
+  const { user, logout, navigate, wishlist, tickets } = useApp()
 
   if (!user) return null
 
@@ -53,13 +53,13 @@ export function MyPageScreen() {
 
   const menuItems = [
     { label: '공연 문의내역' },
-    { label: '이용약관' },
-    { label: '개인정보처리방침' },
     { label: '공지사항' },
+    { label: '이벤트 및 혜택 알림' },
+    { label: '고객센터' },
   ]
 
   return (
-    <AppShell title="마이페이지" showBack onBack={goBack} showBottomNav={false} hideProfileIcon>
+    <AppShell title="마이페이지" hideProfileIcon>
       <div className="flex flex-col gap-4 p-4 pb-8">
         <section className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-start gap-4">

@@ -33,7 +33,19 @@ export function MyTicketsScreen() {
   return (
     <AppShell title="내 티켓">
       <div className="flex flex-col gap-4 p-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+        <button
+          type="button"
+          onClick={() => navigate('collection')}
+          className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-secondary/60"
+        >
+          <div>
+            <p className="text-sm font-semibold text-foreground">컬렉션</p>
+            <p className="mt-1 text-xs text-muted-foreground">사용 완료된 티켓을 컬렉터블 카드로 확인합니다.</p>
+          </div>
+          <span className="text-sm font-semibold text-primary">보기</span>
+        </button>
+
+        <div className="-mx-4 flex items-center gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
           {FILTER_OPTIONS.map((filter) => (
             <button
               key={filter.id}
@@ -54,17 +66,17 @@ export function MyTicketsScreen() {
           <EmptyState
             title={
               activeFilter === 'all'
-                ? '표시할 티켓이 없어요'
+                ? '표시할 티켓이 없습니다.'
                 : activeFilter === 'holding'
-                  ? '보유 중인 티켓이 없어요'
-                  : '판매 중인 티켓이 없어요'
+                  ? '보유 중인 티켓이 없습니다.'
+                  : '판매 중인 티켓이 없습니다.'
             }
             description={
               activeFilter === 'all'
-                ? '예매하거나 리세일 등록한 티켓이 여기 표시됩니다.'
+                ? '예매하거나 거래한 티켓이 생기면 이곳에서 확인할 수 있습니다.'
                 : activeFilter === 'holding'
-                ? '예매한 NFT 티켓이 여기 표시됩니다.'
-                : '리세일로 등록한 티켓이 여기 표시됩니다.'
+                  ? '예매한 NFT 티켓이 생기면 이곳에서 확인할 수 있습니다.'
+                  : '등록한 티켓이 생기면 이곳에서 확인할 수 있습니다.'
             }
           />
         ) : (
