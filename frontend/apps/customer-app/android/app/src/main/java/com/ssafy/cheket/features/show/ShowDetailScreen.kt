@@ -68,6 +68,9 @@ fun ShowDetailScreen(
         is ShowDetailViewModel.UiState.Success -> {
             ShowDetailContent(
                 show = state.show,
+                isLiked = state.isLiked,
+                likeCount = state.likeCount,
+                onToggleLike = viewModel::toggleLike,
                 onNavigateToDateSelection = onNavigateToDateSelection,
                 onBack = onBack,
             )
@@ -78,14 +81,12 @@ fun ShowDetailScreen(
 @Composable
 private fun ShowDetailContent(
     show: Show,
+    isLiked: Boolean,
+    likeCount: Int,
+    onToggleLike: () -> Unit,
     onNavigateToDateSelection: (showId: String) -> Unit,
     onBack: () -> Unit,
 ) {
-    // TODO: 백엔드 찜(wishlist) API 구현 후 연동 — 현재는 로컬 상태만 토글
-    //  - GET /api/v1/shows/{showId}/wishlist 로 초기 상태 로드
-    //  - POST/DELETE /api/v1/shows/{showId}/wishlist 로 토글 (디바운싱 적용)
-    //  - 찜 수(count)도 API에서 받아 표시
-    var isWishlisted by remember { mutableStateOf(false) }
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
 
     Scaffold(
@@ -175,35 +176,36 @@ private fun ShowDetailContent(
                         .padding(12.dp)
                 ) {
                     IconButton(
-                        onClick = { isWishlisted = !isWishlisted },
+                        onClick = onToggleLike,
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
                             .background(Black.copy(alpha = 0.45f))
                     ) {
                         Icon(
-                            imageVector = if (isWishlisted) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (isWishlisted) "찜 해제" else "찜하기",
-                            tint = if (isWishlisted) Danger else White,
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isLiked) "찜 해제" else "찜하기",
+                            tint = if (isLiked) Danger else White,
                             modifier = Modifier.size(22.dp),
                         )
                     }
-                    // TODO: 찜 수를 API에서 받아 표시 (현재 하드코딩 3)
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp)
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "3", // mock wishlist count
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = White,
-                        )
+                    if (likeCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "$likeCount",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = White,
+                            )
+                        }
                     }
                 }
             }
