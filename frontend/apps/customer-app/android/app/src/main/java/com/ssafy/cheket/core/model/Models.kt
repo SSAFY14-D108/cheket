@@ -51,6 +51,8 @@ data class Show(
     val grades: List<Grade>,
     val openDate: String? = null,
     val description: String? = null,
+    val isLiked: Boolean = false,
+    val likeCount: Int = 0,
     val refundRules: List<RefundRule> = emptyList(),
 )
 

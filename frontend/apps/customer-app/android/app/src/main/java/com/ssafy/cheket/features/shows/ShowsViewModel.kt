@@ -9,48 +9,61 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.repository.ShowRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class SortOption(val label: String) { POPULAR("인기순"), LATEST("최신순"), CLOSING("오픈임박순") }
+enum class SortOption(val label: String, val apiValue: String) {
+    POPULAR("인기순", "POPULAR"),
+    LATEST("최신순", "LATEST"),
+    CLOSING("오픈임박순", "DEADLINE"),
+}
 
 data class ShowsUiState(
-    val allShows: List<Show> = emptyList(),
-    val filteredShows: List<Show> = emptyList(),
+    val shows: List<Show> = emptyList(),
     val searchQuery: String = "",
     val sortBy: SortOption = SortOption.POPULAR,
     val selectedRegions: List<String> = emptyList(),
     val isFilterExpanded: Boolean = false,
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
+    val currentPage: Int = 0,
+    val totalPages: Int = 0,
+    val totalElements: Int = 0,
 )
 
 class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ShowsUiState())
     val uiState: StateFlow<ShowsUiState> = _uiState.asStateFlow()
+
     val regions = listOf("서울", "경기", "인천", "부산", "대구", "대전", "광주", "제주")
-    private val popularityOrder = listOf("evt_001", "evt_002", "evt_004", "evt_006", "evt_007", "evt_008")
+
+    // 검색 디바운싱용
+    private var searchJob: Job? = null
 
     init {
         Log.d(TAG, "init — loading shows")
-        viewModelScope.launch {
-            showRepository.getShows().collect { shows ->
-                Log.d(TAG, "getShows() received ${shows.size} shows")
-                _uiState.value = _uiState.value.copy(allShows = shows, isLoading = false)
-                applyFilters()
-            }
-        }
+        loadShows()
     }
 
     fun onSearchChange(query: String) {
         Log.d(TAG, "onSearchChange() query=$query")
-        _uiState.value = _uiState.value.copy(searchQuery = query); applyFilters()
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        // 디바운싱: 타이핑 멈춘 후 400ms 뒤에 API 호출
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(400)
+            loadShows(page = 0)
+        }
     }
 
     fun onSortChange(sort: SortOption) {
         Log.d(TAG, "onSortChange() sort=$sort")
-        _uiState.value = _uiState.value.copy(sortBy = sort); applyFilters()
+        _uiState.value = _uiState.value.copy(sortBy = sort)
+        loadShows(page = 0)
     }
 
     fun onRegionToggle(region: String?) {
@@ -62,46 +75,69 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
             val updated = if (current.contains(region)) current - region else current + region
             _uiState.value = _uiState.value.copy(selectedRegions = updated)
         }
-        applyFilters()
+        loadShows(page = 0)
     }
 
-    fun toggleFilter() { _uiState.value = _uiState.value.copy(isFilterExpanded = !_uiState.value.isFilterExpanded) }
-    fun resetFilters() { Log.d(TAG, "resetFilters()"); _uiState.value = _uiState.value.copy(selectedRegions = emptyList()); applyFilters() }
+    fun goToPage(page: Int) {
+        Log.d(TAG, "goToPage() page=$page")
+        if (page in 0 until _uiState.value.totalPages) {
+            loadShows(page = page)
+        }
+    }
+
+    fun refresh() {
+        Log.d(TAG, "refresh()")
+        _uiState.value = _uiState.value.copy(isRefreshing = true)
+        loadShows(page = _uiState.value.currentPage)
+    }
+
+    fun toggleFilter() {
+        _uiState.value = _uiState.value.copy(isFilterExpanded = !_uiState.value.isFilterExpanded)
+    }
+
+    fun resetFilters() {
+        Log.d(TAG, "resetFilters()")
+        _uiState.value = _uiState.value.copy(selectedRegions = emptyList())
+        loadShows(page = 0)
+    }
+
     fun hasActiveFilters(): Boolean = _uiState.value.selectedRegions.isNotEmpty()
     fun activeFilterCount(): Int = _uiState.value.selectedRegions.size
 
-    private fun applyFilters() {
-        val s = _uiState.value
-        var result = s.allShows
-
-        if (s.searchQuery.isNotBlank()) {
-            val keyword = s.searchQuery.trim().lowercase()
-            result = result.filter {
-                it.name.lowercase().contains(keyword) ||
-                    it.venue.lowercase().contains(keyword) ||
-                    (it.artistName ?: "").lowercase().contains(keyword)
+    private fun loadShows(page: Int = 0) {
+        viewModelScope.launch {
+            val s = _uiState.value
+            if (!s.isRefreshing) {
+                _uiState.value = s.copy(isLoading = true)
             }
-        }
 
-        if (s.selectedRegions.isNotEmpty()) {
-            result = result.filter { it.region in s.selectedRegions }
-        }
+            val keyword = s.searchQuery.trim().ifBlank { null }
+            // 지역: 복수 선택 시 첫 번째만 전달 (API가 단일 값)
+            val region = s.selectedRegions.firstOrNull()
 
-        result = when (s.sortBy) {
-            SortOption.POPULAR -> result.sortedBy { e ->
-                val idx = popularityOrder.indexOf(e.id)
-                if (idx == -1) 99 else idx
-            }
-            SortOption.LATEST -> result.sortedByDescending { it.openDate ?: "" }
-            SortOption.CLOSING -> result.sortedBy { it.openDate ?: "9999" }
-        }
+            val result = showRepository.getShowsPage(
+                region = region,
+                sort = s.sortBy.apiValue,
+                keyword = keyword,
+                page = page,
+                size = PAGE_SIZE,
+            )
 
-        Log.d(TAG, "applyFilters() query='${s.searchQuery}', regions=${s.selectedRegions}, sort=${s.sortBy}, resultCount=${result.size}")
-        _uiState.value = s.copy(filteredShows = result)
+            _uiState.value = _uiState.value.copy(
+                shows = result.shows,
+                currentPage = result.page,
+                totalPages = result.totalPages,
+                totalElements = result.totalElements,
+                isLoading = false,
+                isRefreshing = false,
+            )
+            Log.d(TAG, "loadShows() page=${result.page}/${result.totalPages}, total=${result.totalElements}, count=${result.shows.size}")
+        }
     }
 
     companion object {
         private const val TAG = "ShowsViewModel"
+        private const val PAGE_SIZE = 20
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
