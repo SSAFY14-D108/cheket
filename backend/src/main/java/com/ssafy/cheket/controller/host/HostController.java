@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.host;
 
 import com.ssafy.cheket.dto.host.request.HostSignupRequest;
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.host.request.HostWithdrawRequest;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
@@ -65,6 +66,18 @@ public class HostController {
     public ResponseEntity<ApiResponse<List<GetSectionsResponse>>> getSections(@PathVariable Long venueId) {
         List<GetSectionsResponse> response = showService.getSections(venueId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "구역 목록 조회 완료", response));
+    }
+
+    @DeleteMapping
+    @Operation(summary = "주최측 회원 탈퇴")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> withdrawHost(@AuthenticationPrincipal Long id,
+        @RequestHeader("Authorization") String authHeader,
+        @RequestHeader(value = "Refresh-Token", required = false) String refreshToken,
+        @RequestBody HostWithdrawRequest request) {
+        String accessToken = authHeader.substring(7);
+        hostService.withdrawHost(id, request.password(), accessToken, refreshToken);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회원 탈퇴 완료", null));
     }
 
 }

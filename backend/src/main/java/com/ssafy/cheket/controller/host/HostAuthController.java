@@ -27,9 +27,10 @@ public class HostAuthController {
     @PostMapping("/logout")
     @Operation(summary = "주최측 로그아웃")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<Void>> hostLogout(@RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<ApiResponse<Void>> hostLogout(@RequestHeader("Authorization") String authorization,
+        @RequestHeader(value = "Refresh-Token", required = false) String refreshToken) {
         String accessToken = authorization.replace("Bearer ", "");
-        hostAuthService.hostLogout(accessToken);
+        hostAuthService.hostLogout(accessToken, refreshToken);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "로그아웃 완료", null));
     }
 

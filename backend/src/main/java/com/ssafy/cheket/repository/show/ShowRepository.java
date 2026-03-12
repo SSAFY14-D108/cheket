@@ -2,6 +2,7 @@ package com.ssafy.cheket.repository.show;
 
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.Region;
+import com.ssafy.cheket.enums.ShowStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ShowRepository extends JpaRepository<Show, Long> {
@@ -69,4 +71,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         """)
     Page<Show> searchOrderByPopular(@Param("region") Region region, @Param("keyword") String keyword,
         Pageable pageable);
+
+    boolean existsByHost_IdAndStatusNotAndShowEndDateAfter(Long hostId, ShowStatus status, LocalDateTime now);
+
 }

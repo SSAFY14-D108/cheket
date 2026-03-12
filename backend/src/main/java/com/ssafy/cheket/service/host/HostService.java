@@ -19,4 +19,7 @@ public interface HostService {
     // 회사 정보 수정
     void modifyHostInfo(Long id, ModifyHostInfoRequest request);
 
+    // 주최측 회원 탈퇴
+    void withdrawHost(Long hostId, String password, String accessToken, String refreshToken);
+
 }
