@@ -81,12 +81,52 @@ private fun ShowDetailContent(
     onNavigateToDateSelection: (showId: String) -> Unit,
     onBack: () -> Unit,
 ) {
+    // TODO: 백엔드 찜(wishlist) API 구현 후 연동 — 현재는 로컬 상태만 토글
+    //  - GET /api/v1/shows/{showId}/wishlist 로 초기 상태 로드
+    //  - POST/DELETE /api/v1/shows/{showId}/wishlist 로 토글 (디바운싱 적용)
+    //  - 찜 수(count)도 API에서 받아 표시
     var isWishlisted by remember { mutableStateOf(false) }
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
 
     Scaffold(
         topBar = {
             AppHeader(title = "공연 상세", onBack = onBack)
+        },
+        bottomBar = {
+            // Sticky CTA button (v0 스타일)
+            Surface(shadowElevation = 8.dp) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CardBg)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    Button(
+                        onClick = { onNavigateToDateSelection(show.id) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (show.status == ShowStatus.ON_SALE) Primary else MutedForeground,
+                            contentColor = White,
+                        ),
+                        enabled = show.status == ShowStatus.ON_SALE,
+                    ) {
+                        Text(
+                            text = when (show.status) {
+                                ShowStatus.ON_SALE -> "예매하기"
+                                ShowStatus.SOLD_OUT -> "매진"
+                            },
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        if (show.status == ShowStatus.ON_SALE) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+            }
         },
     ) { innerPadding ->
         Column(
@@ -148,7 +188,7 @@ private fun ShowDetailContent(
                             modifier = Modifier.size(22.dp),
                         )
                     }
-                    // Wishlist count badge
+                    // TODO: 찜 수를 API에서 받아 표시 (현재 하드코딩 3)
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -180,7 +220,7 @@ private fun ShowDetailContent(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (show.artistName != null) {
+                if (show.artistName != null && show.artistName != "대중음악") {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = show.artistName,
@@ -294,37 +334,7 @@ private fun ShowDetailContent(
                 )
             }
 
-            // CTA Button - inline
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 24.dp)
-            ) {
-                Button(
-                    onClick = { onNavigateToDateSelection(show.id) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (show.status == ShowStatus.ON_SALE) Primary else MutedForeground,
-                        contentColor = White,
-                    ),
-                    enabled = show.status == ShowStatus.ON_SALE,
-                ) {
-                    Text(
-                        text = when (show.status) {
-                            ShowStatus.ON_SALE -> "예매하기"
-                            ShowStatus.SOLD_OUT -> "매진"
-                        },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    if (show.status == ShowStatus.ON_SALE) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(20.dp))
-                    }
-                }
-            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

@@ -96,10 +96,10 @@ fun HomeScreen(
             // thin divider
             item { Box(Modifier.fillMaxWidth().height(1.dp).background(BorderColor)) }
 
-            // 2. Concert Ranking
+            // 2. Ranking
             item {
                 Column(Modifier.padding(top = 20.dp, bottom = 16.dp)) {
-                    HomeSectionHeader(title = "콘서트 랭킹", onMore = {})
+                    HomeSectionHeader(title = "랭킹", onMore = {})
                     RankingSection(
                         items = uiState.rankingItems,
                         onItemClick = { onShowClick(it) },
@@ -294,7 +294,7 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
     }
 }
 
-// ── Concert Ranking (w-32 h-44 posters) ──
+// ── Ranking (w-32 h-44 posters) ──
 
 @Composable
 private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Unit) {
@@ -453,7 +453,7 @@ private fun OpenScheduleSection(
     }
 }
 
-// ── Recommendation Section (wishlist card + recommended event) ──
+// ── Recommendation Section (wishlist card + recommended show) ──
 
 @Composable
 private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Unit) {
@@ -461,7 +461,7 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
     val recommendedShow = shows.firstOrNull() ?: return
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "사용자 추천 콘서트")
+        HomeSectionHeader(title = "추천 공연")
         Row(
             Modifier.padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -505,7 +505,7 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            "찜한 콘서트",
+                            "찜한 공연",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = OnBackground,
@@ -520,7 +520,7 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
                 }
             }
 
-            // Recommended event card
+            // Recommended show card
             Row(
                 modifier = Modifier
                     .weight(1f)
