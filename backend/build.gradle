@@ -44,6 +44,7 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6' // JJWT 의존성 추가
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6' // JJWT 의존성 추가
     implementation 'net.nurigo:sdk:4.3.0'
+    implementation 'software.amazon.awssdk:s3:2.25.8'
 }
 
 tasks.named('test') {

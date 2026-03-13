@@ -22,4 +22,5 @@ public interface ShowService {
     GetUpcomingResponse getUpcoming();
 
     List<GetSectionsResponse> getSections(Long venueId);
+
 }
