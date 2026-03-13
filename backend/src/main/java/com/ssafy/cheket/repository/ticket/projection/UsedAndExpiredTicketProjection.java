@@ -1,10 +1,8 @@
 package com.ssafy.cheket.repository.ticket.projection;
 
-import com.ssafy.cheket.enums.ResaleStatus;
-
 import java.time.LocalDateTime;
 
-public interface UpcomingTicketProjection {
+public interface UsedAndExpiredTicketProjection {
 
     Long getTicketId();
 
@@ -20,7 +18,7 @@ public interface UpcomingTicketProjection {
 
     String getVenueName();
 
-    Integer getPrice();
+    String getEffect();
 
     Long getSeatId();
 
@@ -29,7 +27,5 @@ public interface UpcomingTicketProjection {
     String getSeatNo();
 
     String getGrade();
-
-    ResaleStatus getStatus();
 
 }
