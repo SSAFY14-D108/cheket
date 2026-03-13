@@ -2,7 +2,6 @@ package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.show.response.*;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.service.show.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,10 +24,10 @@ public class ShowController {
     @GetMapping
     @Operation(summary = "공연 목록 조회")
     public ResponseEntity<ApiResponse<GetShowListResponse<ShowItem>>> getShowList(
-        @RequestParam(required = false) Region region, @RequestParam(required = false) ShowSort sort,
+        @RequestParam(required = false) List<Integer> regions, @RequestParam(required = false) ShowSort sort,
         @RequestParam(required = false) String keyword, @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
-        GetShowListResponse<ShowItem> response = showService.getShowList(region, sort, keyword, page, size);
+        GetShowListResponse<ShowItem> response = showService.getShowList(regions, sort, keyword, page, size);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 목록 조회 완료", response));
     }
 

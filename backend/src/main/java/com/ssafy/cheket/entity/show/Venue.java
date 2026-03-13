@@ -1,6 +1,5 @@
 package com.ssafy.cheket.entity.show;
 
-import com.ssafy.cheket.enums.Region;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,7 +22,7 @@ public class Venue {
     @Column(nullable = false, length = 255)
     private String address;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "region_id", nullable = false)
     private Region region;
 }

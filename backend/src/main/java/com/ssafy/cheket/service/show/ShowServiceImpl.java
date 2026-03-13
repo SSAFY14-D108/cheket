@@ -2,7 +2,6 @@ package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.*;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.NotFoundException;
@@ -36,17 +35,20 @@ public class ShowServiceImpl implements ShowService {
 
     // 공연 검색 및 목록 조회
     @Override
-    public GetShowListResponse<ShowItem> getShowList(Region region, ShowSort sort, String keyword, int page, int size) {
+    public GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword, int page,
+        int size) {
+        List<Integer> normalizedRegions = (regions == null) ? List.of() : regions;
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         ShowSort normalizedSort = (sort == null) ? ShowSort.POPULAR : sort;
 
         Page<Show> result;
         if (normalizedSort == ShowSort.POPULAR) {
             Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100));
-            result = showRepository.searchOrderByPopular(region, normalized, pageable);
+            result = showRepository.searchOrderByPopular(normalizedRegions, (long) normalizedRegions.size(), normalized,
+                pageable);
         } else {
             Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100), toSort(normalizedSort));
-            result = showRepository.search(region, normalized, pageable);
+            result = showRepository.search(normalizedRegions, (long) normalizedRegions.size(), normalized, pageable);
         }
 
         List<ShowItem> items = result.getContent().stream().map(this::toShowItem).toList();
@@ -87,7 +89,7 @@ public class ShowServiceImpl implements ShowService {
             .toList();
 
         return new GetShowDetailResponse(show.getId(), show.getTitle(), show.getPosterUrl(), show.getVenue().getName(),
-            show.getPurchaseLimit(), show.getVenue().getRegion(),
+            show.getPurchaseLimit(), show.getVenue().getRegion().getName(),
             new GetShowDetailResponse.ShowPeriod(show.getShowStartDate().toLocalDate(),
                 show.getShowEndDate().toLocalDate()),
             new GetShowDetailResponse.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
@@ -156,7 +158,7 @@ public class ShowServiceImpl implements ShowService {
         return new GetRefundResponse(refundPolicyInfoList, show.getShowStartDate().toLocalDate());
     }
 
-    // 오른 예정 공연 5개 조회
+    // 오픈 예정 공연 5개 조회
     @Override
     public GetUpcomingResponse getUpcoming() {
         Pageable pageable = PageRequest.of(0, 5);
@@ -176,7 +178,7 @@ public class ShowServiceImpl implements ShowService {
 
     private ShowItem toShowItem(Show s) {
         return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
-            s.getVenue().getRegion().name(),
+            s.getVenue().getRegion().getName(),
             new ShowItem.ShowPeriod(s.getShowStartDate().toLocalDate(), s.getShowEndDate().toLocalDate()),
             new ShowItem.ReservationPeriod(s.getReservationStartDate(), s.getReservationEndDate()),
             s.getStatus().name());

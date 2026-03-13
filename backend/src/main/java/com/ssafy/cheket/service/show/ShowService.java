@@ -1,13 +1,12 @@
 package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.*;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 
 import java.util.List;
 
 public interface ShowService {
-    GetShowListResponse<ShowItem> getShowList(Region region, ShowSort sort, String keyword, int page, int size);
+    GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword, int page, int size);
 
     GetShowDetailResponse getShowDetail(Long showId, Long userId);
 

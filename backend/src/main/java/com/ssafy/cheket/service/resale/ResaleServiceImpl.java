@@ -4,7 +4,6 @@ import com.ssafy.cheket.dto.resale.response.GetResaleTicketsResponse;
 import com.ssafy.cheket.dto.resale.response.ResaleShowItem;
 import com.ssafy.cheket.dto.resale.response.ResaleTicketItem;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ResaleShowSort;
 import com.ssafy.cheket.enums.ResaleTicketSort;
 import com.ssafy.cheket.repository.resale.ResaleRepository;
@@ -26,16 +25,18 @@ public class ResaleServiceImpl implements ResaleService {
 
     // 2차 거래 티켓이 존재하는 공연 목록 조회
     @Override
-    public GetShowListResponse<ResaleShowItem> getResaleShowList(Region region, ResaleShowSort sort, String keyword,
-        int page, int size) {
+    public GetShowListResponse<ResaleShowItem> getResaleShowList(List<Integer> regions, ResaleShowSort sort,
+        String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100));
+        List<Integer> normalizedRegions = (regions == null) ? List.of() : regions;
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         ResaleShowSort normalizedSort = (sort == null) ? ResaleShowSort.POPULAR : sort;
 
         Page<ResaleShowProjection> result = switch (normalizedSort) {
-            case DEADLINE -> resaleRepository.searchListedShowsOrderByDeadline(region, normalized, pageable);
-            case POPULAR -> resaleRepository.searchListedShowsOrderByPopular(region, normalized,
-                LocalDateTime.now().minusDays(7), pageable);
+            case DEADLINE -> resaleRepository.searchListedShowsOrderByDeadline(normalizedRegions,
+                (long) normalizedRegions.size(), normalized, pageable);
+            case POPULAR -> resaleRepository.searchListedShowsOrderByPopular(normalizedRegions,
+                (long) normalizedRegions.size(), normalized, LocalDateTime.now().minusDays(7), pageable);
         };
 
         List<ResaleShowItem> items = result.getContent().stream().map(this::toResaleShowItem).toList();
