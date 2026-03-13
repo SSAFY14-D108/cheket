@@ -15,6 +15,8 @@ const CARD_HEIGHT = 530
 const CARD_COMPACT_WIDTH = 150
 const CARD_COMPACT_HEIGHT = 295
 const CARD_COMPACT_SCALE = CARD_COMPACT_WIDTH / CARD_WIDTH
+const decodedPosterCache = new Set<string>()
+const decodingPosterCache = new Map<string, Promise<void>>()
 
 type HoloVariant = 'rainbow' | 'aurora' | 'prism' | 'cosmos' | 'sunset' | 'neon'
 const HOLO_VARIANTS: HoloVariant[] = ['rainbow', 'aurora', 'prism', 'cosmos', 'sunset', 'neon']
@@ -33,21 +35,19 @@ type PokeEffect =
   | 'poke-gallery-holo'
   | 'poke-gallery-v'
 
-type EffectType = 'none' | 'gold' | HoloVariant | PokeEffect
+type EffectType = 'none' | 'gold-foil' | 'silver-foil' | 'rose-foil' | HoloVariant | PokeEffect
+type MetalEffect = 'gold-foil' | 'silver-foil' | 'rose-foil'
 
 interface FaceProps {
   ticket: Ticket
   onFlip: () => void
-  isGold?: boolean
+  metalEffect?: MetalEffect
+  eagerLoad?: boolean
   holoActive?: boolean
   holoVariant?: HoloVariant
   holoLayerRef?: React.RefObject<HTMLDivElement | null>
   enableHolo?: boolean
   pokeEffect?: PokeEffect
-}
-
-const GOLD_FOIL_BASE = {
-  backgroundColor: '#d5b45a',
 }
 
 const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -77,6 +77,79 @@ function getGrade(grade: string) {
   return GRADE_COLORS[grade] ?? { bg: '#6b7280', text: '#fff' }
 }
 
+function preloadPoster(src: string, eager = false) {
+  if (!src) return Promise.resolve()
+  if (decodedPosterCache.has(src)) return Promise.resolve()
+
+  const existing = decodingPosterCache.get(src)
+  if (existing) return existing
+
+  if (typeof window === 'undefined') return Promise.resolve()
+
+  const img = new window.Image()
+  img.decoding = 'async'
+  if (eager) {
+    img.fetchPriority = 'high'
+  }
+
+  const promise = new Promise<void>((resolve) => {
+    const finish = async () => {
+      try {
+        await img.decode?.()
+      } catch {
+        // Swallow decode failures and still mark the image as ready after load.
+      }
+      decodedPosterCache.add(src)
+      resolve()
+    }
+
+    img.onload = () => {
+      void finish()
+    }
+    img.onerror = () => {
+      resolve()
+    }
+    img.src = src
+
+    if (img.complete) {
+      void finish()
+    }
+  }).finally(() => {
+    decodingPosterCache.delete(src)
+  })
+
+  decodingPosterCache.set(src, promise)
+  return promise
+}
+
+function useDecodedPoster(src: string, eagerLoad = false) {
+  const [ready, setReady] = useState(() => decodedPosterCache.has(src))
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (decodedPosterCache.has(src)) {
+      setReady(true)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setReady(false)
+    void preloadPoster(src, eagerLoad).then(() => {
+      if (!cancelled) {
+        setReady(true)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [src, eagerLoad])
+
+  return ready
+}
+
 function getTicketEffect(ticketId: string): EffectType {
   const num = Number(ticketId.replace(/\D/g, '')) || 0
   return HOLO_VARIANTS[num % HOLO_VARIANTS.length]
@@ -86,48 +159,74 @@ function isPokeEffect(effect: EffectType): effect is PokeEffect {
   return effect !== 'none' && effect.startsWith('poke-')
 }
 
-function GoldFoilLayer() {
-  return (
-    <>
-      <div className="gold-foil-base" />
-      <div className="gold-foil-grain" />
-      <div className="gold-foil-sheen" />
-    </>
-  )
-}
-
 function TicketFront({
   ticket,
   onFlip,
-  isGold = false,
+  metalEffect,
+  eagerLoad = false,
   holoActive = false,
   holoVariant = 'rainbow',
   holoLayerRef,
   enableHolo = false,
   pokeEffect,
 }: FaceProps) {
+  const isMetal = metalEffect === 'gold-foil' || metalEffect === 'silver-foil' || metalEffect === 'rose-foil'
+  const metallicClass = metalEffect ? `ticket-metallic-${metalEffect}` : ''
+  const posterReady = useDecodedPoster(ticket.poster, eagerLoad)
+
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', height: CARD_HEIGHT, cursor: 'pointer', position: 'relative' }}
       onClick={onFlip}
     >
       <div
-        className="ticket-shape-megabox"
+        className={isMetal ? `ticket-shape-megabox ${metallicClass}` : 'ticket-shape-megabox'}
         style={{
           position: 'absolute',
           inset: 0,
           overflow: 'hidden',
-          ...(isGold ? GOLD_FOIL_BASE : { background: '#0b0f1a' }),
+          background:
+            metalEffect === 'gold-foil'
+              ? '#d9ad2a'
+              : metalEffect === 'silver-foil'
+                ? '#c7d0dc'
+                : metalEffect === 'rose-foil'
+                  ? '#c79080'
+                  : '#0b0f1a',
         }}
       >
         <div style={{ position: 'relative', width: '100%', height: '100%', zIndex: 3 }}>
-          <Image
-            src={ticket.poster}
-            alt={ticket.eventName}
-            fill
-            sizes={`${CARD_WIDTH}px`}
-            style={{ objectFit: 'cover', opacity: isGold ? 0.7 : 1 }}
-          />
+          {posterReady && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${ticket.poster}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                filter:
+                  metalEffect === 'gold-foil'
+                    ? 'sepia(0.82) hue-rotate(-12deg) saturate(1.32) contrast(1.08) brightness(0.95)'
+                    : metalEffect === 'silver-foil'
+                      ? 'grayscale(0.32) saturate(0.86) contrast(1.1) brightness(1.02) hue-rotate(4deg)'
+                      : metalEffect === 'rose-foil'
+                        ? 'sepia(0.56) hue-rotate(-24deg) saturate(1.18) contrast(1.06) brightness(0.97)'
+                        : 'none',
+              }}
+            />
+          )}
+          {isMetal && (
+            <>
+              <div className={`ticket-metallic-${metalEffect}__base`} />
+              <div className={`ticket-metallic-${metalEffect}__brushed`} />
+              <div className={`ticket-metallic-${metalEffect}__sheen`} />
+              <div className={`ticket-metallic-${metalEffect}__print`} />
+            </>
+          )}
+          {metalEffect === 'gold-foil' && <div className="ticket-metallic-gold-foil__tint" />}
+          {metalEffect === 'silver-foil' && <div className="ticket-metallic-silver-foil__tint" />}
+          {metalEffect === 'rose-foil' && <div className="ticket-metallic-rose-foil__tint" />}
           {enableHolo && !pokeEffect && (
             <div
               ref={holoLayerRef}
@@ -168,30 +267,37 @@ function TicketFront({
             style={{
               position: 'absolute',
               inset: 0,
-              background: isGold
-                ? 'linear-gradient(to top, rgba(49,34,8,0.58) 10%, rgba(49,34,8,0.15) 48%, rgba(255,234,180,0.16) 100%)'
-                : 'linear-gradient(to top, rgba(11,15,26,0.82) 12%, rgba(11,15,26,0.2) 52%, rgba(11,15,26,0.08) 100%)',
+              background:
+                metalEffect === 'gold-foil'
+                  ? 'linear-gradient(to top, rgba(98,62,0,0.34) 0%, rgba(98,62,0,0.14) 22%, rgba(255,229,120,0.06) 62%, rgba(255,244,195,0) 100%)'
+                  : metalEffect === 'silver-foil'
+                    ? 'linear-gradient(to top, rgba(45,57,74,0.24) 0%, rgba(45,57,74,0.1) 20%, rgba(230,238,248,0.06) 58%, rgba(246,249,252,0) 100%)'
+                    : metalEffect === 'rose-foil'
+                      ? 'linear-gradient(to top, rgba(110,58,46,0.28) 0%, rgba(110,58,46,0.12) 20%, rgba(255,214,204,0.05) 58%, rgba(255,242,236,0) 100%)'
+                    : 'linear-gradient(to top, rgba(11,15,26,0.82) 12%, rgba(11,15,26,0.2) 52%, rgba(11,15,26,0.08) 100%)',
             }}
           />
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 30%)',
+              background:
+                metalEffect === 'gold-foil'
+                  ? 'linear-gradient(to bottom, rgba(255,246,190,0.2) 0%, rgba(255,246,190,0) 30%)'
+                  : metalEffect === 'silver-foil'
+                    ? 'linear-gradient(to bottom, rgba(248,251,255,0.22) 0%, rgba(248,251,255,0) 30%)'
+                    : metalEffect === 'rose-foil'
+                      ? 'linear-gradient(to bottom, rgba(255,232,224,0.22) 0%, rgba(255,232,224,0) 30%)'
+                    : 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 30%)',
             }}
           />
-          {isGold && (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 2, opacity: 0.55, mixBlendMode: 'overlay' }}>
-              <GoldFoilLayer />
-            </div>
-          )}
         </div>
       </div>
     </div>
   )
 }
 
-function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
+function TicketBack({ ticket, onFlip }: FaceProps) {
   const grade = getGrade(ticket.grade)
 
   return (
@@ -205,11 +311,9 @@ function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
           position: 'absolute',
           inset: 0,
           overflow: 'hidden',
-          ...(isGold ? GOLD_FOIL_BASE : { background: '#0b0f1a' }),
+          background: '#0b0f1a',
         }}
       >
-        {isGold && <GoldFoilLayer />}
-
         <Image
           src={ticket.poster}
           alt={ticket.eventName}
@@ -221,9 +325,7 @@ function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
           style={{
             position: 'absolute',
             inset: 0,
-            background: isGold
-              ? 'linear-gradient(to bottom, rgba(70,44,14,0.66) 0%, rgba(55,36,11,0.74) 100%)'
-              : 'linear-gradient(to bottom, rgba(9,13,24,0.9) 0%, rgba(9,13,24,0.93) 100%)',
+            background: 'linear-gradient(to bottom, rgba(9,13,24,0.9) 0%, rgba(9,13,24,0.93) 100%)',
             zIndex: 2,
           }}
         />
@@ -236,7 +338,7 @@ function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
             padding: '18px',
             display: 'flex',
             flexDirection: 'column',
-            color: isGold ? '#f8efd0' : 'rgba(255,255,255,0.9)',
+            color: 'rgba(255,255,255,0.9)',
           }}
         >
           <p style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.7, fontWeight: 600 }}>
@@ -250,14 +352,14 @@ function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
           </div>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.28)', marginTop: 18, paddingTop: 14, display: 'grid', gap: 10 }}>
-            <BackRow label="Date" value={ticket.eventDate.split(' ')[0]} isGold={isGold} />
-            <BackRow label="Venue" value={ticket.venue} isGold={isGold} />
+            <BackRow label="Date" value={ticket.eventDate.split(' ')[0]} />
+            <BackRow label="Venue" value={ticket.venue} />
           </div>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.22)', marginTop: 18, paddingTop: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <SeatBox label="Grade" value={ticket.grade} accent={isGold ? undefined : grade.bg} isGold={isGold} />
-              <SeatBox label="Seat" value={ticket.seatLabel} accent={isGold ? undefined : '#f8e28a'} isGold={isGold} />
+              <SeatBox label="Grade" value={ticket.grade} accent={grade.bg} />
+              <SeatBox label="Seat" value={ticket.seatLabel} accent="#f8e28a" />
             </div>
           </div>
         </div>
@@ -266,7 +368,7 @@ function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
   )
 }
 
-function BackRow({ label, value, isGold = false }: { label: string; value: string; isGold?: boolean }) {
+function BackRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
       <span
@@ -274,7 +376,7 @@ function BackRow({ label, value, isGold = false }: { label: string; value: strin
           fontSize: 9,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          color: isGold ? 'rgba(24,20,10,0.58)' : 'rgba(255,255,255,0.3)',
+          color: 'rgba(255,255,255,0.3)',
           fontWeight: 700,
           minWidth: 36,
           flexShrink: 0,
@@ -286,7 +388,7 @@ function BackRow({ label, value, isGold = false }: { label: string; value: strin
         style={{
           fontSize: 13,
           fontWeight: 600,
-          color: isGold ? 'rgba(24,20,10,0.74)' : 'rgba(255,255,255,0.75)',
+          color: 'rgba(255,255,255,0.75)',
           lineHeight: 1.3,
           wordBreak: 'keep-all',
         }}
@@ -301,12 +403,10 @@ function SeatBox({
   label,
   value,
   accent,
-  isGold = false,
 }: {
   label: string
   value: string
   accent?: string
-  isGold?: boolean
 }) {
   return (
     <div
@@ -319,8 +419,8 @@ function SeatBox({
         paddingTop: 10,
         paddingBottom: 10,
         borderRadius: 10,
-        backgroundColor: isGold ? 'rgba(20,18,10,0.07)' : accent ? `${accent}20` : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${isGold ? 'rgba(20,18,10,0.2)' : accent ? `${accent}40` : 'rgba(255,255,255,0.07)'}`,
+        backgroundColor: accent ? `${accent}20` : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${accent ? `${accent}40` : 'rgba(255,255,255,0.07)'}`,
       }}
     >
       <span
@@ -328,7 +428,7 @@ function SeatBox({
           fontSize: 9,
           textTransform: 'uppercase',
           letterSpacing: '0.15em',
-          color: isGold ? 'rgba(24,20,10,0.54)' : 'rgba(255,255,255,0.3)',
+          color: 'rgba(255,255,255,0.3)',
           fontWeight: 600,
         }}
       >
@@ -339,7 +439,7 @@ function SeatBox({
           fontSize: 16,
           fontWeight: 800,
           lineHeight: 1,
-          color: isGold ? '#231b09' : accent ?? 'rgba(255,255,255,0.82)',
+          color: accent ?? 'rgba(255,255,255,0.82)',
         }}
       >
         {value}
@@ -350,7 +450,7 @@ function SeatBox({
 
 function CollectibleTicketCard({
   ticket,
-  isGold = false,
+  metalEffect,
   compact = false,
   onOpen,
   holoVariant = 'rainbow',
@@ -359,7 +459,7 @@ function CollectibleTicketCard({
   displayScale,
 }: {
   ticket: Ticket
-  isGold?: boolean
+  metalEffect?: MetalEffect
   compact?: boolean
   onOpen?: () => void
   holoVariant?: HoloVariant
@@ -367,7 +467,7 @@ function CollectibleTicketCard({
   pokeEffect?: PokeEffect
   displayScale?: number
 }) {
-  const showHolo = enableHolo ?? !isGold
+  const showHolo = enableHolo ?? true
   const [flipped, setFlipped] = useState(false)
   const [holoActive, setHoloActive] = useState(false)
   const holoHostRef = useRef<HTMLDivElement>(null)
@@ -409,6 +509,16 @@ function CollectibleTicketCard({
 
     holoRafRef.current = requestAnimationFrame(() => {
       const live = holoLayerRef.current
+      const dx = (x - 0.5) * 6
+      const dy = (y - 0.5) * 6
+      host.style.setProperty('--mx', `${mx}%`)
+      host.style.setProperty('--my', `${my}%`)
+      host.style.setProperty('--rx', `${rx}deg`)
+      host.style.setProperty('--ry', `${ry}deg`)
+      host.style.setProperty('--posx', `${mx}%`)
+      host.style.setProperty('--posy', `${my}%`)
+      host.style.setProperty('--dx', `${dx}%`)
+      host.style.setProperty('--dy', `${dy}%`)
       if (!live) return
       live.style.setProperty('--mx', `${mx}%`)
       live.style.setProperty('--my', `${my}%`)
@@ -433,55 +543,68 @@ function CollectibleTicketCard({
       }}
       onClick={handleClick}
     >
-      <div
-        style={{
-          position: 'relative',
-          width: CARD_WIDTH,
-          height: CARD_HEIGHT,
-          transformOrigin: 'top left',
-          transform: resolvedScale === 1 ? 'none' : `scale(${resolvedScale})`,
-        }}
-      >
-        {compact ? (
-          <TicketFront
-            ticket={ticket}
-            onFlip={() => {}}
-            isGold={isGold}
-            enableHolo={showHolo}
-            holoVariant={holoVariant}
-            pokeEffect={pokeEffect}
-          />
-        ) : (
-          <div
-            ref={holoHostRef}
-            className="ticket-holo-tilt"
-            onMouseEnter={() => setHoloActive(true)}
-            onMouseMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
-            onMouseLeave={() => {
-              setHoloActive(false)
-              const layer = holoLayerRef.current
-              if (!layer) return
-              layer.style.setProperty('--mx', '50%')
-              layer.style.setProperty('--my', '50%')
-              layer.style.setProperty('--rx', '0deg')
-              layer.style.setProperty('--ry', '0deg')
-              layer.style.setProperty('--posx', '50%')
-              layer.style.setProperty('--posy', '50%')
-            }}
-          >
-            <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
-              <ReactCardFlip
-                isFlipped={flipped}
-                flipDirection="horizontal"
-                flipSpeedFrontToBack={0.7}
-                flipSpeedBackToFront={0.7}
+        <div
+          style={{
+            position: 'relative',
+            width: CARD_WIDTH,
+            height: CARD_HEIGHT,
+            transformOrigin: 'top left',
+            transform: resolvedScale === 1 ? 'none' : `scale(${resolvedScale})`,
+          }}
+        >
+          {compact ? (
+            <TicketFront
+              ticket={ticket}
+              onFlip={() => {}}
+              metalEffect={metalEffect}
+              eagerLoad={false}
+              enableHolo={showHolo}
+              holoVariant={holoVariant}
+              pokeEffect={pokeEffect}
+            />
+          ) : (
+            <div
+              ref={holoHostRef}
+              className="ticket-holo-tilt"
+              onMouseEnter={() => setHoloActive(true)}
+              onMouseMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
+              onMouseLeave={() => {
+                setHoloActive(false)
+                const host = holoHostRef.current
+                if (host) {
+                  host.style.setProperty('--mx', '50%')
+                  host.style.setProperty('--my', '50%')
+                  host.style.setProperty('--rx', '0deg')
+                  host.style.setProperty('--ry', '0deg')
+                  host.style.setProperty('--posx', '50%')
+                  host.style.setProperty('--posy', '50%')
+                  host.style.setProperty('--dx', '0%')
+                  host.style.setProperty('--dy', '0%')
+                }
+                const layer = holoLayerRef.current
+                if (!layer) return
+                layer.style.setProperty('--mx', '50%')
+                layer.style.setProperty('--my', '50%')
+                layer.style.setProperty('--rx', '0deg')
+                layer.style.setProperty('--ry', '0deg')
+                layer.style.setProperty('--posx', '50%')
+                layer.style.setProperty('--posy', '50%')
+              }}
+            >
+              <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
+                <ReactCardFlip
+                  isFlipped={flipped}
+                  flipDirection="horizontal"
+                  flipSpeedFrontToBack={0.7}
+                  flipSpeedBackToFront={0.7}
                 containerStyle={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
               >
                 <div key="front" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
                   <TicketFront
                     ticket={ticket}
                     onFlip={() => {}}
-                    isGold={isGold}
+                    metalEffect={metalEffect}
+                    eagerLoad
                     enableHolo={showHolo}
                     holoActive={holoActive}
                     holoVariant={holoVariant}
@@ -490,12 +613,12 @@ function CollectibleTicketCard({
                   />
                 </div>
                 <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-                  <TicketBack ticket={ticket} onFlip={() => {}} isGold={isGold} />
+                  <TicketBack ticket={ticket} onFlip={() => {}} />
                 </div>
               </ReactCardFlip>
             </Tilt>
-          </div>
-        )}
+            </div>
+          )}
       </div>
     </div>
   )
@@ -553,6 +676,11 @@ function CollectionCoverFlow({
             const armRotation = index * angleStep
             const isFocus = absOffset < 0.45
 
+            const metalEffect =
+              effect === 'gold-foil' || effect === 'silver-foil' || effect === 'rose-foil'
+                ? effect
+                : undefined
+
             return (
               <div
                 key={ticket.id}
@@ -584,11 +712,11 @@ function CollectionCoverFlow({
                     <div className={`collection-carousel-glow${isFocus ? ' is-active' : ''}`} />
                     <CollectibleTicketCard
                       ticket={ticket}
+                      metalEffect={metalEffect}
                       compact={!isFocus}
                       displayScale={isFocus ? 0.8 : undefined}
-                      isGold={effect === 'gold'}
-                      holoVariant={!pokeEffect && effect !== 'gold' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
-                      enableHolo={!pokeEffect && effect !== 'gold' && effect !== 'none'}
+                      holoVariant={!pokeEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
+                      enableHolo={!pokeEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none'}
                       pokeEffect={pokeEffect}
                     />
                   </motion.div>
@@ -611,7 +739,9 @@ export function CollectionScreen() {
 
   const allEffects: { key: EffectType; label: string }[] = [
     { key: 'none', label: 'None' },
-    { key: 'gold', label: 'Gold' },
+    { key: 'gold-foil', label: 'Gold Foil' },
+    { key: 'silver-foil', label: 'Silver Foil' },
+    { key: 'rose-foil', label: 'Rose Foil' },
     { key: 'rainbow', label: 'Rainbow' },
     { key: 'aurora', label: 'Aurora' },
     { key: 'prism', label: 'Prism' },
@@ -641,6 +771,12 @@ export function CollectionScreen() {
     setActiveIndex((prev) => mod(prev, collected.length))
   }, [collected.length])
 
+  useEffect(() => {
+    collected.forEach((ticket, index) => {
+      void preloadPoster(ticket.poster, index < 3)
+    })
+  }, [collected])
+
   const getEffect = useCallback(
     (ticketId: string): EffectType => effectMap[ticketId] ?? getTicketEffect(ticketId),
     [effectMap]
@@ -661,7 +797,7 @@ export function CollectionScreen() {
   }, [])
 
   return (
-    <AppShell title="컬렉션">
+    <AppShell title="티켓 컬렉션">
       <div className="flex h-full flex-col overflow-hidden pb-24">
         {collected.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 py-16 text-center">
@@ -710,7 +846,10 @@ export function CollectionScreen() {
               <div className="mx-auto mb-4 flex w-full max-w-xl flex-wrap justify-center gap-2 rounded-2xl bg-white/75 px-3 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
                 {allEffects.map(({ key, label }) => {
                   const isActive = getEffect(activeTicket.id) === key
-                  const isGoldBtn = key === 'gold'
+                  const isMetalBtn = key === 'gold-foil' || key === 'silver-foil' || key === 'rose-foil'
+                  const metalBorder = key === 'gold-foil' ? '#cf9710' : key === 'silver-foil' ? '#9dabbf' : '#c7868d'
+                  const metalBg = key === 'gold-foil' ? '#fff0bf' : key === 'silver-foil' ? '#edf2f8' : '#fdecef'
+                  const metalText = key === 'gold-foil' ? '#8f5c00' : key === 'silver-foil' ? '#5f6e83' : '#9a5561'
 
                   return (
                     <button
@@ -720,12 +859,12 @@ export function CollectionScreen() {
                       className="rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
                       style={{
                         border: isActive
-                          ? isGoldBtn
-                            ? '2px solid #d5b45a'
+                          ? isMetalBtn
+                            ? `2px solid ${metalBorder}`
                             : '2px solid #00c598'
                           : '1px solid #d7d7d7',
-                        background: isActive ? (isGoldBtn ? '#fdf3d7' : '#e6faf5') : '#f5f5f5',
-                        color: isActive ? (isGoldBtn ? '#9a7b2a' : '#00a37d') : '#777',
+                        background: isActive ? (isMetalBtn ? metalBg : '#e6faf5') : '#f5f5f5',
+                        color: isActive ? (isMetalBtn ? metalText : '#00a37d') : '#777',
                       }}
                     >
                       {label}

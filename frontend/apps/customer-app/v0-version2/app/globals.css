@@ -108,112 +108,6 @@
   }
 }
 
-@keyframes gold-sheen-move {
-  0% {
-    background-position: -220% 0%;
-  }
-  100% {
-    background-position: 260% 0%;
-  }
-}
-
-@keyframes gold-grain-shift {
-  0% {
-    background-position:
-      0 0,
-      0 0,
-      0 0;
-  }
-  100% {
-    background-position:
-      26px 14px,
-      -18px 10px,
-      8px 0;
-  }
-}
-
-.gold-foil-base,
-.gold-foil-grain,
-.gold-foil-sheen {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.gold-foil-base {
-  z-index: 1;
-  background:
-    radial-gradient(
-      120% 85% at 50% 4%,
-      rgba(255, 246, 198, 0.75) 0%,
-      rgba(255, 246, 198, 0) 60%
-    ),
-    radial-gradient(
-      90% 80% at 50% 100%,
-      rgba(112, 73, 20, 0.26) 0%,
-      rgba(112, 73, 20, 0) 64%
-    ),
-    linear-gradient(
-      92deg,
-      #fdf3bf 0%,
-      #efcf78 22%,
-      #c9972d 44%,
-      #f4dc98 58%,
-      #c88e26 76%,
-      #fae8a8 100%
-    );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 248, 208, 0.8),
-    inset 0 -1px 0 rgba(108, 70, 18, 0.45),
-    inset 0 16px 24px rgba(255, 250, 219, 0.12),
-    inset 0 -16px 28px rgba(94, 62, 18, 0.16);
-}
-
-.gold-foil-grain {
-  z-index: 2;
-  opacity: 0.38;
-  mix-blend-mode: overlay;
-  background-image:
-    repeating-linear-gradient(
-      18deg,
-      rgba(255, 252, 230, 0.2) 0px,
-      rgba(255, 252, 230, 0.2) 1px,
-      rgba(255, 252, 230, 0) 1px,
-      rgba(255, 252, 230, 0) 4px
-    ),
-    repeating-linear-gradient(
-      -24deg,
-      rgba(92, 61, 16, 0.16) 0px,
-      rgba(92, 61, 16, 0.16) 1px,
-      rgba(92, 61, 16, 0) 1px,
-      rgba(92, 61, 16, 0) 6px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 244, 198, 0.1) 0px,
-      rgba(255, 244, 198, 0.1) 1px,
-      rgba(255, 244, 198, 0) 1px,
-      rgba(255, 244, 198, 0) 9px
-    );
-  animation: none;
-}
-
-.gold-foil-sheen {
-  z-index: 3;
-  mix-blend-mode: screen;
-  opacity: 0.68;
-  background-image: linear-gradient(
-    108deg,
-    rgba(255, 255, 255, 0) 16%,
-    rgba(255, 255, 255, 0.42) 28%,
-    rgba(255, 255, 255, 0.12) 40%,
-    rgba(255, 255, 255, 0.02) 52%,
-    rgba(255, 255, 255, 0) 64%
-  );
-  background-size: 210% 100%;
-  animation: gold-sheen-move 5.8s linear infinite;
-}
-
 /* =================================================================
    ORIGINAL TICKET SHAPE
    ================================================================= */
@@ -431,6 +325,294 @@
 .ticket-holo-tilt:hover {
   filter: drop-shadow(0 0 15px rgba(120, 200, 255, 0.3));
 }
+
+.ticket-metallic-gold-foil,
+.ticket-metallic-silver-foil,
+.ticket-metallic-rose-foil {
+  isolation: isolate;
+}
+
+.ticket-metallic-gold-foil {
+  box-shadow:
+    inset 0 0 0 1px rgba(111, 69, 0, 0.24),
+    inset 0 16px 24px rgba(255, 239, 165, 0.22),
+    inset 0 -18px 30px rgba(116, 73, 0, 0.18),
+    0 18px 40px rgba(120, 86, 17, 0.18);
+}
+
+.ticket-metallic-silver-foil {
+  box-shadow:
+    inset 0 0 0 1px rgba(101, 112, 128, 0.2),
+    inset 0 16px 24px rgba(248, 251, 255, 0.24),
+    inset 0 -18px 30px rgba(94, 106, 124, 0.16),
+    0 18px 40px rgba(84, 96, 116, 0.16);
+}
+
+.ticket-metallic-rose-foil {
+  box-shadow:
+    inset 0 0 0 1px rgba(129, 86, 88, 0.2),
+    inset 0 16px 24px rgba(255, 236, 232, 0.24),
+    inset 0 -18px 30px rgba(118, 78, 84, 0.16),
+    0 18px 40px rgba(123, 88, 96, 0.16);
+}
+
+.ticket-metallic-gold-foil__tint,
+.ticket-metallic-gold-foil__base,
+.ticket-metallic-gold-foil__brushed,
+.ticket-metallic-gold-foil__sheen,
+.ticket-metallic-gold-foil__print,
+.ticket-metallic-silver-foil__tint,
+.ticket-metallic-silver-foil__base,
+.ticket-metallic-silver-foil__brushed,
+.ticket-metallic-silver-foil__sheen,
+.ticket-metallic-silver-foil__print,
+.ticket-metallic-rose-foil__tint,
+.ticket-metallic-rose-foil__base,
+.ticket-metallic-rose-foil__brushed,
+.ticket-metallic-rose-foil__sheen,
+.ticket-metallic-rose-foil__print,
+.ticket-metallic-silver-foil__print {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.ticket-metallic-gold-foil__base {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 245, 186, 0.18), transparent 20%),
+    radial-gradient(circle at var(--mx, 50%) calc(var(--my, 50%) * 0.45), rgba(255, 251, 212, 0.28), transparent 16%),
+    radial-gradient(circle at 78% 72%, rgba(150, 92, 0, 0.18), transparent 22%),
+    linear-gradient(
+      96deg,
+      rgba(155, 101, 0, 0.8) 0%,
+      rgba(255, 219, 84, 0.34) 18%,
+      rgba(182, 118, 0, 0.62) 34%,
+      rgba(255, 236, 151, 0.28) 50%,
+      rgba(175, 110, 0, 0.6) 68%,
+      rgba(255, 215, 74, 0.26) 84%,
+      rgba(142, 88, 0, 0.82) 100%
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.95;
+}
+
+.ticket-metallic-gold-foil__tint {
+  background:
+    linear-gradient(180deg, rgba(255, 214, 82, 0.18), rgba(138, 84, 0, 0.12)),
+    radial-gradient(circle at 50% 36%, rgba(255, 224, 120, 0.24), transparent 32%),
+    radial-gradient(circle at 76% 70%, rgba(187, 117, 0, 0.16), transparent 28%);
+  mix-blend-mode: color;
+  opacity: 0.92;
+}
+
+.ticket-metallic-gold-foil__brushed {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      12deg,
+      rgba(255, 240, 170, 0.12) 0 1px,
+      rgba(179, 118, 0, 0.04) 1px 3px,
+      rgba(255, 218, 84, 0.1) 3px 4px
+    );
+  background-size: 180px 180px, auto;
+  mix-blend-mode: overlay;
+  opacity: 0.58;
+}
+
+.ticket-metallic-gold-foil__sheen {
+  background:
+    radial-gradient(ellipse 12% 18% at var(--mx, 50%) var(--my, 50%), rgba(255, 248, 207, 0.24), transparent 72%),
+    radial-gradient(ellipse 16% 24% at calc(var(--mx, 50%) * 0.9) calc(var(--my, 50%) * 0.7), rgba(255, 236, 154, 0.12), transparent 76%),
+    conic-gradient(
+      from calc(180deg + var(--ry, 0deg)) at var(--mx, 50%) var(--my, 50%),
+      rgba(255, 236, 154, 0) 0deg,
+      rgba(255, 236, 154, 0.12) 22deg,
+      rgba(255, 248, 214, 0.03) 42deg,
+      rgba(255, 236, 154, 0) 92deg
+    ),
+    linear-gradient(98deg, transparent 30%, rgba(255, 230, 132, 0.06) 44%, rgba(255, 246, 194, 0.18) 49%, rgba(255, 253, 241, 0.3) 50%, rgba(255, 230, 132, 0.14) 51%, rgba(255, 230, 132, 0.06) 57%, transparent 72%);
+  background-position:
+    center,
+    center,
+    center,
+    calc(50% + var(--dx, 0%)) calc(50% + var(--dy, 0%)),
+    calc(50% + var(--dx, 0%)) calc(50% + var(--dy, 0%));
+  transform: translate3d(calc(var(--dx, 0%) * 0.55), calc(var(--dy, 0%) * 0.55), 0) rotate(calc(var(--ry, 0deg) * 0.18));
+  mix-blend-mode: screen;
+  opacity: 0.62;
+  will-change: transform, background-position, opacity;
+  transition: transform 140ms ease-out, background-position 140ms ease-out, opacity 180ms ease;
+}
+
+.ticket-metallic-gold-foil__print {
+  background:
+    radial-gradient(circle at 16% 84%, rgba(110, 67, 0, 0.16), transparent 20%),
+    radial-gradient(circle at calc(100% - var(--mx, 50%)) 20%, rgba(255, 232, 142, 0.12), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  mix-blend-mode: soft-light;
+  opacity: 0.5;
+  transform: translate3d(calc(var(--dx, 0%) * -0.3), calc(var(--dy, 0%) * -0.3), 0);
+  transition: transform 120ms ease;
+}
+
+
+.ticket-metallic-silver-foil__base {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(245, 249, 255, 0.2), transparent 20%),
+    radial-gradient(circle at var(--mx, 50%) calc(var(--my, 50%) * 0.45), rgba(252, 254, 255, 0.28), transparent 16%),
+    radial-gradient(circle at 78% 72%, rgba(112, 124, 144, 0.18), transparent 22%),
+    linear-gradient(
+      96deg,
+      rgba(103, 116, 136, 0.8) 0%,
+      rgba(224, 232, 242, 0.34) 18%,
+      rgba(126, 140, 160, 0.62) 34%,
+      rgba(246, 250, 255, 0.28) 50%,
+      rgba(122, 136, 156, 0.6) 68%,
+      rgba(223, 231, 241, 0.26) 84%,
+      rgba(96, 110, 128, 0.82) 100%
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.94;
+}
+
+.ticket-metallic-silver-foil__tint {
+  background:
+    linear-gradient(180deg, rgba(230, 239, 249, 0.34), rgba(92, 108, 130, 0.24)),
+    radial-gradient(circle at 50% 36%, rgba(247, 250, 255, 0.42), transparent 36%),
+    radial-gradient(circle at 76% 70%, rgba(148, 164, 186, 0.28), transparent 32%);
+  mix-blend-mode: color;
+  opacity: 1;
+}
+
+.ticket-metallic-silver-foil__brushed {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      12deg,
+      rgba(244, 248, 252, 0.12) 0 1px,
+      rgba(124, 136, 154, 0.04) 1px 3px,
+      rgba(220, 228, 238, 0.1) 3px 4px
+    );
+  background-size: 180px 180px, auto;
+  mix-blend-mode: overlay;
+  opacity: 0.54;
+}
+
+.ticket-metallic-silver-foil__sheen {
+  background:
+    radial-gradient(ellipse 12% 18% at var(--mx, 50%) var(--my, 50%), rgba(247, 250, 255, 0.24), transparent 72%),
+    radial-gradient(ellipse 16% 24% at calc(var(--mx, 50%) * 0.9) calc(var(--my, 50%) * 0.7), rgba(225, 232, 242, 0.12), transparent 76%),
+    conic-gradient(
+      from calc(180deg + var(--ry, 0deg)) at var(--mx, 50%) var(--my, 50%),
+      rgba(228, 236, 246, 0) 0deg,
+      rgba(228, 236, 246, 0.12) 22deg,
+      rgba(248, 251, 255, 0.03) 42deg,
+      rgba(228, 236, 246, 0) 92deg
+    ),
+    linear-gradient(98deg, transparent 34%, rgba(216, 226, 238, 0.04) 46%, rgba(238, 244, 251, 0.1) 49.2%, rgba(255, 255, 255, 0.16) 50%, rgba(216, 226, 238, 0.08) 50.8%, rgba(216, 226, 238, 0.04) 54%, transparent 68%);
+  background-position:
+    center,
+    center,
+    center,
+    calc(50% + var(--dx, 0%)) calc(50% + var(--dy, 0%)),
+    calc(50% + var(--dx, 0%)) calc(50% + var(--dy, 0%));
+  transform: translate3d(calc(var(--dx, 0%) * 0.55), calc(var(--dy, 0%) * 0.55), 0) rotate(calc(var(--ry, 0deg) * 0.18));
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  will-change: transform, background-position, opacity;
+  transition: transform 140ms ease-out, background-position 140ms ease-out, opacity 180ms ease;
+}
+
+.ticket-metallic-silver-foil__print {
+  background:
+    radial-gradient(circle at 16% 84%, rgba(102, 116, 136, 0.16), transparent 20%),
+    radial-gradient(circle at calc(100% - var(--mx, 50%)) 20%, rgba(240, 245, 252, 0.12), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  mix-blend-mode: soft-light;
+  opacity: 0.48;
+  transform: translate3d(calc(var(--dx, 0%) * -0.3), calc(var(--dy, 0%) * -0.3), 0);
+  transition: transform 120ms ease;
+}
+
+.ticket-metallic-rose-foil__base {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 236, 226, 0.2), transparent 20%),
+    radial-gradient(circle at var(--mx, 50%) calc(var(--my, 50%) * 0.45), rgba(255, 242, 236, 0.28), transparent 16%),
+    radial-gradient(circle at 78% 72%, rgba(138, 84, 92, 0.18), transparent 22%),
+    linear-gradient(
+      96deg,
+      rgba(146, 95, 92, 0.8) 0%,
+      rgba(245, 199, 188, 0.34) 18%,
+      rgba(176, 116, 119, 0.62) 34%,
+      rgba(255, 230, 220, 0.28) 50%,
+      rgba(170, 108, 112, 0.6) 68%,
+      rgba(241, 196, 190, 0.26) 84%,
+      rgba(133, 84, 88, 0.82) 100%
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.94;
+}
+
+.ticket-metallic-rose-foil__tint {
+  background:
+    linear-gradient(180deg, rgba(251, 214, 212, 0.42), rgba(170, 82, 102, 0.3)),
+    radial-gradient(circle at 50% 36%, rgba(255, 236, 232, 0.46), transparent 36%),
+    radial-gradient(circle at 76% 70%, rgba(214, 120, 142, 0.32), transparent 32%);
+  mix-blend-mode: color;
+  opacity: 1;
+}
+
+.ticket-metallic-rose-foil__brushed {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      12deg,
+      rgba(255, 234, 228, 0.12) 0 1px,
+      rgba(156, 101, 108, 0.04) 1px 3px,
+      rgba(238, 195, 188, 0.1) 3px 4px
+    );
+  background-size: 180px 180px, auto;
+  mix-blend-mode: overlay;
+  opacity: 0.56;
+}
+
+.ticket-metallic-rose-foil__sheen {
+  background:
+    radial-gradient(ellipse 12% 18% at var(--mx, 50%) var(--my, 50%), rgba(255, 242, 236, 0.24), transparent 72%),
+    radial-gradient(ellipse 16% 24% at calc(var(--mx, 50%) * 0.9) calc(var(--my, 50%) * 0.7), rgba(236, 208, 202, 0.12), transparent 76%),
+    conic-gradient(
+      from calc(180deg + var(--ry, 0deg)) at var(--mx, 50%) var(--my, 50%),
+      rgba(238, 201, 194, 0) 0deg,
+      rgba(238, 201, 194, 0.12) 22deg,
+      rgba(255, 244, 240, 0.03) 42deg,
+      rgba(238, 201, 194, 0) 92deg
+    ),
+    linear-gradient(98deg, transparent 30%, rgba(221, 178, 170, 0.06) 44%, rgba(255, 239, 233, 0.18) 49%, rgba(255, 251, 248, 0.28) 50%, rgba(221, 178, 170, 0.14) 51%, rgba(221, 178, 170, 0.06) 57%, transparent 72%);
+  background-position:
+    center,
+    center,
+    center,
+    calc(50% + var(--dx, 0%)) calc(50% + var(--dy, 0%)),
+    calc(50% + var(--dx, 0%)) calc(50% + var(--dy, 0%));
+  transform: translate3d(calc(var(--dx, 0%) * 0.55), calc(var(--dy, 0%) * 0.55), 0) rotate(calc(var(--ry, 0deg) * 0.18));
+  mix-blend-mode: screen;
+  opacity: 0.62;
+  will-change: transform, background-position, opacity;
+  transition: transform 140ms ease-out, background-position 140ms ease-out, opacity 180ms ease;
+}
+
+.ticket-metallic-rose-foil__print {
+  background:
+    radial-gradient(circle at 16% 84%, rgba(118, 78, 84, 0.16), transparent 20%),
+    radial-gradient(circle at calc(100% - var(--mx, 50%)) 20%, rgba(255, 238, 234, 0.12), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  mix-blend-mode: soft-light;
+  opacity: 0.48;
+  transform: translate3d(calc(var(--dx, 0%) * -0.3), calc(var(--dy, 0%) * -0.3), 0);
+  transition: transform 120ms ease;
+}
+
 
 .collection-carousel-shell {
   width: 100%;
@@ -717,18 +899,23 @@
     );
 
   background-blend-mode: screen, hue, hard-light;
-  background-size: 500px, 200% 700%, 300%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(0.8) contrast(2.95) saturate(0.5);
+  background-size: 620px, 230% 760%, 340%, 230%;
+  background-position:
+    46% 48%,
+    10% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.84) + 43%) calc(((var(--posy, 50%) - 50%) * 0.84) + 54%),
+    calc(((var(--posx, 50%) - 50%) * 0.66) + 58%) calc(((var(--posy, 50%) - 50%) * 0.66) + 45%);
+  filter: brightness(0.82) contrast(2.36) saturate(0.5);
 }
 
 .ticket-poke-shine[data-effect="poke-v"]::after {
-  background-position: center, 0% var(--posy, 50%),
-    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
-    var(--posx, 50%) var(--posy, 50%);
-  background-size: 500px, 200% 400%, 195%, 200%;
-  filter: brightness(1) contrast(2.5) saturate(1.75);
+  background-position:
+    58% 53%,
+    13% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.74) + 61%) calc(((var(--posy, 50%) - 50%) * -0.74) + 41%),
+    calc(((var(--posx, 50%) - 50%) * 0.56) + 38%) calc(((var(--posy, 50%) - 50%) * 0.56) + 62%);
+  background-size: 740px, 210% 430%, 220%, 245%;
+  filter: brightness(0.96) contrast(2.04) saturate(1.6);
   mix-blend-mode: soft-light;
 }
 
@@ -914,18 +1101,23 @@
     );
 
   background-blend-mode: exclusion, hue, hard-light;
-  background-size: 50%, 200% 700%, 300%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(0.6) contrast(2) saturate(1.5);
+  background-size: 62%, 230% 760%, 340%, 230%;
+  background-position:
+    46% 49%,
+    8% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.82) + 44%) calc(((var(--posy, 50%) - 50%) * 0.82) + 53%),
+    calc(((var(--posx, 50%) - 50%) * 0.68) + 57%) calc(((var(--posy, 50%) - 50%) * 0.68) + 46%);
+  filter: brightness(0.64) contrast(1.72) saturate(1.4);
 }
 
 .ticket-poke-shine[data-effect="poke-fullart"]::after {
-  background-size: 50%, 200% 400%, 195%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
-    var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(0.9) contrast(1.6) saturate(1.4);
+  background-size: 71%, 210% 430%, 220%, 245%;
+  background-position:
+    58% 54%,
+    12% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.76) + 59%) calc(((var(--posy, 50%) - 50%) * -0.76) + 42%),
+    calc(((var(--posx, 50%) - 50%) * 0.58) + 39%) calc(((var(--posy, 50%) - 50%) * 0.58) + 61%);
+  filter: brightness(0.88) contrast(1.36) saturate(1.28);
   mix-blend-mode: exclusion;
 }
 
@@ -958,25 +1150,31 @@
     );
 
   background-blend-mode: difference, hue, hard-light;
-  background-size: 50%, 200% 700%, 300%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(0.75) contrast(2.5) saturate(0.75);
+  background-size: 63%, 230% 760%, 340%, 230%;
+  background-position:
+    45% 48%,
+    9% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.84) + 43%) calc(((var(--posy, 50%) - 50%) * 0.84) + 54%),
+    calc(((var(--posx, 50%) - 50%) * 0.66) + 58%) calc(((var(--posy, 50%) - 50%) * 0.66) + 45%);
+  filter: brightness(0.76) contrast(2.08) saturate(0.72);
 }
 
 .ticket-poke-shine[data-effect="poke-trainer"]::after {
-  background-size: 50%, 200% 400%, 195%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
-    var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(1.2) contrast(1) saturate(1.75);
+  background-size: 72%, 210% 430%, 220%, 245%;
+  background-position:
+    58% 53%,
+    13% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.74) + 61%) calc(((var(--posy, 50%) - 50%) * -0.74) + 41%),
+    calc(((var(--posx, 50%) - 50%) * 0.56) + 38%) calc(((var(--posy, 50%) - 50%) * 0.56) + 62%);
+  filter: brightness(1.04) contrast(1.42) saturate(0.72);
   mix-blend-mode: exclusion;
 }
 
 /* --- RADIANT: crosshatch bar pattern + 3-layer --- */
 .ticket-poke-shine[data-effect="poke-radiant"] {
   --barwidth: 1.2%;
-  --space: 200px;
+  --space: 320px;
+  opacity: 0.42;
 
   background-image:
     repeating-linear-gradient(
@@ -991,62 +1189,52 @@
     ),
     repeating-linear-gradient(
       45deg,
-      hsl(0,0%,10%) 0%, hsl(0,0%,10%) var(--barwidth),
-      hsl(0,0%,20%) calc(var(--barwidth) + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 2),
-      hsl(0,0%,35%) calc(var(--barwidth) * 2 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 3),
-      hsl(0,0%,42.5%) calc(var(--barwidth) * 3 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 4),
-      hsl(0,0%,50%) calc(var(--barwidth) * 4 + 0.01%), hsl(0,0%,50%) calc(var(--barwidth) * 5),
-      hsl(0,0%,42.5%) calc(var(--barwidth) * 5 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 6),
-      hsl(0,0%,35%) calc(var(--barwidth) * 6 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 7),
-      hsl(0,0%,20%) calc(var(--barwidth) * 7 + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 8),
-      hsl(0,0%,10%) calc(var(--barwidth) * 8 + 0.01%), hsl(0,0%,10%) calc(var(--barwidth) * 9),
-      hsl(0,0%,0%) calc(var(--barwidth) * 9 + 0.01%), hsl(0,0%,0%) calc(var(--barwidth) * 10)
+      rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) var(--barwidth),
+      rgba(226,232,240,0.14) calc(var(--barwidth) + 0.01%), rgba(226,232,240,0.14) calc(var(--barwidth) * 2),
+      rgba(186,198,214,0.1) calc(var(--barwidth) * 2 + 0.01%), rgba(186,198,214,0.1) calc(var(--barwidth) * 3),
+      rgba(120,138,160,0.06) calc(var(--barwidth) * 3 + 0.01%), rgba(120,138,160,0.06) calc(var(--barwidth) * 4),
+      transparent calc(var(--barwidth) * 4 + 0.01%), transparent calc(var(--barwidth) * 10)
     ),
     repeating-linear-gradient(
       -45deg,
-      hsl(0,0%,10%) 0%, hsl(0,0%,10%) var(--barwidth),
-      hsl(0,0%,20%) calc(var(--barwidth) + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 2),
-      hsl(0,0%,35%) calc(var(--barwidth) * 2 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 3),
-      hsl(0,0%,42.5%) calc(var(--barwidth) * 3 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 4),
-      hsl(0,0%,50%) calc(var(--barwidth) * 4 + 0.01%), hsl(0,0%,50%) calc(var(--barwidth) * 5),
-      hsl(0,0%,42.5%) calc(var(--barwidth) * 5 + 0.01%), hsl(0,0%,42.5%) calc(var(--barwidth) * 6),
-      hsl(0,0%,35%) calc(var(--barwidth) * 6 + 0.01%), hsl(0,0%,35%) calc(var(--barwidth) * 7),
-      hsl(0,0%,20%) calc(var(--barwidth) * 7 + 0.01%), hsl(0,0%,20%) calc(var(--barwidth) * 8),
-      hsl(0,0%,10%) calc(var(--barwidth) * 8 + 0.01%), hsl(0,0%,10%) calc(var(--barwidth) * 9),
-      hsl(0,0%,0%) calc(var(--barwidth) * 9 + 0.01%), hsl(0,0%,0%) calc(var(--barwidth) * 10)
+      rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.16) var(--barwidth),
+      rgba(214,222,232,0.1) calc(var(--barwidth) + 0.01%), rgba(214,222,232,0.1) calc(var(--barwidth) * 2),
+      rgba(150,166,186,0.06) calc(var(--barwidth) * 2 + 0.01%), rgba(150,166,186,0.06) calc(var(--barwidth) * 3),
+      transparent calc(var(--barwidth) * 3 + 0.01%), transparent calc(var(--barwidth) * 10)
     );
 
-  background-size: 400% 400%, 210% 210%, 210% 210%;
+  background-size: 560% 560%, 320% 320%, 320% 320%;
   background-position:
-    calc(((var(--posx, 50%) - 50%) * -2.5) + 50%)
-    calc(((var(--posy, 50%) - 50%) * -2.5) + 50%),
-    calc(((var(--posx, 50%) - 50%) * 1.5) + 50%)
-    calc(((var(--posy, 50%) - 50%) * 1.5) + 50%),
-    calc(((var(--posx, 50%) - 50%) * 1.5) + 50%)
-    calc(((var(--posy, 50%) - 50%) * 1.5) + 50%);
-  background-blend-mode: exclusion, darken, color-dodge;
-  filter: brightness(0.95) contrast(4) saturate(0.75);
+    calc(((var(--posx, 50%) - 50%) * -1.35) + 47%)
+    calc(((var(--posy, 50%) - 50%) * -1.35) + 46%),
+    calc(((var(--posx, 50%) - 50%) * 0.9) + 41%)
+    calc(((var(--posy, 50%) - 50%) * 0.9) + 57%),
+    calc(((var(--posx, 50%) - 50%) * 1.1) + 63%)
+    calc(((var(--posy, 50%) - 50%) * 1.1) + 43%);
+  background-blend-mode: soft-light, screen, screen;
+  filter: brightness(1.02) contrast(1.2) saturate(0.8);
   mix-blend-mode: color-dodge;
 }
 
 .ticket-poke-shine[data-effect="poke-radiant"]::after {
+  opacity: 0.22;
   background-image:
     url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
     repeating-linear-gradient(
       55deg,
-      rgb(255,161,158) calc(200px * 1),
-      rgb(85,178,255) calc(200px * 2),
-      rgb(255,199,146) calc(200px * 3),
-      rgb(130,255,213) calc(200px * 4),
-      rgb(253,170,240) calc(200px * 5),
-      rgb(148,241,255) calc(200px * 6),
-      rgb(255,161,158) calc(200px * 7)
+      rgb(255,161,158) calc(320px * 1),
+      rgb(85,178,255) calc(320px * 2),
+      rgb(255,199,146) calc(320px * 3),
+      rgb(130,255,213) calc(320px * 4),
+      rgb(253,170,240) calc(320px * 5),
+      rgb(148,241,255) calc(320px * 6),
+      rgb(255,161,158) calc(320px * 7)
     );
-  background-size: 40%, 400%;
+  background-size: 54%, 580%;
   background-position: center,
-    calc(((var(--posx, 50%) - 50%) * -2.5) + 50%)
-    calc(((var(--posy, 50%) - 50%) * -2.5) + 50%);
-  filter: brightness(1) contrast(1) saturate(0);
+    calc(((var(--posx, 50%) - 50%) * -1.1) + 58%)
+    calc(((var(--posy, 50%) - 50%) * -1.1) + 48%);
+  filter: brightness(0.95) contrast(0.85) saturate(0);
   mix-blend-mode: soft-light;
   background-blend-mode: multiply;
 }
@@ -1118,17 +1306,22 @@
     );
 
   background-blend-mode: exclusion, hue, hard-light;
-  background-size: 60%, 200% 700%, 300%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(0.6) contrast(2.5) saturate(1);
+  background-size: 74%, 230% 760%, 340%, 230%;
+  background-position:
+    44% 48%,
+    10% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.84) + 43%) calc(((var(--posy, 50%) - 50%) * 0.84) + 54%),
+    calc(((var(--posx, 50%) - 50%) * 0.66) + 58%) calc(((var(--posy, 50%) - 50%) * 0.66) + 45%);
+  filter: brightness(0.64) contrast(2.08) saturate(0.96);
 }
 
 .ticket-poke-shine[data-effect="poke-gallery-v"]::after {
-  background-size: 60%, 200% 400%, 195%, 200%;
-  background-position: center, 0% var(--posy, 50%),
-    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
-    var(--posx, 50%) var(--posy, 50%);
-  filter: brightness(0.8) contrast(2) saturate(1);
+  background-size: 82%, 210% 430%, 220%, 245%;
+  background-position:
+    57% 53%,
+    14% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.74) + 61%) calc(((var(--posy, 50%) - 50%) * -0.74) + 41%),
+    calc(((var(--posx, 50%) - 50%) * 0.56) + 38%) calc(((var(--posy, 50%) - 50%) * 0.56) + 62%);
+  filter: brightness(0.82) contrast(1.72) saturate(0.96);
   mix-blend-mode: exclusion;
 }
