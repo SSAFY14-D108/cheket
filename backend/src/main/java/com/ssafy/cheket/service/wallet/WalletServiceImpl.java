@@ -1,26 +1,38 @@
 package com.ssafy.cheket.service.wallet;
 
+import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
 import com.ssafy.cheket.entity.transaction.Transaction;
+import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.entity.wallet.Wallet;
+import com.ssafy.cheket.exception.common.BlockchainException;
+import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.user.UserRepository;
+import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Bool;
 import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.tx.RawTransactionManager;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * 지갑 서비스 구현체 — 초기 SSF 전송
@@ -43,6 +55,8 @@ public class WalletServiceImpl implements WalletService {
 
     private final Web3j web3j; // 블록체인 RPC 클라이언트
     private final TransactionService transactionService; // 트랜잭션 상태 관리
+    private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
 
     // 플랫폼 지갑 개인키 (application.yml에서 주입)
     // 이 키로 서명해서 플랫폼 지갑에서 SSF를 보냄
@@ -183,5 +197,75 @@ public class WalletServiceImpl implements WalletService {
                 transactionService.updateToFailed(pendingTx.getId(), "Exception: " + e.getMessage());
             }
         }
+    }
+
+    // -- 기본 잔액 조회 (DB) --
+    // 이벤트 리스너가 이미 ctkBalance를 동기화하고 있으므로
+    // DB에서 읽어도 충분히 정확함
+    @Override
+    public WalletBalanceResponse getBalance(Long userId) {
+        // 1. 유저 조회
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("유저가 존재하지 않습니다."));
+
+        // 2. 지갑 조회
+        Wallet wallet = walletRepository.findById(user.getWalletId())
+            .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+
+        // 3. 지갑에서 잔액 읽기
+        Integer balance = wallet.getCtkBalance() != null ? wallet.getCtkBalance() : 0;
+        return new WalletBalanceResponse(balance, wallet.getAddress());
+    }
+
+    // -- 새로고침 잔액 조회 (온체인 -> DB 동기화) --
+    // 블록체인 노드에 직접 balanceOf() 호출 -> DB ctkBalance 업데이트
+    @Override
+    public WalletBalanceResponse refreshBalance(Long userId) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("유저가 존재하지 않습니다."));
+        Wallet wallet = walletRepository.findById(user.getWalletId())
+            .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+
+        try {
+            // 1. ERC-20 balanceOf(address) 온체인 호출 (스마트 컨트랙트의 balanceOf(address) 함수를 Java
+            // 객체로 정의)
+            Function balanceOfFuntion = new Function("balanceOf",
+                Collections.singletonList(new Address(wallet.getAddress())), // 입력: 누구 잔액?
+                Collections.singletonList(new TypeReference<Uint256>() { // 출력: 숫자(잔액)
+                }));
+            // ABI 인코딩
+            String encodedFunction = FunctionEncoder.encode(balanceOfFuntion);
+
+            // ethCal은 조회 전용 - 트랜잭션 발생 안 하고, 가스비 없음
+            EthCall ethCall = web3j
+                .ethCall(org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
+                    wallet.getAddress(), ssfContractAddress, encodedFunction), DefaultBlockParameterName.LATEST)
+                .send();
+
+            // 노드가 다운되었거나, 컨트랙트 주소가 잘못된 경우 등을 처리
+            if (ethCall.hasError()) {
+                throw new BlockchainException("블록체인 노드 통신 오류");
+            }
+
+            // 2. 결과 디코딩
+            List<Type> decoded = FunctionReturnDecoder.decode(ethCall.getValue(),
+                balanceOfFuntion.getOutputParameters());
+            BigInteger rawBalance = (BigInteger) decoded.get(0).getValue();
+            int onChainBalance = rawBalance.intValue();
+
+            // 3. DB 동기화 - 온체인 잔액으로 덮어쓰기
+            wallet.setCtkBalance(onChainBalance);
+            wallet.setBalanceSyncedAt(LocalDateTime.now());
+            walletRepository.save(wallet);
+
+            log.info("온체인 잔액 동기화: {} -> {} CTK", wallet.getAddress(), onChainBalance);
+
+            return new WalletBalanceResponse(onChainBalance, wallet.getAddress());
+        } catch (BlockchainException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BlockchainException("블록체인 노드 통신 오류");
+        }
+
     }
 }

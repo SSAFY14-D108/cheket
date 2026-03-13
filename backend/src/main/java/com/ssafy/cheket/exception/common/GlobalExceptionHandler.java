@@ -77,7 +77,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
             .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
     }
-
+    @ExceptionHandler(BlockchainException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBlockchainException(BlockchainException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
+    }
     // 410 Gone - 인증 만료
     @ExceptionHandler(GoneException.class)
     public ResponseEntity<ApiResponse<Void>> handleGone(GoneException e) {

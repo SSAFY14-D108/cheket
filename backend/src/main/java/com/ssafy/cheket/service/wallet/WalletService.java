@@ -1,5 +1,7 @@
 package com.ssafy.cheket.service.wallet;
 
+import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
+
 /**
  * 지갑 서비스 — 회원가입 시 플랫폼 → 신규 유저/호스트 지갑으로 초기 SSF 전송
  */
@@ -20,4 +22,9 @@ public interface WalletService {
      */
     void transferInitialFunds(String toAddress, Long userId);
 
+    // 기본 조회 - DB에서 읽기 (빠름)
+    WalletBalanceResponse getBalance(Long userId);
+
+    // 새로고침 - 온체인 balanceOf() 호출 -> DB 동기화
+    WalletBalanceResponse refreshBalance(Long userId);
 }
