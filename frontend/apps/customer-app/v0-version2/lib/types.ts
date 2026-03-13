@@ -1,7 +1,7 @@
 export type TicketStatus = 'SOLD' | 'LISTED' | 'USED' | 'EXPIRED'
 export type SeatStatus = 'AVAILABLE' | 'LOCKED' | 'SOLD'
 export type EventStatus = 'ON_SALE' | 'SOLD_OUT'
-export type Tab = 'home' | 'concerts' | 'resale' | 'my-tickets' | 'collection'
+export type Tab = 'home' | 'concerts' | 'resale' | 'my-tickets' | 'my-page'
 
 export type TxType = 'PURCHASE' | 'RESALE_LIST' | 'RESALE_BUY' | 'TRANSFER' | 'REFUND'
 export type TxStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED'

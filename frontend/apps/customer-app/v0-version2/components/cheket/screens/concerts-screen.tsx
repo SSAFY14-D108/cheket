@@ -9,10 +9,10 @@ import { AppShell } from '../app-shell'
 import { EmptyState } from '../empty-state'
 import { EventCard } from '../event-card'
 
-type SortKey = '인기순' | '최신순' | '마감임박순'
+type SortKey = '인기순' | '최신순' | '오픈임박순'
 
-const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '광주', '경남', '전북', '제주', '기타']
-const SORTS: SortKey[] = ['인기순', '최신순', '마감임박순']
+const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '제주', '경남']
+const SORTS: SortKey[] = ['인기순', '최신순', '오픈임박순']
 const PAGE_SIZE = 6
 
 function popularityScore(id: string) {
@@ -61,6 +61,7 @@ export function ConcertsScreen() {
       const matchRegion =
         selectedRegionCodes.length === 0 ||
         (eventRegionCode ? selectedRegionCodes.includes(eventRegionCode) : selectedRegions.includes(event.region))
+
       return matchQuery && matchRegion
     })
 
@@ -108,7 +109,7 @@ export function ConcertsScreen() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               className="w-full rounded-xl border border-border bg-secondary py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              placeholder="공연명, 아티스트, 장소 검색"
+              placeholder="공연명, 아티스트, 공연장 검색"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -150,10 +151,10 @@ export function ConcertsScreen() {
 
         <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
           {eventsLoading
-            ? 'KOPIS 공연 데이터를 불러오는 중입니다.'
+            ? '공연 정보를 불러오는 중입니다.'
             : eventsSource === 'kopis'
-              ? `KOPIS 연동 데이터 ${events.length}건을 표시 중입니다.`
-              : `KOPIS 연동 실패 또는 키 미설정으로 mock 데이터 ${events.length}건을 표시 중입니다.${eventsError ? ` (${eventsError})` : ''}`}
+              ? `KOPIS 공연 ${events.length}건을 표시 중입니다.`
+              : `mock 공연 ${events.length}건을 표시 중입니다.${eventsError ? ` (${eventsError})` : ''}`}
         </div>
 
         {showFilters && (
@@ -213,7 +214,7 @@ export function ConcertsScreen() {
         </p>
 
         {filtered.length === 0 ? (
-          <EmptyState title="공연이 없어요" description="검색어나 필터를 바꿔서 다시 확인해 보세요." />
+          <EmptyState title="공연이 없습니다." description="검색어나 지역 필터를 변경해서 다시 확인해보세요." />
         ) : (
           <>
             <div className="flex flex-col gap-3">

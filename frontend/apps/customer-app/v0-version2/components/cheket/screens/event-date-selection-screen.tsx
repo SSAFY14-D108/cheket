@@ -180,9 +180,9 @@ export function EventDateSelectionScreen() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {resolvedEvent.grades.map((grade) => (
+                  {resolvedEvent.grades.map((grade, index) => (
                     <div
-                      key={grade.name}
+                      key={`${grade.name}-${grade.price}-${index}`}
                       className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
                       style={{
                         backgroundColor: `${grade.color ?? '#6b7280'}22`,

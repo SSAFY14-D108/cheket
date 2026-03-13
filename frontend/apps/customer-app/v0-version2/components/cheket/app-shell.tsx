@@ -28,7 +28,7 @@ export function AppShell({
   rightElement,
   hideProfileIcon = false,
 }: AppShellProps) {
-  const { navigate, user } = useApp()
+  const { navigateTab, user } = useApp()
 
   return (
     <div className="flex flex-col h-full">
@@ -71,7 +71,7 @@ export function AppShell({
           )}
           {!hideProfileIcon && user && (
             <button
-              onClick={() => navigate('my-page')}
+              onClick={() => navigateTab('my-page')}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors"
               aria-label="마이 페이지"
             >

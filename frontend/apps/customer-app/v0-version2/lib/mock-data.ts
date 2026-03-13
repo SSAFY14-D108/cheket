@@ -1392,7 +1392,7 @@ MOCK_TICKETS.forEach((ticket) => {
   const event = MOCK_EVENTS.find((eventItem) => eventItem.id === ticket.eventId)
   if (event) {
     ticket.eventName = event.name
-    ticket.eventDate = event.date
+    ticket.eventDate = ticket.eventDate || event.date
     ticket.venue = event.venue
   }
 
@@ -1404,7 +1404,7 @@ MOCK_RESALE_ITEMS.forEach((item) => {
   const event = MOCK_EVENTS.find((eventItem) => eventItem.id === item.eventId)
   if (event) {
     item.eventName = event.name
-    item.eventDate = event.date
+    item.eventDate = item.eventDate || event.date
     item.venue = event.venue
   }
 

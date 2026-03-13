@@ -99,6 +99,7 @@ interface AppContextValue {
   goBack: () => void
   tickets: Ticket[]
   resaleItems: ResaleItem[]
+  allEvents: Event[]
   events: Event[]
   eventsLoading: boolean
   eventsSource: 'mock' | 'kopis'
@@ -165,6 +166,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [screenHistory, setScreenHistory] = useState<Array<{ screen: Screen; params: NavParams }>>([])
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS)
   const [resaleItems, setResaleItems] = useState<ResaleItem[]>([])
+  const [allEvents, setAllEvents] = useState<Event[]>(MOCK_EVENTS)
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsSource, setEventsSource] = useState<'mock' | 'kopis'>('mock')
@@ -198,10 +200,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const firstError = responses.find((data) => typeof data.error === 'string')?.error ?? null
 
       if (dedupedItems.length > 0) {
+        if (codes.length === 0) {
+          setAllEvents(dedupedItems)
+        }
         setEvents(dedupedItems)
         setEventsSource('kopis')
         setEventsError(firstError)
       } else {
+        if (codes.length === 0) {
+          setAllEvents(MOCK_EVENTS)
+        }
         setEvents(MOCK_EVENTS)
         setEventsSource('mock')
         setEventsError(firstError)
@@ -209,6 +217,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (latestEventsRequestRef.current !== requestId) return
 
+      if (codes.length === 0) {
+        setAllEvents(MOCK_EVENTS)
+      }
       setEvents(MOCK_EVENTS)
       setEventsSource('mock')
       setEventsError(error instanceof Error ? error.message : 'Failed to load KOPIS events')
@@ -263,7 +274,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       concerts: 'concerts',
       resale: 'resale-list',
       'my-tickets': 'my-tickets',
-      collection: 'collection',
+      'my-page': 'my-page',
     }
 
     setActiveTab(tab)
@@ -291,6 +302,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateEvent = useCallback((id: string, updates: Partial<Event>) => {
+    setAllEvents((prev) => prev.map((event) => (event.id === id ? { ...event, ...updates } : event)))
     setEvents((prev) => prev.map((event) => (event.id === id ? { ...event, ...updates } : event)))
   }, [])
 
@@ -498,6 +510,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         goBack,
         tickets,
         resaleItems,
+        allEvents,
         events,
         eventsLoading,
         eventsSource,

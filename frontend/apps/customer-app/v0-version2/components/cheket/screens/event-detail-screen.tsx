@@ -175,8 +175,8 @@ export function EventDetailScreen() {
             <h3 className="mb-3 text-sm font-semibold text-foreground">가격 안내</h3>
             {hasStructuredGrades ? (
               <div className="flex flex-col gap-2">
-                {displayEvent.grades.map((grade) => (
-                  <div key={grade.name} className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
+                {displayEvent.grades.map((grade, index) => (
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-foreground">{grade.name}</span>
                       <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
@@ -191,8 +191,8 @@ export function EventDetailScreen() {
               <div className="rounded-xl bg-secondary px-4 py-3 text-sm leading-relaxed text-foreground">{displayEvent.priceInfo}</div>
             ) : (
               <div className="flex flex-col gap-2">
-                {displayEvent.grades.map((grade) => (
-                  <div key={grade.name} className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
+                {displayEvent.grades.map((grade, index) => (
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-foreground">{grade.name}</span>
                       <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
@@ -212,15 +212,15 @@ export function EventDetailScreen() {
                 <ImageIcon className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">상세 이미지</h3>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="overflow-hidden rounded-xl border border-border bg-card">
                 {displayEvent.introImages.map((imageUrl, index) => (
-                  <div key={`${imageUrl}-${index}`} className="overflow-hidden rounded-xl border border-border bg-secondary p-2">
+                  <div key={`${imageUrl}-${index}`} className="overflow-hidden">
                     <Image
                       src={imageUrl}
                       alt={`${displayEvent.name} 상세 이미지 ${index + 1}`}
                       width={1200}
                       height={1600}
-                      className="h-auto w-full object-contain"
+                      className="block h-auto w-full object-contain"
                       sizes="390px"
                     />
                   </div>

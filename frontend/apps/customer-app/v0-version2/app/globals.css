@@ -472,7 +472,7 @@
 .collection-carousel-viewport {
   position: relative;
   height: 600px;
-  overflow: visible;
+  overflow: hidden;
   touch-action: pan-y;
   width: min(100%, 520px);
   margin: 0 auto;

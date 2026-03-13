@@ -250,7 +250,7 @@ function TicketBack({ ticket, onFlip, isGold = false }: FaceProps) {
           </div>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.28)', marginTop: 18, paddingTop: 14, display: 'grid', gap: 10 }}>
-            <BackRow label="Date" value={ticket.attendedDate ?? ticket.eventDate.split(' ')[0]} isGold={isGold} />
+            <BackRow label="Date" value={ticket.eventDate.split(' ')[0]} isGold={isGold} />
             <BackRow label="Venue" value={ticket.venue} isGold={isGold} />
           </div>
 
@@ -603,7 +603,7 @@ function CollectionCoverFlow({
 }
 
 export function CollectionScreen() {
-  const { navigateTab, tickets } = useApp()
+  const { navigate, navigateTab, tickets } = useApp()
   const collected = useMemo(() => tickets.filter((ticket) => ticket.status === 'USED'), [tickets])
   const [activeIndex, setActiveIndex] = useState(0)
   const [effectPickerOpen, setEffectPickerOpen] = useState(false)
@@ -686,7 +686,15 @@ export function CollectionScreen() {
             <div className="min-h-[108px] pt-10 text-center">
               {activeTicket && (
                 <div className="flex items-start justify-center gap-2">
-                  <h2 className="text-lg font-semibold leading-tight text-foreground">{activeTicket.eventName}</h2>
+                  <button
+                    type="button"
+                    onClick={() => navigate('ticket-detail', { ticketId: activeTicket.id })}
+                    className="text-left"
+                  >
+                    <h2 className="text-lg font-semibold leading-tight text-foreground underline-offset-4 transition hover:text-primary hover:underline">
+                      {activeTicket.eventName}
+                    </h2>
+                  </button>
                   <button
                     type="button"
                     aria-label="Open effect settings"
