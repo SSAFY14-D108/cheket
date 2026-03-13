@@ -45,7 +45,7 @@ public class HostShowServiceImpl implements HostShowService {
 
     private ShowItem toShowItem(Show s) {
         return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
-            s.getVenue().getRegion().name(),
+            s.getVenue().getRegion().getName(),
             new ShowItem.ShowPeriod(s.getShowStartDate().toLocalDate(), s.getShowEndDate().toLocalDate()),
             new ShowItem.ReservationPeriod(s.getReservationStartDate(), s.getReservationEndDate()),
             s.getStatus().name());

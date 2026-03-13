@@ -4,7 +4,6 @@ import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.resale.response.GetResaleTicketsResponse;
 import com.ssafy.cheket.dto.resale.response.ResaleShowItem;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ResaleShowSort;
 import com.ssafy.cheket.enums.ResaleTicketSort;
 import com.ssafy.cheket.service.resale.ResaleService;
@@ -13,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,10 +24,10 @@ public class ResaleController {
     @GetMapping
     @Operation(summary = "2차 거래 티켓이 존재하는 공연 목록 조회")
     public ResponseEntity<ApiResponse<GetShowListResponse<ResaleShowItem>>> getResaleShowList(
-        @RequestParam(required = false) Region region, @RequestParam(required = false) ResaleShowSort sort,
+        @RequestParam(required = false) List<Integer> regions, @RequestParam(required = false) ResaleShowSort sort,
         @RequestParam(required = false) String keyword, @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
-        GetShowListResponse<ResaleShowItem> response = resaleService.getResaleShowList(region, sort, keyword, page,
+        GetShowListResponse<ResaleShowItem> response = resaleService.getResaleShowList(regions, sort, keyword, page,
             size);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "거래소 조회 완료", response));
     }
