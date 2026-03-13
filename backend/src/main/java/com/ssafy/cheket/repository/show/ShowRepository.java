@@ -74,4 +74,5 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
 
     boolean existsByHost_IdAndStatusNotAndShowEndDateAfter(Long hostId, ShowStatus status, LocalDateTime now);
 
+    Page<Show> findByHost_id(Long hostId, Pageable pageable);
 }
