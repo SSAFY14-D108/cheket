@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,8 +35,9 @@ public class ShowController {
     @GetMapping("/{showId}")
     @Operation(summary = "공연 상세 조회")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail(@PathVariable Long showId) {
-        GetShowDetailResponse response = showService.getShowDetail(showId);
+    public ResponseEntity<ApiResponse<GetShowDetailResponse>> getShowDetail(@PathVariable Long showId,
+        @AuthenticationPrincipal Long userId) {
+        GetShowDetailResponse response = showService.getShowDetail(showId, userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 완료", response));
     }
 

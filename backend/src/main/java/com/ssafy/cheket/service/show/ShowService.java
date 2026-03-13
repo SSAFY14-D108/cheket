@@ -9,7 +9,7 @@ import java.util.List;
 public interface ShowService {
     GetShowListResponse<ShowItem> getShowList(Region region, ShowSort sort, String keyword, int page, int size);
 
-    GetShowDetailResponse getShowDetail(Long showId);
+    GetShowDetailResponse getShowDetail(Long showId, Long userId);
 
     List<SessionListResponse> getSessionList(Long showId);
 
