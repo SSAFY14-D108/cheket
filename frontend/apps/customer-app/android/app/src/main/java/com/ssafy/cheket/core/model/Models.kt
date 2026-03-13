@@ -195,3 +195,39 @@ data class TransferResult(
     val recipientName: String? = null,
     val reason: String? = null,
 )
+
+/* ── Zoomable Seat Map ── */
+
+/** API 응답의 section 단위 (GET /api/v1/.../seats) */
+data class SeatMapSection(
+    val sectionId: Long,
+    val sectionName: String,
+    val gradeName: String,
+    val price: Int,
+    val colorCode: String,
+    val seats: List<SectionSeat>,
+)
+
+/** API 응답의 개별 좌석 */
+data class SectionSeat(
+    val sessionSeatId: Long,
+    val seatId: Long,
+    val rowNum: Int,
+    val colNum: Int,
+    val seatNo: String,
+    val status: String,   // "AVAILABLE", "LOCKED", "SOLD"
+)
+
+/** Canvas 렌더링용 구역 위치 */
+data class SectionBounds(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+)
+
+/** 전체 좌석 배치도 */
+data class VenueLayout(
+    val sections: List<SeatMapSection>,
+    val sectionBounds: Map<Long, SectionBounds>,
+)

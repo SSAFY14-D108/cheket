@@ -56,6 +56,7 @@ import com.ssafy.cheket.features.auth.FindAccountScreen
 import com.ssafy.cheket.features.auth.PasswordResetScreen
 import com.ssafy.cheket.features.resale.ResaleListScreen
 import com.ssafy.cheket.features.resale.ResaleTicketsScreen
+import com.ssafy.cheket.features.purchase.SeatMapScreen
 import com.ssafy.cheket.features.show.ShowDateSelectionScreen
 
 object Routes {
@@ -98,6 +99,7 @@ object Routes {
     const val PASSWORD_RESET = "password_reset"
     const val RESALE_LIST = "resale_list"
     const val RESALE_TICKETS = "resale_tickets/{showId}"
+    const val SEAT_MAP = "seat_map/{showId}"
 
     // Helper functions for building routes with args
     fun showDetail(showId: String) = "show_detail/$showId"
@@ -116,6 +118,7 @@ object Routes {
     fun resaleCreate(ticketId: String) = "resale_create/$ticketId"
     fun collectibleDetail(ticketId: String) = "collectible_detail/$ticketId"
     fun resaleTickets(showId: String) = "resale_tickets/$showId"
+    fun seatMap(showId: String) = "seat_map/$showId"
 }
 
 val bottomTabRoutes = listOf(
@@ -221,6 +224,7 @@ fun AppNavGraph(
                     appContainer = appContainer,
                     onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                     onMyPage = { navController.navigate(Routes.MY_PAGE) },
+                    onSeatMapTest = { showId -> navController.navigate(Routes.seatMap(showId)) },
                 )
             }
             composable(Routes.SHOWS) {
@@ -549,6 +553,21 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
+            // ── Seat Map (test) ──
+            slideComposable(
+                route = Routes.SEAT_MAP,
+                arguments = listOf(navArgument("showId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val showId = backStackEntry.arguments?.getString("showId") ?: ""
+                SeatMapScreen(
+                    showId = showId,
+                    onBack = { navController.popBackStack() },
+                    onPurchase = {
+                        navController.navigate(Routes.payment(showId))
+                    },
+                )
+            }
+
             slideComposable(Routes.ARCHIVE) {
                 ArchiveScreen(
                     onTicketClick = { ticketId ->

@@ -27,7 +27,9 @@ interface AppContainer {
 /**
  * A: 실제 서버 연결 — Real Service + Real RepositoryImpl (API 호출)
  */
-class RealAppContainer(private val authDataStore: AuthDataStore) : AppContainer {
+class RealAppContainer(
+    private val authDataStore: AuthDataStore
+) : AppContainer {
     override val showService: ShowService by lazy { RetrofitClient.createService(ShowService::class.java) }
     override val ticketService: TicketService by lazy { RetrofitClient.createService(TicketService::class.java) }
     override val queueService: QueueService by lazy { RetrofitClient.createService(QueueService::class.java) }
@@ -46,7 +48,9 @@ class RealAppContainer(private val authDataStore: AuthDataStore) : AppContainer 
 /**
  * B: MockInterceptor — Mock Service (HTTP 레벨 모킹) + Real RepositoryImpl (API 호출)
  */
-class MockAppContainer(private val authDataStore: AuthDataStore) : AppContainer {
+class MockAppContainer(
+    private val authDataStore: AuthDataStore
+) : AppContainer {
     override val showService: ShowService by lazy { RetrofitClient.createMockService(ShowService::class.java) }
     override val ticketService: TicketService by lazy { RetrofitClient.createMockService(TicketService::class.java) }
     override val queueService: QueueService by lazy { RetrofitClient.createMockService(QueueService::class.java) }

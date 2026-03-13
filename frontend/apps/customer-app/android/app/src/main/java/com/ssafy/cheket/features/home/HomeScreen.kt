@@ -45,6 +45,7 @@ fun HomeScreen(
     appContainer: AppContainer,
     onShowClick: (String) -> Unit = {},
     onMyPage: () -> Unit = {},
+    onSeatMapTest: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -85,6 +86,25 @@ fun HomeScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
+            // 🧪 좌석 배치도 테스트 버튼
+            item {
+                Button(
+                    onClick = { onSeatMapTest("evt_001") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(48.dp),
+                ) {
+                    Text(
+                        "좌석 배치도 테스트",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
+
             // 1. Hero Banner
             item {
                 HeroBanner(

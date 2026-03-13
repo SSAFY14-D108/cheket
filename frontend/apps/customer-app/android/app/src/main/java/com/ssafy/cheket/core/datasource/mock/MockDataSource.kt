@@ -303,6 +303,85 @@ object MockDataSource {
         return seats
     }
 
+    // ── Seat-map section generation (matches API response shape) ──
+
+    fun generateSeatMapSections(showId: String): List<SeatMapSection> {
+        val show = mockShows.find { it.id == showId } ?: return emptyList()
+        val cols = 10
+        val rowsPerGrade = 4
+        val rowLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        var sessionSeatCounter = 1L
+        var seatIdCounter = 1L
+
+        return show.grades.mapIndexed { gradeIdx, grade ->
+            val seats = mutableListOf<SectionSeat>()
+            for (r in 0 until rowsPerGrade) {
+                for (c in 1..cols) {
+                    val seatIndex = gradeIdx * rowsPerGrade * cols + r * cols + c
+                    val rand = seatIndex % 7
+                    val status = when {
+                        grade.remaining == 0 -> "SOLD"
+                        rand == 2 || rand == 5 -> "SOLD"
+                        rand == 3 -> "LOCKED"
+                        else -> "AVAILABLE"
+                    }
+                    seats.add(
+                        SectionSeat(
+                            sessionSeatId = sessionSeatCounter++,
+                            seatId = seatIdCounter++,
+                            rowNum = r + 1,
+                            colNum = c,
+                            seatNo = "${rowLetters[gradeIdx * rowsPerGrade + r]}$c",
+                            status = status,
+                        )
+                    )
+                }
+            }
+            SeatMapSection(
+                sectionId = (gradeIdx + 1).toLong(),
+                sectionName = "${grade.name} 구역",
+                gradeName = grade.name,
+                price = grade.price,
+                colorCode = grade.color ?: "#6B7280",
+                seats = seats,
+            )
+        }
+    }
+
+    /**
+     * 구역들의 Canvas 위 배치 좌표를 계산한다.
+     * 레이아웃: STAGE(상단) 아래로 2열×2행 그리드.
+     *
+     * 전체 캔버스 논리 크기: 1000 × 1200
+     *   STAGE: (150, 40) ~ (850, 120)
+     *   구역 그리드: 좌상(150,180) 우하(850,1100)
+     */
+    fun calculateSectionBounds(sections: List<SeatMapSection>): Map<Long, SectionBounds> {
+        if (sections.isEmpty()) return emptyMap()
+
+        val gridCols = 2
+        val gridStartX = 150f
+        val gridStartY = 180f
+        val gridWidth = 700f
+        val gridHeight = 920f
+        val gap = 20f
+
+        val cellW = (gridWidth - gap * (gridCols - 1)) / gridCols
+        val gridRows = (sections.size + gridCols - 1) / gridCols
+        val cellH = (gridHeight - gap * (gridRows - 1)) / gridRows
+
+        return sections.mapIndexed { idx, section ->
+            val col = idx % gridCols
+            val row = idx / gridCols
+            section.sectionId to SectionBounds(
+                left = gridStartX + col * (cellW + gap),
+                top = gridStartY + row * (cellH + gap),
+                width = cellW,
+                height = cellH,
+            )
+        }.toMap()
+    }
+
     fun getResaleGrouped(): List<ResaleGroupItem> =
         mockResaleItems.groupBy { it.showId }.map { (showId, items) ->
             ResaleGroupItem(
