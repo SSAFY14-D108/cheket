@@ -4,6 +4,7 @@ import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
+import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.ConflictException;
@@ -100,4 +101,11 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    // 프로필 조회
+    @Override
+    public GetProfileResponse getProfile(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+
+        return new GetProfileResponse(user.getId(), user.getUsername(), user.getPhoneNumber(), user.getEmail());
+    }
 }
