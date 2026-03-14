@@ -33,6 +33,7 @@ public class ShowServiceImpl implements ShowService {
     private final SessionSeatRepository sessionSeatRepository;
     private final VenueRepository venueRepository;
     private final SeatRepository seatRepository;
+    private final ShowImageRepository showImageRepository;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -172,6 +173,16 @@ public class ShowServiceImpl implements ShowService {
 
         return sections.stream().map(section -> new GetSectionsResponse(section.getId(), section.getSectionName()))
             .toList();
+    }
+
+    // 공연 이미지 조회
+    @Override
+    public List<ShowImage> getShowImages(Long showId) {
+        if(!showRepository.existsById(showId)) {
+            throw new NotFoundException("해당 공연은 존재하지 않습니다.");
+        }
+
+        return showImageRepository.findAllByShow_Id(showId);
     }
 
     private ShowItem toShowItem(Show s) {

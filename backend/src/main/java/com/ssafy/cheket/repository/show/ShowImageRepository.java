@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface ShowImageRepository extends JpaRepository<ShowImage, Long> {
 
-    // 공연 이미지 목록 가져오기
+    // 공연 이미지 조회
     List<ShowImage> findAllByShow_Id(Long showId);
 
 }
