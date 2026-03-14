@@ -28,4 +28,7 @@ public interface ShowService {
     // 공연 이미지 조회
     List<ShowImage> getShowImages(Long showId);
 
+    // 공연 이미지 삭제
+    void deleteShowImages(Long showId);
+
 }

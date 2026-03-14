@@ -10,4 +10,7 @@ public interface ShowImageRepository extends JpaRepository<ShowImage, Long> {
     // 공연 이미지 조회
     List<ShowImage> findAllByShow_Id(Long showId);
 
+    // 공연 이미지 삭제
+    void deleteAllByShow_Id(Long showId);
+
 }

@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.show;
 
+import com.ssafy.cheket.config.s3.S3Uploader;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.enums.Region;
@@ -34,6 +35,7 @@ public class ShowServiceImpl implements ShowService {
     private final VenueRepository venueRepository;
     private final SeatRepository seatRepository;
     private final ShowImageRepository showImageRepository;
+    private final S3Uploader s3Uploader;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -183,6 +185,13 @@ public class ShowServiceImpl implements ShowService {
         }
 
         return showImageRepository.findAllByShow_Id(showId);
+    }
+
+    // 공연 이미지 삭제
+    @Override
+    public void deleteShowImages(Long showId) {
+        s3Uploader.deleteAllByShowId(showId);
+        showImageRepository.deleteAllByShow_Id(showId);
     }
 
     private ShowItem toShowItem(Show s) {
