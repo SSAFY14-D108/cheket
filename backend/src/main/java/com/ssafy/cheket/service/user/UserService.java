@@ -13,4 +13,6 @@ public interface UserService {
     void withdrawUser(Long userId, String accessToken, String refreshToken);
 
     GetProfileResponse getProfile(Long userId);
+
+    void updateNotification(Long userId, Boolean notificationEnable);
 }

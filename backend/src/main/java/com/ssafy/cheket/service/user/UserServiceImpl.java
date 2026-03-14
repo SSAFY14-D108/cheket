@@ -12,7 +12,7 @@ import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import com.ssafy.cheket.service.wallet.WalletService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -104,8 +104,18 @@ public class UserServiceImpl implements UserService {
     // 프로필 조회
     @Override
     public GetProfileResponse getProfile(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
 
         return new GetProfileResponse(user.getId(), user.getUsername(), user.getPhoneNumber(), user.getEmail());
+    }
+
+    // 알림 여부 수정
+    @Override
+    @Transactional
+    public void updateNotification(Long userId, Boolean notificationEnable) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+        user.setNotificationEnable(notificationEnable);
     }
 }

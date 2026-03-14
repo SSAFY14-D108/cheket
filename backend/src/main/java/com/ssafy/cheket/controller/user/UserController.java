@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.user;
 
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
@@ -54,5 +55,14 @@ public class UserController {
     public ResponseEntity<ApiResponse<GetProfileResponse>> getProfile(@AuthenticationPrincipal Long userId) {
         GetProfileResponse response = userService.getProfile(userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "프로필 조회 완료", response));
+    }
+
+    @PutMapping("/notifications")
+    @Operation(summary = "알림 여부 수정")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> updateNotification(@RequestBody UpdateNotificationRequest request,
+        @AuthenticationPrincipal Long userId) {
+        userService.updateNotification(userId, request.notificationEnable());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 여부 수정 완료", null));
     }
 }
