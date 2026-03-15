@@ -1,6 +1,5 @@
 package com.ssafy.cheket.dto.show.response;
 
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowStatus;
 
 import java.time.LocalDate;
@@ -8,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record GetShowDetailResponse(Long showId, String title, String posterUrl, String venue, Integer purchaseLimit,
-    Region region, ShowPeriod show, ReservationPeriod reservation, ShowStatus status, String description, String artist,
+    String region, ShowPeriod show, ReservationPeriod reservation, ShowStatus status, String description, String artist,
     Boolean isLiked, Integer likeCount, List<GradeInfo> grade, List<RefundPolicyInfo> refundPolicy) {
 
     public record ShowPeriod(LocalDate showStartDate, LocalDate showEndDate) {

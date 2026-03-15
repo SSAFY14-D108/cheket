@@ -1,13 +1,17 @@
 package com.ssafy.cheket.service.wallet;
 
+import com.ssafy.cheket.dto.wallet.response.TransactionResponse;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.transaction.Transaction.TransactionType;
 import com.ssafy.cheket.entity.transaction.Transaction.TxStatus;
+import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * 트랜잭션 상태 관리 구현체
@@ -103,5 +107,26 @@ public class TransactionServiceImpl implements TransactionService {
         tx.setTxStatus(TxStatus.FAILED);
         tx.setDescription(tx.getDescription() + " | FAILED: " + reason); // 실패 사유 추가
         return transactionRepository.save(tx);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getTransactions(Long userId, String type) {
+        List<Transaction> transactions;
+
+        if (type != null && !type.isEmpty()) {
+            try {
+                Transaction.TransactionType txType = Transaction.TransactionType.valueOf(type.toUpperCase());
+                transactions = transactionRepository.findByUserIdAndType(userId, txType);
+            } catch (IllegalArgumentException e) { // Java에서 잘못된 값이 전달됐을 때 발생하는 예외
+                throw new BadRequestException("잘못된 거래 유형입니다.");
+            }
+        } else {
+            transactions = transactionRepository.findByUserId(userId);
+        }
+
+        // entity를 dto로 변환해서 사용
+        return transactions.stream().map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(),
+            tx.getDescription(), tx.getSellerId(), tx.getBuyerId(), tx.getCreatedAt())).toList();
     }
 }

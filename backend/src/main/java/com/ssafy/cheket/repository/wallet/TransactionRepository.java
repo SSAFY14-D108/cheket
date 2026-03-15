@@ -2,6 +2,8 @@ package com.ssafy.cheket.repository.wallet;
 
 import com.ssafy.cheket.entity.transaction.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,5 +30,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     /** 구매자(buyerId = users.id) 기준 거래 내역 조회 */
     List<Transaction> findByBuyerId(Long buyerId);
+
+    /** 구매자 또는 판매자로 참여한 거래 내역 조회 (최신순) */
+    @Query("SELECT t FROM Transaction t WHERE t.buyerId = :userId OR t.sellerId = :userId ORDER BY t.createdAt DESC")
+    List<Transaction> findByUserId(@Param("userId") Long userId);
+
+    /** 거래 유형 필터 + 구매자/판매자 조회 (최신순) */
+    @Query("SELECT t FROM Transaction t WHERE (t.buyerId = :userId OR t.sellerId = :userId) AND t.type = :type ORDER BY t.createdAt DESC")
+    List<Transaction> findByUserIdAndType(@Param("userId") Long userId,
+        @Param("type") Transaction.TransactionType type);
 
 }

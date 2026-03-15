@@ -1,6 +1,9 @@
 package com.ssafy.cheket.service.wallet;
 
+import com.ssafy.cheket.dto.wallet.response.TransactionResponse;
 import com.ssafy.cheket.entity.transaction.Transaction;
+
+import java.util.List;
 
 /**
  * 블록체인 트랜잭션 상태 관리 서비스
@@ -46,4 +49,7 @@ public interface TransactionService {
      * → FAILED (RPC 에러 또는 온체인 revert 시 호출) WalletServiceImpl에서 tx 전송 실패 시 호출
      */
     Transaction updateToFailed(Long transactionId, String reason);
+
+    List<TransactionResponse> getTransactions(Long userId, String type);
+
 }

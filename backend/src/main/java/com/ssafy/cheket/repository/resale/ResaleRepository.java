@@ -1,7 +1,6 @@
 package com.ssafy.cheket.repository.resale;
 
 import com.ssafy.cheket.entity.ticket.Ticket;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.repository.resale.projection.ResaleShowProjection;
 import com.ssafy.cheket.repository.resale.projection.ResaleTicketProjection;
 import org.springframework.data.domain.Page;
@@ -9,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface ResaleRepository extends JpaRepository<Ticket, Long> {
 
@@ -19,7 +20,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
             sh.showStartDate as showStartDate,
             sh.showEndDate as showEndDate,
             v.name as venue,
-            cast(v.region as string) as region,
+            v.region.name as region,
             sh.posterUrl as posterUrl,
             count(t.id) as ticketCount
         from Ticket t
@@ -28,14 +29,14 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Show sh on sh.id = sess.showId
         join sh.venue v
         where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
-          and (:region is null or v.region = :region)
+          and (:regionCount = 0 or v.region.code in :regions)
           and (
               :keyword is null
               or lower(sh.title) like lower(concat('%', :keyword, '%'))
               or lower(sh.artist) like lower(concat('%', :keyword, '%'))
               or lower(v.name) like lower(concat('%', :keyword, '%'))
               )
-        group by sh.id, sh.title, sh.showStartDate, sh.showEndDate, sh.reservationEndDate, v.name, v.region, sh.posterUrl
+        group by sh.id, sh.title, sh.showStartDate, sh.showEndDate, sh.reservationEndDate, v.name, v.region.name, sh.posterUrl
         order by sh.reservationEndDate asc, sh.id desc
         """, countQuery = """
         select count(distinct sh.id)
@@ -45,7 +46,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Show sh on sh.id = sess.showId
         join sh.venue v
         where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
-          and (:region is null or v.region = :region)
+          and (:regionCount = 0 or v.region.code in :regions)
           and (
                 :keyword is null
                 or lower(sh.title) like lower(concat('%', :keyword, '%'))
@@ -53,8 +54,8 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
               )
         """)
-    Page<ResaleShowProjection> searchListedShowsOrderByDeadline(@Param("region") Region region,
-        @Param("keyword") String keyword, Pageable pageable);
+    Page<ResaleShowProjection> searchListedShowsOrderByDeadline(@Param("regions") List<Integer> regions,
+        @Param("regionCount") Long regionCount, @Param("keyword") String keyword, Pageable pageable);
 
     @Query(value = """
         select
@@ -63,7 +64,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
             sh.showStartDate as showStartDate,
             sh.showEndDate as showEndDate,
             v.name as venue,
-            cast(v.region as string) as region,
+            v.region.name as region,
             sh.posterUrl as posterUrl,
             count(t.id) as ticketCount
         from Ticket t
@@ -72,14 +73,14 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Show sh on sh.id = sess.showId
         join sh.venue v
         where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
-          and (:region is null or v.region = :region)
+          and (:regionCount = 0 or v.region.code in :regions)
           and (
                 :keyword is null
                 or lower(sh.title) like lower(concat('%', :keyword, '%'))
                 or lower(sh.artist) like lower(concat('%', :keyword, '%'))
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
               )
-        group by sh.id, sh.title, sh.showStartDate, sh.showEndDate, sh.reservationEndDate, v.name, v.region, sh.posterUrl
+        group by sh.id, sh.title, sh.showStartDate, sh.showEndDate, sh.reservationEndDate, v.name, v.region.name, sh.posterUrl
         order by
             (
                 select count(r.id)
@@ -106,7 +107,7 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
         join Show sh on sh.id = sess.showId
         join sh.venue v
         where t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
-          and (:region is null or v.region = :region)
+          and (:regionCount = 0 or v.region.code in :regions)
           and (
               :keyword is null
               or lower(sh.title) like lower(concat('%', :keyword, '%'))
@@ -114,8 +115,9 @@ public interface ResaleRepository extends JpaRepository<Ticket, Long> {
               or lower(v.name) like lower(concat('%', :keyword, '%'))
               )
         """)
-    Page<ResaleShowProjection> searchListedShowsOrderByPopular(@Param("region") Region region,
-        @Param("keyword") String keyword, @Param("oneWeekAgo") java.time.LocalDateTime oneWeekAgo, Pageable pageable);
+    Page<ResaleShowProjection> searchListedShowsOrderByPopular(@Param("regions") List<Integer> regions,
+        @Param("regionCount") Long regionCount, @Param("keyword") String keyword,
+        @Param("oneWeekAgo") java.time.LocalDateTime oneWeekAgo, Pageable pageable);
 
     @Query(value = """
         select

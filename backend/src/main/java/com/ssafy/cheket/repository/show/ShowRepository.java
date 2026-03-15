@@ -1,7 +1,6 @@
 package com.ssafy.cheket.repository.show;
 
 import com.ssafy.cheket.entity.show.Show;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +19,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         select s
         from Show s
         join s.venue v
-        where (:region is null or v.region = :region)
+        where (:regionCount = 0 or v.region.code in :regions)
           and (
                 :keyword is null
                 or s.title like concat('%', :keyword, '%')
@@ -28,7 +27,8 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or v.name like concat('%', :keyword, '%')
           )
         """)
-    Page<Show> search(@Param("region") Region region, @Param("keyword") String keyword, Pageable pageable);
+    Page<Show> search(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
+        @Param("keyword") String keyword, Pageable pageable);
 
     @Query("""
         select s
@@ -48,7 +48,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         left join Session sess on sess.showId = s.id
         left join SessionSeat ss on ss.sessionId = sess.id
         left join Ticket t on t.sessionSeatId = ss.id
-        where (:region is null or v.region = :region)
+        where (:regionCount = 0 or v.region.code in :regions)
           and (
                 :keyword is null
                 or lower(s.title) like lower(concat('%', :keyword, '%'))
@@ -61,7 +61,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         select count(s)
         from Show s
         join s.venue v
-        where (:region is null or v.region = :region)
+        where (:regionCount = 0 or v.region.code in :regions)
           and (
                 :keyword is null
                 or lower(s.title) like lower(concat('%', :keyword, '%'))
@@ -69,9 +69,10 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
         """)
-    Page<Show> searchOrderByPopular(@Param("region") Region region, @Param("keyword") String keyword,
-        Pageable pageable);
+    Page<Show> searchOrderByPopular(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
+        @Param("keyword") String keyword, Pageable pageable);
 
     boolean existsByHost_IdAndStatusNotAndShowEndDateAfter(Long hostId, ShowStatus status, LocalDateTime now);
 
+    Page<Show> findByHost_id(Long hostId, Pageable pageable);
 }
