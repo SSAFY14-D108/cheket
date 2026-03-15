@@ -1,11 +1,14 @@
 package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.*;
+import com.ssafy.cheket.entity.show.ShowImage;
+import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 
 import java.util.List;
 
 public interface ShowService {
+
     GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword, int page, int size);
 
     GetShowDetailResponse getShowDetail(Long showId, Long userId);
@@ -21,4 +24,11 @@ public interface ShowService {
     GetUpcomingResponse getUpcoming();
 
     List<GetSectionsResponse> getSections(Long venueId);
+
+    // 공연 이미지 조회
+    List<ShowImage> getShowImages(Long showId);
+
+    // 공연 이미지 삭제
+    void deleteShowImages(Long showId);
+
 }

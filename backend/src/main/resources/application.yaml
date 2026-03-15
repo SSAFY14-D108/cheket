@@ -23,6 +23,10 @@ spring:
             port: 6379
             password: ${REDIS_PASSWORD}
             database: 0
+    servlet:
+      multipart:
+          max-file-size: 5MB
+          max-request-size: 50MB
 
 wallet:
     keystore:
@@ -45,3 +49,13 @@ blockchain:
     initial-transfer-amount: ${BLOCKCHAIN_INITIAL_TRANSFER_AMOUNT}
     ssf-contract-address: ${BLOCKCHAIN_SSF_CONTRACT}
     chain-id: ${BLOCKCHAIN_CHAIN_ID}
+
+cloud:
+    aws:
+        credentials:
+            access-key: ${AWS_ACCESS_KEY}
+            secret-key: ${AWS_SECRET_KEY}
+        region:
+            static-region: ${AWS_REGION}
+        s3:
+            bucket: ${AWS_BUCKET}
