@@ -2,7 +2,6 @@ package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.ShowImage;
-import com.ssafy.cheket.enums.Region;
 import com.ssafy.cheket.enums.ShowSort;
 
 import java.util.List;

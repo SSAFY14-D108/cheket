@@ -38,7 +38,8 @@ public class HostController {
     @PostMapping("/business-no/duplicate")
     @Operation(summary = "사업자 등록번호 중복 확인")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<CheckBusinessNoDuplicateResponse>> checkBusinessNoDuplicate(BusinessNoDuplicateRequest request) {
+    public ResponseEntity<ApiResponse<CheckBusinessNoDuplicateResponse>> checkBusinessNoDuplicate(
+        BusinessNoDuplicateRequest request) {
         CheckBusinessNoDuplicateResponse response = hostService.checkBusinessNoDuplicate(request.businessNo());
         String message = response.isDuplicated() ? "이미 등록된 사업자 등록번호입니다." : "사용 가능한 사업자 등록번호입니다.";
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, message, response));
