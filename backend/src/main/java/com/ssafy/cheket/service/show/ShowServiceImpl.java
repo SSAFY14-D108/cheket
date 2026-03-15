@@ -182,7 +182,7 @@ public class ShowServiceImpl implements ShowService {
     // 공연 이미지 조회
     @Override
     public List<ShowImage> getShowImages(Long showId) {
-        if(!showRepository.existsById(showId)) {
+        if (!showRepository.existsById(showId)) {
             throw new NotFoundException("해당 공연은 존재하지 않습니다.");
         }
 
