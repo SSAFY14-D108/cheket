@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.host;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.ShowItem;
 import com.ssafy.cheket.dto.ticket.response.GetTicketEffectsResponse;
@@ -11,10 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,5 +37,14 @@ public class HostShowController {
         @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         GetShowListResponse<ShowItem> response = hostShowService.getMyShows(hostId, page, size);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "내 공연 목록 조회 완료", response));
+    }
+
+    @GetMapping("/{showId}")
+    @Operation(summary = "공연 상세 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetHostShowDetailResponse>> getHostShowDetail(
+        @AuthenticationPrincipal Long hostId, @PathVariable Long showId) {
+        GetHostShowDetailResponse response = hostShowService.getHostShowDetail(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 완료", response));
     }
 }
