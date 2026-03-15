@@ -1,5 +1,6 @@
 package com.ssafy.cheket.entity.settlement;
 
+import com.ssafy.cheket.enums.StakeholderRole;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,8 +26,9 @@ public class Stakeholder {
     @Column(name = "stakeholder_nft_id", nullable = false)
     private Long stakeholderNftId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String role;
+    private StakeholderRole role;
 
     @Column(name = "share_bps", nullable = false)
     private Integer shareBps;

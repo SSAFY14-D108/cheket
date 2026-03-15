@@ -31,4 +31,12 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
         order by sec.id, seat.rowNum, seat.colNum
         """)
     List<SeatRowDto> findSeatRowsByShowIdAndSessionId(Long showId, Long sessionId);
+
+    @Query("""
+        select ss.sessionId, count(ss)
+        from SessionSeat ss
+        where ss.sessionId in :sessionIds
+        group by ss.sessionId
+        """)
+    List<Object[]> countGroupedBySessionIds(List<Long> sessionIds);
 }
