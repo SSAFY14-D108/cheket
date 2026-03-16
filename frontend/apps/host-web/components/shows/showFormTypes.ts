@@ -15,7 +15,6 @@ export interface Stakeholder {
     businessNo?: string
     shareBps: string
     verified?: boolean
-    isFixed?: boolean
 }
 
 export interface RefundItem {

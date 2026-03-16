@@ -188,7 +188,11 @@ export const showHandlers = [
       stakeholders:
         body.stakeholders?.map((stakeholder, index) => ({
           role: stakeholder.role ?? "artist",
+          userId: stakeholder.userId ?? 100 + index,
           name: stakeholder.role === "organizer" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
+          ...(stakeholder.role === "organizer"
+            ? { businessNo: `000-00-${String(index + 1).padStart(5, "0")}` }
+            : { phone: `010-0000-${String(index + 1).padStart(4, "0")}` }),
           shareBps: stakeholder.shareBps ?? 0,
         })) ?? [],
       refundPolicy:
@@ -309,7 +313,11 @@ export const showHandlers = [
         stakeholders:
           body.stakeholders?.map((stakeholder, index) => ({
             role: stakeholder.role ?? "artist",
+            userId: stakeholder.userId ?? 100 + index,
             name: stakeholder.role === "organizer" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
+            ...(stakeholder.role === "organizer"
+              ? { businessNo: `000-00-${String(index + 1).padStart(5, "0")}` }
+              : { phone: `010-0000-${String(index + 1).padStart(4, "0")}` }),
             shareBps: stakeholder.shareBps ?? 0,
           })) ?? previousEvent.stakeholders,
         refundPolicy:

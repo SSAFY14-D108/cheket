@@ -172,13 +172,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   }
 
   const removeStakeholder = (targetIndex: number) => {
-    setStakeholders((previous) => {
-      if (previous[targetIndex]?.isFixed) {
-        return previous
-      }
-
-      return previous.filter((_, index) => index !== targetIndex)
-    })
+    setStakeholders((previous) => previous.filter((_, index) => index !== targetIndex))
   }
 
   const updateStakeholder = (
