@@ -8,6 +8,7 @@ import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
+import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.user.UserRepository;
@@ -25,6 +26,7 @@ import org.web3j.crypto.WalletUtils;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -43,12 +45,19 @@ public class UserServiceImpl implements UserService {
     @Value("${wallet.keystore.directory}")
     private String keystoreDirectory;
 
+    private final Pattern PHONENUMBER_REGEX = Pattern.compile("^010-\\d{4}-\\d{4}$");
+
     @Override
     @Transactional
     public void userSignup(UserSignupRequest request) throws Exception {
         // 1단계: 이메일 중복 체크
         if (userRepository.existsByEmail(request.email())) {
             throw new ConflictException("이미 존재하는 이메일 입니다.");
+        }
+
+        // 1.5단계: 전화번호 정규식 확인
+        if (!PHONENUMBER_REGEX.matcher(request.phoneNumber()).matches()) {
+            throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 010-1234-5678");
         }
 
         // 2단계: 지갑 생성

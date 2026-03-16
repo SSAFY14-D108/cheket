@@ -38,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final HostRepository hostRepository;
 
     private static final Pattern HOST_REGEX = Pattern.compile("^\\d{3}-\\d{2}-\\d{5}$");
-    private static final Pattern USER_REGEX = Pattern.compile("^010\\d{8}$");
+    private static final Pattern USER_REGEX = Pattern.compile("^010-\\d{4}-\\d{4}$");
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -117,7 +117,7 @@ public class AuthServiceImpl implements AuthService {
     // 비밀번호 초기화
     @Override
     public void resetPassword(String phoneNumber, String code, String newPassword) {
-        smsService.verifySmsCode(phoneNumber, code);
+        smsService.verifySmsCode(phoneNumber.replace("-", ""), code);
 
         if (newPassword == null || newPassword.isBlank()) {
             throw new BadRequestException("새 비밀번호는 필수입니다.");
@@ -167,7 +167,7 @@ public class AuthServiceImpl implements AuthService {
         switch (type) {
             case USER -> {
                 if (!USER_REGEX.matcher(number).matches()) {
-                    throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 01012345678");
+                    throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 010-1234-5678");
                 }
 
                 User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(number)

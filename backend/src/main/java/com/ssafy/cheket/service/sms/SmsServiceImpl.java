@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class SmsServiceImpl implements SmsService {
 
-    private static final Pattern PHONENUMBER = Pattern.compile("^010\\d{8}$");
+    private static final Pattern PHONENUMBER = Pattern.compile("^010-\\d{4}-\\d{4}$");
 
     private static final Duration SMS_CODE_TTL = Duration.ofMinutes(5);
     private static final Duration SMS_COOLDOWN_TTL = Duration.ofMinutes(5);
@@ -49,7 +49,7 @@ public class SmsServiceImpl implements SmsService {
         }
 
         if (!PHONENUMBER.matcher(phoneNumber).matches()) {
-            throw new BadRequestException("잘못된 전화번호 형식입니다.");
+            throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 010-1234-5678");
         }
 
         if (authRedisRepository.existsSmsCooldown(phoneNumber)) {
@@ -58,7 +58,7 @@ public class SmsServiceImpl implements SmsService {
 
         String verificationCode = generateVerificationCode();
 
-        sendSms(phoneNumber, verificationCode);
+        sendSms(phoneNumber.replace("-", ""), verificationCode);
 
         authRedisRepository.saveSmsVerificationCode(phoneNumber, verificationCode, SMS_CODE_TTL);
         authRedisRepository.saveSmsCooldown(phoneNumber, SMS_COOLDOWN_TTL);
@@ -95,6 +95,10 @@ public class SmsServiceImpl implements SmsService {
     public boolean verifySmsCode(String phoneNumber, String code) {
         if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new BadRequestException("전화번호는 필수입니다.");
+        }
+
+        if (!PHONENUMBER.matcher(phoneNumber).matches()) {
+            throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 010-1234-5678");
         }
 
         if (code == null || code.isBlank()) {
