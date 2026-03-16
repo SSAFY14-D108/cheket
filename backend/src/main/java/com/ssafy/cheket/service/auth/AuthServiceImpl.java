@@ -179,7 +179,7 @@ public class AuthServiceImpl implements AuthService {
                     throw new BadRequestException("사업자 등록번호의 형식이 올바르지 않습니다. 예) 123-45-67890");
                 }
 
-                Host host = hostRepository.findByBusinessNo(number)
+                Host host = hostRepository.findByBusinessNoAndDeletedAtIsNull(number)
                     .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
                 return new SearchUserResponse(host.getId(), host.getCompanyName(), host.getBusinessNo());
             }

@@ -14,4 +14,6 @@ public interface HostRepository extends JpaRepository<Host, Long> {
     Optional<Host> findByEmailAndDeletedAtIsNull(String email);
     // 탈퇴하지 않은 호스트 조회 (탈퇴, 정보조회, 정보수정)
     Optional<Host> findByIdAndDeletedAtIsNull(Long id);
+    Optional<Host> findByBusinessNoAndDeletedAtIsNull(String businessNo);
+
 }

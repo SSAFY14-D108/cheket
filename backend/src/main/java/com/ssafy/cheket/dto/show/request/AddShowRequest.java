@@ -47,9 +47,9 @@ public record AddShowRequest(
     ) {
     }
 
-    public record StakeholderInfo(String phoneNumber, // 이해관계자 전화번호
-        String role, // 역할: "ORGANIZER", "ARTIST"
-        Integer shareBps // 수익 비율: 3000 = 30%
-    ) {
+    public record StakeholderInfo(String role, // "ORGANIZER" = HOST, "ARTIST" = USER
+        String businessNo, // ORGANIZER일 경우 사업자등록번호
+        String phoneNumber, // ARTIST일 경우 전화번호
+        Integer shareBps) {
     }
 }

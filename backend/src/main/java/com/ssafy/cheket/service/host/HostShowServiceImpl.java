@@ -192,9 +192,13 @@ public class HostShowServiceImpl implements HostShowService {
         for (AddShowRequest.StakeholderInfo info : request.stakeholders()) {
             StakeholderRole role = StakeholderRole.valueOf(info.role().toUpperCase());
             Long userId = null;
+            Long stakeholderHostId = null;
 
             if (role == StakeholderRole.ORGANIZER) {
-                // ORGANIZER = host 본인 -> userId 없이 저장 (shows.host_id로 식별)
+                // ORGANIZER = 주최측 -> 사업자 등록번호로 조회
+                Host stakeholderHost = hostRepository.findByBusinessNoAndDeletedAtIsNull(info.businessNo())
+                    .orElseThrow(() -> new NotFoundException("해당 사업자등록 번호로 가입된 주최측이 없습니다: " + info.businessNo()));
+                stakeholderHostId = stakeholderHost.getId();
             } else {
                 // ARTIST = 일반 사용자 -> phoneNumber로 조회
                 User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(info.phoneNumber())
@@ -202,8 +206,8 @@ public class HostShowServiceImpl implements HostShowService {
                 userId = user.getId();
             }
 
-            Stakeholder stakeholder = Stakeholder.builder().showId(showId).userId(userId).role(role)
-                .shareBps(info.shareBps()).build();
+            Stakeholder stakeholder = Stakeholder.builder().showId(showId).userId(userId).hostId(stakeholderHostId)
+                .role(role).shareBps(info.shareBps()).build();
 
             stakeholderRepository.save(stakeholder);
         }
