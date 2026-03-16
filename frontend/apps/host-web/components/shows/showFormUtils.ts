@@ -102,7 +102,10 @@ export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
       price: String(grade.price),
       colorCode: grade.colorCode,
       sectionId: String(grade.sectionId),
-      ticketEffectId: grade.ticketEffectId ? String(grade.ticketEffectId) : "",
+      ticketEffectId:
+        grade.ticketEffectId !== undefined && grade.ticketEffectId !== null
+          ? String(grade.ticketEffectId)
+          : "",
     })
   })
 
@@ -118,6 +121,8 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
     role: stakeholder.role,
     userId: stakeholder.userId,
     name: stakeholder.name ?? "",
+    phone: stakeholder.role === "artist" ? stakeholder.number || "" : "",
+    businessNo: stakeholder.role === "organizer" ? stakeholder.number || "" : "",
     shareBps: String(stakeholder.shareBps),
     verified: Boolean(stakeholder.userId),
     isFixed: stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name,

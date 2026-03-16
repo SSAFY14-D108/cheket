@@ -33,6 +33,7 @@ export interface HostShowGrade {
   price: number
   colorCode: string
   ticketEffectId?: number | null
+  ticketEffect?: string | null
 }
 
 export interface HostShowStakeholder {
@@ -40,6 +41,7 @@ export interface HostShowStakeholder {
   userId: number
   shareBps: number
   name?: string
+  number?: string
 }
 
 export interface HostShowRefundPolicy {
@@ -73,6 +75,141 @@ export interface HostShowDetail {
   status: string
   createdAt: string
   updatedAt: string
+}
+
+interface RawHostShowGrade {
+  sectionId?: unknown
+  gradeName?: unknown
+  price?: unknown
+  colorCode?: unknown
+  ticketEffectId?: unknown
+  ticketEffect?: unknown
+}
+
+interface RawHostShowStakeholder {
+  role?: unknown
+  userId?: unknown
+  shareBps?: unknown
+  name?: unknown
+  number?: unknown
+}
+
+interface RawHostShowSessionInfo {
+  sessionId?: unknown
+  sessionDate?: unknown
+  sessionStartDate?: unknown
+  sessionStartTime?: unknown
+  capacity?: unknown
+}
+
+interface RawHostShowDetail {
+  showId?: unknown
+  title?: unknown
+  posterUrl?: unknown
+  artist?: unknown
+  venue?: {
+    venueId?: unknown
+    name?: unknown
+    address?: unknown
+  }
+  show?: {
+    showStartDate?: unknown
+    showEndDate?: unknown
+  }
+  reservation?: {
+    startDate?: unknown
+    endDate?: unknown
+  }
+  description?: unknown
+  purchaseLimit?: unknown
+  likeCount?: unknown
+  grade?: RawHostShowGrade[]
+  stakeholders?: RawHostShowStakeholder[]
+  refundPolicy?: Array<{
+    daysRemaining?: unknown
+    refundRate?: unknown
+  }>
+  sessionInfo?: RawHostShowSessionInfo[]
+  status?: unknown
+  createdAt?: unknown
+  updatedAt?: unknown
+}
+
+function toSafeNumber(value: unknown, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : typeof value === "string" && value.trim() && Number.isFinite(Number(value))
+      ? Number(value)
+      : fallback
+}
+
+function toSafeString(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback
+}
+
+function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
+  return {
+    showId: toSafeNumber(raw.showId),
+    title: toSafeString(raw.title),
+    posterUrl: toSafeString(raw.posterUrl),
+    artistName: toSafeString(raw.artist),
+    venue: {
+      venueId: toSafeNumber(raw.venue?.venueId),
+      name: toSafeString(raw.venue?.name),
+      address: toSafeString(raw.venue?.address),
+    },
+    show: {
+      showStartDate: toSafeString(raw.show?.showStartDate),
+      showEndDate: toSafeString(raw.show?.showEndDate),
+    },
+    reservation: {
+      startDate: toSafeString(raw.reservation?.startDate),
+      endDate: toSafeString(raw.reservation?.endDate),
+    },
+    description: toSafeString(raw.description),
+    purchaseLimit: toSafeNumber(raw.purchaseLimit),
+    likeCount: toSafeNumber(raw.likeCount),
+    grade: Array.isArray(raw.grade)
+      ? raw.grade.map((grade) => ({
+          sectionId: toSafeNumber(grade.sectionId),
+          gradeName: toSafeString(grade.gradeName),
+          price: toSafeNumber(grade.price),
+          colorCode: toSafeString(grade.colorCode),
+          ticketEffectId:
+            grade.ticketEffectId === undefined || grade.ticketEffectId === null
+              ? null
+              : toSafeNumber(grade.ticketEffectId),
+          ticketEffect: toSafeString(grade.ticketEffect, ""),
+        }))
+      : [],
+    stakeholders: Array.isArray(raw.stakeholders)
+      ? raw.stakeholders.map((stakeholder) => ({
+          role: stakeholder.role === "organizer" ? "organizer" : "artist",
+          userId: toSafeNumber(stakeholder.userId),
+          shareBps: toSafeNumber(stakeholder.shareBps),
+          name: toSafeString(stakeholder.name, ""),
+          number: toSafeString(stakeholder.number, ""),
+        }))
+      : [],
+    refundPolicy: Array.isArray(raw.refundPolicy)
+      ? raw.refundPolicy.map((policy) => ({
+          daysRemaining: toSafeNumber(policy.daysRemaining),
+          refundRate: toSafeNumber(policy.refundRate),
+        }))
+      : [],
+    sessionInfo: Array.isArray(raw.sessionInfo)
+      ? raw.sessionInfo.map((session) => ({
+          sessionId: toSafeNumber(session.sessionId),
+          sessionDate: toSafeString(session.sessionDate),
+          sessionStartDate: toSafeString(session.sessionStartDate, ""),
+          sessionStartTime: toSafeString(session.sessionStartTime, ""),
+          capacity: toSafeNumber(session.capacity),
+        }))
+      : [],
+    status: toSafeString(raw.status),
+    createdAt: toSafeString(raw.createdAt),
+    updatedAt: toSafeString(raw.updatedAt),
+  }
 }
 
 export interface HostShowSection {
@@ -198,11 +335,11 @@ function buildShowSectionsPath(venueId: string | number) {
 }
 
 export async function fetchShowDetail(showId: string | number) {
-  const response = await apiFetch<ApiResponse<HostShowDetail>>(buildShowDetailPath(showId), {
+  const response = await apiFetch<ApiResponse<RawHostShowDetail>>(buildShowDetailPath(showId), {
     method: "GET",
   })
 
-  return response.data
+  return normalizeShowDetail(response.data)
 }
 
 export async function fetchShowSections(venueId: string | number) {
