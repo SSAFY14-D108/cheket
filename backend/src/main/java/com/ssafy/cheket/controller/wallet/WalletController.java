@@ -29,16 +29,24 @@ public class WalletController {
     @GetMapping("/balance")
     @Operation(summary = "CTK 잔액 조회 (DB)")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<WalletBalanceResponse>> getBalance(@AuthenticationPrincipal Long userId) {
-        WalletBalanceResponse response = walletService.getBalance(userId);
+    public ResponseEntity<ApiResponse<WalletBalanceResponse>> getBalance(@AuthenticationPrincipal Long id,
+        org.springframework.security.core.Authentication authentication) {
+
+        String role = authentication.getAuthorities().iterator().next().getAuthority(); // "ROLE_HOST" or "ROLE_USER"
+        WalletBalanceResponse response = walletService.getBalance(id, role);
+
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "잔액 조회 성공", response));
     }
 
     @GetMapping("/balance/refresh")
     @Operation(summary = "CTK 잔액 새로고침 (온체인 조회)")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<WalletBalanceResponse>> refreshBalance(@AuthenticationPrincipal Long userId) {
-        WalletBalanceResponse response = walletService.refreshBalance(userId);
+    public ResponseEntity<ApiResponse<WalletBalanceResponse>> refreshBalance(@AuthenticationPrincipal Long id,
+        org.springframework.security.core.Authentication authentication) {
+
+        String role = authentication.getAuthorities().iterator().next().getAuthority(); // "ROLE_HOST" or "ROLE_USER"
+        WalletBalanceResponse response = walletService.refreshBalance(id, role);
+
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "잔액 새로고침 성공", response));
     }
 

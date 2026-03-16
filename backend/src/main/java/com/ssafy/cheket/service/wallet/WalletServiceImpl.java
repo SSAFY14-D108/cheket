@@ -1,11 +1,13 @@
 package com.ssafy.cheket.service.wallet;
 
 import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
+import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +59,7 @@ public class WalletServiceImpl implements WalletService {
     private final TransactionService transactionService; // 트랜잭션 상태 관리
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final HostRepository hostRepository;
 
     // 플랫폼 지갑 개인키 (application.yml에서 주입)
     // 이 키로 서명해서 플랫폼 지갑에서 SSF를 보냄
@@ -203,16 +206,23 @@ public class WalletServiceImpl implements WalletService {
     // 이벤트 리스너가 이미 ctkBalance를 동기화하고 있으므로
     // DB에서 읽어도 충분히 정확함
     @Override
-    public WalletBalanceResponse getBalance(Long userId) {
-        // 1. 유저 조회
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-            .orElseThrow(() -> new NotFoundException("유저가 존재하지 않습니다."));
+    public WalletBalanceResponse getBalance(Long id, String role) {
+        Wallet wallet;
 
-        // 2. 지갑 조회
-        Wallet wallet = walletRepository.findById(user.getWalletId())
-            .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+        // 1. Host/User 판별
+        if ("ROLE_HOST".equals(role)) {
+            Host host = hostRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new NotFoundException("호스트가 존재하지 않습니다."));
+            wallet = walletRepository.findById(host.getWalletId())
+                .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+        } else {
+            User user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new NotFoundException("유저가 존재하지 않습니다."));
+            wallet = walletRepository.findById(user.getWalletId())
+                .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+        }
 
-        // 3. 지갑에서 잔액 읽기
+        // 2. 지갑에서 잔액 읽기
         Integer balance = wallet.getCtkBalance() != null ? wallet.getCtkBalance() : 0;
         return new WalletBalanceResponse(balance, wallet.getAddress());
     }
@@ -220,11 +230,20 @@ public class WalletServiceImpl implements WalletService {
     // -- 새로고침 잔액 조회 (온체인 -> DB 동기화) --
     // 블록체인 노드에 직접 balanceOf() 호출 -> DB ctkBalance 업데이트
     @Override
-    public WalletBalanceResponse refreshBalance(Long userId) {
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-            .orElseThrow(() -> new NotFoundException("유저가 존재하지 않습니다."));
-        Wallet wallet = walletRepository.findById(user.getWalletId())
-            .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+    public WalletBalanceResponse refreshBalance(Long id, String role) {
+        Wallet wallet;
+
+        if ("ROLE_HOST".equals(role)) {
+            Host host = hostRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new NotFoundException("호스트가 존재하지 않습니다."));
+            wallet = walletRepository.findById(host.getWalletId())
+                .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+        } else {
+            User user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new NotFoundException("유저가 존재하지 않습니다."));
+            wallet = walletRepository.findById(user.getWalletId())
+                .orElseThrow(() -> new NotFoundException("지갑이 존재하지 않습니다."));
+        }
 
         try {
             // 1. ERC-20 balanceOf(address) 온체인 호출 (스마트 컨트랙트의 balanceOf(address) 함수를 Java

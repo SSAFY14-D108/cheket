@@ -23,8 +23,8 @@ public interface WalletService {
     void transferInitialFunds(String toAddress, Long userId);
 
     // 기본 조회 - DB에서 읽기 (빠름)
-    WalletBalanceResponse getBalance(Long userId);
+    WalletBalanceResponse getBalance(Long id, String role);
 
     // 새로고침 - 온체인 balanceOf() 호출 -> DB 동기화
-    WalletBalanceResponse refreshBalance(Long userId);
+    WalletBalanceResponse refreshBalance(Long id, String role);
 }
