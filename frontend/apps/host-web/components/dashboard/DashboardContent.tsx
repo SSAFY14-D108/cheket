@@ -14,7 +14,7 @@ interface DashboardContentProps {
 export function DashboardContent({ data }: DashboardContentProps) {
   const { totalSales, bookingRate, revenueSplit, reservations, wallet } = data
 
-  const revenueSegments = revenueSplit.splits.map((s, i) => ({
+  const revenueSegments = (revenueSplit.splits ?? []).map((s, i) => ({
     label: s.role,
     value: s.rateBps / 100, // bps → 퍼센트
     color: ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"][i] ?? "var(--chart-3)",
@@ -41,7 +41,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{reservations.title}</h1>
-          <p className="text-sm text-muted-foreground">{reservations.venue}</p>
+          <p className="text-sm text-muted-foreground">{reservations.venue || "-"}</p>
         </div>
       </div>
 
@@ -152,7 +152,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
               </p>
               <SegmentedBar title="배분 비율" segments={revenueSegments} />
               <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-                {revenueSplit.splits.map((s) => (
+                {(revenueSplit.splits ?? []).map((s) => (
                   <div key={s.role} className="flex justify-between">
                     <span>{s.role}</span>
                     <span className="font-medium text-foreground">{s.amount.toFixed(4)} ETH</span>

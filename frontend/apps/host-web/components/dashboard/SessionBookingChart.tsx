@@ -39,7 +39,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export function SessionBookingChart({ sessions }: SessionBookingChartProps) {
     const data = sessions.map((s) => ({
-        date: s.date.slice(5), // "YYYY-MM-DD" → "MM-DD"
+        date: s.date ? s.date.slice(5) : "-", // "YYYY-MM-DD" → "MM-DD"
         예매석: s.reservedSeats,
         전체석: s.capacity,
     }))
