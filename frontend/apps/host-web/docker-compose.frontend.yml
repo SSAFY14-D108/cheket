@@ -1,0 +1,11 @@
+services:
+  host-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://j14d108.p.ssafy.io
+    container_name: cheket_host_web
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
