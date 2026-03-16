@@ -6,6 +6,15 @@ import type {
 } from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 
+const FIXED_PLATFORM_STAKEHOLDER: Stakeholder = {
+  role: "organizer",
+  name: "CHEKET",
+  businessNo: "000-00-00000",
+  shareBps: "800",
+  verified: true,
+  isFixed: true,
+}
+
 export interface ShowFormValues {
   mode: "create" | "edit"
   title: string
@@ -106,12 +115,13 @@ export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
 export function buildInitialStakeholders(initialData?: HostShowDetail): Stakeholder[] {
   if (!initialData?.stakeholders?.length) {
     return [
+      { ...FIXED_PLATFORM_STAKEHOLDER },
       { role: "organizer", name: "", businessNo: "", shareBps: "", verified: false },
       { role: "artist", name: "", phone: "", shareBps: "", verified: false },
     ]
   }
 
-  return initialData.stakeholders.map((stakeholder) => ({
+  const mappedStakeholders = initialData.stakeholders.map((stakeholder) => ({
     role: stakeholder.role,
     userId: stakeholder.userId,
     name: stakeholder.name ?? "",
@@ -119,7 +129,39 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
     businessNo: stakeholder.role === "organizer" ? stakeholder.number || "" : "",
     shareBps: String(stakeholder.shareBps),
     verified: Boolean(stakeholder.userId),
+    isFixed: stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name,
+    ...(stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name
+      ? {
+          businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo,
+          shareBps: FIXED_PLATFORM_STAKEHOLDER.shareBps,
+          verified: true,
+          isFixed: true,
+        }
+      : {}),
   }))
+
+  const fixedStakeholderIndex = mappedStakeholders.findIndex(
+    (stakeholder) =>
+      stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name &&
+      stakeholder.businessNo === FIXED_PLATFORM_STAKEHOLDER.businessNo
+  )
+
+  if (fixedStakeholderIndex < 0) {
+    return [{ ...FIXED_PLATFORM_STAKEHOLDER }, ...mappedStakeholders]
+  }
+
+  const [fixedStakeholder] = mappedStakeholders.splice(fixedStakeholderIndex, 1)
+
+  return [
+    {
+      ...fixedStakeholder,
+      verified: true,
+      isFixed: true,
+      businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo,
+      shareBps: FIXED_PLATFORM_STAKEHOLDER.shareBps,
+    },
+    ...mappedStakeholders,
+  ]
 }
 
 export function buildInitialRefundPolicy(initialData?: HostShowDetail): RefundItem[] {

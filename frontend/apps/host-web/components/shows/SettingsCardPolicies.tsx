@@ -117,8 +117,8 @@ export function SettingsCardPolicies({
                     </div>
                     <div
                         className={`rounded-md border px-3 py-2 text-[11px] ${isStakeholderShareValid
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                : "border-amber-300 bg-amber-50 text-amber-700"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                            : "border-amber-300 bg-amber-50 text-amber-700"
                             }`}
                     >
                         현재 합계 {stakeholderShareSum.toLocaleString()} / 10,000bps
@@ -127,6 +127,11 @@ export function SettingsCardPolicies({
 
                     {stakeholders.map((sh, idx) => (
                         <div key={'sh' + idx} className="flex flex-col gap-1 border-b pb-2 mb-1 last:border-0">
+                            {sh.isFixed && (
+                                <div className="text-[10px] font-medium text-muted-foreground">
+                                    🔒 플랫폼 수수료 (변경 불가)
+                                </div>
+                            )}
                             {/* 1줄: 역할 + 연락처/사업자번호 + 조회 + 삭제 */}
                             <div className="flex gap-1 items-center w-full">
                                 <select
@@ -141,6 +146,7 @@ export function SettingsCardPolicies({
                                         onUpdateStakeholder(idx, 'phone', '')
                                         onUpdateStakeholder(idx, 'businessNo', '')
                                     }}
+                                    disabled={sh.isFixed}
                                 >
                                     <option value="organizer">사업자</option>
                                     <option value="artist">개인</option>
@@ -152,11 +158,12 @@ export function SettingsCardPolicies({
                                         value={sh.businessNo ?? ""}
                                         onChange={e => {
                                             onUpdateStakeholder(idx, 'businessNo', e.target.value)
-                                            onUpdateStakeholder(idx, 'verified', false)
+                                        onUpdateStakeholder(idx, 'verified', false)
                                             onUpdateStakeholder(idx, 'name', '')
                                             onUpdateStakeholder(idx, 'userId', 0)
                                         }}
-                                        className="h-8 text-xs flex-1 min-w-0"
+                                        className={`h-8 text-xs flex-1 min-w-0 ${sh.isFixed ? 'bg-muted/50' : ''}`}
+                                        readOnly={sh.isFixed}
                                     />
                                 ) : (
                                     <Input
@@ -168,23 +175,28 @@ export function SettingsCardPolicies({
                                             onUpdateStakeholder(idx, 'name', '')
                                             onUpdateStakeholder(idx, 'userId', 0)
                                         }}
-                                        className="h-8 text-xs flex-1 min-w-0"
+                                        className={`h-8 text-xs flex-1 min-w-0 ${sh.isFixed ? 'bg-muted/50' : ''}`}
+                                        readOnly={sh.isFixed}
                                     />
                                 )}
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-2 text-xs shrink-0"
-                                    onClick={() => void handleVerify(idx)}
-                                    disabled={Boolean(searchingIndexes[idx])}
-                                >
-                                    <Search className="size-3 mr-1" />
-                                    {searchingIndexes[idx] ? '조회 중...' : '조회'}
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0" onClick={() => onRemoveStakeholder(idx)}>
-                                    <Trash2 className="size-3" />
-                                </Button>
+                                {!sh.isFixed && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs shrink-0"
+                                        onClick={() => void handleVerify(idx)}
+                                        disabled={Boolean(searchingIndexes[idx])}
+                                    >
+                                        <Search className="size-3 mr-1" />
+                                        {searchingIndexes[idx] ? '조회 중...' : '조회'}
+                                    </Button>
+                                )}
+                                {!sh.isFixed && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0" onClick={() => onRemoveStakeholder(idx)}>
+                                        <Trash2 className="size-3" />
+                                    </Button>
+                                )}
                             </div>
 
                             {/* 2줄: 이름(자동입력) + BPS 비율 */}
@@ -192,8 +204,8 @@ export function SettingsCardPolicies({
                                 <Input placeholder="이름/법인명 (조회 시 자동입력)" value={sh.name} onChange={e => onUpdateStakeholder(idx, 'name', e.target.value)} className="h-8 text-xs flex-1 bg-muted/30" readOnly />
                                 <span
                                     className={`rounded-full px-2 py-1 text-[10px] font-medium ${sh.verified
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-muted text-muted-foreground'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-muted text-muted-foreground'
                                         }`}
                                 >
                                     {sh.verified ? '✓ 인증됨' : '미인증'}
@@ -203,7 +215,8 @@ export function SettingsCardPolicies({
                                     placeholder="비율(BPS)"
                                     value={sh.shareBps}
                                     onChange={e => onUpdateStakeholder(idx, 'shareBps', e.target.value)}
-                                    className="h-8 text-xs w-[100px]"
+                                    className={`h-8 text-xs w-[100px] ${sh.isFixed ? 'bg-muted/50' : ''}`}
+                                    readOnly={sh.isFixed}
                                 />
                                 <span className="text-[9px] text-muted-foreground shrink-0 whitespace-nowrap">예: 70%→7000</span>
                             </div>
