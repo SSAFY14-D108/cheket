@@ -54,7 +54,7 @@ export async function loginHost(payload: LoginRequest) {
 }
 
 export async function logoutHost() {
-  return apiFetch<LogoutResponse>("/api/v1/hosts/logout", {
+  return apiFetch<LogoutResponse>("/api/v1/hosts/auth/logout", {
     method: "POST",
   })
 }

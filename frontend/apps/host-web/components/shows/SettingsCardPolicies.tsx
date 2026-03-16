@@ -1,13 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Search } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { ApiError } from "@/lib/api"
+import { searchStakeholder } from "@/lib/stakeholder-api"
 import type { Stakeholder, RefundItem } from "./showFormTypes"
-import { mockAuthUsers } from "@/mocks/data/user-store"
 
 interface SettingsCardPoliciesProps {
     stakeholders: Stakeholder[]
@@ -30,6 +33,8 @@ export function SettingsCardPolicies({
     onRemoveRefund,
     onUpdateRefund,
 }: SettingsCardPoliciesProps) {
+    const { toast } = useToast()
+    const [searchingIndexes, setSearchingIndexes] = useState<Record<number, boolean>>({})
     const stakeholderShareSum = stakeholders.reduce(
         (sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0),
         0
@@ -37,33 +42,61 @@ export function SettingsCardPolicies({
     const remainingShareBps = 10000 - stakeholderShareSum
     const isStakeholderShareValid = stakeholderShareSum === 10000
 
-    // 목업 데이터를 활용한 간단한 가짜 API 시뮬레이션
-    const handleVerify = (idx: number, type: 'phone' | 'businessNo', value: string) => {
-        if (!value) {
-            alert("조회할 값을 입력해주세요.");
-            return;
+    const handleVerify = async (idx: number) => {
+        const stakeholder = stakeholders[idx]
+        const rawNumber = stakeholder.role === "organizer"
+            ? stakeholder.businessNo ?? ""
+            : stakeholder.phone ?? ""
+        const number = rawNumber.trim()
+
+        if (!number) {
+            toast({
+                title: "조회값 확인",
+                description: stakeholder.role === "organizer"
+                    ? "사업자번호를 입력해주세요."
+                    : "전화번호를 입력해주세요.",
+                variant: "destructive",
+            })
+            return
         }
 
-        // 0.3초 딜레이(통신하는 척)
-        setTimeout(() => {
-            const normalizedValue = value.replace(/-/g, '');
-            const foundUser = mockAuthUsers.find((user) => {
-                if (type === 'businessNo') {
-                    return user.businessNo?.replace(/-/g, '') === normalizedValue;
-                }
+        setSearchingIndexes((previous) => ({ ...previous, [idx]: true }))
 
-                return user.phone.replace(/-/g, '') === normalizedValue;
-            });
-            if (foundUser) {
-                onUpdateStakeholder(idx, 'name', foundUser.name);
-                onUpdateStakeholder(idx, 'userId', foundUser.userId);
-                onUpdateStakeholder(idx, 'verified', true);
-                alert(`[조회 성공] ${foundUser.name}님이 확인되었습니다.`);
-            } else {
-                onUpdateStakeholder(idx, 'verified', false);
-                alert("일치하는 회원을 찾을 수 없습니다.");
-            }
-        }, 300);
+        try {
+            const result = await searchStakeholder(
+                stakeholder.role === "organizer" ? "HOST" : "USER",
+                number
+            )
+
+            onUpdateStakeholder(idx, "name", result.name)
+            onUpdateStakeholder(idx, "userId", result.id)
+            onUpdateStakeholder(idx, "verified", true)
+            onUpdateStakeholder(
+                idx,
+                stakeholder.role === "organizer" ? "businessNo" : "phone",
+                result.number
+            )
+
+            toast({
+                title: "조회 성공",
+                description: `${result.name}님이 확인되었습니다.`,
+            })
+        } catch (error) {
+            onUpdateStakeholder(idx, "verified", false)
+            onUpdateStakeholder(idx, "name", "")
+            onUpdateStakeholder(idx, "userId", 0)
+
+            toast({
+                title: "조회 실패",
+                description:
+                    error instanceof ApiError
+                        ? error.message
+                        : "이해관계자 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                variant: "destructive",
+            })
+        } finally {
+            setSearchingIndexes((previous) => ({ ...previous, [idx]: false }))
+        }
     }
 
     return (
@@ -104,7 +137,15 @@ export function SettingsCardPolicies({
                                 <select
                                     className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shrink-0 disabled:opacity-70"
                                     value={sh.role}
-                                    onChange={e => onUpdateStakeholder(idx, 'role', e.target.value)}
+                                    onChange={e => {
+                                        const nextRole = e.target.value as Stakeholder["role"]
+                                        onUpdateStakeholder(idx, 'role', nextRole)
+                                        onUpdateStakeholder(idx, 'verified', false)
+                                        onUpdateStakeholder(idx, 'name', '')
+                                        onUpdateStakeholder(idx, 'userId', 0)
+                                        onUpdateStakeholder(idx, 'phone', '')
+                                        onUpdateStakeholder(idx, 'businessNo', '')
+                                    }}
                                     disabled={sh.isFixed}
                                 >
                                     <option value="organizer">사업자</option>
@@ -126,7 +167,7 @@ export function SettingsCardPolicies({
                                     />
                                 ) : (
                                     <Input
-                                        placeholder="연락처 (숫자만)"
+                                        placeholder="연락처 (예: 010-1234-5678)"
                                         value={sh.phone ?? ""}
                                         onChange={e => {
                                             onUpdateStakeholder(idx, 'phone', e.target.value)
@@ -144,9 +185,11 @@ export function SettingsCardPolicies({
                                         variant="outline"
                                         size="sm"
                                         className="h-8 px-2 text-xs shrink-0"
-                                        onClick={() => handleVerify(idx, sh.role === 'organizer' ? 'businessNo' : 'phone', sh.role === 'organizer' ? (sh.businessNo ?? "") : (sh.phone ?? ""))}
+                                        onClick={() => void handleVerify(idx)}
+                                        disabled={Boolean(searchingIndexes[idx])}
                                     >
-                                        <Search className="size-3 mr-1" />조회
+                                        <Search className="size-3 mr-1" />
+                                        {searchingIndexes[idx] ? '조회 중...' : '조회'}
                                     </Button>
                                 )}
                                 {!sh.isFixed && (

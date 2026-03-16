@@ -9,8 +9,58 @@ import {
   MOCK_REFRESH_TOKEN,
   registerMockHost,
 } from "@/mocks/data/auth-store"
+import { mockAuthUsers } from "@/mocks/data/user-store"
+import { createUnauthorizedResponse, isAuthorized } from "./utils"
 
 export const authHandlers = [
+  http.get("*/api/v1/auth/search", async ({ request }) => {
+    if (!isAuthorized(request)) {
+      return createUnauthorizedResponse()
+    }
+
+    const url = new URL(request.url)
+    const userType = url.searchParams.get("userType")
+    const number = url.searchParams.get("number")?.trim() ?? ""
+    const normalizedNumber = number.replace(/-/g, "")
+
+    const foundUser = mockAuthUsers.find((user) => {
+      if (userType === "HOST") {
+        return user.businessNo?.replace(/-/g, "") === normalizedNumber
+      }
+
+      if (userType === "USER") {
+        return user.phone.replace(/-/g, "") === normalizedNumber
+      }
+
+      return false
+    })
+
+    if (!foundUser) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 404,
+          errorMessage:
+            userType === "HOST"
+              ? "해당 사업자등록번호로 가입된 주최측이 없습니다."
+              : "해당 전화번호로 가입된 사용자가 없습니다.",
+        },
+        { status: 404 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "조회에 성공했습니다.",
+        data: {
+          id: foundUser.userId,
+          name: foundUser.name,
+          number: userType === "HOST" ? foundUser.businessNo : foundUser.phone,
+        },
+      },
+      { status: 200 }
+    )
+  }),
   http.post("*/api/v1/hosts/business-no/duplicate", async ({ request }) => {
     const body = (await request.json()) as { businessNo?: string }
     const businessNo = body.businessNo?.trim() ?? ""
@@ -164,7 +214,7 @@ export const authHandlers = [
       { status: 200 }
     )
   }),
-  http.post("*/api/v1/hosts/logout", async () => {
+  http.post("*/api/v1/hosts/auth/logout", async () => {
     return HttpResponse.json(
       {
         httpStatusCode: 200,
