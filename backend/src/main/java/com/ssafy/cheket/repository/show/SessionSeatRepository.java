@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> {
 
+    // 공연/회차별 좌석 배치도 및 등급 정보 조회
     @Query("""
         select new com.ssafy.cheket.dto.show.response.SeatRowDto(
             sec.id,
@@ -32,6 +33,7 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
         """)
     List<SeatRowDto> findSeatRowsByShowIdAndSessionId(Long showId, Long sessionId);
 
+    // 세션별 전체 좌석 수 조회
     @Query("""
         select ss.sessionId, count(ss)
         from SessionSeat ss
@@ -39,4 +41,13 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
         group by ss.sessionId
         """)
     List<Object[]> countGroupedBySessionIds(List<Long> sessionIds);
+
+    // 공연별 전체 좌석 수 조회
+    @Query("""
+        select count(ss.id)
+        from SessionSeat ss
+        join Session s on ss.sessionId = s.id
+        where s.showId = :showId
+        """)
+    int countTotalSeatsByShowId(Long showId);
 }

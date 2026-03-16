@@ -91,4 +91,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         where s.showId = :showId
         """)
     Integer sumPrimarySalesByShowId(Long showId);
+
+    // 공연별 예약된 좌석 수 조회
+    @Query("""
+        select count(t.id)
+        from Ticket t
+        join SessionSeat ss on t.sessionSeatId = ss.id
+        join Session s on ss.sessionId = s.id
+        where s.showId = :showId
+        """)
+    int countReservedSeatsByShowId(Long showId);
 }
