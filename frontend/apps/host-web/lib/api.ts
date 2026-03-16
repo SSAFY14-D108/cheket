@@ -35,7 +35,7 @@ const TOKEN_REISSUE_PATH = "/api/v1/auth/reissue"
 const RETRY_HEADER = "X-Auth-Retry"
 const PUBLIC_AUTH_REQUESTS = [
   { method: "POST", path: "/api/v1/hosts" },
-  { method: "POST", path: "/api/v1/hosts/login" },
+  { method: "POST", path: "/api/v1/hosts/auth/login" },
   { method: "POST", path: "/api/v1/hosts/business-no/duplicate" },
 ] as const
 

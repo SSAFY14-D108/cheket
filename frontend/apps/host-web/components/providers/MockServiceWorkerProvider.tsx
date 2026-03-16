@@ -9,6 +9,10 @@ interface MockServiceWorkerProviderProps {
   children: ReactNode
 }
 
+function isMockingEnabled() {
+  return process.env.NEXT_PUBLIC_API_MOCKING === "true"
+}
+
 function ensureWorkerStarted() {
   if (!workerStartPromise) {
     workerStartPromise = import("@/mocks/browser")
@@ -22,10 +26,12 @@ function ensureWorkerStarted() {
 }
 
 export function MockServiceWorkerProvider({ children }: MockServiceWorkerProviderProps) {
-  const [isReady, setIsReady] = useState(process.env.NODE_ENV !== "development" || isWorkerStarted)
+  const [isReady, setIsReady] = useState(
+    process.env.NODE_ENV !== "development" || !isMockingEnabled() || isWorkerStarted
+  )
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env.NODE_ENV !== "development" || !isMockingEnabled()) {
       return
     }
 

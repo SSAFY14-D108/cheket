@@ -1,5 +1,10 @@
 import { ApiError, apiFetch, apiRequest } from "@/lib/api"
 
+export interface ApiMessageResponse {
+  httpStatusCode: number
+  responseMessage: string
+}
+
 export interface SignupRequest {
   companyName: string
   businessNo: string
@@ -12,40 +17,35 @@ export interface LoginRequest {
   password: string
 }
 
-export interface AuthSuccessResponse {
-  httpStatusCode: number
-  responseMessage: string
-}
-
 export interface LoginTokenData {
   accessToken: string
   refreshToken: string
 }
 
-export interface LoginResponse extends AuthSuccessResponse {
+export interface LoginResponse extends ApiMessageResponse {
   data: LoginTokenData
 }
 
-export type LogoutResponse = AuthSuccessResponse
+export type SignupResponse = ApiMessageResponse
+export type LogoutResponse = ApiMessageResponse
+
 export interface BusinessNoDuplicateResult {
-  isDuplicate: boolean
+  isDuplicated: boolean
 }
 
-interface BusinessNoDuplicateResponse extends AuthSuccessResponse {
-  data: {
-    isDuplicate: boolean
-  }
+export interface BusinessNoDuplicateResponse extends ApiMessageResponse {
+  data: BusinessNoDuplicateResult
 }
 
 export async function signupHost(payload: SignupRequest) {
-  return apiFetch<AuthSuccessResponse>("/api/v1/hosts", {
+  return apiFetch<SignupResponse>("/api/v1/hosts", {
     method: "POST",
     body: JSON.stringify(payload),
   })
 }
 
 export async function loginHost(payload: LoginRequest) {
-  const result = await apiRequest<LoginResponse>("/api/v1/hosts/login", {
+  const result = await apiRequest<LoginResponse>("/api/v1/hosts/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -60,26 +60,17 @@ export async function logoutHost() {
 }
 
 export async function checkBusinessNoDuplicate(businessNo: string) {
-  try {
-    const response = await apiFetch<BusinessNoDuplicateResponse>(
-      "/api/v1/hosts/business-no/duplicate",
-      {
-        method: "POST",
-        body: JSON.stringify({ businessNo }),
-      }
-    )
-
-    if (typeof response.data?.isDuplicate !== "boolean") {
-      throw new ApiError("사업자번호 중복확인 응답 형식이 올바르지 않습니다.", 500)
+  const response = await apiFetch<BusinessNoDuplicateResponse>(
+    "/api/v1/hosts/business-no/duplicate",
+    {
+      method: "POST",
+      body: JSON.stringify({ businessNo }),
     }
+  )
 
-    return response.data
-  } catch (error) {
-    // apiFetch treats 409 as an error, so we normalize the duplicate case here.
-    if (error instanceof ApiError && error.status === 409) {
-      return { isDuplicate: true } satisfies BusinessNoDuplicateResult
-    }
-
-    throw error
+  if (typeof response.data?.isDuplicated !== "boolean") {
+    throw new ApiError("사업자번호 중복확인 응답 형식이 올바르지 않습니다.", 500)
   }
+
+  return response.data
 }

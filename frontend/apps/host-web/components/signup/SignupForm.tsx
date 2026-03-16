@@ -32,7 +32,7 @@ export function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingBusinessNo, setIsCheckingBusinessNo] = useState(false)
   const [businessNoCheckedValue, setBusinessNoCheckedValue] = useState("")
-  const [businessNoDuplicateResult, setBusinessNoDuplicateResult] = useState<boolean | null>(null)
+  const [businessNoDuplicated, setBusinessNoDuplicated] = useState<boolean | null>(null)
   const [businessNoCheckError, setBusinessNoCheckError] = useState<string | null>(null)
 
   const updateField = (key: keyof SignupState, value: string) => {
@@ -43,7 +43,7 @@ export function SignupForm() {
 
     if (key === "businessNo") {
       setBusinessNoCheckedValue("")
-      setBusinessNoDuplicateResult(null)
+      setBusinessNoDuplicated(null)
       setBusinessNoCheckError(null)
     }
   }
@@ -83,7 +83,7 @@ export function SignupForm() {
   }
 
   const isBusinessNoVerified =
-    businessNoDuplicateResult === false && businessNoCheckedValue === form.businessNo.trim()
+    businessNoDuplicated === false && businessNoCheckedValue === form.businessNo.trim()
 
   const handleCheckBusinessNo = async () => {
     const businessNo = form.businessNo.trim()
@@ -102,7 +102,7 @@ export function SignupForm() {
         ...prev,
         businessNo: "사업자등록번호 형식이 올바르지 않습니다. 예: 123-45-67890",
       }))
-      setBusinessNoDuplicateResult(null)
+      setBusinessNoDuplicated(null)
       setBusinessNoCheckError(null)
       return
     }
@@ -114,7 +114,15 @@ export function SignupForm() {
     try {
       const result = await checkBusinessNoDuplicate(businessNo)
       setBusinessNoCheckedValue(businessNo)
-      setBusinessNoDuplicateResult(result.isDuplicate)
+      setBusinessNoDuplicated(result.isDuplicated)
+
+      toast({
+        title: result.isDuplicated ? "중복된 사업자번호" : "중복확인 완료",
+        description: result.isDuplicated
+          ? "이미 등록된 사업자 등록번호입니다."
+          : "사용 가능한 사업자 등록번호입니다.",
+        variant: result.isDuplicated ? "destructive" : undefined,
+      })
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -122,8 +130,13 @@ export function SignupForm() {
           : "사업자번호 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
 
       setBusinessNoCheckedValue("")
-      setBusinessNoDuplicateResult(null)
+      setBusinessNoDuplicated(null)
       setBusinessNoCheckError(message)
+      toast({
+        title: "중복확인 실패",
+        description: message,
+        variant: "destructive",
+      })
     } finally {
       setIsCheckingBusinessNo(false)
     }
@@ -174,14 +187,14 @@ export function SignupForm() {
 
   const businessNoHelperMessage = businessNoCheckError
     ? businessNoCheckError
-    : businessNoDuplicateResult === null
+    : businessNoDuplicated === null
       ? ""
-      : businessNoDuplicateResult
+      : businessNoDuplicated
         ? "이미 등록된 사업자번호입니다."
         : "사용 가능한 사업자번호입니다."
 
   const businessNoHelperClassName =
-    businessNoDuplicateResult === false && !businessNoCheckError
+    businessNoDuplicated === false && !businessNoCheckError
       ? "text-green-600"
       : "text-destructive"
 
