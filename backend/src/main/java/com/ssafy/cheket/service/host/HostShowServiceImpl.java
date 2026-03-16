@@ -1,24 +1,38 @@
 package com.ssafy.cheket.service.host;
 
+import com.ssafy.cheket.config.s3.S3Uploader;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.ShowItem;
 import com.ssafy.cheket.dto.ticket.response.GetTicketEffectsResponse;
+import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.entity.ticket.TicketEffect;
+import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.ShowStatus;
+import com.ssafy.cheket.enums.StakeholderRole;
+import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.*;
 import com.ssafy.cheket.repository.ticket.TicketEffectRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.web3j.crypto.Credentials;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,6 +49,15 @@ public class HostShowServiceImpl implements HostShowService {
     private final SessionRepository sessionRepository;
     private final LikeRepository likeRepository;
     private final SessionSeatRepository sessionSeatRepository;
+    private final HostRepository hostRepository;
+    private final VenueRepository venueRepository;
+    private final ShowImageRepository showImageRepository;
+    private final SeatRepository seatRepository;
+    private final UserRepository userRepository;
+    private final S3Uploader s3Uploader;
+    // 클래스 상단에 필드 추가
+    @Value("${blockchain.platform-private-key}")
+    private String platformPrivateKey;
 
     // 티켓 효과 목록 조회
     @Override
@@ -100,6 +123,114 @@ public class HostShowServiceImpl implements HostShowService {
                     capacityMap.getOrDefault(session.getId(), 0)))
                 .toList(),
             show.getStatus(), show.getCreatedAt(), show.getUpdatedAt());
+    }
+
+    @Override
+    @Transactional
+    public Long createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
+        List<MultipartFile> descriptionImages) {
+        // 요청 데이터 검증
+        int totalBps = request.stakeholders().stream().mapToInt(AddShowRequest.StakeholderInfo::shareBps).sum();
+
+        if (totalBps + 800 != 10000) {
+            // 10000 bps = 100%
+            // 9000이면 → 9000 / 100 = 90 → "현재: 90%"
+            throw new BadRequestException("수익 배분 합계가 100%가 아닙니다. (현재: " + totalBps / 100 + "%)");
+        }
+
+        // 0. 플랫폼 지갑 개인키에서 추출
+        Credentials credentials = Credentials.create(platformPrivateKey);
+        String platformWallet = credentials.getAddress();
+
+        // 1. Host, Venue 존재 확인
+        Host host = hostRepository.findById(hostId).orElseThrow(() -> new NotFoundException("호스트를 찾을 수 없습니다."));
+        Venue venue = venueRepository.findById(request.venueId())
+            .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
+
+        // 2. ① shows 저장
+        Show show = Show.builder().host(host).venue(venue).title(request.title()).posterUrl("temp")
+            .showStartDate(request.showStartDate()).showEndDate(request.showEndDate())
+            .reservationStartDate(request.reservationStartDate()).reservationEndDate(request.reservationEndDate())
+            .playtime(request.playtime()).description(request.description()).purchaseLimit(request.purchaseLimit())
+            .artist(request.artist()).platformFeeBps(800).platformWallet(platformWallet).status(ShowStatus.DRAFT)
+            .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+
+        show = showRepository.save(show);
+        Long showId = show.getId();
+
+        // 3. ② 포스터 S3 업로드 → posterUrl 업데이트
+        String posterUrl = s3Uploader.upload(posterImage, showId);
+        show.setPosterUrl(posterUrl);
+
+        // 4. ③ sessions 저장 (회차)
+        List<Session> sessions = request.sessions().stream().map(s -> Session.builder().showId(showId)
+            .sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList();
+        sessions = sessionRepository.saveAll(sessions);
+
+        // 5. ④ seat_grades 저장 (등급 × 구역)
+        List<Long> allSectionIds = new ArrayList<>();
+
+        for (AddShowRequest.GradeInfo grade : request.grades()) {
+            for (Long sectionId : grade.sectionIds()) { // section마다 설정
+                SeatGrade seatGrade = SeatGrade.builder().showId(showId).sectionId(sectionId)
+                    .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
+                    .ticketEffectId(grade.ticketEffectId()).build();
+                seatGradeRepository.save(seatGrade);
+
+                allSectionIds.add(sectionId);
+            }
+        }
+
+        // 6. ⑤ refund_policies 저장 (환불 정책)
+        for (AddShowRequest.RefundPolicyInfo policy : request.refundPolicies()) {
+            RefundPolicy refundPolicy = RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
+                .refundRate(policy.refundRate()).build();
+            refundPolicyRepository.save(refundPolicy);
+        }
+
+        // 7. ⑥ stakeholders 저장 (수익 배분)
+        for (AddShowRequest.StakeholderInfo info : request.stakeholders()) {
+            StakeholderRole role = StakeholderRole.valueOf(info.role().toUpperCase());
+            Long userId = null;
+
+            if (role == StakeholderRole.ORGANIZER) {
+                // ORGANIZER = host 본인 -> userId 없이 저장 (shows.host_id로 식별)
+            } else {
+                // ARTIST = 일반 사용자 -> phoneNumber로 조회
+                User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(info.phoneNumber())
+                    .orElseThrow(() -> new NotFoundException("이해 관계자를 찾을 수 없습니다: " + info.phoneNumber()));
+                userId = user.getId();
+            }
+
+            Stakeholder stakeholder = Stakeholder.builder().showId(showId).userId(userId).role(role)
+                .shareBps(info.shareBps()).build();
+
+            stakeholderRepository.save(stakeholder);
+        }
+
+        // 8. ⑦ show_images 저장 (설명 이미지)
+        if (descriptionImages != null && !descriptionImages.isEmpty()) {
+            for (MultipartFile image : descriptionImages) {
+                String imageUrl = s3Uploader.upload(image, showId);
+                ShowImage showImage = ShowImage.of(show, imageUrl);
+                showImageRepository.save(showImage);
+            }
+        }
+
+        // 9. ⑧ session_seats 저장 (회차 × 좌석 = AVAILABLE)
+        List<Seat> seats = seatRepository.findBySectionIdIn(allSectionIds);
+
+        List<SessionSeat> sessionSeats = new ArrayList<>();
+
+        for (Session session : sessions) {
+            for (Seat seat : seats) {
+                sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                    .status(SessionSeat.SeatStatus.AVAILABLE).build());
+            }
+        }
+        sessionSeatRepository.saveAll(sessionSeats);
+
+        return showId;
     }
 
     private ShowItem toShowItem(Show s) {

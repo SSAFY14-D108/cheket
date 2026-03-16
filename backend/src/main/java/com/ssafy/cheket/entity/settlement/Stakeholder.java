@@ -23,7 +23,7 @@ public class Stakeholder {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "stakeholder_nft_id", nullable = false)
+    @Column(name = "stakeholder_nft_id")
     private Long stakeholderNftId;
 
     @Enumerated(EnumType.STRING)

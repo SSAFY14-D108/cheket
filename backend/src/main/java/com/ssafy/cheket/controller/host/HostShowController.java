@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.host;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.ShowItem;
 import com.ssafy.cheket.dto.ticket.response.GetTicketEffectsResponse;
@@ -10,9 +11,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,6 +24,16 @@ import java.util.List;
 @RequestMapping("/api/v1/hosts/shows")
 public class HostShowController {
     private final HostShowService hostShowService;
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "공연 등록")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Long>> createShow(@AuthenticationPrincipal Long hostId,
+        @RequestPart("show") AddShowRequest request, @RequestPart("posterImage") MultipartFile posterImage,
+        @RequestPart(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
+        Long showId = hostShowService.createShow(hostId, request, posterImage, descriptionImages);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 등록 완료", showId));
+    }
 
     @GetMapping("/effect")
     @Operation(summary = "티켓 효과 목록 조회")
