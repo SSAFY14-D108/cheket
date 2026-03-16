@@ -2,18 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import {
-  BadgeInfo,
-  Calendar,
-  ChevronRight,
-  Clock3,
-  Heart,
-  ImageIcon,
-  MapPin,
-  Receipt,
-  UserRound,
-  Users,
-} from 'lucide-react'
+import { BadgeInfo, Calendar, ChevronRight, Clock3, Heart, ImageIcon, MapPin, Receipt, UserRound, Users } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import type { Event } from '@/lib/types'
 import { AppShell } from '../app-shell'
@@ -61,13 +50,9 @@ export function EventDetailScreen() {
           updateEvent(event.id, data.item)
         }
       } catch {
-        if (!cancelled) {
-          setDetailEvent(event)
-        }
+        if (!cancelled) setDetailEvent(event)
       } finally {
-        if (!cancelled) {
-          setDetailLoading(false)
-        }
+        if (!cancelled) setDetailLoading(false)
       }
     }
 
@@ -85,10 +70,20 @@ export function EventDetailScreen() {
   const canBuy = displayEvent.status === 'ON_SALE'
   const refundRules = displayEvent.refundRules ?? []
   const hasStructuredGrades = displayEvent.grades.some((grade) => grade.price > 0)
+  const footer = (
+    <button
+      onClick={() => navigate('event-date-selection', { eventId: displayEvent.id })}
+      disabled={!canBuy}
+      className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      예매하기
+      <ChevronRight className="h-4 w-4" />
+    </button>
+  )
 
   return (
-    <AppShell showBack onBack={goBack} title={displayEvent.name} showBottomNav>
-      <div className="flex flex-col">
+    <AppShell showBack onBack={goBack} title={displayEvent.name} showBottomNav footer={footer}>
+      <div className="flex min-h-full flex-col bg-gray-50">
         <div className="relative overflow-hidden bg-secondary">
           <div className="relative h-60 w-full">
             <Image src={displayEvent.poster} alt={displayEvent.name} fill className="scale-110 object-cover" sizes="390px" priority />
@@ -110,7 +105,7 @@ export function EventDetailScreen() {
               aria-label={wishlisted ? '찜 해제' : '찜 추가'}
             >
               <Heart className={`h-5 w-5 ${wishlisted ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-              <span className="absolute right-0 top-0 flex h-5 min-w-5 translate-x-1/3 -translate-y-1/3 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              <span className="absolute right-0 top-0 flex h-5 min-w-5 translate-x-1/3 -translate-y-1/3 items-center justify-center rounded-full bg-[#9aa4b2] px-1 text-[10px] font-bold text-white">
                 {wishlist.length}
               </span>
             </button>
@@ -119,105 +114,99 @@ export function EventDetailScreen() {
 
         <div className="flex flex-col gap-4 px-4 pb-4 pt-16">
           <div>
-            <h2 className="mb-2 text-lg font-bold leading-tight text-foreground">{displayEvent.name}</h2>
-            {displayEvent.artistName && displayEvent.artistName !== '대중음악' && <p className="mb-2 text-sm text-muted-foreground">{displayEvent.artistName}</p>}
+            <h2 className="mb-2 text-lg font-bold leading-tight text-[#111111]">{displayEvent.name}</h2>
+            {displayEvent.artistName && displayEvent.artistName !== '정보 없음' ? <p className="mb-2 text-sm text-muted-foreground">{displayEvent.artistName}</p> : null}
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
+                <Calendar className="h-4 w-4 flex-shrink-0 text-[#6b7280]" />
                 <span>{displayEvent.date}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 flex-shrink-0 text-primary" />
+                <MapPin className="h-4 w-4 flex-shrink-0 text-[#6b7280]" />
                 <span>{displayEvent.venue}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4 flex-shrink-0 text-primary" />
+                <Users className="h-4 w-4 flex-shrink-0 text-[#6b7280]" />
                 <span>1인당 최대 {displayEvent.maxPerUser}매 구매 가능</span>
               </div>
             </div>
           </div>
 
-          {detailLoading && (
-            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-              공연 상세 정보를 불러오는 중입니다.
-            </div>
-          )}
+          {detailLoading ? <div className="gradient-outline-surface rounded-xl p-4 text-sm text-muted-foreground">공연 상세 정보를 불러오는 중입니다.</div> : null}
 
-          {(displayEvent.runtime || displayEvent.ageRating || displayEvent.cast) && (
-            <div className="grid gap-2 rounded-xl border border-border bg-card p-4">
-              {displayEvent.runtime && (
+          {(displayEvent.runtime || displayEvent.ageRating || displayEvent.cast) ? (
+            <div className="gradient-outline-surface grid gap-2 rounded-xl p-4">
+              {displayEvent.runtime ? (
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#6b7280]" />
                   <span>{displayEvent.runtime}</span>
                 </div>
-              )}
-              {displayEvent.ageRating && (
+              ) : null}
+              {displayEvent.ageRating ? (
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <BadgeInfo className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <BadgeInfo className="mt-0.5 h-4 w-4 shrink-0 text-[#6b7280]" />
                   <span>{displayEvent.ageRating}</span>
                 </div>
-              )}
-              {displayEvent.cast && (
+              ) : null}
+              {displayEvent.cast ? (
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-[#6b7280]" />
                   <span>{displayEvent.cast}</span>
                 </div>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
 
-          {displayEvent.description && (
-            <p className="rounded-xl bg-secondary p-4 text-sm leading-relaxed text-muted-foreground">{displayEvent.description}</p>
-          )}
+          {displayEvent.description ? <p className="gradient-outline-surface-soft rounded-xl p-4 text-sm leading-relaxed text-muted-foreground">{displayEvent.description}</p> : null}
 
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-foreground">가격 안내</h3>
+            <h3 className="mb-3 text-sm font-semibold text-[#111111]">가격 안내</h3>
             {hasStructuredGrades ? (
               <div className="flex flex-col gap-2">
                 {displayEvent.grades.map((grade, index) => (
-                  <div key={`${grade.name}-${grade.price}-${index}`} className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="gradient-outline-surface-soft flex items-center justify-between rounded-xl px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-foreground">{grade.name}</span>
-                      <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
-                        {grade.remaining === 0 ? '매진' : '예매 가능'}
-                      </span>
-                    </div>
-                    <span className="text-sm font-bold text-foreground">{grade.price.toLocaleString()} CTK</span>
-                  </div>
-                ))}
-              </div>
-            ) : displayEvent.priceInfo ? (
-              <div className="rounded-xl bg-secondary px-4 py-3 text-sm leading-relaxed text-foreground">{displayEvent.priceInfo}</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {displayEvent.grades.map((grade, index) => (
-                  <div key={`${grade.name}-${grade.price}-${index}`} className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-foreground">{grade.name}</span>
+                      <span className="text-sm font-semibold text-[#111111]">{grade.name}</span>
                       <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
                         {grade.remaining === 0 ? '매진' : `잔여 ${grade.remaining}석`}
                       </span>
                     </div>
-                    <span className="text-sm font-bold text-foreground">{grade.price.toLocaleString()} CTK</span>
+                    <span className="text-sm font-bold text-[#111111]">{grade.price.toLocaleString()} CTK</span>
+                  </div>
+                ))}
+              </div>
+            ) : displayEvent.priceInfo ? (
+              <div className="gradient-outline-surface-soft rounded-xl px-4 py-3 text-sm leading-relaxed text-[#111111]">{displayEvent.priceInfo}</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {displayEvent.grades.map((grade, index) => (
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="gradient-outline-surface-soft flex items-center justify-between rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-[#111111]">{grade.name}</span>
+                      <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                        {grade.remaining === 0 ? '매진' : `잔여 ${grade.remaining}석`}
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold text-[#111111]">{grade.price.toLocaleString()} CTK</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {displayEvent.introImages && displayEvent.introImages.length > 0 && (
+          {displayEvent.introImages && displayEvent.introImages.length > 0 ? (
             <div>
               <div className="mb-3 flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">상세 이미지</h3>
+                <ImageIcon className="h-4 w-4 text-[#6b7280]" />
+                <h3 className="text-sm font-semibold text-[#111111]">공연 소개 이미지</h3>
               </div>
-              <div className="overflow-hidden rounded-xl border border-border bg-card">
+              <div className="gradient-outline-surface overflow-hidden rounded-xl">
                 {displayEvent.introImages.map((imageUrl, index) => (
                   <div key={`${imageUrl}-${index}`} className="overflow-hidden">
                     <Image
                       src={imageUrl}
-                      alt={`${displayEvent.name} 상세 이미지 ${index + 1}`}
+                      alt={`${displayEvent.name} 공연 소개 이미지 ${index + 1}`}
                       width={1200}
                       height={1600}
                       className="block h-auto w-full object-contain"
@@ -227,13 +216,13 @@ export function EventDetailScreen() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {refundRules.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-4">
+          {refundRules.length > 0 ? (
+            <div className="gradient-outline-surface rounded-xl p-4">
               <div className="mb-3 flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">환불 규정</h3>
+                <Receipt className="h-4 w-4 text-[#6b7280]" />
+                <h3 className="text-sm font-semibold text-[#111111]">환불 규정</h3>
               </div>
               <div className="flex flex-col gap-2">
                 {refundRules.map((rule) => (
@@ -244,23 +233,10 @@ export function EventDetailScreen() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* spacer for fixed bottom button */}
-          <div className="h-16" />
         </div>
-      </div>
 
-      {/* Fixed bottom CTA */}
-      <div className="sticky bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
-        <button
-          onClick={() => navigate('event-date-selection', { eventId: displayEvent.id })}
-          disabled={!canBuy}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          예매하기
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
     </AppShell>
   )

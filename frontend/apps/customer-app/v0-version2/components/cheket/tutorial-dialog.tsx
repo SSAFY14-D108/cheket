@@ -22,7 +22,7 @@ function TutorialPanel({ tutorialId }: { tutorialId: TutorialId }) {
     <div className="space-y-4">
       <div className="overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-primary/12 via-background to-secondary/80">
         <div className="space-y-2 px-5 py-5">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          <div className="gradient-outline-surface inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#333333]">
             <Sparkles className="h-3 w-3" />
             {content.category}
           </div>
@@ -41,7 +41,7 @@ function TutorialPanel({ tutorialId }: { tutorialId: TutorialId }) {
             key={`${content.id}-${index}`}
             className="flex items-start gap-3 rounded-xl bg-gray-100 px-4 py-3.5"
           >
-            <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/12 text-xs font-bold text-primary">
+            <div className="gradient-outline-surface-soft mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#333333]">
               {index + 1}
             </div>
             <p className="text-sm leading-6 text-foreground">{point}</p>
@@ -67,7 +67,7 @@ function TutorialDialogBody({ tutorialId }: { tutorialId: TutorialId }) {
       <TutorialPanel tutorialId={tutorialId} />
       <DialogFooter className="mt-1">
         <DialogClose asChild>
-          <button className="w-full rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]">
+          <button className="gradient-outline-button w-full px-4 py-3.5 text-sm">
             확인했어요
           </button>
         </DialogClose>
@@ -87,10 +87,7 @@ export function TutorialHelpButton({
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-all hover:bg-secondary',
-            className
-          )}
+          className={cn('gradient-outline-icon-button h-8 w-8 text-foreground', className)}
           aria-label="도움말 보기"
         >
           <CircleHelp className="h-5 w-5 stroke-[1.9]" />
@@ -108,7 +105,7 @@ export function TutorialLibraryButton() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left transition-all hover:border-primary/40 active:scale-[0.98]">
+        <button className="gradient-outline-surface w-full rounded-lg px-4 py-3 text-left transition-all active:scale-[0.98]">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -140,8 +137,8 @@ export function TutorialLibraryButton() {
                   className={cn(
                     'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
                     active
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      ? 'gradient-outline-surface text-[#111111]'
+                      : 'border border-[#e7ebf0] bg-white text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {item.category}
@@ -150,8 +147,8 @@ export function TutorialLibraryButton() {
             })}
           </div>
 
-          <div className="rounded-2xl bg-secondary/45 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{selected.category}</p>
+          <div className="gradient-outline-surface-soft rounded-2xl p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#333333]">{selected.category}</p>
             <p className="mt-1 text-sm font-semibold text-foreground">{selected.title}</p>
           </div>
 
@@ -160,7 +157,7 @@ export function TutorialLibraryButton() {
 
         <DialogFooter className="mt-1">
           <DialogClose asChild>
-            <button className="w-full rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]">
+            <button className="gradient-outline-button w-full px-4 py-3.5 text-sm">
               확인했어요
             </button>
           </DialogClose>

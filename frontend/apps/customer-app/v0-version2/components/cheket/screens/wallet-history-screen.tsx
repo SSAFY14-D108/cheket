@@ -1,18 +1,19 @@
 'use client'
 
+import { ReactNode } from 'react'
 import { useApp } from '@/lib/app-context'
 import { AppShell } from '../app-shell'
 import { ArrowDownLeft, ArrowUpRight, LogIn } from 'lucide-react'
 import { TutorialHelpButton } from '../tutorial-dialog'
 
-const TX_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  CHARGE: { label: 'CTK 충전', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
+const TX_TYPE_LABELS: Record<string, { label: string; icon: ReactNode; color: string }> = {
+  CHARGE: { label: 'CTK 충전', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-[#333333]' },
   PURCHASE: { label: '티켓 구매', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
   RESALE_BUY: { label: '재판매 구매', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
-  RESALE_SELL: { label: '재판매 판매', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
-  TRANSFER_SEND: { label: '티켓 양도', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
-  TRANSFER_RECEIVE: { label: '티켓 받기', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
-  REFUND: { label: '환불', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
+  RESALE_SELL: { label: '재판매 판매', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-[#333333]' },
+  TRANSFER_SEND: { label: '티켓 보내기', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
+  TRANSFER_RECEIVE: { label: '티켓 받기', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-[#333333]' },
+  REFUND: { label: '환불', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-[#333333]' },
 }
 
 export function WalletHistoryScreen() {
@@ -31,7 +32,7 @@ export function WalletHistoryScreen() {
       showBottomNav={false}
       rightElement={<TutorialHelpButton tutorialId="wallet-history" />}
     >
-      <div className="flex flex-1 flex-col gap-2 px-4 py-4">
+      <div className="flex flex-1 flex-col gap-2 bg-gray-50 px-4 py-4">
         {walletTxs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <LogIn className="mb-3 h-12 w-12 text-muted-foreground/30" />
@@ -45,9 +46,9 @@ export function WalletHistoryScreen() {
             return (
               <div
                 key={tx.id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-secondary/50"
+                className="gradient-outline-surface-soft flex items-center gap-3 rounded-xl p-3 transition-colors"
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-secondary ${meta.color}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 ${meta.color}`}>
                   {meta.icon}
                 </div>
 
@@ -57,7 +58,7 @@ export function WalletHistoryScreen() {
                 </div>
 
                 <div className="flex-shrink-0 text-right">
-                  <p className={`text-sm font-semibold ${isIn ? 'text-primary' : 'text-destructive'}`}>
+                  <p className={`text-sm font-semibold ${isIn ? 'text-[#111111]' : 'text-destructive'}`}>
                     {isIn ? '+' : ''}
                     {tx.amount.toLocaleString()} CTK
                   </p>

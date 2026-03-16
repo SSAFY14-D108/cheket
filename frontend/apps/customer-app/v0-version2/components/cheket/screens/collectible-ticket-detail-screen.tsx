@@ -29,7 +29,7 @@ export function CollectibleTicketDetailScreen() {
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
 
           {/* NFT badge */}
-          <div className="absolute top-3 right-3 bg-primary/90 text-primary-foreground text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+          <div className="gradient-outline-surface absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-[#333333]">
             <Award className="w-3.5 h-3.5" />
             NFT 소장
           </div>
@@ -51,7 +51,7 @@ export function CollectibleTicketDetailScreen() {
         </div>
 
         {/* Ticket details card */}
-        <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3">
+        <div className="gradient-outline-surface-soft flex flex-col gap-3 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">좌석</span>
             <span className="text-sm font-semibold text-foreground">{ticket.seatLabel}</span>
@@ -59,7 +59,7 @@ export function CollectibleTicketDetailScreen() {
           <div className="h-px bg-border" />
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">등급</span>
-            <span className="text-sm font-semibold text-primary">{ticket.grade}</span>
+            <span className="text-sm font-semibold text-[#333333]">{ticket.grade}</span>
           </div>
           <div className="h-px bg-border" />
           <div className="flex items-center justify-between">
@@ -78,7 +78,7 @@ export function CollectibleTicketDetailScreen() {
         </div>
 
         {/* NFT details */}
-        <div className="bg-secondary rounded-xl p-4 flex flex-col gap-2 text-xs">
+        <div className="gradient-outline-surface-soft flex flex-col gap-2 rounded-xl p-4 text-xs">
           <p className="font-semibold text-sm text-foreground mb-1">NFT 정보</p>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Token ID</span>
@@ -96,7 +96,7 @@ export function CollectibleTicketDetailScreen() {
 
         {/* Share button (placeholder) */}
         <button
-          className="w-full flex items-center justify-center gap-2 bg-secondary border border-border text-foreground font-semibold py-3.5 rounded-xl text-sm hover:border-primary/50 active:scale-[0.98] transition-all"
+          className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm"
           onClick={() => {}}
           aria-label="공유"
         >

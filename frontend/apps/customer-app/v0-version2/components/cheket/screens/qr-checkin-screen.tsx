@@ -1,21 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import { AppShell } from '../app-shell'
-import { RefreshCw } from 'lucide-react'
 
-// Generate a simple SVG-based QR-like code for visual mock
 function MockQR({ value }: { value: string }) {
   const size = 200
   const cells = 21
   const cellSize = size / cells
 
-  // Deterministic pattern based on value
   const pattern = Array.from({ length: cells }, (_, row) =>
     Array.from({ length: cells }, (_, col) => {
       const hash = (row * 31 + col * 17 + value.charCodeAt(row % value.length)) % 3
-      // Finder patterns (corners)
       if (row < 8 && col < 8) return row === 0 || row === 7 || col === 0 || col === 7 || (row >= 2 && row <= 4 && col >= 2 && col <= 4)
       if (row < 8 && col > cells - 9) return row === 0 || row === 7 || col === cells - 1 || col === cells - 8 || (row >= 2 && row <= 4 && col >= cells - 6 && col <= cells - 4)
       if (row > cells - 9 && col < 8) return row === cells - 1 || row === cells - 8 || col === 0 || col === 7 || (row >= cells - 5 && row <= cells - 3 && col >= 2 && col <= 4)
@@ -24,26 +21,11 @@ function MockQR({ value }: { value: string }) {
   )
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      className="rounded-xl"
-      aria-label="QR 코드"
-    >
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-xl" aria-label="QR 코드">
       <rect width={size} height={size} fill="white" />
       {pattern.map((row, r) =>
         row.map((filled, c) =>
-          filled ? (
-            <rect
-              key={`${r}-${c}`}
-              x={c * cellSize}
-              y={r * cellSize}
-              width={cellSize}
-              height={cellSize}
-              fill="black"
-            />
-          ) : null
+          filled ? <rect key={`${r}-${c}`} x={c * cellSize} y={r * cellSize} width={cellSize} height={cellSize} fill="black" /> : null
         )
       )}
     </svg>
@@ -89,35 +71,37 @@ export function QrCheckinScreen() {
 
   return (
     <AppShell showBack onBack={goBack} title="QR 체크인" showBottomNav={false}>
-      <div className="flex flex-col items-center justify-between min-h-full p-6 py-8 bg-background">
+      <div className="flex min-h-full flex-col items-center justify-between bg-background p-6 py-8">
         <div className="text-center">
-          <h2 className="font-bold text-base text-foreground mb-1">{ticket.eventName}</h2>
-          <p className="text-sm text-muted-foreground">{ticket.seatLabel} · {ticket.grade}</p>
+          <h2 className="mb-1 text-base font-bold text-[#111111]">{ticket.eventName}</h2>
+          <p className="text-sm text-muted-foreground">
+            {ticket.seatLabel} · {ticket.grade}
+          </p>
         </div>
 
         {checkedIn ? (
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
-              <span className="text-4xl text-primary">✓</span>
+            <div className="gradient-outline-icon-button flex h-24 w-24 items-center justify-center rounded-full">
+              <span className="text-4xl text-[#333333]">✓</span>
             </div>
-            <p className="font-bold text-xl text-foreground">체크인 완료!</p>
-            <p className="text-muted-foreground text-sm">즐거운 관람 되세요!</p>
+            <p className="text-xl font-bold text-[#111111]">체크인이 완료됐어요</p>
+            <p className="text-sm text-muted-foreground">즐거운 공연 관람 되세요.</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-6">
-            {/* QR code with timer ring */}
             <div className="relative">
-              <div className="p-3 bg-white rounded-2xl shadow-lg">
+              <div className="gradient-outline-surface p-3 rounded-2xl shadow-lg">
                 <MockQR value={otpValue} />
               </div>
-              {/* Timer ring */}
-              <div className="absolute -top-3 -right-3">
+              <div className="absolute -right-3 -top-3">
                 <svg width="48" height="48" viewBox="0 0 48 48">
-                  <circle cx="24" cy="24" r="22" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+                  <circle cx="24" cy="24" r="22" fill="none" stroke="#e5e7eb" strokeWidth="3" />
                   <circle
-                    cx="24" cy="24" r="22"
+                    cx="24"
+                    cy="24"
+                    r="22"
                     fill="none"
-                    stroke="hsl(var(--primary))"
+                    stroke="#9aa4b2"
                     strokeWidth="3"
                     strokeDasharray={circumference}
                     strokeDashoffset={dashOffset}
@@ -125,41 +109,31 @@ export function QrCheckinScreen() {
                     transform="rotate(-90 24 24)"
                     className="transition-all duration-1000"
                   />
-                  <text x="24" y="28" textAnchor="middle" fontSize="13" fontWeight="bold" fill="hsl(var(--foreground))">
+                  <text x="24" y="28" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#111111">
                     {timer}
                   </text>
                 </svg>
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              {timer}초 후 QR 코드가 자동 갱신됩니다
-            </p>
+            <p className="text-center text-xs text-muted-foreground">{timer}초 후 QR 코드가 자동으로 갱신됩니다.</p>
 
-            <button
-              onClick={refresh}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" /> QR 재발급
+            <button onClick={refresh} className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <RefreshCw className="h-4 w-4" />
+              QR 새로고침
             </button>
           </div>
         )}
 
-        <div className="flex flex-col gap-3 w-full">
+        <div className="flex w-full flex-col gap-3">
           {!checkedIn && (
-            <button
-              onClick={handleCheckIn}
-              className="w-full bg-primary text-primary-foreground font-semibold py-4 rounded-xl text-sm hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-              체크인 (Mock)
+            <button onClick={handleCheckIn} className="gradient-outline-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]">
+              체크인 처리 (Mock)
             </button>
           )}
           {checkedIn && (
-            <button
-              onClick={goBack}
-              className="w-full bg-secondary border border-border text-foreground font-semibold py-3.5 rounded-xl text-sm hover:border-primary/50 transition-all"
-            >
-              닫기
+            <button onClick={goBack} className="gradient-outline-surface w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]">
+              돌아가기
             </button>
           )}
         </div>

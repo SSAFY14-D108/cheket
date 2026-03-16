@@ -68,7 +68,7 @@ export function ResaleDetailContent({
   return (
     <div className={`flex flex-col gap-3 ${embedded ? 'px-4 pb-5' : 'p-4'}`}>
       {embedded ? (
-        <div className="flex gap-3 rounded-2xl border border-border bg-card p-3">
+        <div className="gradient-outline-surface-soft flex gap-3 rounded-2xl p-3">
           <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
             <Image
               src={item.poster}
@@ -81,14 +81,14 @@ export function ResaleDetailContent({
           <div className="min-w-0 flex-1">
             <h2 className="line-clamp-2 text-sm font-bold text-foreground">{item.eventName}</h2>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
+              <Calendar className="h-3.5 w-3.5 text-[#333333]" />
               <span className="truncate">{item.eventDate}</span>
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <MapPin className="h-3.5 w-3.5 text-[#333333]" />
               <span className="truncate">{item.venue}</span>
             </div>
-            <div className="mt-2 text-sm font-bold text-primary">
+            <div className="mt-2 text-sm font-bold text-[#111111]">
               {item.resalePrice.toLocaleString()} CTK
             </div>
           </div>
@@ -99,21 +99,21 @@ export function ResaleDetailContent({
             <Image src={item.poster} alt={item.eventName} fill className="object-cover" sizes="390px" />
           </div>
 
-          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
+          <div className="gradient-outline-surface-soft flex flex-col gap-2 rounded-2xl p-4">
             <h2 className="text-base font-bold text-foreground">{item.eventName}</h2>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4 text-primary" />
+              <Calendar className="h-4 w-4 text-[#333333]" />
               <span>{item.eventDate}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 text-primary" />
+              <MapPin className="h-4 w-4 text-[#333333]" />
               <span>{item.venue}</span>
             </div>
           </div>
         </>
       )}
 
-      <div className={`flex flex-col rounded-2xl border border-border bg-card ${embedded ? 'gap-2 p-3' : 'gap-3 p-4'}`}>
+      <div className={`gradient-outline-surface-soft flex flex-col rounded-2xl ${embedded ? 'gap-2 p-3' : 'gap-3 p-4'}`}>
         <h3 className="text-sm font-semibold text-foreground">{LABELS.ticketInfo}</h3>
         <div className="flex items-center justify-between gap-3">
           <span className={`${embedded ? 'text-xs' : 'text-sm'} text-muted-foreground`}>{LABELS.seat}</span>
@@ -134,12 +134,12 @@ export function ResaleDetailContent({
           <span className={`${embedded ? 'text-xs' : 'text-sm'} font-semibold text-foreground`}>{LABELS.resalePrice}</span>
           <div className="flex items-center gap-2">
             {discountPct > 0 && (
-              <span className={`flex items-center gap-1 ${embedded ? 'text-[11px]' : 'text-xs'} font-medium text-primary`}>
+              <span className={`flex items-center gap-1 ${embedded ? 'text-[11px]' : 'text-xs'} font-medium text-[#333333]`}>
                 <Tag className={`${embedded ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
                 {discountPct}% {LABELS.discount}
               </span>
             )}
-            <span className={`${embedded ? 'text-sm' : 'text-base'} font-bold text-primary`}>
+            <span className={`${embedded ? 'text-sm' : 'text-base'} font-bold text-[#111111]`}>
               {item.resalePrice.toLocaleString()} CTK
             </span>
           </div>
@@ -157,7 +157,7 @@ export function ResaleDetailContent({
         </div>
       )}
 
-      <div className={`rounded-2xl bg-secondary ${embedded ? 'p-3 text-[11px]' : 'p-4 text-xs'} leading-relaxed text-muted-foreground`}>
+      <div className={`gradient-outline-surface-soft rounded-2xl ${embedded ? 'p-3 text-[11px]' : 'p-4 text-xs'} leading-relaxed text-muted-foreground`}>
         <p className="mb-1 font-semibold text-foreground">{LABELS.noticeTitle}</p>
         <p>{LABELS.noticeBody1}</p>
         <p>{LABELS.noticeBody2}</p>
@@ -174,7 +174,7 @@ export function ResaleDetailContent({
       <button
         onClick={handleBuy}
         disabled={!hasSufficientBalance}
-        className={`w-full rounded-xl bg-primary ${embedded ? 'py-3 text-sm' : 'py-4 text-sm'} font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`gradient-outline-button w-full ${embedded ? 'py-3 text-sm' : 'py-4 text-sm'} disabled:cursor-not-allowed disabled:opacity-40`}
       >
         {LABELS.buy}
       </button>

@@ -108,6 +108,49 @@
   }
 }
 
+@layer components {
+  .gradient-outline-surface {
+    background-color: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.045);
+  }
+
+  .gradient-outline-surface-soft {
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.03);
+  }
+
+  .neutral-icon-button {
+    @apply flex items-center justify-center rounded-full bg-transparent text-[#333333] transition-colors;
+  }
+
+  .neutral-icon-button:hover {
+    @apply text-[#111111];
+    background-color: transparent;
+  }
+
+  .gradient-outline-icon-button {
+    @apply flex items-center justify-center rounded-full bg-transparent text-[#333333] transition-colors;
+  }
+
+  .gradient-outline-icon-button:hover {
+    @apply text-[#111111];
+  }
+
+  .gradient-outline-button {
+    @apply rounded-xl border-2 border-transparent bg-white font-semibold text-[#111111] transition-all active:scale-[0.98];
+    background-image:
+      linear-gradient(#ffffff, #ffffff),
+      linear-gradient(
+        135deg,
+        rgba(226, 218, 255, 0.76),
+        rgba(196, 247, 224, 0.74),
+        rgba(202, 230, 255, 0.76)
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+}
+
 /* =================================================================
    ORIGINAL TICKET SHAPE
    ================================================================= */

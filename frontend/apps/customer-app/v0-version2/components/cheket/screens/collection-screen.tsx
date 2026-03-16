@@ -731,7 +731,7 @@ function CollectionCoverFlow({
 }
 
 export function CollectionScreen() {
-  const { navigate, navigateTab, tickets } = useApp()
+  const { navigate, navigateTab, tickets, goBack } = useApp()
   const collected = useMemo(() => tickets.filter((ticket) => ticket.status === 'USED'), [tickets])
   const [activeIndex, setActiveIndex] = useState(0)
   const [effectPickerOpen, setEffectPickerOpen] = useState(false)
@@ -812,7 +812,7 @@ export function CollectionScreen() {
             </div>
             <button
               onClick={() => navigateTab('concerts')}
-              className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground"
+              className="gradient-outline-button px-6 py-2.5 text-sm"
             >
               Browse concerts
             </button>
@@ -827,7 +827,7 @@ export function CollectionScreen() {
                     onClick={() => navigate('collectible-ticket-detail', { ticketId: activeTicket.id })}
                     className="text-left"
                   >
-                    <h2 className="text-lg font-semibold leading-tight text-foreground underline-offset-4 transition hover:text-primary hover:underline">
+                    <h2 className="text-lg font-semibold leading-tight text-foreground underline-offset-4 transition hover:text-foreground hover:underline">
                       {activeTicket.eventName}
                     </h2>
                   </button>
@@ -835,7 +835,7 @@ export function CollectionScreen() {
                     type="button"
                     aria-label="Open effect settings"
                     onClick={() => setEffectPickerOpen((prev) => !prev)}
-                    className="mt-0.5 text-foreground/70 transition hover:text-foreground"
+                    className="gradient-outline-icon-button mt-0.5 h-8 w-8 text-foreground/70 transition hover:text-foreground"
                   >
                     <Settings2 className="h-5 w-5 stroke-[1.8]" />
                   </button>
@@ -843,7 +843,7 @@ export function CollectionScreen() {
               )}
             </div>
             {effectPickerOpen && activeTicket && (
-              <div className="mx-auto mb-4 flex w-full max-w-xl flex-wrap justify-center gap-2 rounded-2xl bg-white/75 px-3 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+              <div className="gradient-outline-surface-soft mx-auto mb-4 flex w-full max-w-xl flex-wrap justify-center gap-2 rounded-2xl px-3 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
                 {allEffects.map(({ key, label }) => {
                   const isActive = getEffect(activeTicket.id) === key
                   const isMetalBtn = key === 'gold-foil' || key === 'silver-foil' || key === 'rose-foil'
@@ -861,10 +861,10 @@ export function CollectionScreen() {
                         border: isActive
                           ? isMetalBtn
                             ? `2px solid ${metalBorder}`
-                            : '2px solid #00c598'
+                            : '2px solid #d7dde6'
                           : '1px solid #d7d7d7',
-                        background: isActive ? (isMetalBtn ? metalBg : '#e6faf5') : '#f5f5f5',
-                        color: isActive ? (isMetalBtn ? metalText : '#00a37d') : '#777',
+                        background: isActive ? (isMetalBtn ? metalBg : '#ffffff') : '#f5f5f5',
+                        color: isActive ? (isMetalBtn ? metalText : '#333333') : '#777',
                       }}
                     >
                       {label}
@@ -878,7 +878,7 @@ export function CollectionScreen() {
                 type="button"
                 aria-label="Previous ticket"
                 onClick={handlePrev}
-                className="mt-[220px] flex h-14 w-12 items-center justify-center text-foreground/85 transition hover:text-foreground"
+                className="gradient-outline-icon-button mt-[220px] flex h-14 w-12 items-center justify-center text-foreground/85 transition hover:text-foreground"
               >
                 <ChevronLeft className="h-10 w-10 stroke-[1.6]" />
               </button>
@@ -894,7 +894,7 @@ export function CollectionScreen() {
                 type="button"
                 aria-label="Next ticket"
                 onClick={handleNext}
-                className="mt-[220px] flex h-14 w-12 items-center justify-center text-foreground/85 transition hover:text-foreground"
+                className="gradient-outline-icon-button mt-[220px] flex h-14 w-12 items-center justify-center text-foreground/85 transition hover:text-foreground"
               >
                 <ChevronRight className="h-10 w-10 stroke-[1.6]" />
               </button>

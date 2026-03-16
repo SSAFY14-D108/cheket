@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 export function MyPageScreen() {
-  const { user, logout, navigate, wishlist, tickets } = useApp()
+  const { user, logout, navigate, navigateTab, wishlist, tickets } = useApp()
 
   if (!user) return null
 
@@ -29,7 +29,7 @@ export function MyPageScreen() {
       label: '보유티켓',
       value: `${holdingCount}장`,
       icon: Ticket,
-      onClick: () => navigate('my-tickets'),
+      onClick: () => navigateTab('my-tickets'),
     },
     {
       label: '관람완료',
@@ -63,8 +63,16 @@ export function MyPageScreen() {
       <div className="flex flex-col gap-4 p-4 pb-8">
         <section className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
-              <User className="h-7 w-7 text-primary" />
+            <div
+              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full border-[3px] border-transparent bg-white"
+              style={{
+                backgroundImage:
+                  'linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(135deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74), rgba(202, 230, 255, 0.76))',
+                backgroundOrigin: 'border-box',
+                backgroundClip: 'padding-box, border-box',
+              }}
+            >
+              <User className="h-7 w-7 text-[#333333]" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
@@ -76,7 +84,13 @@ export function MyPageScreen() {
                 </div>
                 <button
                   onClick={() => navigate('settings')}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-transparent bg-white text-muted-foreground transition-colors hover:text-foreground"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(135deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74), rgba(202, 230, 255, 0.76))',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box',
+                  }}
                   aria-label="설정"
                 >
                   <Settings className="h-4 w-4" />
@@ -85,12 +99,12 @@ export function MyPageScreen() {
 
               <div className="mt-4 grid gap-2.5 text-sm">
                 <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 flex-shrink-0 text-primary" />
+                  <Phone className="h-4 w-4 flex-shrink-0 text-[#333333]" />
                   <span className="text-muted-foreground">전화번호</span>
                   <span className="ml-auto font-medium text-foreground">{user.phone}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 flex-shrink-0 text-primary" />
+                  <Mail className="h-4 w-4 flex-shrink-0 text-[#333333]" />
                   <span className="text-muted-foreground">이메일</span>
                   <span className="ml-auto truncate text-foreground">{user.email}</span>
                 </div>
@@ -99,20 +113,34 @@ export function MyPageScreen() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-primary/20 bg-primary/10 p-5">
+        <section
+          className="rounded-2xl border-2 border-transparent bg-white p-5"
+          style={{
+            backgroundImage:
+              'linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(135deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74), rgba(202, 230, 255, 0.76))',
+            backgroundOrigin: 'border-box',
+            backgroundClip: 'padding-box, border-box',
+          }}
+        >
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Wallet</p>
           <div className="mt-2 flex items-end gap-2">
-            <span className="text-3xl font-bold text-primary">{user.ctkBalance.toLocaleString()}</span>
+            <span className="text-3xl font-bold text-[#111111]">{user.ctkBalance.toLocaleString()}</span>
             <span className="mb-1 text-sm text-muted-foreground">CTK</span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             예상 환산 금액 약 {(user.ctkBalance * 1.2).toLocaleString()}원
           </p>
           <button
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-transparent bg-white px-4 py-2.5 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98]"
+            style={{
+              backgroundImage:
+                'linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(135deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74), rgba(202, 230, 255, 0.76))',
+              backgroundOrigin: 'border-box',
+              backgroundClip: 'padding-box, border-box',
+            }}
             onClick={() => navigate('wallet')}
           >
-            <Wallet className="h-4 w-4" />
+            <Wallet className="h-4 w-4 text-[#333333]" />
             지갑 보기
           </button>
         </section>
@@ -128,10 +156,16 @@ export function MyPageScreen() {
               <button
                 key={label}
                 onClick={onClick}
-                className="rounded-xl border border-border bg-secondary/40 p-4 text-left transition-all hover:border-primary/40 active:scale-[0.98]"
+                className="rounded-xl border-2 border-transparent bg-white p-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-all active:scale-[0.98]"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(135deg, rgba(226, 218, 255, 0.5), rgba(196, 247, 224, 0.46), rgba(202, 230, 255, 0.5))',
+                  backgroundOrigin: 'border-box',
+                  backgroundClip: 'padding-box, border-box',
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <Icon className="h-4 w-4 text-primary" />
+                  <Icon className="h-4 w-4 text-[#333333]" />
                   <span className="text-xs font-semibold text-foreground">{value}</span>
                 </div>
                 <p className="mt-5 text-sm font-semibold text-foreground">{label}</p>
@@ -157,7 +191,13 @@ export function MyPageScreen() {
 
         <button
           onClick={logout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-secondary py-3.5 text-sm font-semibold text-red-400 transition-all hover:border-red-600/30 hover:bg-red-600/10 active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-transparent py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98]"
+          style={{
+            backgroundImage:
+              'linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(135deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74), rgba(202, 230, 255, 0.76))',
+            backgroundOrigin: 'border-box',
+            backgroundClip: 'padding-box, border-box',
+          }}
         >
           <LogOut className="h-4 w-4" />
           로그아웃

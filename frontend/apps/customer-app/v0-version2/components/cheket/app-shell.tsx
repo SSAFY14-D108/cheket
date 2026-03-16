@@ -16,6 +16,7 @@ interface AppShellProps {
   onBack?: () => void
   showNotification?: boolean
   rightElement?: ReactNode
+  footer?: ReactNode
   hideProfileIcon?: boolean
 }
 
@@ -39,19 +40,22 @@ export function AppShell({
   onBack,
   showNotification = true,
   rightElement,
+  footer,
   hideProfileIcon: _hideProfileIcon = false,
 }: AppShellProps) {
-  const { screen } = useApp()
+  const { screen, goBack } = useApp()
   const resolvedRightElement = rightElement ?? TUTORIAL_SCREEN_MAP[screen]
+  const resolvedShowBack = showBack || screen === 'collection'
+  const resolvedOnBack = onBack ?? (screen === 'collection' ? goBack : undefined)
 
   return (
     <div className="flex h-full flex-col">
       <header className="z-40 flex flex-shrink-0 items-center justify-between border-b border-border bg-surface px-4 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {showBack ? (
+          {resolvedShowBack ? (
             <button
-              onClick={onBack}
-              className="-ml-1 flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-secondary"
+              onClick={resolvedOnBack}
+              className="-ml-1 gradient-outline-icon-button h-8 w-8"
               aria-label="뒤로가기"
             >
               <ChevronLeft className="h-5 w-5 text-foreground" />
@@ -64,7 +68,7 @@ export function AppShell({
               {resolvedRightElement}
             </>
           ) : (
-            !showBack && (
+            !resolvedShowBack && (
               <Image
                 src="/logo2.webp"
                 alt="cheket"
@@ -80,7 +84,7 @@ export function AppShell({
         <div className="flex items-center gap-1">
           {showNotification ? (
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-secondary"
+              className="neutral-icon-button h-8 w-8"
               aria-label="알림"
             >
               <Bell className="h-5 w-5 text-foreground" />
@@ -90,6 +94,12 @@ export function AppShell({
       </header>
 
       <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-14' : ''}`}>{children}</main>
+
+      {footer ? (
+        <div className={`flex-shrink-0 px-4 py-2 ${showBottomNav ? 'mb-14' : ''}`}>
+          {footer}
+        </div>
+      ) : null}
 
       {showBottomNav ? <BottomNav /> : null}
     </div>
