@@ -32,9 +32,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.web3j.crypto.Credentials;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -97,6 +96,57 @@ public class HostShowServiceImpl implements HostShowService {
         Map<Long, Integer> capacityMap = sessionSeatRepository.countGroupedBySessionIds(sessionIds).stream()
             .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Long) row[1]).intValue()));
 
+        List<Long> ticketEffectIds = seatGrades.stream().map(SeatGrade::getTicketEffectId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        Map<Long, TicketEffect> ticketEffectMap = ticketEffectIds.isEmpty()
+            ? Collections.emptyMap()
+            : ticketEffectRepository.findAllById(ticketEffectIds).stream()
+                .collect(Collectors.toMap(TicketEffect::getId, Function.identity()));
+
+        List<Long> hostIds = stakeholders.stream()
+            .filter(stakeholder -> stakeholder.getRole() == StakeholderRole.ORGANIZER).map(Stakeholder::getHostId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        List<Long> userIds = stakeholders.stream()
+            .filter(stakeholder -> stakeholder.getRole() == StakeholderRole.ARTIST).map(Stakeholder::getUserId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        Map<Long, Host> hostMap = hostIds.isEmpty()
+            ? Collections.emptyMap()
+            : hostRepository.findAllById(hostIds).stream().collect(Collectors.toMap(Host::getId, Function.identity()));
+
+        Map<Long, User> userMap = userIds.isEmpty()
+            ? Collections.emptyMap()
+            : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+
+        List<GetHostShowDetailResponse.StakeholderInfo> stakeholderInfos = stakeholders.stream().map(stakeholder -> {
+            String name = null;
+            String number = null;
+            Long stakeholderId = null;
+
+            if (stakeholder.getRole() == StakeholderRole.ORGANIZER) {
+                stakeholderId = stakeholder.getHostId();
+
+                Host host = hostMap.get(stakeholder.getHostId());
+                if (host != null) {
+                    name = host.getCompanyName();
+                    number = host.getBusinessNo();
+                }
+            } else if (stakeholder.getRole() == StakeholderRole.ARTIST) {
+                stakeholderId = stakeholder.getUserId();
+
+                User user = userMap.get(stakeholder.getUserId());
+                if (user != null) {
+                    name = user.getUsername();
+                    number = user.getPhoneNumber();
+                }
+            }
+
+            return new GetHostShowDetailResponse.StakeholderInfo(stakeholder.getRole(), stakeholderId, name, number,
+                stakeholder.getShareBps());
+        }).toList();
+
         return new GetHostShowDetailResponse(show.getId(), show.getTitle(), show.getPosterUrl(),
             new GetHostShowDetailResponse.VenueInfo(show.getVenue().getId(), show.getVenue().getName(),
                 show.getVenue().getAddress()),
@@ -104,19 +154,23 @@ public class HostShowServiceImpl implements HostShowService {
                 show.getShowEndDate().toLocalDate()),
             new GetHostShowDetailResponse.ReservationPeriod(show.getReservationStartDate(),
                 show.getReservationEndDate()),
-            show.getDescription(), show.getPurchaseLimit(), likeRepository.countByShowId(showId),
-            seatGrades.stream()
-                .map(grade -> new GetHostShowDetailResponse.GradeInfo(grade.getSectionId(), grade.getGradeName(),
-                    grade.getPrice(), grade.getColorCode()))
-                .toList(),
-            stakeholders.stream()
-                .map(stakeholder -> new GetHostShowDetailResponse.StakeholderInfo(stakeholder.getRole(),
-                    stakeholder.getUserId(), stakeholder.getShareBps()))
-                .toList(),
+            show.getDescription(), show.getArtist(), show.getPurchaseLimit(), likeRepository.countByShowId(showId),
+
+            seatGrades.stream().map(grade -> {
+                TicketEffect ticketEffect = ticketEffectMap.get(grade.getTicketEffectId());
+
+                return new GetHostShowDetailResponse.GradeInfo(grade.getSectionId(), grade.getGradeName(),
+                    grade.getPrice(), grade.getColorCode(), grade.getTicketEffectId(),
+                    ticketEffect != null ? ticketEffect.getEffect() : null);
+            }).toList(),
+
+            stakeholderInfos,
+
             refundPolicies.stream()
                 .map(policy -> new GetHostShowDetailResponse.RefundPolicyInfo(policy.getDaysRemaining(),
                     policy.getRefundRate()))
                 .toList(),
+
             sessions.stream()
                 .map(session -> new GetHostShowDetailResponse.SessionInfo(session.getId(),
                     session.getSessionDate().toLocalDate(), session.getSessionStartTime().toLocalTime(),
