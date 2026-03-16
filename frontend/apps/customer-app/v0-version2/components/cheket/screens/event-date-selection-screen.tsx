@@ -17,10 +17,7 @@ function parseDateFromLabel(label: string) {
 }
 
 function needsKopisDetail(event: Event) {
-  return (
-    event.id.startsWith('kopis_') &&
-    (!event.priceInfo || !event.runtime || !event.dates || event.dates.length === 0 || event.grades.every((grade) => grade.price === 0))
-  )
+  return event.id.startsWith('kopis_') && (!event.priceInfo || !event.runtime || !event.dates || event.dates.length === 0 || event.grades.every((grade) => grade.price === 0))
 }
 
 export function EventDateSelectionScreen() {
@@ -53,9 +50,7 @@ export function EventDateSelectionScreen() {
         updateEvent(baseEvent.id, detail)
       }
 
-      if (!cancelled) {
-        setDetailLoading(false)
-      }
+      if (!cancelled) setDetailLoading(false)
     }
 
     void enrichEvent()
@@ -77,7 +72,6 @@ export function EventDateSelectionScreen() {
   const firstDayOfMonth = new Date(calYear, calMonth - 1, 1).getDay()
   const daysInMonth = new Date(calYear, calMonth, 0).getDate()
   const cells: (number | null)[] = [...Array(firstDayOfMonth).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
-
   while (cells.length % 7 !== 0) cells.push(null)
 
   const availableMap = new Map<string, EventDate[]>()
@@ -91,19 +85,17 @@ export function EventDateSelectionScreen() {
 
   return (
     <AppShell showBack onBack={goBack} title="공연 날짜 선택" showBottomNav={false}>
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-4 bg-gray-50 p-4">
         <p className="text-xs text-muted-foreground">원하는 날짜와 회차를 선택하면 예매 단계로 이어집니다.</p>
 
-        {detailLoading && (
-          <div className="rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
-            KOPIS 가격 정보를 불러오는 중입니다.
-          </div>
-        )}
+        {detailLoading && <div className="gradient-outline-surface rounded-xl px-4 py-3 text-xs text-muted-foreground">KOPIS 상세 정보를 불러오는 중입니다.</div>}
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="gradient-outline-surface overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <ChevronLeft className="h-5 w-5 text-muted-foreground/30" />
-            <span className="text-sm font-bold text-foreground">{calYear}.{String(calMonth).padStart(2, '0')}</span>
+            <span className="text-sm font-bold text-[#111111]">
+              {calYear}.{String(calMonth).padStart(2, '0')}
+            </span>
             <ChevronRight className="h-5 w-5 text-muted-foreground/30" />
           </div>
 
@@ -111,10 +103,7 @@ export function EventDateSelectionScreen() {
             {KR_WEEKDAYS.map((weekday, index) => (
               <div
                 key={weekday}
-                className={cn(
-                  'py-1 text-center text-xs font-semibold',
-                  index === 0 ? 'text-red-400' : index === 6 ? 'text-blue-400' : 'text-muted-foreground'
-                )}
+                className={cn('py-1 text-center text-xs font-semibold', index === 0 ? 'text-red-400' : index === 6 ? 'text-blue-400' : 'text-muted-foreground')}
               >
                 {weekday}
               </div>
@@ -135,16 +124,13 @@ export function EventDateSelectionScreen() {
                   key={day}
                   disabled={!hasShow}
                   onClick={() => setCalendarDayShows(datesOnDay)}
-                  className={cn(
-                    'relative flex aspect-square flex-col items-center justify-center rounded-xl transition-all',
-                    hasShow ? 'hover:scale-105 active:scale-95' : 'cursor-default'
-                  )}
+                  className={cn('relative flex aspect-square flex-col items-center justify-center rounded-xl transition-all', hasShow ? 'hover:scale-105 active:scale-95' : 'cursor-default')}
                 >
                   <span
                     className={cn(
                       'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors',
                       hasShow
-                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30'
+                        ? 'bg-[#eef2f1] text-[#111111]'
                         : dayOfWeek === 0
                           ? 'text-red-400/30'
                           : dayOfWeek === 6
@@ -154,7 +140,7 @@ export function EventDateSelectionScreen() {
                   >
                     {day}
                   </span>
-                  {hasShow && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-primary-foreground/70" />}
+                  {hasShow && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-[#9aa4b2]" />}
                 </button>
               )
             })}
@@ -163,18 +149,18 @@ export function EventDateSelectionScreen() {
 
         {calendarDayShows.length > 0 && (
           <div className="flex flex-col gap-3">
-            <p className="px-1 text-xs font-semibold text-foreground">선택 가능한 회차</p>
+            <p className="px-1 text-xs font-semibold text-[#111111]">선택 가능한 회차</p>
             {calendarDayShows.map((eventDate) => (
               <button
                 key={eventDate.id}
                 onClick={() => navigate('waiting-queue', { eventId: resolvedEvent.id, eventDateId: eventDate.id })}
                 disabled={detailLoading}
-                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.98] disabled:opacity-60"
+                className="gradient-outline-surface flex flex-col gap-3 rounded-2xl p-4 text-left transition-all active:scale-[0.98] disabled:opacity-60"
               >
                 <div className="flex w-full items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-primary">{eventDate.day}</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">{eventDate.label}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">{eventDate.day}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-[#111111]">{eventDate.label}</p>
                   </div>
                   <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
@@ -185,13 +171,12 @@ export function EventDateSelectionScreen() {
                       key={`${grade.name}-${grade.price}-${index}`}
                       className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
                       style={{
-                        backgroundColor: `${grade.color ?? '#6b7280'}22`,
+                        backgroundColor: `${grade.color ?? '#9aa4b2'}18`,
                         color: grade.color ?? '#6b7280',
-                        border: `1px solid ${(grade.color ?? '#6b7280')}55`,
                       }}
                     >
                       <span className="font-bold">{grade.name}</span>
-                      <span>{grade.price > 0 ? `${grade.price.toLocaleString()} CTK` : '가격 확인 중'}</span>
+                      <span>{grade.price > 0 ? `${grade.price.toLocaleString()} CTK` : '가격 정보 확인'}</span>
                     </div>
                   ))}
                 </div>

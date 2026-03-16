@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, ChevronLeft } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
-import { ChevronLeft, Check } from 'lucide-react'
 
 export function SignupScreen() {
   const { navigate, login } = useApp()
@@ -21,7 +21,7 @@ export function SignupScreen() {
 
   const sendSms = () => {
     if (!phone || phone.length < 10) {
-      setErrors((p) => ({ ...p, phone: '올바른 전화번호를 입력해주세요.' }))
+      setErrors((p) => ({ ...p, phone: '전화번호를 다시 입력해 주세요.' }))
       return
     }
     setCodeSent(true)
@@ -29,31 +29,28 @@ export function SignupScreen() {
   }
 
   const verifyCode = () => {
-    // Mock: any 6-digit code works
     if (code.length === 6) {
       setCodeVerified(true)
       setErrors({})
     } else {
-      setErrors((p) => ({ ...p, code: '인증번호 6자리를 입력해주세요.' }))
+      setErrors((p) => ({ ...p, code: '인증번호 6자리를 입력해 주세요.' }))
     }
   }
 
   const checkEmailDuplicate = () => {
-    // TODO: API call to check email duplicate
     if (!email || !email.includes('@')) {
-      setErrors((p) => ({ ...p, email: '올바른 이메일을 입력해주세요.' }))
+      setErrors((p) => ({ ...p, email: '이메일 형식을 확인해 주세요.' }))
       return
     }
-    // Mock: email verified
     setEmailVerified(true)
     setErrors({})
   }
 
   const handleNext = () => {
     const newErrors: Record<string, string> = {}
-    if (!name) newErrors.name = '이름을 입력해주세요.'
-    if (!emailVerified) newErrors.email = '이메일 중복확인이 필요합니다.'
-    if (!codeVerified) newErrors.code = '전화번호 인증이 필요합니다.'
+    if (!name) newErrors.name = '이름을 입력해 주세요.'
+    if (!emailVerified) newErrors.email = '이메일 중복 확인이 필요해요.'
+    if (!codeVerified) newErrors.code = '휴대폰 인증을 완료해 주세요.'
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
@@ -63,34 +60,28 @@ export function SignupScreen() {
 
   const handleSignup = () => {
     const newErrors: Record<string, string> = {}
-    if (password.length < 6) newErrors.password = '비밀번호는 6자 이상이어야 합니다.'
-    if (password !== passwordConfirm) newErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.'
-    if (!agreed) newErrors.agreed = '약관에 동의해주세요.'
+    if (password.length < 6) newErrors.password = '비밀번호는 6자 이상이어야 해요.'
+    if (password !== passwordConfirm) newErrors.passwordConfirm = '비밀번호가 서로 다릅니다.'
+    if (!agreed) newErrors.agreed = '약관 동의가 필요해요.'
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
     }
-    // Mock signup → auto login
     login(phone, password)
   }
 
   return (
     <div className="min-h-full flex flex-col bg-background">
-      {/* Header */}
-      <header className="flex items-center px-4 py-3 border-b border-border">
-        <button onClick={() => navigate('login')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors -ml-1">
-          <ChevronLeft className="w-5 h-5 text-foreground" />
+      <header className="flex items-center border-b border-border px-4 py-3">
+        <button onClick={() => navigate('login')} className="neutral-icon-button -ml-1 flex h-8 w-8 items-center justify-center rounded-full">
+          <ChevronLeft className="h-5 w-5 text-foreground" />
         </button>
-        <h1 className="font-semibold text-base text-foreground ml-2">회원가입</h1>
+        <h1 className="ml-2 text-base font-semibold text-[#111111]">회원가입</h1>
       </header>
 
-      {/* Step indicator */}
-      <div className="flex px-6 py-4 gap-2">
+      <div className="flex gap-2 px-6 py-4">
         {[1, 2].map((s) => (
-          <div
-            key={s}
-            className={`flex-1 h-1 rounded-full transition-colors ${s <= step ? 'bg-primary' : 'bg-secondary'}`}
-          />
+          <div key={s} className={`flex-1 h-1 rounded-full transition-colors ${s <= step ? 'bg-[#cfd6df]' : 'bg-secondary'}`} />
         ))}
       </div>
 
@@ -98,142 +89,120 @@ export function SignupScreen() {
         {step === 1 ? (
           <>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">이름</label>
-              <input
-                className="w-full bg-secondary border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="실명을 입력해주세요"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">이름</label>
+              <input className="gradient-outline-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none" placeholder="이름을 입력해 주세요" value={name} onChange={(e) => setName(e.target.value)} />
+              {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">이메일</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">이메일</label>
               <div className="flex gap-2">
                 <input
-                  className="flex-1 bg-secondary border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                  className="gradient-outline-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   disabled={emailVerified}
                 />
-                <button
-                  onClick={checkEmailDuplicate}
-                  disabled={emailVerified}
-                  className="bg-primary text-primary-foreground text-xs font-semibold px-4 rounded-xl hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                >
-                  {emailVerified ? '확인됨' : '중복확인'}
+                <button onClick={checkEmailDuplicate} disabled={emailVerified} className="gradient-outline-button rounded-xl px-4 text-xs font-semibold text-[#111111] disabled:opacity-50">
+                  {emailVerified ? '완료' : '중복 확인'}
                 </button>
               </div>
-              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
-              {emailVerified && <p className="text-primary text-xs mt-1">사용 가능한 이메일입니다.</p>}
+              {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
+              {emailVerified && <p className="mt-1 text-xs text-[#6b7280]">사용 가능한 이메일입니다.</p>}
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">전화번호</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">휴대폰 번호</label>
               <div className="flex gap-2">
                 <input
-                  className="flex-1 bg-secondary border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                  className="gradient-outline-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                   placeholder="010-0000-0000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   type="tel"
                 />
-                <button
-                  onClick={sendSms}
-                  className="bg-primary text-primary-foreground text-xs font-semibold px-4 rounded-xl hover:opacity-90 whitespace-nowrap"
-                >
-                  {codeSent ? '재발송' : 'SMS 인증'}
+                <button onClick={sendSms} className="gradient-outline-button rounded-xl px-4 text-xs font-semibold text-[#111111] whitespace-nowrap">
+                  {codeSent ? '재전송' : 'SMS 인증'}
                 </button>
               </div>
-              {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+              {errors.phone && <p className="mt-1 text-xs text-red-400">{errors.phone}</p>}
             </div>
 
             {codeSent && (
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">인증번호</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">인증번호</label>
                 <div className="flex gap-2">
                   <input
-                    className="flex-1 bg-secondary border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                    className="gradient-outline-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                     placeholder="6자리 인증번호"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     maxLength={6}
                     type="number"
                   />
-                  <button
-                    onClick={verifyCode}
-                    disabled={codeVerified}
-                    className="bg-secondary border border-border text-foreground text-xs font-semibold px-4 rounded-xl hover:border-primary/50 disabled:opacity-50 whitespace-nowrap"
-                  >
+                  <button onClick={verifyCode} disabled={codeVerified} className="gradient-outline-surface rounded-xl px-4 text-xs font-semibold text-[#111111] disabled:opacity-50 whitespace-nowrap">
                     {codeVerified ? (
-                      <span className="flex items-center gap-1 text-primary">
-                        <Check className="w-3.5 h-3.5" /> 완료
+                      <span className="flex items-center gap-1">
+                        <Check className="h-3.5 w-3.5" />
+                        완료
                       </span>
-                    ) : '확인'}
+                    ) : (
+                      '확인'
+                    )}
                   </button>
                 </div>
-                {errors.code && <p className="text-red-400 text-xs mt-1">{errors.code}</p>}
-                {codeVerified && <p className="text-primary text-xs mt-1">인증이 완료되었습니다.</p>}
+                {errors.code && <p className="mt-1 text-xs text-red-400">{errors.code}</p>}
+                {codeVerified && <p className="mt-1 text-xs text-[#6b7280]">휴대폰 인증이 완료되었어요.</p>}
               </div>
             )}
 
-            <button
-              onClick={handleNext}
-              className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-xl text-sm hover:opacity-90 active:scale-[0.98] transition-all mt-auto"
-            >
+            <button onClick={handleNext} className="gradient-outline-button mt-auto w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]">
               다음
             </button>
           </>
         ) : (
           <>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">비밀번호 설정</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">비밀번호 설정</label>
               <input
-                className="w-full bg-secondary border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                className="gradient-outline-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                 placeholder="비밀번호 (6자 이상)"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
+              {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password}</p>}
             </div>
 
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">비밀번호 확인</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">비밀번호 확인</label>
               <input
-                className="w-full bg-secondary border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                placeholder="비밀번호 재입력"
+                className="gradient-outline-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                placeholder="비밀번호를 다시 입력해 주세요"
                 type="password"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
               />
-              {errors.passwordConfirm && <p className="text-red-400 text-xs mt-1">{errors.passwordConfirm}</p>}
+              {errors.passwordConfirm && <p className="mt-1 text-xs text-red-400">{errors.passwordConfirm}</p>}
             </div>
 
-            <div className="bg-secondary rounded-xl p-4 text-xs text-muted-foreground space-y-2">
-              <p className="font-semibold text-foreground text-sm mb-2">약관 동의</p>
+            <div className="gradient-outline-surface-soft rounded-xl p-4 text-xs text-muted-foreground space-y-2">
+              <p className="font-semibold text-[#111111] text-sm mb-2">약관 동의</p>
               <p>[필수] 서비스 이용약관 동의</p>
               <p>[필수] 개인정보 수집 및 이용 동의</p>
               <p>[선택] 마케팅 정보 수신 동의</p>
-              <button
-                onClick={() => setAgreed(!agreed)}
-                className={`mt-2 flex items-center gap-2 font-semibold ${agreed ? 'text-primary' : 'text-foreground'}`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${agreed ? 'border-primary bg-primary' : 'border-border'}`}>
-                  {agreed && <Check className="w-3 h-3 text-primary-foreground" />}
+              <button onClick={() => setAgreed(!agreed)} className={`mt-2 flex items-center gap-2 font-semibold ${agreed ? 'text-[#111111]' : 'text-foreground'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${agreed ? 'border-[#cfd6df] bg-white' : 'border-border'}`}>
+                  {agreed && <Check className="w-3 h-3 text-[#111111]" />}
                 </div>
-                전체 동의
+                전체 약관에 동의합니다
               </button>
               {errors.agreed && <p className="text-red-400">{errors.agreed}</p>}
             </div>
 
-            <button
-              onClick={handleSignup}
-              className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-xl text-sm hover:opacity-90 active:scale-[0.98] transition-all mt-auto"
-            >
+            <button onClick={handleSignup} className="gradient-outline-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] mt-auto">
               가입 완료
             </button>
           </>

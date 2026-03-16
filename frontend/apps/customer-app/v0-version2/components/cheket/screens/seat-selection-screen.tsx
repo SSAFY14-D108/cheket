@@ -1,16 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react'
+import { AlertCircle, Calendar, CheckCircle2, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import { fetchKopisEventDetail } from '@/lib/kopis-client'
 import { generateVenueSeats } from '@/lib/mock-data'
@@ -24,7 +15,6 @@ function parseEventDate(label: string): { year: number; month: number; day: numb
 }
 
 const KR_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const
-
 type Step = 'date' | 'seats'
 
 export function SeatSelectionScreen() {
@@ -47,11 +37,7 @@ export function SeatSelectionScreen() {
 
       const needsDetail =
         baseEvent.id.startsWith('kopis_') &&
-        (!baseEvent.priceInfo ||
-          !baseEvent.runtime ||
-          !baseEvent.dates ||
-          baseEvent.dates.length === 0 ||
-          baseEvent.grades.every((grade) => grade.price === 0))
+        (!baseEvent.priceInfo || !baseEvent.runtime || !baseEvent.dates || baseEvent.dates.length === 0 || baseEvent.grades.every((grade) => grade.price === 0))
       if (!needsDetail) return
       if (fetchedEventIdsRef.current.has(baseEvent.id)) return
 
@@ -64,9 +50,7 @@ export function SeatSelectionScreen() {
         updateEvent(baseEvent.id, detail)
       }
 
-      if (!cancelled) {
-        setDetailLoading(false)
-      }
+      if (!cancelled) setDetailLoading(false)
     }
 
     void enrichEvent()
@@ -76,7 +60,6 @@ export function SeatSelectionScreen() {
   }, [baseEvent?.id, baseEvent?.priceInfo, baseEvent?.grades, updateEvent])
 
   const event = resolvedEvent
-
   const hasMultipleDates = Boolean(event?.dates && event.dates.length > 1)
   const presetDate = event?.dates?.find((d) => d.id === navParams.eventDateId) ?? null
   const needsDateStep = hasMultipleDates && !presetDate
@@ -129,10 +112,7 @@ export function SeatSelectionScreen() {
     return map
   }, [seats])
 
-  const steps: { key: Step; label: string }[] = [
-    ...(needsDateStep ? [{ key: 'date' as Step, label: '날짜' }] : []),
-    { key: 'seats', label: '좌석' },
-  ]
+  const steps: { key: Step; label: string }[] = [...(needsDateStep ? [{ key: 'date' as Step, label: '날짜' }] : []), { key: 'seats', label: '좌석' }]
   const currentStepIndex = steps.findIndex((s) => s.key === step)
 
   const handleBack = () => {
@@ -189,13 +169,13 @@ export function SeatSelectionScreen() {
     while (cells.length % 7 !== 0) cells.push(null)
 
     return (
-      <div className="flex flex-col gap-4 p-4">
-        <p className="text-xs text-muted-foreground">공연 날짜를 선택해 주세요.</p>
+      <div className="flex flex-col gap-4 bg-gray-50 p-4">
+        <p className="text-xs text-muted-foreground">공연 날짜를 먼저 선택해 주세요.</p>
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="gradient-outline-surface overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <ChevronLeft className="h-5 w-5 text-muted-foreground/30" />
-            <span className="text-sm font-bold text-foreground">
+            <span className="text-sm font-bold text-[#111111]">
               {calYear}.{String(calMonth).padStart(2, '0')}
             </span>
             <ChevronRight className="h-5 w-5 text-muted-foreground/30" />
@@ -229,16 +209,13 @@ export function SeatSelectionScreen() {
                     setCalendarDayShows(datesOnDay)
                     setShowTimePicker(true)
                   }}
-                  className={cn(
-                    'relative flex aspect-square flex-col items-center justify-center rounded-xl transition-all',
-                    hasShow ? 'hover:scale-105 active:scale-95' : 'cursor-default'
-                  )}
+                  className={cn('relative flex aspect-square flex-col items-center justify-center rounded-xl transition-all', hasShow ? 'hover:scale-105 active:scale-95' : 'cursor-default')}
                 >
                   <span
                     className={cn(
                       'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors',
                       hasShow
-                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30'
+                        ? 'bg-[#eef2f1] text-[#111111]'
                         : dow === 0
                           ? 'text-red-400/30'
                           : dow === 6
@@ -248,27 +225,16 @@ export function SeatSelectionScreen() {
                   >
                     {day}
                   </span>
-                  {hasShow && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-primary-foreground/70" />}
+                  {hasShow && <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-[#9aa4b2]" />}
                 </button>
               )
             })}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 px-1 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <div className="h-5 w-5 rounded-full bg-primary" />
-            <span>공연 있음</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-5 w-5 rounded-full bg-muted" />
-            <span>공연 없음</span>
-          </div>
-        </div>
-
         {showTimePicker && calendarDayShows.length > 0 && (
           <div className="mt-1 flex flex-col gap-3">
-            <p className="px-1 text-xs font-semibold text-foreground">회차를 선택해 주세요.</p>
+            <p className="px-1 text-xs font-semibold text-[#111111]">선택 가능한 회차</p>
             {calendarDayShows.map((d) => (
               <button
                 key={d.id}
@@ -278,12 +244,12 @@ export function SeatSelectionScreen() {
                   setCalendarDayShows([])
                   setStep('seats')
                 }}
-                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
+                className="gradient-outline-surface flex flex-col gap-3 rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
               >
                 <div className="flex w-full items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-primary">{d.day}</p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">{d.label}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#6b7280]">{d.day}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-[#111111]">{d.label}</p>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
@@ -296,7 +262,6 @@ export function SeatSelectionScreen() {
                       style={{
                         backgroundColor: `${g.color ?? '#6b7280'}22`,
                         color: g.color ?? '#6b7280',
-                        border: `1px solid ${(g.color ?? '#6b7280')}55`,
                       }}
                     >
                       <span className="font-bold">{g.name}</span>
@@ -317,31 +282,22 @@ export function SeatSelectionScreen() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 px-4 pb-2 pt-3">
           {selectedDate && (
-            <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-[#111111]">
               <Calendar className="h-3 w-3" />
               {selectedDate.day} · {selectedDate.label.split(' ').slice(-1)[0]}
             </span>
           )}
-          <span className="ml-auto text-xs text-muted-foreground">{maxSeats}매 이하 선택</span>
+          <span className="ml-auto text-xs text-muted-foreground">최대 {maxSeats}매 선택 가능</span>
         </div>
 
         <div className="flex items-center justify-end gap-2 px-4 pb-2">
-          <button
-            onClick={() => setZoom((z) => Math.max(0.6, z - 0.2))}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-secondary transition-colors hover:border-primary"
-          >
+          <button onClick={() => setZoom((z) => Math.max(0.6, z - 0.2))} className="neutral-icon-button flex h-7 w-7 items-center justify-center rounded-full">
             <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button
-            onClick={() => setZoom(1)}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-secondary transition-colors hover:border-primary"
-          >
+          <button onClick={() => setZoom(1)} className="neutral-icon-button flex h-7 w-7 items-center justify-center rounded-full">
             <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button
-            onClick={() => setZoom((z) => Math.min(2, z + 0.2))}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-secondary transition-colors hover:border-primary"
-          >
+          <button onClick={() => setZoom((z) => Math.min(2, z + 0.2))} className="neutral-icon-button flex h-7 w-7 items-center justify-center rounded-full">
             <ZoomIn className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         </div>
@@ -349,7 +305,7 @@ export function SeatSelectionScreen() {
         <div className="relative flex-1 overflow-auto bg-muted/30">
           <div ref={mapRef} className="mx-auto min-w-max origin-top p-4 transition-transform" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
             <div className="mb-6 text-center">
-              <div className="inline-block rounded-xl border border-foreground/20 bg-foreground/10 px-16 py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <div className="inline-block rounded-xl bg-white px-16 py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground shadow-[0_6px_20px_rgba(15,23,42,0.04)]">
                 STAGE
               </div>
             </div>
@@ -362,10 +318,7 @@ export function SeatSelectionScreen() {
 
                 return (
                   <div key={`${grade.name}-${grade.price}-${index}`} className="flex flex-col items-center gap-1">
-                    <span
-                      className="mb-1 rounded-full px-3 py-1 text-[10px] font-bold"
-                      style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
-                    >
+                    <span className="mb-1 rounded-full px-3 py-1 text-[10px] font-bold" style={{ backgroundColor: `${color}22`, color }}>
                       {grade.name}
                     </span>
 
@@ -392,19 +345,15 @@ export function SeatSelectionScreen() {
                                 key={seat.id}
                                 onClick={() => toggleSeat(seat)}
                                 disabled={!isAvailable && !isSelected}
-                                title={`${seat.grade} · ${row.split('-')[1]}열 ${seat.number}번 · ${seat.price.toLocaleString()} CTK`}
+                                title={`${seat.grade} ${seat.number}번 · ${seat.price.toLocaleString()} CTK`}
                                 aria-label={`${seat.grade} ${seat.number}번`}
                                 style={{ backgroundColor: bgColor, borderColor: border, borderWidth: 1 }}
                                 className={cn(
                                   'h-6 w-6 rounded-sm text-[9px] font-bold transition-all',
-                                  isSelected
-                                    ? 'scale-110 text-white shadow-md'
-                                    : isAvailable
-                                      ? 'cursor-pointer hover:scale-110'
-                                      : 'cursor-not-allowed opacity-40'
+                                  isSelected ? 'scale-110 text-white shadow-md' : isAvailable ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed opacity-40'
                                 )}
                               >
-                                {isSelected ? '선' : ''}
+                                {isSelected ? '✓' : ''}
                               </button>
                             )
                           })}
@@ -422,12 +371,8 @@ export function SeatSelectionScreen() {
           </div>
         </div>
 
-        <div className="bg-surface border-t border-border px-4 py-2">
-          {detailLoading && (
-            <div className="mb-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
-              KOPIS 가격 정보를 불러오는 중입니다.
-            </div>
-          )}
+        <div className="border-t border-border bg-surface px-4 py-2">
+          {detailLoading && <div className="gradient-outline-surface mb-2 rounded-lg px-3 py-2 text-xs text-muted-foreground">KOPIS 상세 정보를 불러오는 중입니다.</div>}
           <div className="flex flex-wrap items-center gap-3">
             {event.grades.map((g, index) => (
               <div key={`${g.name}-${g.price}-${index}`} className="flex items-center gap-1.5 text-xs">
@@ -438,18 +383,18 @@ export function SeatSelectionScreen() {
             ))}
             <div className="ml-auto flex items-center gap-1.5 text-xs">
               <div className="h-3 w-3 rounded-sm border border-border bg-muted" />
-              <span className="text-muted-foreground">판매 불가</span>
+              <span className="text-muted-foreground">선택 불가</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-surface border-t border-border p-4">
+      <div className="border-t border-border bg-surface p-4">
         <div className="flex flex-col gap-3">
           {selectedSeats.length >= maxSeats && (
             <div className="flex items-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3">
               <AlertCircle className="h-4 w-4 shrink-0 text-orange-400" />
-              <p className="text-xs text-orange-400">최대 {maxSeats}매까지 선택할 수 있습니다.</p>
+              <p className="text-xs text-orange-400">최대 {maxSeats}매까지 선택할 수 있어요.</p>
             </div>
           )}
 
@@ -468,7 +413,7 @@ export function SeatSelectionScreen() {
               ))}
               <div className="mt-1 flex items-center justify-between border-t border-border pt-1 text-sm font-semibold">
                 <span className="text-foreground">총 금액</span>
-                <span className="text-primary">{totalPrice.toLocaleString()} CTK</span>
+                <span className="text-[#111111]">{totalPrice.toLocaleString()} CTK</span>
               </div>
             </div>
           )}
@@ -483,7 +428,7 @@ export function SeatSelectionScreen() {
               })
             }
             disabled={selectedSeats.length === 0 || detailLoading}
-            className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            className="gradient-outline-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {selectedSeats.length > 0 ? `결제하기 (${selectedSeats.length}매)` : '좌석을 선택해 주세요'}
           </button>
@@ -502,16 +447,16 @@ export function SeatSelectionScreen() {
                 <div
                   className={cn(
                     'flex items-center gap-1.5 text-xs font-medium transition-colors',
-                    idx < currentStepIndex ? 'text-primary' : idx === currentStepIndex ? 'text-foreground' : 'text-muted-foreground/50'
+                    idx < currentStepIndex ? 'text-[#6b7280]' : idx === currentStepIndex ? 'text-foreground' : 'text-muted-foreground/50'
                   )}
                 >
                   {idx < currentStepIndex ? (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-[#6b7280]" />
                   ) : (
                     <span
                       className={cn(
                         'flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
-                        idx === currentStepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        idx === currentStepIndex ? 'bg-[#eef2f1] text-[#111111]' : 'bg-muted text-muted-foreground'
                       )}
                     >
                       {idx + 1}
@@ -519,7 +464,7 @@ export function SeatSelectionScreen() {
                   )}
                   <span>{s.label}</span>
                 </div>
-                {idx < steps.length - 1 && <div className={cn('mx-1 h-0.5 flex-1 rounded-full', idx < currentStepIndex ? 'bg-primary' : 'bg-border')} />}
+                {idx < steps.length - 1 && <div className={cn('mx-1 h-0.5 flex-1 rounded-full', idx < currentStepIndex ? 'bg-[#cfd6df]' : 'bg-border')} />}
               </div>
             ))}
           </div>

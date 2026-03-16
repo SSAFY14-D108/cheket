@@ -87,6 +87,74 @@ function getRefundPolicy(ticket: Ticket, event?: Event) {
   }
 }
 
+function getDemoGrade(event: Event, index = 0) {
+  const grades = event.grades.filter((grade) => grade.price > 0)
+  const fallback = grades[0]
+  const picked = grades[index % Math.max(grades.length, 1)] ?? fallback
+
+  return {
+    name: picked?.name ?? 'R석',
+    price: picked?.price ?? 99000,
+  }
+}
+
+function getDemoEventDate(event: Event, index = 0) {
+  return event.dates?.[index]?.label ?? event.date
+}
+
+function buildDemoTicketsFromEvents(events: Event[]): Ticket[] {
+  const source = events.filter((event) => event.poster).slice(0, 6)
+  if (source.length < 3) return MOCK_TICKETS
+
+  return source.map((event, index) => {
+    const grade = getDemoGrade(event, index)
+    const statusCycle: Ticket['status'][] = ['SOLD', 'LISTED', 'USED', 'SOLD', 'USED', 'SOLD']
+    const status = statusCycle[index] ?? 'SOLD'
+
+    return {
+      id: `kopis_tkt_${index + 1}`,
+      eventId: event.id,
+      eventName: event.name,
+      eventDate: getDemoEventDate(event, index),
+      venue: event.venue,
+      poster: event.poster,
+      seatId: `${event.id}_seat_${index + 1}`,
+      seatLabel: `${String.fromCharCode(65 + (index % 5))}열 ${index + 2}번`,
+      grade: grade.name,
+      originalPrice: grade.price,
+      resalePrice: status === 'LISTED' ? Math.max(1000, grade.price - 5000) : undefined,
+      status,
+      attendedDate: status === 'USED' ? `2025.${String(index + 4).padStart(2, '0')}.12` : undefined,
+    }
+  })
+}
+
+function buildDemoResaleItemsFromEvents(events: Event[]): ResaleItem[] {
+  const source = events.filter((event) => event.poster).slice(0, 5)
+  if (source.length < 2) return MOCK_RESALE_ITEMS
+
+  return source.map((event, index) => {
+    const grade = getDemoGrade(event, index + 1)
+    const originalPrice = grade.price
+    const resalePrice = Math.max(1000, originalPrice - (index + 1) * 4000)
+
+    return {
+      id: `kopis_rs_${index + 1}`,
+      ticketId: `kopis_ext_tkt_${index + 1}`,
+      eventId: event.id,
+      eventName: event.name,
+      eventDate: getDemoEventDate(event, index),
+      venue: event.venue,
+      poster: event.poster,
+      seatLabel: `${String.fromCharCode(67 + (index % 4))}열 ${index + 3}번`,
+      grade: grade.name,
+      originalPrice,
+      resalePrice,
+      sellerId: `seller_${index + 1}`,
+    }
+  })
+}
+
 interface AppContextValue {
   user: User | null
   login: (id: string, password: string) => boolean
@@ -159,13 +227,14 @@ const MOCK_PHONE_BOOK: Record<string, string> = {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const latestEventsRequestRef = useRef(0)
+  const seededExternalShowcaseRef = useRef(false)
   const [user, setUser] = useState<User | null>(null)
   const [screen, setScreen] = useState<Screen>('login')
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [navParams, setNavParams] = useState<NavParams>({})
   const [screenHistory, setScreenHistory] = useState<Array<{ screen: Screen; params: NavParams }>>([])
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS)
-  const [resaleItems, setResaleItems] = useState<ResaleItem[]>([])
+  const [resaleItems, setResaleItems] = useState<ResaleItem[]>(MOCK_RESALE_ITEMS)
   const [allEvents, setAllEvents] = useState<Event[]>(MOCK_EVENTS)
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [eventsLoading, setEventsLoading] = useState(true)
@@ -202,6 +271,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dedupedItems.length > 0) {
         if (codes.length === 0) {
           setAllEvents(dedupedItems)
+          if (!seededExternalShowcaseRef.current) {
+            setTickets(buildDemoTicketsFromEvents(dedupedItems))
+            setResaleItems(buildDemoResaleItemsFromEvents(dedupedItems))
+            seededExternalShowcaseRef.current = true
+          }
         }
         setEvents(dedupedItems)
         setEventsSource('kopis')
@@ -209,6 +283,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else {
         if (codes.length === 0) {
           setAllEvents(MOCK_EVENTS)
+          if (!seededExternalShowcaseRef.current) {
+            setTickets(MOCK_TICKETS)
+            setResaleItems(MOCK_RESALE_ITEMS)
+            seededExternalShowcaseRef.current = true
+          }
         }
         setEvents(MOCK_EVENTS)
         setEventsSource('mock')
@@ -219,6 +298,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (codes.length === 0) {
         setAllEvents(MOCK_EVENTS)
+        if (!seededExternalShowcaseRef.current) {
+          setTickets(MOCK_TICKETS)
+          setResaleItems(MOCK_RESALE_ITEMS)
+          seededExternalShowcaseRef.current = true
+        }
       }
       setEvents(MOCK_EVENTS)
       setEventsSource('mock')

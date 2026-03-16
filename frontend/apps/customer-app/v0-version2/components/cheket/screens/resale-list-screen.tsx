@@ -102,11 +102,11 @@ export function ResaleListScreen() {
 
   return (
     <AppShell title="2차 거래소">
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-4 bg-gray-50 p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            className="w-full rounded-xl border border-border bg-secondary py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+            className="w-full rounded-xl border-0 bg-gray-100 py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
             placeholder="공연명, 아티스트, 장소 검색"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -124,8 +124,8 @@ export function ResaleListScreen() {
               className={cn(
                 'whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
                 selectedRegion === region
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  ? 'bg-[#eef2f1] text-[#111111]'
+                  : 'bg-transparent text-muted-foreground hover:bg-gray-100 hover:text-foreground'
               )}
             >
               {region}
@@ -135,7 +135,7 @@ export function ResaleListScreen() {
 
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-[#333333]">
               {selectedRegion}
               <button onClick={() => setSelectedRegion('전체')}>
                 <X className="h-3 w-3" />
@@ -161,7 +161,7 @@ export function ResaleListScreen() {
                       resaleEntrySource: 'marketplace',
                     })
                   }
-                  className="overflow-hidden rounded-2xl border border-border bg-card text-left transition-all hover:border-primary/40 active:scale-[0.98]"
+                  className="gradient-outline-surface-soft overflow-hidden rounded-2xl text-left transition-all active:scale-[0.98]"
                 >
                   <div className="relative h-28 w-full overflow-hidden bg-secondary">
                     <Image
@@ -189,7 +189,7 @@ export function ResaleListScreen() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 pt-0.5 text-primary">
+                    <div className="flex items-center gap-1 pt-0.5 text-[#333333]">
                       <Tag className="h-3 w-3" />
                       <span className="text-[10px] font-semibold">
                         {minPrice.toLocaleString()} ~

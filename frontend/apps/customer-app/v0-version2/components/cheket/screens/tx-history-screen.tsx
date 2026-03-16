@@ -39,17 +39,17 @@ export function TxHistoryScreen() {
 
   const getTxTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      PURCHASE: 'border-blue-200 bg-blue-50 text-blue-700',
-      RESALE_LIST: 'border-purple-200 bg-purple-50 text-purple-700',
-      RESALE_BUY: 'border-green-200 bg-green-50 text-green-700',
-      TRANSFER: 'border-orange-200 bg-orange-50 text-orange-700',
-      REFUND: 'border-amber-200 bg-amber-50 text-amber-700',
+      PURCHASE: 'bg-gray-100 text-[#333333]',
+      RESALE_LIST: 'bg-gray-100 text-[#333333]',
+      RESALE_BUY: 'bg-gray-100 text-[#333333]',
+      TRANSFER: 'bg-gray-100 text-[#333333]',
+      REFUND: 'bg-gray-100 text-[#333333]',
     }
-    return colors[type] || 'border-gray-200 bg-gray-50 text-gray-700'
+    return colors[type] || 'bg-gray-100 text-gray-700'
   }
 
   const getStatusIcon = (status: string) => {
-    if (status === 'CONFIRMED') return <Check className="h-5 w-5 text-primary" />
+    if (status === 'CONFIRMED') return <Check className="h-5 w-5 text-[#333333]" />
     if (status === 'FAILED') return <AlertCircle className="h-5 w-5 text-destructive" />
     return <Clock className="h-5 w-5 text-muted-foreground" />
   }
@@ -83,7 +83,7 @@ export function TxHistoryScreen() {
       showBottomNav={false}
       rightElement={<TutorialHelpButton tutorialId="tx-history" />}
     >
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-gray-50">
         {allTxRecords.length === 0 ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center p-4 text-center">
             <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
@@ -95,9 +95,9 @@ export function TxHistoryScreen() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="space-y-3 p-4">
             {allTxRecords.map((tx) => (
-              <div key={tx.id} className="border-b border-border bg-card p-4">
+              <div key={tx.id} className="gradient-outline-surface-soft rounded-2xl p-4">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-foreground">{tx.label}</p>
@@ -106,12 +106,12 @@ export function TxHistoryScreen() {
                   <div className="flex items-center gap-2">
                     {getStatusIcon(tx.status)}
                     <span
-                      className={`rounded-full border px-2 py-1 text-xs font-semibold ${
+                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
                         tx.status === 'CONFIRMED'
-                          ? 'border-green-200 bg-green-50 text-green-700'
+                          ? 'bg-gray-100 text-[#333333]'
                           : tx.status === 'FAILED'
-                            ? 'border-red-200 bg-red-50 text-red-700'
-                            : 'border-border bg-muted text-muted-foreground'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {getStatusLabel(tx.status)}
@@ -120,12 +120,12 @@ export function TxHistoryScreen() {
                 </div>
 
                 <div className="mb-3">
-                  <span className={`inline-block rounded-full border px-2.5 py-1 text-xs font-semibold ${getTxTypeColor(tx.type)}`}>
+                  <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${getTxTypeColor(tx.type)}`}>
                     {getTxTypeLabel(tx.type)}
                   </span>
                 </div>
 
-                <div className="space-y-2 rounded-lg bg-muted p-3 text-xs">
+                <div className="rounded-lg bg-gray-50 p-3 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">TX Hash</span>
                     <code className="font-mono text-foreground">{formatHash(tx.txHash)}</code>
@@ -141,7 +141,7 @@ export function TxHistoryScreen() {
                     <span className="font-semibold text-foreground">{tx.confirmations}/12</span>
                   </div>
                   {tx.errorMessage ? (
-                    <div className="border-t border-border pt-2">
+                    <div className="mt-2 border-t border-border pt-2">
                       <p className="text-destructive">{tx.errorMessage}</p>
                     </div>
                   ) : null}

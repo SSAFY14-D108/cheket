@@ -100,9 +100,9 @@ export function ResaleTicketsScreen() {
 
   return (
     <AppShell title={LABELS.marketplace} showBack onBack={goBack}>
-      <div className="relative flex h-full flex-col">
-        <div className="border-b border-border px-4 py-4">
-          <div className="flex gap-3 rounded-2xl border border-border bg-card p-3">
+      <div className="relative flex h-full flex-col bg-gray-50">
+        <div className="px-4 py-4">
+          <div className="gradient-outline-surface-soft flex gap-3 rounded-2xl p-3">
             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={event.poster} alt={event.name} fill className="object-cover" sizes="80px" />
             </div>
@@ -110,14 +110,14 @@ export function ResaleTicketsScreen() {
             <div className="min-w-0 flex-1">
               <h3 className="line-clamp-2 text-lg font-bold leading-tight text-foreground">{event.name}</h3>
               <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <CalendarDays className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                <CalendarDays className="h-3.5 w-3.5 flex-shrink-0 text-[#333333]" />
                 <span className="truncate leading-5">{event.date}</span>
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-[#333333]" />
                 <span className="truncate leading-5">{event.venue}</span>
               </div>
-              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-[#333333]">
                 <Ticket className="h-3 w-3" />
                 <span>
                   {LABELS.sellingCountPrefix}
@@ -144,8 +144,8 @@ export function ResaleTicketsScreen() {
                       onClick={() => setSessionFilter(value)}
                       className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                         isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-secondary text-muted-foreground hover:text-foreground'
+                          ? 'bg-[#eef2f1] text-[#111111]'
+                          : 'bg-transparent text-muted-foreground hover:bg-gray-100 hover:text-foreground'
                       }`}
                     >
                       {option}
@@ -161,7 +161,7 @@ export function ResaleTicketsScreen() {
               <p className="mb-2 text-[11px] font-semibold text-muted-foreground">{LABELS.session}</p>
               <button
                 onClick={() => setIsSessionSheetOpen(true)}
-                className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40"
+                className="flex w-full items-center justify-between rounded-xl bg-white px-3 py-2 text-left shadow-[0_6px_20px_rgba(15,23,42,0.03)] transition-colors"
               >
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground">{LABELS.sessionSelect}</p>
@@ -182,8 +182,8 @@ export function ResaleTicketsScreen() {
                 onClick={() => setSort(value)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                   sort === value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    ? 'bg-[#eef2f1] text-[#111111]'
+                    : 'bg-transparent text-muted-foreground hover:bg-gray-100 hover:text-foreground'
                 }`}
               >
                 {label}
@@ -231,8 +231,8 @@ export function ResaleTicketsScreen() {
                       }}
                       className={`rounded-xl border px-3 py-3 text-left text-sm transition-colors ${
                         isActive
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border bg-card text-foreground hover:border-primary/40'
+                          ? 'bg-[#eef2f1] text-[#111111]'
+                          : 'border-transparent bg-gray-50 text-foreground hover:bg-gray-100'
                       }`}
                     >
                       {option}
@@ -257,7 +257,7 @@ export function ResaleTicketsScreen() {
                       goBack()
                     }
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-secondary"
+                  className="gradient-outline-icon-button h-8 w-8"
                   aria-label="닫기"
                 >
                   <X className="h-5 w-5 text-foreground" />
