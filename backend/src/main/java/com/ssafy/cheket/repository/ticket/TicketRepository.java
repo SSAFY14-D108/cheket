@@ -80,4 +80,15 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         """)
     List<UsedAndExpiredTicketProjection> findUsedAndExpiredTicketsByUserId(@Param("userId") Long userId);
 
+    // 총 판매 금액 조회
+    @Query("""
+        select coalesce(sum(sg.price), 0)
+        from Ticket t
+        join SessionSeat ss on t.sessionSeatId = ss.id
+        join Session s on ss.sessionId = s.id
+        join Seat seat on ss.seatId = seat.id
+        join SeatGrade sg on sg.showId = s.showId and sg.sectionId = seat.sectionId
+        where s.showId = :showId
+        """)
+    Integer sumPrimarySalesByShowId(Long showId);
 }
