@@ -23,6 +23,9 @@ public class Stakeholder {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "host_id")
+    private Long hostId;
+
     @Column(name = "stakeholder_nft_id")
     private Long stakeholderNftId;
 
