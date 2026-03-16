@@ -6,7 +6,8 @@ import { useDashboardData } from "@/hooks/use-dashboard-data"
 
 export default function DashboardPage() {
     const params = useParams()
-    const showId = params.showId as string
+    const rawShowId = params.showId
+    const showId = Array.isArray(rawShowId) ? rawShowId[0] : rawShowId
 
     const { data, loading, error } = useDashboardData(showId)
 

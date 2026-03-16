@@ -60,4 +60,5 @@ export interface DashboardData {
     revenueSplit: DashboardRevenueSplit
     reservations: DashboardReservations
     wallet: WalletBalance | null
+    partialErrors?: string[]
 }

@@ -12,7 +12,22 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ data }: DashboardContentProps) {
+  if (!data) {
+    return (
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+          대시보드 데이터를 불러오는 중입니다.
+        </div>
+      </main>
+    )
+  }
+
   const { totalSales, bookingRate, revenueSplit, reservations, wallet } = data
+  const sessions = reservations.sessions ?? []
+  const safeBookingRate = Number.isFinite(bookingRate.bookingRate) ? bookingRate.bookingRate : 0
+  const safeReservedSeats = Number.isFinite(bookingRate.reservedSeats) ? bookingRate.reservedSeats : 0
+  const safeCapacity = Number.isFinite(bookingRate.capacity) ? bookingRate.capacity : 0
+  const partialErrors = data.partialErrors ?? []
 
   const revenueSegments = (revenueSplit.splits ?? []).map((s, i) => ({
     label: s.role,
@@ -44,6 +59,12 @@ export function DashboardContent({ data }: DashboardContentProps) {
           <p className="text-sm text-muted-foreground">{reservations.venue || "-"}</p>
         </div>
       </div>
+
+      {partialErrors.length > 0 && (
+        <div className="mt-6 rounded-sm border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          일부 통계 데이터를 불러오지 못했습니다. 가능한 데이터만 먼저 표시합니다.
+        </div>
+      )}
 
       {/* 총 판매현황 + 지갑 잔액 */}
       <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -107,7 +128,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
 
       {/* 회차별 예매 현황 막대 그래프 */}
       <section className="mt-6">
-        <SessionBookingChart sessions={reservations.sessions} />
+        <SessionBookingChart sessions={sessions} />
       </section>
 
       {/* 예매율 + 수익 배분 */}
@@ -121,17 +142,17 @@ export function DashboardContent({ data }: DashboardContentProps) {
             <div className="flex flex-col gap-4">
               <div className="flex items-end gap-2">
                 <span className="text-3xl font-bold text-foreground">
-                  {bookingRate.bookingRate.toFixed(1)}%
+                  {safeBookingRate.toFixed(1)}%
                 </span>
                 <span className="pb-1 text-sm text-muted-foreground">
-                  ({bookingRate.reservedSeats.toLocaleString()} / {bookingRate.capacity.toLocaleString()}석)
+                  ({safeReservedSeats.toLocaleString()} / {safeCapacity.toLocaleString()}석)
                 </span>
               </div>
               <div className="h-3 w-full overflow-hidden rounded-full bg-secondary">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${bookingRate.bookingRate}%`,
+                    width: `${Math.min(Math.max(safeBookingRate, 0), 100)}%`,
                     backgroundColor: "var(--chart-1)",
                   }}
                 />
