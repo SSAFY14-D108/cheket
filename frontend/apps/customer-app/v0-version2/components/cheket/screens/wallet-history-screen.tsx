@@ -2,72 +2,71 @@
 
 import { useApp } from '@/lib/app-context'
 import { AppShell } from '../app-shell'
-import { ChevronLeft, ArrowUpRight, ArrowDownLeft, LogIn } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, LogIn } from 'lucide-react'
+import { TutorialHelpButton } from '../tutorial-dialog'
 
 const TX_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  CHARGE: { label: 'CTK 충전', icon: <ArrowDownLeft className="w-5 h-5" />, color: 'text-primary' },
-  PURCHASE: { label: '티켓 구매', icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-destructive' },
-  RESALE_BUY: { label: '리세일 구매', icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-destructive' },
-  RESALE_SELL: { label: '리세일 판매', icon: <ArrowDownLeft className="w-5 h-5" />, color: 'text-primary' },
-  TRANSFER_SEND: { label: '양도 송신', icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-destructive' },
-  TRANSFER_RECEIVE: { label: '양도 수신', icon: <ArrowDownLeft className="w-5 h-5" />, color: 'text-primary' },
+  CHARGE: { label: 'CTK 충전', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
+  PURCHASE: { label: '티켓 구매', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
+  RESALE_BUY: { label: '재판매 구매', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
+  RESALE_SELL: { label: '재판매 판매', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
+  TRANSFER_SEND: { label: '티켓 양도', icon: <ArrowUpRight className="h-5 w-5" />, color: 'text-destructive' },
+  TRANSFER_RECEIVE: { label: '티켓 받기', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
+  REFUND: { label: '환불', icon: <ArrowDownLeft className="h-5 w-5" />, color: 'text-primary' },
 }
 
 export function WalletHistoryScreen() {
   const { walletTxs, goBack } = useApp()
 
   const formatDate = (ts: number) => {
-    const d = new Date(ts)
-    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+    const date = new Date(ts)
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
   }
 
   return (
-    <AppShell>
-      <div className="flex flex-col min-h-screen bg-background">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border sticky top-0 bg-background">
-          <button onClick={goBack} className="p-1.5 hover:bg-secondary rounded-lg active:scale-95 transition-all">
-            <ChevronLeft className="w-5 h-5 text-foreground" />
-          </button>
-          <h1 className="text-lg font-bold text-foreground">지갑 거래 내역</h1>
-        </div>
+    <AppShell
+      title="지갑 거래 내역"
+      showBack
+      onBack={goBack}
+      showBottomNav={false}
+      rightElement={<TutorialHelpButton tutorialId="wallet-history" />}
+    >
+      <div className="flex flex-1 flex-col gap-2 px-4 py-4">
+        {walletTxs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <LogIn className="mb-3 h-12 w-12 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">거래 내역이 아직 없어요.</p>
+          </div>
+        ) : (
+          walletTxs.map((tx) => {
+            const meta = TX_TYPE_LABELS[tx.type] || TX_TYPE_LABELS.CHARGE
+            const isIn = tx.amount >= 0
 
-        {/* TX List */}
-        <div className="flex-1 px-4 py-4 flex flex-col gap-2 overflow-y-auto">
-          {walletTxs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <LogIn className="w-12 h-12 text-muted-foreground mb-3 opacity-30" />
-              <p className="text-sm text-muted-foreground">거래 내역이 없습니다.</p>
-            </div>
-          ) : (
-            walletTxs.map((tx) => {
-              const meta = TX_TYPE_LABELS[tx.type] || TX_TYPE_LABELS.CHARGE
-              const isIn = tx.amount >= 0
-              return (
-                <div key={tx.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:bg-secondary/50 transition-colors">
-                  {/* Icon */}
-                  <div className={`w-10 h-10 rounded-full bg-secondary flex items-center justify-center ${meta.color}`}>
-                    {meta.icon}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{tx.label}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</p>
-                  </div>
-
-                  {/* Amount */}
-                  <div className="text-right flex-shrink-0">
-                    <p className={`text-sm font-semibold ${isIn ? 'text-primary' : 'text-destructive'}`}>
-                      {isIn ? '+' : ''}{tx.amount.toLocaleString()} CTK
-                    </p>
-                    <p className="text-xs text-muted-foreground">잔액: {tx.balance.toLocaleString()}</p>
-                  </div>
+            return (
+              <div
+                key={tx.id}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-secondary/50"
+              >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-secondary ${meta.color}`}>
+                  {meta.icon}
                 </div>
-              )
-            })
-          )}
-        </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{tx.label}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</p>
+                </div>
+
+                <div className="flex-shrink-0 text-right">
+                  <p className={`text-sm font-semibold ${isIn ? 'text-primary' : 'text-destructive'}`}>
+                    {isIn ? '+' : ''}
+                    {tx.amount.toLocaleString()} CTK
+                  </p>
+                  <p className="text-xs text-muted-foreground">잔액: {tx.balance.toLocaleString()}</p>
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
     </AppShell>
   )

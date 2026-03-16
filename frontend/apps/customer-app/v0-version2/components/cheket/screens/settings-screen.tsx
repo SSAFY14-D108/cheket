@@ -10,19 +10,19 @@ export function SettingsScreen() {
 
   return (
     <AppShell title="설정" showBack onBack={goBack} showBottomNav={false}>
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
         <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-foreground">푸시 알림 받기</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                마케팅/이벤트 등 푸시 알림 수신 여부를 설정합니다.
+              <p className="text-sm font-semibold text-foreground">예매 알림 받기</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                마감 임박 공연이나 주요 예매 일정을 알림으로 받아볼 수 있어요.
               </p>
             </div>
             <Switch
               checked={allowNotifications}
               onCheckedChange={setAllowNotifications}
-              aria-label="푸시 알림 받기 설정"
+              aria-label="예매 알림 설정"
             />
           </div>
         </section>
@@ -30,13 +30,13 @@ export function SettingsScreen() {
         <section className="space-y-2">
           <button
             onClick={() => navigate('password-change')}
-            className="w-full flex items-center justify-between px-4 py-3 bg-card border border-border rounded-lg hover:border-primary/40 active:scale-[0.98] transition-all"
+            className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 transition-all hover:border-primary/40 active:scale-[0.98]"
           >
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-muted-foreground" />
+              <Lock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">비밀번호 변경</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         </section>
       </div>
