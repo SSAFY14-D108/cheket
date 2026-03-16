@@ -3,7 +3,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Calendar, BarChart3 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { MapPin, Calendar, BarChart3, Ticket } from "lucide-react"
 import type { MyShowSummary } from "@/lib/mypage-api"
 
 interface EventCardProps {
@@ -11,6 +12,21 @@ interface EventCardProps {
 }
 
 const POSTER_PLACEHOLDER = "/images/poster-1.jpg"
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "임시저장",
+  UPCOMING: "공개 예정",
+  TICKETING: "예매 중",
+  CLOSED: "종료",
+}
+
+function formatShowPeriod(event: MyShowSummary) {
+  if (event.show.showStartDate === event.show.showEndDate) {
+    return event.show.showStartDate
+  }
+
+  return `${event.show.showStartDate} ~ ${event.show.showEndDate}`
+}
 
 export function EventCard({ event }: EventCardProps) {
   return (
@@ -26,16 +42,25 @@ export function EventCard({ event }: EventCardProps) {
           />
         </div>
         <CardContent className="flex flex-col gap-2 p-4">
-          <h3 className="text-base font-semibold text-foreground leading-snug text-balance">
-            {event.title}
-          </h3>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-base font-semibold text-foreground leading-snug text-balance">
+              {event.title}
+            </h3>
+            <Badge variant="outline">
+              {STATUS_LABELS[event.status] ?? event.status}
+            </Badge>
+          </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Calendar className="size-3.5 shrink-0" />
-            <span>{event.show.showStartDate}</span>
+            <span>{formatShowPeriod(event)}</span>
           </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="size-3.5 shrink-0" />
             <span>{event.venue}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Ticket className="size-3.5 shrink-0" />
+            <span>구매 제한 {event.purchaseLimit}매</span>
           </div>
           <Link
             href={`/shows/${event.showId}/dashboard`}
