@@ -11,7 +11,61 @@ import {
 } from "@/mocks/data/show-store"
 import { createNotFoundResponse, createUnauthorizedResponse, isAuthorized } from "./utils"
 
+type ShowMutationBody = {
+  title?: string
+  posterUrl?: string
+  venueId?: number
+  artistName?: string
+  show?: { startAt?: string; endAt?: string }
+  reservation?: { openAt?: string; closeAt?: string }
+  description?: string
+  purchaseLimit?: number
+  grade?: Array<{
+    sectionId?: number[] | number
+    gradeName?: string
+    price?: number
+    colorCode?: string
+    ticketEffectId?: number
+  }>
+  stakeholders?: Array<{
+    role?: "organizer" | "artist"
+    userId?: number
+    shareBps?: number
+  }>
+  refundPolicy?: Array<{
+    daysRemaining?: number
+    refundRate?: number
+  }>
+  sessionInfo?: Array<{
+    sessionId?: number
+    sessionDate?: string
+    sessionStartDate?: string
+  }>
+}
+
+function normalizeGradeSectionIds(sectionId?: number[] | number) {
+  if (Array.isArray(sectionId)) {
+    return sectionId
+  }
+
+  if (Number.isInteger(sectionId)) {
+    return [sectionId]
+  }
+
+  return []
+}
+
 export const showHandlers = [
+  http.get("*/api/v1/shows/venue", async () => {
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "공연장 목록 조회 완료",
+        data: mockVenues,
+      },
+      { status: 200 }
+    )
+  }),
   http.get("*/api/v1/hosts/shows/effect", async ({ request }) => {
     if (!isAuthorized(request)) {
       return createUnauthorizedResponse()
@@ -26,7 +80,7 @@ export const showHandlers = [
       { status: 200 }
     )
   }),
-  http.get("*/api/v1/hosts/shows/:venueId/sections", async ({ request, params }) => {
+  http.get("*/api/v1/hosts/venues/:venueId/sections", async ({ request, params }) => {
     if (!isAuthorized(request)) {
       return createUnauthorizedResponse()
     }
@@ -67,38 +121,12 @@ export const showHandlers = [
       return createUnauthorizedResponse()
     }
 
-    const body = (await request.json()) as {
-      title?: string
-      posterUrl?: string
-      venueId?: number
-      artistName?: string
-      show?: { startAt?: string; endAt?: string }
-      reservation?: { openAt?: string; closeAt?: string }
-      description?: string
-      purchaseLimit?: number
-      grade?: Array<{
-        sectionId?: number[]
-        gradeName?: string
-        price?: number
-        colorCode?: string
-        ticketEffectId?: number
-      }>
-      stakeholders?: Array<{
-        role?: "organizer" | "artist"
-        shareBps?: number
-      }>
-      refundPolicy?: Array<{
-        daysRemaining?: number
-        refundRate?: number
-      }>
-      sessionInfo?: Array<{
-        sessionId?: number
-        sessionDate?: string
-        sessionStartDate?: string
-      }>
-    }
+    const formData = await request.formData()
+    const showJson = formData.get("show")
+    const posterImage = formData.get("posterImage")
+    const body = showJson ? (JSON.parse(String(showJson)) as ShowMutationBody) : {}
 
-    if (!body.title || !body.venueId) {
+    if (!body.title || !body.venueId || !(posterImage instanceof File)) {
       return HttpResponse.json(
         {
           httpStatusCode: 400,
@@ -151,7 +179,7 @@ export const showHandlers = [
       purchaseLimit: body.purchaseLimit ?? 1,
       grade:
         body.grade?.map((grade) => ({
-          sectionId: grade.sectionId?.[0] ?? 1,
+          sectionId: normalizeGradeSectionIds(grade.sectionId)[0] ?? 1,
           gradeName: grade.gradeName ?? "일반",
           price: grade.price ?? 0,
           colorCode: grade.colorCode ?? "#7C6EF0",
@@ -211,36 +239,7 @@ export const showHandlers = [
       return createNotFoundResponse()
     }
 
-    const body = (await request.json()) as {
-      title?: string
-      posterUrl?: string
-      artistName?: string
-      venueId?: number
-      show?: { startAt?: string; endAt?: string }
-      reservation?: { openAt?: string; closeAt?: string }
-      description?: string
-      purchaseLimit?: number
-      grade?: Array<{
-        sectionId?: number[]
-        gradeName?: string
-        price?: number
-        colorCode?: string
-        ticketEffectId?: number
-      }>
-      stakeholders?: Array<{
-        role?: "organizer" | "artist"
-        shareBps?: number
-      }>
-      refundPolicy?: Array<{
-        daysRemaining?: number
-        refundRate?: number
-      }>
-      sessionInfo?: Array<{
-        sessionId?: number
-        sessionDate?: string
-        sessionStartDate?: string
-      }>
-    }
+    const body = (await request.json()) as ShowMutationBody
 
     if (
       !body.title &&
@@ -298,7 +297,10 @@ export const showHandlers = [
         purchaseLimit: body.purchaseLimit ?? previousEvent.purchaseLimit,
         grade:
           body.grade?.map((grade) => ({
-            sectionId: grade.sectionId?.[0] ?? previousEvent.grade[0]?.sectionId ?? 1,
+            sectionId:
+              normalizeGradeSectionIds(grade.sectionId)[0] ??
+              previousEvent.grade[0]?.sectionId ??
+              1,
             gradeName: grade.gradeName ?? "일반",
             price: grade.price ?? 0,
             colorCode: grade.colorCode ?? "#7C6EF0",

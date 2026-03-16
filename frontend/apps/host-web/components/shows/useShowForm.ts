@@ -1,18 +1,24 @@
 "use client"
 
-import { useState, type ChangeEvent } from "react"
+import { useEffect, useState, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
-import { mockVenues } from "@/mocks/data/show-store"
-import { createShow, updateShow, type HostShowDetail } from "@/lib/show-manage-api"
+import {
+  createShow,
+  fetchShowVenues,
+  updateShow,
+  type HostShowDetail,
+  type HostShowVenueOption,
+} from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 import {
   buildInitialGrades,
   buildInitialRefundPolicy,
   buildInitialSessionInfo,
   buildInitialStakeholders,
-  buildPayload,
+  buildCreatePayload,
+  buildUpdatePayload,
   buildValidationMessage,
   toLocalDateTimeValue,
   toNumericString,
@@ -31,6 +37,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [artistName, setArtistName] = useState(initialData?.artistName ?? "")
   const [posterPreview, setPosterPreview] = useState<string | null>(initialData?.posterUrl ?? null)
+  const [posterFile, setPosterFile] = useState<File | null>(null)
   const [description, setDescription] = useState(initialData?.description ?? "")
   const [venueId, setVenueId] = useState(initialData?.venue.venueId?.toString() ?? "")
   const [showStartAt, setShowStartAt] = useState(
@@ -50,7 +57,55 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     buildInitialRefundPolicy(initialData)
   )
   const [sessionInfo, setSessionInfo] = useState<SessionItem[]>(buildInitialSessionInfo(initialData))
+  const [venues, setVenues] = useState<HostShowVenueOption[]>([])
+  const [isLoadingVenues, setIsLoadingVenues] = useState(true)
+  const [venueLoadError, setVenueLoadError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadVenues = async () => {
+      setIsLoadingVenues(true)
+      setVenueLoadError("")
+
+      try {
+        const venueOptions = await fetchShowVenues()
+
+        if (!isMounted) {
+          return
+        }
+
+        setVenues(venueOptions)
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+
+        const message =
+          error instanceof ApiError
+            ? error.message
+            : "공연장 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+
+        setVenueLoadError(message)
+        toast({
+          title: "공연장 목록 조회 실패",
+          description: message,
+          variant: "destructive",
+        })
+      } finally {
+        if (isMounted) {
+          setIsLoadingVenues(false)
+        }
+      }
+    }
+
+    void loadVenues()
+
+    return () => {
+      isMounted = false
+    }
+  }, [toast])
 
   const handlePosterChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -60,14 +115,17 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     }
 
     const reader = new FileReader()
-    reader.onload = () => setPosterPreview(reader.result as string)
+    reader.onload = () => {
+      setPosterPreview(reader.result as string)
+      setPosterFile(file)
+    }
     reader.readAsDataURL(file)
   }
 
   const handleVenueChange = (nextVenueId: string) => {
     setVenueId(nextVenueId)
 
-    const selectedVenue = mockVenues.find((venue) => venue.venueId.toString() === nextVenueId)
+    const selectedVenue = venues.find((venue) => venue.venueId.toString() === nextVenueId)
 
     if (selectedVenue) {
       setSessionInfo((previous) =>
@@ -150,7 +208,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   }
 
   const addSession = () => {
-    const selectedVenue = mockVenues.find((venue) => venue.venueId.toString() === venueId)
+    const selectedVenue = venues.find((venue) => venue.venueId.toString() === venueId)
     const defaultCapacity = selectedVenue ? selectedVenue.capacity : ""
 
     setSessionInfo((previous) => [
@@ -181,6 +239,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       title,
       artistName,
       posterPreview,
+      posterFile,
       venueId,
       showStartAt,
       showEndAt,
@@ -199,31 +258,51 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       return
     }
 
-    const payload = buildPayload({
-      title,
-      artistName,
-      posterPreview,
-      venueId,
-      showStartAt,
-      showEndAt,
-      openAt,
-      closeAt,
-      description,
-      purchaseLimit,
-      grades,
-      stakeholders,
-      refundPolicy,
-      sessionInfo,
-    })
-
     setIsSubmitting(true)
 
     try {
       if (isEdit && initialData?.showId) {
-        const response = await updateShow(initialData.showId, payload)
+        const response = await updateShow(
+          initialData.showId,
+          buildUpdatePayload({
+            title,
+            artistName,
+            posterPreview,
+            posterFile,
+            venueId,
+            showStartAt,
+            showEndAt,
+            openAt,
+            closeAt,
+            description,
+            purchaseLimit,
+            grades,
+            stakeholders,
+            refundPolicy,
+            sessionInfo,
+          })
+        )
         window.alert(response.responseMessage || "공연이 수정되었습니다.")
       } else {
-        const response = await createShow(payload)
+        const response = await createShow(
+          buildCreatePayload({
+            title,
+            artistName,
+            posterPreview,
+            posterFile,
+            venueId,
+            showStartAt,
+            showEndAt,
+            openAt,
+            closeAt,
+            description,
+            purchaseLimit,
+            grades,
+            stakeholders,
+            refundPolicy,
+            sessionInfo,
+          })
+        )
         window.alert(`공연이 등록되었습니다. (공연 ID: ${response.showId})`)
       }
 
@@ -258,6 +337,9 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     stakeholders,
     refundPolicy,
     sessionInfo,
+    venues,
+    isLoadingVenues,
+    venueLoadError,
     isSubmitting,
     setTitle,
     setArtistName,

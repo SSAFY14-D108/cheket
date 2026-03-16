@@ -50,7 +50,8 @@ export interface HostShowRefundPolicy {
 export interface HostShowSessionInfo {
   sessionId: number
   sessionDate: string
-  sessionStartDate: string
+  sessionStartDate?: string
+  sessionStartTime?: string
   capacity: number
 }
 
@@ -84,9 +85,14 @@ export interface HostShowTicketEffect {
   effect: string
 }
 
+export interface HostShowVenueOption {
+  venueId: number
+  name: string
+  capacity: number
+}
+
 export interface ShowFormPayload {
   title: string
-  posterUrl: string
   venueId: number
   artistName?: string
   show: {
@@ -122,6 +128,50 @@ export interface ShowFormPayload {
   }>
 }
 
+export interface CreateShowPayload {
+  show: ShowFormPayload
+  posterImageFile: File
+  descriptionImageFiles?: File[]
+}
+
+export interface UpdateShowPayload {
+  title?: string
+  posterUrl?: string
+  venueId?: number
+  artistName?: string
+  show?: {
+    startAt?: string
+    endAt?: string
+  }
+  reservation?: {
+    openAt?: string
+    closeAt?: string
+  }
+  description?: string
+  purchaseLimit?: number
+  grade?: Array<{
+    sectionId: number
+    gradeName: string
+    price: number
+    colorCode: string
+    ticketEffectId?: number
+  }>
+  stakeholders?: Array<{
+    role: "organizer" | "artist"
+    userId?: number
+    shareBps: number
+  }>
+  refundPolicy?: Array<{
+    daysRemaining: number
+    refundRate: number
+  }>
+  sessionInfo?: Array<{
+    sessionId: number
+    sessionDate: string
+    sessionStartDate: string
+  }>
+}
+
 function buildShowDetailPath(showId: string | number) {
   return `/api/v1/hosts/shows/${showId}`
 }
@@ -134,13 +184,17 @@ function buildTicketEffectsPath() {
   return "/api/v1/hosts/shows/effect"
 }
 
+function buildShowVenuesPath() {
+  return "/api/v1/shows/venue"
+}
+
 function buildCreateShowPath() {
   return "/api/v1/hosts/shows"
 }
 
 function buildShowSectionsPath(venueId: string | number) {
   // 공연장 구역 목록 조회
-  return `/api/v1/hosts/shows/${venueId}/sections`
+  return `/api/v1/hosts/venues/${venueId}/sections`
 }
 
 export async function fetchShowDetail(showId: string | number) {
@@ -167,16 +221,37 @@ export async function fetchTicketEffects() {
   return response.data
 }
 
-export async function createShow(payload: ShowFormPayload) {
-  const response = await apiFetch<ApiResponse<{ showId: number }>>(buildCreateShowPath(), {
-    method: "POST",
-    body: JSON.stringify(payload),
+export async function fetchShowVenues() {
+  const response = await apiFetch<ApiResponse<HostShowVenueOption[]>>(buildShowVenuesPath(), {
+    method: "GET",
   })
 
   return response.data
 }
 
-export async function updateShow(showId: string | number, payload: ShowFormPayload) {
+export async function createShow(payload: CreateShowPayload) {
+  const formData = new FormData()
+
+  formData.append(
+    "show",
+    new Blob([JSON.stringify(payload.show)], {
+      type: "application/json",
+    })
+  )
+  formData.append("posterImage", payload.posterImageFile)
+  payload.descriptionImageFiles?.forEach((imageFile) => {
+    formData.append("descriptionImages", imageFile)
+  })
+
+  const response = await apiFetch<ApiResponse<{ showId: number }>>(buildCreateShowPath(), {
+    method: "POST",
+    body: formData,
+  })
+
+  return response.data
+}
+
+export async function updateShow(showId: string | number, payload: UpdateShowPayload) {
   const response = await apiFetch<ApiMessageResponse>(buildShowMutationPath(showId), {
     method: "PUT",
     body: JSON.stringify(payload),
