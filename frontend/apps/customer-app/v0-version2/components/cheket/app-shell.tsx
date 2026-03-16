@@ -2,9 +2,11 @@
 
 import Image from 'next/image'
 import { ReactNode } from 'react'
-import { Bell, ChevronLeft, UserCircle } from 'lucide-react'
+import { Bell, ChevronLeft } from 'lucide-react'
 import { BottomNav } from './bottom-nav'
 import { useApp } from '@/lib/app-context'
+import { TutorialHelpButton } from './tutorial-dialog'
+import type { Screen } from '@/lib/types'
 
 interface AppShellProps {
   children: ReactNode
@@ -14,8 +16,19 @@ interface AppShellProps {
   onBack?: () => void
   showNotification?: boolean
   rightElement?: ReactNode
-  /** Hide the profile icon — use on screens that are already "my page" */
   hideProfileIcon?: boolean
+}
+
+const TUTORIAL_SCREEN_MAP: Partial<Record<Screen, ReactNode>> = {
+  'resale-list': <TutorialHelpButton tutorialId="resale-list" />,
+  'resale-tickets': <TutorialHelpButton tutorialId="resale-detail" />,
+  'resale-detail': <TutorialHelpButton tutorialId="resale-detail" />,
+  'resale-create': <TutorialHelpButton tutorialId="resale-create" />,
+  wallet: <TutorialHelpButton tutorialId="wallet" />,
+  transfer: <TutorialHelpButton tutorialId="transfer" />,
+  collection: <TutorialHelpButton tutorialId="collection" />,
+  'collectible-ticket-detail': <TutorialHelpButton tutorialId="collectible-ticket-detail" />,
+  'qr-checkin': <TutorialHelpButton tutorialId="qr-checkin" />,
 }
 
 export function AppShell({
@@ -26,26 +39,30 @@ export function AppShell({
   onBack,
   showNotification = true,
   rightElement,
-  hideProfileIcon = false,
+  hideProfileIcon: _hideProfileIcon = false,
 }: AppShellProps) {
-  const { navigateTab, user } = useApp()
+  const { screen } = useApp()
+  const resolvedRightElement = rightElement ?? TUTORIAL_SCREEN_MAP[screen]
 
   return (
-    <div className="flex flex-col h-full">
-      {/* AppBar */}
-      <header className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border flex-shrink-0 z-40">
+    <div className="flex h-full flex-col">
+      <header className="z-40 flex flex-shrink-0 items-center justify-between border-b border-border bg-surface px-4 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {showBack ? (
             <button
               onClick={onBack}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors -ml-1"
+              className="-ml-1 flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-secondary"
               aria-label="뒤로가기"
             >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
+              <ChevronLeft className="h-5 w-5 text-foreground" />
             </button>
           ) : null}
+
           {title ? (
-            <h1 className="truncate font-semibold text-base text-foreground">{title}</h1>
+            <>
+              <h1 className="truncate text-base font-semibold text-foreground">{title}</h1>
+              {resolvedRightElement}
+            </>
           ) : (
             !showBack && (
               <Image
@@ -59,34 +76,22 @@ export function AppShell({
             )
           )}
         </div>
+
         <div className="flex items-center gap-1">
-          {rightElement}
-          {showNotification && (
+          {showNotification ? (
             <button
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-secondary"
               aria-label="알림"
             >
-              <Bell className="w-5 h-5 text-foreground" />
+              <Bell className="h-5 w-5 text-foreground" />
             </button>
-          )}
-          {!hideProfileIcon && user && (
-            <button
-              onClick={() => navigateTab('my-page')}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors"
-              aria-label="마이 페이지"
-            >
-              <UserCircle className="w-5 h-5 text-foreground" />
-            </button>
-          )}
+          ) : null}
         </div>
       </header>
 
-      {/* Scrollable content */}
-      <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-14' : ''}`}>
-        {children}
-      </main>
+      <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'pb-14' : ''}`}>{children}</main>
 
-      {showBottomNav && <BottomNav />}
+      {showBottomNav ? <BottomNav /> : null}
     </div>
   )
 }

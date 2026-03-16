@@ -824,7 +824,7 @@ export function CollectionScreen() {
                 <div className="flex items-start justify-center gap-2">
                   <button
                     type="button"
-                    onClick={() => navigate('ticket-detail', { ticketId: activeTicket.id })}
+                    onClick={() => navigate('collectible-ticket-detail', { ticketId: activeTicket.id })}
                     className="text-left"
                   >
                     <h2 className="text-lg font-semibold leading-tight text-foreground underline-offset-4 transition hover:text-primary hover:underline">
