@@ -1,7 +1,10 @@
 package com.ssafy.cheket.service.host;
 
-import com.ssafy.cheket.dto.host.response.GetTotalSales;
+import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
+import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
 
 public interface DashboardService {
-    GetTotalSales getTotalSales(Long hostId, Long showId);
+    GetTotalSalesResponse getTotalSales(Long hostId, Long showId);
+
+    GetBookingRateResponse getBookingRate(Long hostId, Long showId);
 }
