@@ -62,7 +62,7 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Void>> updateNotification(@RequestBody UpdateNotificationRequest request,
         @AuthenticationPrincipal Long userId) {
-        userService.updateNotification(userId, request.notificationEnable());
+        userService.updateNotification(userId, request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 여부 수정 완료", null));
     }
 }

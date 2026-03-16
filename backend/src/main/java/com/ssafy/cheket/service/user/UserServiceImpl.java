@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.user;
 
 import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
@@ -113,9 +114,9 @@ public class UserServiceImpl implements UserService {
     // 알림 여부 수정
     @Override
     @Transactional
-    public void updateNotification(Long userId, Boolean notificationEnable) {
+    public void updateNotification(Long userId, UpdateNotificationRequest request) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
-        user.setNotificationEnable(notificationEnable);
+        user.setNotificationEnable(request.notificationEnable());
     }
 }
