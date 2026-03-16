@@ -22,6 +22,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service // Spring이 빈으로 등록해야 함
 @RequiredArgsConstructor // final 필드 생성자
@@ -35,6 +36,9 @@ public class AuthServiceImpl implements AuthService {
     private final AuthRepository authRepository;
     private final SmsService smsService;
     private final HostRepository hostRepository;
+
+    private static final Pattern HOST_REGEX = Pattern.compile("^\\d{3}-\\d{2}-\\d{5}$");
+    private static final Pattern USER_REGEX = Pattern.compile("^010\\d{8}$");
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -150,7 +154,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // 회원 검색
-    // TODO: 정규식으로 전화번호와 사업자 등록번호 검증하기
     @Override
     public SearchUserResponse searchUser(String userType, String number) {
         UserType type;
@@ -163,11 +166,19 @@ public class AuthServiceImpl implements AuthService {
 
         switch (type) {
             case USER -> {
+                if (!USER_REGEX.matcher(number).matches()) {
+                    throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 01012345678");
+                }
+
                 User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(number)
                     .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
                 return new SearchUserResponse(user.getId(), user.getUsername(), user.getPhoneNumber());
             }
             case HOST -> {
+                if (!HOST_REGEX.matcher(number).matches()) {
+                    throw new BadRequestException("사업자 등록번호의 형식이 올바르지 않습니다. 예) 123-45-67890");
+                }
+
                 Host host = hostRepository.findByBusinessNo(number)
                     .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
                 return new SearchUserResponse(host.getId(), host.getCompanyName(), host.getBusinessNo());

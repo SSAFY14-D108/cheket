@@ -1,6 +1,7 @@
 package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.config.jwt.JwtTokenProvider;
+import com.ssafy.cheket.dto.host.request.BusinessNoDuplicateRequest;
 import com.ssafy.cheket.dto.host.request.HostSignupRequest;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
@@ -27,6 +28,7 @@ import org.web3j.crypto.WalletUtils;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -48,15 +50,15 @@ public class HostServiceImpl implements HostService {
     private String keystoreDirectory;
 
     // 사업자 등록번호 확인 정규식
-    private static final String REGEX = "^\\d{3}-\\d{2}-\\d{5}$";
+    private static final Pattern REGEX = Pattern.compile("^\\d{3}-\\d{2}-\\d{5}$");
 
     // 주최측 회원가입
     @Override
     @Transactional
     public void hostSignup(HostSignupRequest request) throws Exception {
         // 1단계: 사업자등록번호 형식 검증
-        if (!request.businessNo().matches(REGEX)) {
-            throw new BadRequestException("잘못된 사업자 등록번호 형식입니다.");
+        if (!REGEX.matcher(request.businessNo()).matches()) {
+            throw new BadRequestException("사업자 등록번호의 형식이 올바르지 않습니다. 예) 123-45-67890");
         }
         // 2단계: 이메일 중복 체크
         if (hostRepository.existsByEmail(request.email())) {
@@ -91,12 +93,16 @@ public class HostServiceImpl implements HostService {
 
     // 사업자 등록번호 중복 확인
     @Override
-    public CheckBusinessNoDuplicateResponse checkBusinessNoDuplicate(String businessNo) {
-        if (!businessNo.matches(REGEX)) {
-            throw new BadRequestException("잘못된 사업자 등록번호 형식입니다.");
+    public CheckBusinessNoDuplicateResponse checkBusinessNoDuplicate(BusinessNoDuplicateRequest request) {
+        if (request.businessNo() == null || request.businessNo().isBlank()) {
+            throw new BadRequestException("사업자 등록번호는 필수입니다.");
         }
 
-        boolean status = hostRepository.existsByBusinessNo(businessNo);
+        if (!REGEX.matcher(request.businessNo()).matches()) {
+            throw new BadRequestException("사업자 등록번호의 형식이 올바르지 않습니다. 예) 123-45-67890");
+        }
+
+        boolean status = hostRepository.existsByBusinessNo(request.businessNo());
         return new CheckBusinessNoDuplicateResponse(status);
     }
 
