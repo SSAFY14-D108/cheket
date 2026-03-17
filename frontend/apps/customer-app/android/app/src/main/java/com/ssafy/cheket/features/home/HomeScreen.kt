@@ -86,25 +86,6 @@ fun HomeScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
-            // 🧪 좌석 배치도 테스트 버튼
-            item {
-                Button(
-                    onClick = { onSeatMapTest("evt_001") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(48.dp),
-                ) {
-                    Text(
-                        "좌석 배치도 테스트",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                }
-            }
-
             // 1. Hero Banner
             item {
                 HeroBanner(
@@ -159,6 +140,22 @@ fun HomeScreen(
                     onItemClick = { onShowClick(it) },
                 )
                 Spacer(Modifier.height(32.dp))
+            }
+
+            // 🧪 좌석 배치도 테스트 (하단 숨김)
+            item {
+                TextButton(
+                    onClick = { onSeatMapTest("evt_001") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                ) {
+                    Text(
+                        "🧪 좌석맵 테스트",
+                        fontSize = 11.sp,
+                        color = MutedForeground.copy(alpha = 0.5f),
+                    )
+                }
             }
         }
     }

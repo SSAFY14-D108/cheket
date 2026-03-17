@@ -32,20 +32,11 @@ data class ResaleShowDto(
 // ── Resale Tickets for a Show (paginated) ──
 
 data class ResaleTicketListResponse(
-    @SerializedName("show") val show: ResaleShowInfoDto,
     @SerializedName("tickets") val tickets: List<ResaleTicketDto>,
     @SerializedName("page") val page: Int,
     @SerializedName("size") val size: Int,
     @SerializedName("totalElements") val totalElements: Int,
     @SerializedName("totalPages") val totalPages: Int,
-)
-
-data class ResaleShowInfoDto(
-    @SerializedName("showId") val showId: Long,
-    @SerializedName("title") val title: String,
-    @SerializedName("posterUrl") val posterUrl: String,
-    @SerializedName("venue") val venue: String,
-    @SerializedName("region") val region: String,
 )
 
 data class ResaleTicketDto(

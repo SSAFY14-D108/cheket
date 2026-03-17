@@ -10,8 +10,10 @@ data class BalanceResponse(
 data class TransactionDto(
     @SerializedName("transactionId") val transactionId: Long,
     @SerializedName("type") val type: String,
-    @SerializedName("amount") val amount: Int,
-    @SerializedName("description") val description: String,
+    @SerializedName("amount") val amount: Long,
+    @SerializedName("description") val description: String?,
+    @SerializedName("sellerId") val sellerId: Long? = null,
+    @SerializedName("buyerId") val buyerId: Long? = null,
     @SerializedName("createdAt") val createdAt: String,
 )
 

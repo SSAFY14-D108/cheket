@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.CheketBottomBar
+import com.ssafy.cheket.core.ui.component.NetworkStatusObserver
 import com.ssafy.cheket.features.auth.LoginScreen
 import com.ssafy.cheket.features.auth.SignupScreen
 import com.ssafy.cheket.features.collection.ArchiveScreen
@@ -99,7 +100,7 @@ object Routes {
     const val PASSWORD_RESET = "password_reset"
     const val RESALE_LIST = "resale_list"
     const val RESALE_TICKETS = "resale_tickets/{showId}"
-    const val SEAT_MAP = "seat_map/{showId}"
+    const val SEAT_MAP = "seat_map/{showId}/{sessionId}"
 
     // Helper functions for building routes with args
     fun showDetail(showId: String) = "show_detail/$showId"
@@ -118,7 +119,7 @@ object Routes {
     fun resaleCreate(ticketId: String) = "resale_create/$ticketId"
     fun collectibleDetail(ticketId: String) = "collectible_detail/$ticketId"
     fun resaleTickets(showId: String) = "resale_tickets/$showId"
-    fun seatMap(showId: String) = "seat_map/$showId"
+    fun seatMap(showId: String, sessionId: String = "") = "seat_map/$showId/$sessionId"
 }
 
 val bottomTabRoutes = listOf(
@@ -168,6 +169,9 @@ fun AppNavGraph(
     startLoggedIn: Boolean = false,
     navController: NavHostController = rememberNavController(),
 ) {
+    // 네트워크 상태 감시 — 연결 끊기면 다이얼로그 자동 표시
+    NetworkStatusObserver()
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute in bottomTabRoutes
@@ -301,10 +305,12 @@ fun AppNavGraph(
                 ),
             ) { backStackEntry ->
                 val showId = backStackEntry.arguments?.getString("showId") ?: ""
-                SeatSelectionScreen(
+                val sessionId = backStackEntry.arguments?.getString("showDateId") ?: ""
+                SeatMapScreen(
                     showId = showId,
-                    onNavigateToPayment = { navController.navigate(Routes.payment(it)) },
+                    sessionId = sessionId,
                     onBack = { navController.popBackStack() },
+                    onPurchase = { navController.navigate(Routes.payment(showId)) },
                 )
             }
             slideComposable(
@@ -553,14 +559,19 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            // ── Seat Map (test) ──
+            // ── Seat Map ──
             slideComposable(
                 route = Routes.SEAT_MAP,
-                arguments = listOf(navArgument("showId") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("showId") { type = NavType.StringType },
+                    navArgument("sessionId") { type = NavType.StringType; defaultValue = "" },
+                ),
             ) { backStackEntry ->
                 val showId = backStackEntry.arguments?.getString("showId") ?: ""
+                val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
                 SeatMapScreen(
                     showId = showId,
+                    sessionId = sessionId,
                     onBack = { navController.popBackStack() },
                     onPurchase = {
                         navController.navigate(Routes.payment(showId))

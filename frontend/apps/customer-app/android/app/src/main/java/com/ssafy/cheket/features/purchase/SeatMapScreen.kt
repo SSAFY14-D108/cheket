@@ -91,13 +91,18 @@ private val ChipBg = Color(0xFF0F172A)
 @Composable
 fun SeatMapScreen(
     showId: String,
+    sessionId: String = "",
     onBack: () -> Unit = {},
     onPurchase: () -> Unit = {},
-    viewModel: SeatMapViewModel = viewModel(factory = SeatMapViewModel.factory(showId)),
+    viewModel: SeatMapViewModel = viewModel(
+        factory = if (sessionId.isNotBlank()) SeatMapViewModel.factory(showId, sessionId)
+        else SeatMapViewModel.factory(showId)
+    ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var isExpanded by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showDebugVenues by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -160,6 +165,7 @@ fun SeatMapScreen(
                 },
                 onPurchase = {
                     showBottomSheet = false
+                    viewModel.saveToNavParams()
                     onPurchase()
                 },
             )
@@ -174,10 +180,13 @@ fun SeatMapScreen(
                     if (isExpanded) isExpanded = false
                     else onBack()
                 },
+                onTitleLongPress = if (state.isTestMode) {
+                    { showDebugVenues = !showDebugVenues }
+                } else null,
             )
 
-            // ── 공연장 선택 칩 ──
-            if (!isExpanded) {
+            // ── 공연장 선택 칩 (테스트 모드 + 디버그 토글 시만 표시) ──
+            if (state.isTestMode && showDebugVenues && !isExpanded) {
                 VenueSelector(
                     venues = MockDataSource.venuePresets,
                     selectedIndex = state.venueIndex,
@@ -188,6 +197,24 @@ fun SeatMapScreen(
             if (state.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Primary)
+                }
+            } else if (state.errorMessage != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            state.errorMessage ?: "",
+                            fontSize = 14.sp,
+                            color = MutedForeground,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.retry() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text("다시 시도")
+                        }
+                    }
                 }
             } else {
                 BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -340,7 +367,10 @@ fun SeatMapScreen(
                                             .find { it.sessionSeatId == info.sessionSeatId }
                                         seat?.let { viewModel.toggleSeat(it) }
                                     },
-                                    onPurchase = onPurchase,
+                                    onPurchase = {
+                                        viewModel.saveToNavParams()
+                                        onPurchase()
+                                    },
                                 )
                             }
                         }

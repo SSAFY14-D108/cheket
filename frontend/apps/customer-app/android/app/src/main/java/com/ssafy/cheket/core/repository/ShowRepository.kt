@@ -12,7 +12,7 @@ data class ShowPage(
 
 interface ShowRepository {
     suspend fun getShowsPage(
-        region: String? = null,
+        regions: List<Int>? = null,
         sort: String? = null,
         keyword: String? = null,
         page: Int = 0,

@@ -1,6 +1,5 @@
 package com.ssafy.cheket.features.mypage
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,23 +13,17 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.TicketStatus
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
 
@@ -43,19 +36,25 @@ fun MyPageScreen(
     onSettings: () -> Unit = {},
     onLogout: () -> Unit,
     onBack: () -> Unit,
+    viewModel: MyPageViewModel = viewModel(factory = MyPageViewModel.Factory),
 ) {
-    val user = remember { MockDataSource.mockUser }
-    val tickets = remember { MockDataSource.mockTickets }
-    val soldCount = remember { tickets.count { it.status == TicketStatus.SOLD } }
-    val usedCount = remember { tickets.count { it.status == TicketStatus.USED } }
-    val wishlistCount = 3
-
-    val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = { AppHeader(title = "마이페이지", onBack = onBack) },
     ) { innerPadding ->
+        if (state.isLoading) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = Primary)
+            }
+            return@Scaffold
+        }
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -85,7 +84,12 @@ fun MyPageScreen(
                         }
                         Spacer(Modifier.width(14.dp))
                         Column {
-                            Text(user.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = OnBackground)
+                            Text(
+                                state.name.ifEmpty { "사용자" },
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = OnBackground,
+                            )
                             Spacer(Modifier.height(2.dp))
                             Text("Cheket 회원", fontSize = 13.sp, color = MutedForeground)
                         }
@@ -94,22 +98,26 @@ fun MyPageScreen(
                     HorizontalDivider(color = BorderColor)
 
                     // Phone
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Phone, null, tint = MutedForeground, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(user.phone, fontSize = 13.sp, color = MutedForeground)
+                    if (state.phone.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Phone, null, tint = MutedForeground, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(state.phone, fontSize = 13.sp, color = MutedForeground)
+                        }
                     }
 
                     // Email
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Email, null, tint = MutedForeground, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(user.email, fontSize = 13.sp, color = MutedForeground)
+                    if (state.email.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Email, null, tint = MutedForeground, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(state.email, fontSize = 13.sp, color = MutedForeground)
+                        }
                     }
                 }
             }
 
-            // CTK Balance Card - light background per v0-version2
+            // CTK Balance Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -119,12 +127,14 @@ fun MyPageScreen(
                 ),
             ) {
                 Column(
-                    Modifier.fillMaxWidth().padding(20.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
                 ) {
                     Text("보유 CTK 잔액", fontSize = 12.sp, color = Primary.copy(alpha = 0.8f))
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "%,d CTK".format(user.ctkBalance),
+                        "%,d CTK".format(state.ctkBalance),
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         color = Primary,
@@ -143,17 +153,19 @@ fun MyPageScreen(
 
             // Quick Links Grid (2x2)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickLinkCard("보유티켓", "$soldCount", Icons.Outlined.ConfirmationNumber, Modifier.weight(1f), onClick = {})
-                QuickLinkCard("관람완료", "$usedCount", Icons.Outlined.CheckCircle, Modifier.weight(1f), onClick = {})
+                QuickLinkCard("보유티켓", "", Icons.Outlined.ConfirmationNumber, Modifier.weight(1f), onClick = {})
+                QuickLinkCard("관람완료", "", Icons.Outlined.CheckCircle, Modifier.weight(1f), onClick = {})
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickLinkCard("찜한공연", "$wishlistCount", Icons.Outlined.FavoriteBorder, Modifier.weight(1f), onClick = onWishlist)
-                QuickLinkCard("거래내역", "", Icons.Outlined.Receipt, Modifier.weight(1f), onClick = onTxHistory)
+                QuickLinkCard("찜한공연", "${state.wishlistCount}", Icons.Outlined.FavoriteBorder, Modifier.weight(1f), onClick = onWishlist)
+                QuickLinkCard("거래내역", "", Icons.Outlined.Receipt, Modifier.weight(1f), onClick = onWalletHistory)
             }
 
             // Settings
             Surface(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onSettings),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onSettings),
                 shape = RoundedCornerShape(12.dp),
                 color = Muted,
             ) {
@@ -190,7 +202,9 @@ fun MyPageScreen(
             // Logout Button
             OutlinedButton(
                 onClick = onLogout,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Danger),
                 border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
@@ -240,7 +254,9 @@ private fun QuickLinkCard(
         colors = CardDefaults.cardColors(containerColor = CardBg),
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(icon, contentDescription = null, tint = Primary, modifier = Modifier.size(20.dp))

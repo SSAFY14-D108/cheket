@@ -7,7 +7,7 @@ interface ShowService {
 
     @GET("api/v1/shows")
     suspend fun getShows(
-        @Query("region") region: String? = null,
+        @Query("regions") regions: List<Int>? = null,
         @Query("sort") sort: String? = null,
         @Query("keyword") keyword: String? = null,
         @Query("page") page: Int = 0,

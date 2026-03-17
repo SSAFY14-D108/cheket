@@ -80,7 +80,23 @@ private fun PaymentMainContent(
     onToggleFailure: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val show = uiState.show ?: return
+    if (uiState.isLoading) {
+        Scaffold(topBar = { AppHeader(title = "결제 확인", onBack = onBack) }) { p ->
+            Box(Modifier.fillMaxSize().padding(p), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Primary)
+            }
+        }
+        return
+    }
+
+    val show = uiState.show ?: run {
+        Scaffold(topBar = { AppHeader(title = "결제 확인", onBack = onBack) }) { p ->
+            Box(Modifier.fillMaxSize().padding(p), contentAlignment = Alignment.Center) {
+                Text("공연 정보를 불러올 수 없습니다.", color = MutedForeground, fontSize = 14.sp)
+            }
+        }
+        return
+    }
 
     Scaffold(
         topBar = {
