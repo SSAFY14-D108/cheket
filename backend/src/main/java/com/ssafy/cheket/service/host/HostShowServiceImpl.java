@@ -11,6 +11,7 @@ import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.entity.ticket.TicketEffect;
 import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.enums.ShowStatus;
 import com.ssafy.cheket.enums.StakeholderRole;
 import com.ssafy.cheket.exception.common.BadRequestException;
@@ -283,7 +284,7 @@ public class HostShowServiceImpl implements HostShowService {
         for (Session session : sessions) {
             for (Seat seat : seats) {
                 sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
-                    .status(SessionSeat.SeatStatus.AVAILABLE).build());
+                    .status(SeatStatus.AVAILABLE).build());
             }
         }
         sessionSeatRepository.saveAll(sessionSeats);
