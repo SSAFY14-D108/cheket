@@ -1,16 +1,33 @@
 package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
+import com.ssafy.cheket.dto.host.response.GetRevenueSplitResponse;
 import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
+import com.ssafy.cheket.entity.host.Host;
+import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.StakeholderRole;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.host.HostRepository;
+import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +37,9 @@ public class DashboardServiceImpl implements DashboardService {
     private final ShowRepository showRepository;
     private final TicketRepository ticketRepository;
     private final SessionSeatRepository sessionSeatRepository;
+    private final StakeholderRepository stakeholderRepository;
+    private final HostRepository hostRepository;
+    private final UserRepository userRepository;
 
     // 총 판매 금액 조회
     @Override
@@ -52,5 +72,61 @@ public class DashboardServiceImpl implements DashboardService {
             bookingRate = Math.round(((double) reservedSeats / capacity * 100) * 100) / 100.0;
 
         return new GetBookingRateResponse(show.getId(), show.getTitle(), capacity, reservedSeats, bookingRate);
+    }
+
+    // 수입 배분 조회
+    @Override
+    public GetRevenueSplitResponse getRevenueSplit(Long hostId, Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+
+        if (!show.getHost().getId().equals(hostId))
+            throw new ForbiddenException("본인이 등록한 공연만 볼 수 있습니다.");
+
+        Integer totalPrimarySales = ticketRepository.sumPrimarySalesByShowId(showId);
+        if (totalPrimarySales == null)
+            totalPrimarySales = 0;
+
+        BigDecimal totalRevenue = BigDecimal.valueOf(totalPrimarySales);
+
+        List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(showId);
+
+        List<Long> hostIds = stakeholders.stream()
+            .filter(stakeholder -> stakeholder.getRole() == StakeholderRole.ORGANIZER).map(Stakeholder::getHostId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        List<Long> userIds = stakeholders.stream()
+            .filter(stakeholder -> stakeholder.getRole() == StakeholderRole.ARTIST).map(Stakeholder::getUserId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        Map<Long, Host> hostMap = hostIds.isEmpty()
+            ? Collections.emptyMap()
+            : hostRepository.findAllById(hostIds).stream().collect(Collectors.toMap(Host::getId, Function.identity()));
+
+        Map<Long, User> userMap = userIds.isEmpty()
+            ? Collections.emptyMap()
+            : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+
+        List<GetRevenueSplitResponse.SplitInfo> splits = stakeholders.stream().map(stakeholder -> {
+            Long id = null;
+            String name = null;
+
+            if (stakeholder.getRole() == StakeholderRole.ORGANIZER) {
+                id = stakeholder.getHostId();
+                Host host = hostMap.get(id);
+                name = host != null ? host.getCompanyName() : null;
+            } else if (stakeholder.getRole() == StakeholderRole.ARTIST) {
+                id = stakeholder.getUserId();
+                User user = userMap.get(id);
+                name = user != null ? user.getUsername() : null;
+            }
+
+            BigDecimal amount = totalRevenue.multiply(BigDecimal.valueOf(stakeholder.getShareBps()))
+                .divide(BigDecimal.valueOf(10000), 3, RoundingMode.HALF_UP);
+
+            return new GetRevenueSplitResponse.SplitInfo(stakeholder.getRole(), id, name, stakeholder.getShareBps(),
+                amount);
+        }).toList();
+
+        return new GetRevenueSplitResponse(show.getId(), show.getTitle(), totalRevenue, splits);
     }
 }
