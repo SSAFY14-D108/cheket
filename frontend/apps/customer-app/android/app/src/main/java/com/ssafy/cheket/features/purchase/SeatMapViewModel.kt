@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.model.SeatMapSection
+import com.ssafy.cheket.core.model.SeatPosition
 import com.ssafy.cheket.core.model.SectionBounds
 import com.ssafy.cheket.core.model.SectionSeat
 import com.ssafy.cheket.core.model.Show
@@ -19,9 +20,11 @@ data class SeatMapUiState(
     val show: Show? = null,
     val sections: List<SeatMapSection> = emptyList(),
     val sectionBounds: Map<Long, SectionBounds> = emptyMap(),
+    val seatPositions: Map<Long, SeatPosition> = emptyMap(),
     val selectedSeatIds: Set<Long> = emptySet(),   // sessionSeatId 기준
     val maxSeats: Int = 4,
     val isLoading: Boolean = true,
+    val venueIndex: Int = 0,
 )
 
 class SeatMapViewModel(
@@ -32,24 +35,34 @@ class SeatMapViewModel(
     val uiState: StateFlow<SeatMapUiState> = _uiState.asStateFlow()
 
     init {
-        loadSeatMap()
+        loadVenue(0)
     }
 
-    private fun loadSeatMap() {
-        Log.d(TAG, "loadSeatMap() showId=$showId")
+    fun switchVenue(index: Int) {
+        if (index == _uiState.value.venueIndex) return
+        _uiState.update { it.copy(venueIndex = index, selectedSeatIds = emptySet()) }
+        loadVenue(index)
+    }
+
+    private fun loadVenue(index: Int) {
+        Log.d(TAG, "loadVenue() index=$index")
         val show = MockDataSource.mockShows.find { it.id == showId }
-        val sections = MockDataSource.generateSeatMapSections(showId)
-        val bounds = MockDataSource.calculateSectionBounds(sections)
+        val sections = MockDataSource.generateVenuePreset(index)
+        val (positions, bounds) = MockDataSource.calculateLayout(sections)
 
-        Log.d(TAG, "loadSeatMap() sections=${sections.size}, totalSeats=${sections.sumOf { it.seats.size }}")
+        Log.d(TAG, "loadVenue() sections=${sections.size}, totalSeats=${sections.sumOf { it.seats.size }}")
 
-        _uiState.value = SeatMapUiState(
-            show = show,
-            sections = sections,
-            sectionBounds = bounds,
-            maxSeats = show?.maxPerUser ?: 4,
-            isLoading = false,
-        )
+        _uiState.update { state ->
+            state.copy(
+                show = show,
+                sections = sections,
+                sectionBounds = bounds,
+                seatPositions = positions,
+                maxSeats = show?.maxPerUser ?: 4,
+                isLoading = false,
+                venueIndex = index,
+            )
+        }
     }
 
     fun toggleSeat(seat: SectionSeat) {

@@ -224,10 +224,20 @@ data class SectionBounds(
     val top: Float,
     val width: Float,
     val height: Float,
+    /** 비사각형 구역용 다각형 꼭짓점 (비어있으면 사각형 사용) */
+    val polygon: List<Pair<Float, Float>> = emptyList(),
+)
+
+/** 좌석 하나의 캔버스 좌표 (논리 좌표계) */
+data class SeatPosition(
+    val cx: Float,
+    val cy: Float,
 )
 
 /** 전체 좌석 배치도 */
 data class VenueLayout(
     val sections: List<SeatMapSection>,
     val sectionBounds: Map<Long, SectionBounds>,
+    /** sessionSeatId → 캔버스 논리 좌표 */
+    val seatPositions: Map<Long, SeatPosition> = emptyMap(),
 )

@@ -47,12 +47,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.model.SeatMapSection
+import com.ssafy.cheket.core.model.SeatPosition
 import com.ssafy.cheket.core.model.SectionBounds
 import com.ssafy.cheket.core.model.SectionSeat
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.launch
+import com.ssafy.cheket.core.datasource.mock.MockDataSource.VenueInfo
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -173,6 +176,15 @@ fun SeatMapScreen(
                 },
             )
 
+            // ── 공연장 선택 칩 ──
+            if (!isExpanded) {
+                VenueSelector(
+                    venues = MockDataSource.venuePresets,
+                    selectedIndex = state.venueIndex,
+                    onSelect = { viewModel.switchVenue(it) },
+                )
+            }
+
             if (state.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Primary)
@@ -215,12 +227,15 @@ fun SeatMapScreen(
                                     else Modifier
                                 )
                         ) {
-                            ZoomableSeatCanvas(
-                                sections = state.sections,
-                                sectionBounds = state.sectionBounds,
-                                selectedSeatIds = state.selectedSeatIds,
-                                onSeatTap = handleSeatTap,
-                            )
+                            key(state.venueIndex) {
+                                ZoomableSeatCanvas(
+                                    sections = state.sections,
+                                    sectionBounds = state.sectionBounds,
+                                    seatPositions = state.seatPositions,
+                                    selectedSeatIds = state.selectedSeatIds,
+                                    onSeatTap = handleSeatTap,
+                                )
+                            }
 
                             // 확대/축소 토글 버튼
                             Surface(
@@ -624,6 +639,7 @@ private const val DEFAULT_FOCUS_Y = CANVAS_H * 0.35f
 private fun ZoomableSeatCanvas(
     sections: List<SeatMapSection>,
     sectionBounds: Map<Long, SectionBounds>,
+    seatPositions: Map<Long, SeatPosition>,
     selectedSeatIds: Set<Long>,
     onSeatTap: (SectionSeat) -> Unit,
 ) {
@@ -686,16 +702,20 @@ private fun ZoomableSeatCanvas(
                         if (zoom < ZOOM_SHOW_SEATS) {
                             // ── 줌 아웃 상태: 구역 블록 탭 → 해당 구역으로 줌 ──
                             val tappedSection = sectionBounds.entries.find { (_, b) ->
-                                logicalX in b.left..(b.left + b.width) &&
-                                    logicalY in b.top..(b.top + b.height)
+                                if (b.polygon.isNotEmpty()) {
+                                    pointInPolygon(logicalX, logicalY, b.polygon)
+                                } else {
+                                    logicalX in b.left..(b.left + b.width) &&
+                                        logicalY in b.top..(b.top + b.height)
+                                }
                             }
                             tappedSection?.let { (_, b) ->
                                 val targetZoom = 3.5f
-                                val cx = b.left + b.width / 2
-                                val cy = b.top + b.height / 2
+                                val bCx = b.left + b.width / 2
+                                val bCy = b.top + b.height / 2
                                 val newScale = currentBaseScale * targetZoom
-                                val targetOffsetX = size.width / 2f - cx * newScale
-                                val targetOffsetY = size.height / 2f - cy * newScale
+                                val targetOffsetX = size.width / 2f - bCx * newScale
+                                val targetOffsetY = size.height / 2f - bCy * newScale
                                 animScope.launch {
                                     isAnimating = true
                                     val fromZoom = zoom
@@ -717,39 +737,13 @@ private fun ZoomableSeatCanvas(
                                 }
                             }
                         } else {
-                            // ── 좌석 보이는 상태 ──
+                            // ── 좌석 보이는 상태: 좌석 탭 → 선택/해제 ──
+                            // 중간 줌(좌석 보이지만 라벨 없음)에서는 빈 공간 탭 무시
                             val seat = findSeatAtPosition(
-                                logicalX, logicalY, sections, sectionBounds
+                                logicalX, logicalY, sections, seatPositions
                             )
                             if (seat != null) {
                                 onSeatTap(seat)
-                            } else if (zoom < ZOOM_SHOW_LABELS) {
-                                // ── 중간 줌 (좌석은 보이지만 라벨 안보임):
-                                //    빈 공간 탭 → 탭 지점 중심으로 추가 줌인 ──
-                                val targetZoom = (ZOOM_SHOW_LABELS + 0.5f)
-                                    .coerceAtMost(8f)
-                                val newScale = currentBaseScale * targetZoom
-                                val targetOffsetX = size.width / 2f - logicalX * newScale
-                                val targetOffsetY = size.height / 2f - logicalY * newScale
-                                animScope.launch {
-                                    isAnimating = true
-                                    val fromZoom = zoom
-                                    val fromOffsetX = offsetX
-                                    val fromOffsetY = offsetY
-                                    animate(
-                                        initialValue = 0f,
-                                        targetValue = 1f,
-                                        animationSpec = tween(
-                                            durationMillis = 350,
-                                            easing = FastOutSlowInEasing
-                                        ),
-                                    ) { progress, _ ->
-                                        zoom = fromZoom + (targetZoom - fromZoom) * progress
-                                        offsetX = fromOffsetX + (targetOffsetX - fromOffsetX) * progress
-                                        offsetY = fromOffsetY + (targetOffsetY - fromOffsetY) * progress
-                                    }
-                                    isAnimating = false
-                                }
                             }
                         }
                     }
@@ -777,8 +771,8 @@ private fun ZoomableSeatCanvas(
                     } else {
                         drawSectionOutline(section, bounds, sectionColor)
                         drawSeats(
-                            section, bounds, sectionColor,
-                            selectedSeatIds, showLabels
+                            section, sectionColor,
+                            selectedSeatIds, showLabels, seatPositions
                         )
                     }
                 }
@@ -841,21 +835,27 @@ private fun DrawScope.drawSectionBlock(
     bounds: SectionBounds,
     color: Color,
 ) {
-    // 배경
-    drawRoundRect(
-        color = color.copy(alpha = 0.12f),
-        topLeft = Offset(bounds.left, bounds.top),
-        size = Size(bounds.width, bounds.height),
-        cornerRadius = CornerRadius(12f, 12f),
-    )
-    // 테두리
-    drawRoundRect(
-        color = color.copy(alpha = 0.4f),
-        topLeft = Offset(bounds.left, bounds.top),
-        size = Size(bounds.width, bounds.height),
-        cornerRadius = CornerRadius(12f, 12f),
-        style = Stroke(width = 1.5f),
-    )
+    if (bounds.polygon.isNotEmpty()) {
+        // ── 다각형 구역 ──
+        val path = polygonToPath(bounds.polygon)
+        drawPath(path, color = color.copy(alpha = 0.12f))
+        drawPath(path, color = color.copy(alpha = 0.4f), style = Stroke(width = 1.5f))
+    } else {
+        // ── 사각형 구역 (폴백) ──
+        drawRoundRect(
+            color = color.copy(alpha = 0.12f),
+            topLeft = Offset(bounds.left, bounds.top),
+            size = Size(bounds.width, bounds.height),
+            cornerRadius = CornerRadius(12f, 12f),
+        )
+        drawRoundRect(
+            color = color.copy(alpha = 0.4f),
+            topLeft = Offset(bounds.left, bounds.top),
+            size = Size(bounds.width, bounds.height),
+            cornerRadius = CornerRadius(12f, 12f),
+            style = Stroke(width = 1.5f),
+        )
+    }
 
     val available = section.seats.count { it.status == "AVAILABLE" }
     val cx = bounds.left + bounds.width / 2
@@ -886,23 +886,39 @@ private fun DrawScope.drawSectionOutline(
     bounds: SectionBounds,
     color: Color,
 ) {
-    drawRoundRect(
-        color = color.copy(alpha = 0.05f),
-        topLeft = Offset(bounds.left, bounds.top),
-        size = Size(bounds.width, bounds.height),
-        cornerRadius = CornerRadius(10f, 10f),
-    )
-    drawRoundRect(
-        color = color.copy(alpha = 0.2f),
-        topLeft = Offset(bounds.left, bounds.top),
-        size = Size(bounds.width, bounds.height),
-        cornerRadius = CornerRadius(10f, 10f),
-        style = Stroke(width = 1f),
-    )
+    if (bounds.polygon.isNotEmpty()) {
+        val path = polygonToPath(bounds.polygon)
+        drawPath(path, color = color.copy(alpha = 0.05f))
+        drawPath(path, color = color.copy(alpha = 0.2f), style = Stroke(width = 1f))
+    } else {
+        drawRoundRect(
+            color = color.copy(alpha = 0.05f),
+            topLeft = Offset(bounds.left, bounds.top),
+            size = Size(bounds.width, bounds.height),
+            cornerRadius = CornerRadius(10f, 10f),
+        )
+        drawRoundRect(
+            color = color.copy(alpha = 0.2f),
+            topLeft = Offset(bounds.left, bounds.top),
+            size = Size(bounds.width, bounds.height),
+            cornerRadius = CornerRadius(10f, 10f),
+            style = Stroke(width = 1f),
+        )
+    }
+
+    // 구역 이름 라벨 — polygon의 경우 중심 상단에 표시
+    val labelX = if (bounds.polygon.isNotEmpty()) {
+        bounds.polygon.map { it.first }.average().toFloat()
+    } else {
+        bounds.left + 6f
+    }
+    val labelY = bounds.top + 13f
 
     val paint = android.graphics.Paint().apply {
         this.color = android.graphics.Color.parseColor(colorToHex(color.copy(alpha = 0.7f)))
         textSize = 10f
+        textAlign = if (bounds.polygon.isNotEmpty()) android.graphics.Paint.Align.CENTER
+                    else android.graphics.Paint.Align.LEFT
         typeface = android.graphics.Typeface.create(
             android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD
         )
@@ -910,31 +926,21 @@ private fun DrawScope.drawSectionOutline(
     }
     drawContext.canvas.nativeCanvas.drawText(
         section.sectionName,
-        bounds.left + 6f, bounds.top + 13f, paint
+        labelX, labelY, paint
     )
 }
 
 private fun DrawScope.drawSeats(
     section: SeatMapSection,
-    bounds: SectionBounds,
     sectionColor: Color,
     selectedSeatIds: Set<Long>,
     showLabels: Boolean,
+    seatPositions: Map<Long, SeatPosition>,
 ) {
-    val maxRow = section.seats.maxOfOrNull { it.rowNum } ?: return
-    val maxCol = section.seats.maxOfOrNull { it.colNum } ?: return
-
-    val diameter = SEAT_RADIUS * 2
-    val cellW = diameter + SEAT_GAP
-    val cellH = diameter + SEAT_GAP
-    val gridW = maxCol * cellW
-    val gridH = maxRow * cellH
-    val startX = bounds.left + (bounds.width - gridW) / 2
-    val startY = bounds.top + (bounds.height - gridH) / 2 + 8f
-
     section.seats.forEach { seat ->
-        val cx = startX + (seat.colNum - 0.5f) * cellW
-        val cy = startY + (seat.rowNum - 0.5f) * cellH
+        val pos = seatPositions[seat.sessionSeatId] ?: return@forEach
+        val cx = pos.cx
+        val cy = pos.cy
         val isSelected = seat.sessionSeatId in selectedSeatIds
 
         // 선택된 좌석 글로우 링
@@ -1000,27 +1006,15 @@ private fun findSeatAtPosition(
     logicalX: Float,
     logicalY: Float,
     sections: List<SeatMapSection>,
-    sectionBounds: Map<Long, SectionBounds>,
+    seatPositions: Map<Long, SeatPosition>,
 ): SectionSeat? {
+    val hitRadiusSq = SEAT_RADIUS * SEAT_RADIUS * 3f  // ~1.7배 반지름
     for (section in sections) {
-        val bounds = sectionBounds[section.sectionId] ?: continue
-        val maxRow = section.seats.maxOfOrNull { it.rowNum } ?: continue
-        val maxCol = section.seats.maxOfOrNull { it.colNum } ?: continue
-
-        val cellW = SEAT_RADIUS * 2 + SEAT_GAP
-        val cellH = SEAT_RADIUS * 2 + SEAT_GAP
-        val gridW = maxCol * cellW
-        val gridH = maxRow * cellH
-        val startX = bounds.left + (bounds.width - gridW) / 2
-        val startY = bounds.top + (bounds.height - gridH) / 2 + 8f
-
         for (seat in section.seats) {
-            val cx = startX + (seat.colNum - 0.5f) * cellW
-            val cy = startY + (seat.rowNum - 0.5f) * cellH
-            val dx = logicalX - cx
-            val dy = logicalY - cy
-            // 히트 영역을 넉넉히 (반지름의 ~1.7배)
-            if (dx * dx + dy * dy <= SEAT_RADIUS * SEAT_RADIUS * 3f) {
+            val pos = seatPositions[seat.sessionSeatId] ?: continue
+            val dx = logicalX - pos.cx
+            val dy = logicalY - pos.cy
+            if (dx * dx + dy * dy <= hitRadiusSq) {
                 return seat
             }
         }
@@ -1192,6 +1186,73 @@ private fun SurfaceChip(
             }
         }
     }
+}
+
+/* ── 공연장 선택 칩 ── */
+
+@Composable
+private fun VenueSelector(
+    venues: List<VenueInfo>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        venues.forEachIndexed { idx, venue ->
+            val isSelected = idx == selectedIndex
+            Surface(
+                onClick = { onSelect(idx) },
+                shape = RoundedCornerShape(10.dp),
+                color = if (isSelected) ChipBg else Color(0xFFF1F5F9),
+                border = if (isSelected) null
+                else androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
+            ) {
+                Text(
+                    "${venue.icon} ${venue.name}",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Color.White else MutedForeground,
+                )
+            }
+        }
+    }
+}
+
+/* ── Polygon 유틸리티 ── */
+
+/** 꼭짓점 리스트 → Compose Path */
+private fun polygonToPath(polygon: List<Pair<Float, Float>>): Path {
+    return Path().apply {
+        if (polygon.isEmpty()) return@apply
+        moveTo(polygon[0].first, polygon[0].second)
+        for (i in 1 until polygon.size) {
+            lineTo(polygon[i].first, polygon[i].second)
+        }
+        close()
+    }
+}
+
+/** Ray-casting point-in-polygon 테스트 */
+private fun pointInPolygon(x: Float, y: Float, polygon: List<Pair<Float, Float>>): Boolean {
+    var inside = false
+    var j = polygon.size - 1
+    for (i in polygon.indices) {
+        val xi = polygon[i].first; val yi = polygon[i].second
+        val xj = polygon[j].first; val yj = polygon[j].second
+        if ((yi > y) != (yj > y) &&
+            x < (xj - xi) * (y - yi) / (yj - yi) + xi
+        ) {
+            inside = !inside
+        }
+        j = i
+    }
+    return inside
 }
 
 /* ── Utilities ── */
