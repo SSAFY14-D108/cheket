@@ -906,28 +906,7 @@ private fun DrawScope.drawSectionOutline(
         )
     }
 
-    // 구역 이름 라벨 — polygon의 경우 중심 상단에 표시
-    val labelX = if (bounds.polygon.isNotEmpty()) {
-        bounds.polygon.map { it.first }.average().toFloat()
-    } else {
-        bounds.left + 6f
-    }
-    val labelY = bounds.top + 13f
-
-    val paint = android.graphics.Paint().apply {
-        this.color = android.graphics.Color.parseColor(colorToHex(color.copy(alpha = 0.7f)))
-        textSize = 10f
-        textAlign = if (bounds.polygon.isNotEmpty()) android.graphics.Paint.Align.CENTER
-                    else android.graphics.Paint.Align.LEFT
-        typeface = android.graphics.Typeface.create(
-            android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD
-        )
-        isAntiAlias = true
-    }
-    drawContext.canvas.nativeCanvas.drawText(
-        section.sectionName,
-        labelX, labelY, paint
-    )
+    // 확대 시 구역 이름 라벨 생략 (좌석과 겹침)
 }
 
 private fun DrawScope.drawSeats(
