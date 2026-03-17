@@ -193,7 +193,7 @@ public class ShowServiceImpl implements ShowService {
     @Override
     public void deleteShowImages(Long showId) {
         s3Uploader.deleteAllByShowId(showId);
-        showImageRepository.deleteAllByShow_Id(showId);
+        showImageRepository.deleteAllByShowId(showId);
     }
 
     private ShowItem toShowItem(Show s) {
