@@ -1,5 +1,6 @@
 package com.ssafy.cheket.entity.show;
 
+import com.ssafy.cheket.enums.SeatStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,10 +12,6 @@ import lombok.*;
 @Builder
 @Table(name = "session_seats", uniqueConstraints = {@UniqueConstraint(columnNames = {"session_id", "seat_id"})})
 public class SessionSeat {
-
-    public enum SeatStatus {
-        AVAILABLE, SOLD, HELD, PENDING_TX
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

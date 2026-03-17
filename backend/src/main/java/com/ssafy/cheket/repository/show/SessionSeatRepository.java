@@ -4,6 +4,7 @@ import com.ssafy.cheket.dto.show.response.SeatRowDto;
 import com.ssafy.cheket.entity.show.SessionSeat;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -50,4 +51,13 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
         where s.showId = :showId
         """)
     int countTotalSeatsByShowId(Long showId);
+
+    // 특정 회차의 예매 완료 좌석 수
+    @Query("""
+            select count(ss)
+            from SessionSeat ss
+            where ss.sessionId = :sessionId
+              and ss.status = com.ssafy.cheket.enums.SeatStatus.SOLD
+        """)
+    int countReservedSeatsBySessionId(@Param("sessionId") Long sessionId);
 }

@@ -1,6 +1,7 @@
 package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
+import com.ssafy.cheket.dto.host.response.GetReservationsResponse;
 import com.ssafy.cheket.dto.host.response.GetRevenueSplitResponse;
 import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
 
@@ -10,4 +11,6 @@ public interface DashboardService {
     GetBookingRateResponse getBookingRate(Long hostId, Long showId);
 
     GetRevenueSplitResponse getRevenueSplit(Long hostId, Long showId);
+
+    GetReservationsResponse getReservations(Long hostId, Long showId);
 }
