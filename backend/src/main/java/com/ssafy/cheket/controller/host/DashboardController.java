@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.host;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
+import com.ssafy.cheket.dto.host.response.GetReservationsResponse;
 import com.ssafy.cheket.dto.host.response.GetRevenueSplitResponse;
 import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
 import com.ssafy.cheket.service.host.DashboardService;
@@ -44,5 +45,14 @@ public class DashboardController {
         @PathVariable Long showId) {
         GetRevenueSplitResponse response = dashboardService.getRevenueSplit(hostId, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "수입 배분 조회 완료", response));
+    }
+
+    @GetMapping("/reservations")
+    @Operation(summary = "회차별 예매 현황 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetReservationsResponse>> getReservations(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        GetReservationsResponse response = dashboardService.getReservations(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회차별 예매 현황 조회 완료", response));
     }
 }

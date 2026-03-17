@@ -1,10 +1,12 @@
 package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
+import com.ssafy.cheket.dto.host.response.GetReservationsResponse;
 import com.ssafy.cheket.dto.host.response.GetRevenueSplitResponse;
 import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
 import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
+import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.enums.StakeholderRole;
@@ -12,6 +14,8 @@ import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.show.SeatRepository;
+import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
@@ -40,6 +44,8 @@ public class DashboardServiceImpl implements DashboardService {
     private final StakeholderRepository stakeholderRepository;
     private final HostRepository hostRepository;
     private final UserRepository userRepository;
+    private final SessionRepository sessionRepository;
+    private final SeatRepository seatRepository;
 
     // 총 판매 금액 조회
     @Override
@@ -128,5 +134,27 @@ public class DashboardServiceImpl implements DashboardService {
         }).toList();
 
         return new GetRevenueSplitResponse(show.getId(), show.getTitle(), totalRevenue, splits);
+    }
+
+    // 회차별 예매 현황 조회
+    @Override
+    public GetReservationsResponse getReservations(Long hostId, Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+
+        if (!show.getHost().getId().equals(hostId))
+            throw new ForbiddenException("본인이 등록한 공연만 볼 수 있습니다.");
+
+        List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+
+        int capacity = Math.toIntExact(seatRepository.countByShowId(showId));
+
+        List<GetReservationsResponse.SessionInfo> sessionInfos = sessions.stream().map(session -> {
+            int reservedSeats = sessionSeatRepository.countReservedSeatsBySessionId(session.getId());
+
+            return new GetReservationsResponse.SessionInfo(session.getId(), session.getSessionDate().toLocalDate(),
+                capacity, reservedSeats);
+        }).toList();
+
+        return new GetReservationsResponse(show.getId(), show.getTitle(), show.getVenue().getName(), sessionInfos);
     }
 }
