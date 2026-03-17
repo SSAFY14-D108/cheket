@@ -12,6 +12,17 @@ interface SegmentedBarProps {
 export function SegmentedBar({ segments, title }: SegmentedBarProps) {
   const total = segments.reduce((sum, s) => sum + s.value, 0)
 
+  if (!segments.length) {
+    return (
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-medium text-foreground">{title}</h4>
+        <div className="rounded-sm border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground">
+          표시할 배분 데이터가 없습니다.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <h4 className="text-sm font-medium text-foreground">{title}</h4>

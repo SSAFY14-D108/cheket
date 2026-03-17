@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { type HostShowDetail } from "@/lib/show-manage-api"
@@ -24,6 +25,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     posterPreview,
     description,
     venueId,
+    venues,
+    isLoadingVenues,
+    venueLoadError,
     showStartAt,
     showEndAt,
     openAt,
@@ -127,10 +131,12 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                 <div className="flex w-full flex-col items-center gap-3 p-4">
                   <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-md border bg-muted/20">
                     {/* API and local upload previews can be data URLs or external URLs. */}
-                    <img
+                    <Image
                       src={posterPreview}
                       alt="포스터 미리보기"
-                      className="h-full w-full object-contain"
+                      fill
+                      unoptimized={posterPreview.startsWith("data:")}
+                      className="object-contain"
                     />
                   </div>
                   <Button
@@ -175,6 +181,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
           <div className="flex flex-col gap-6">
             <SettingsCardBasic
               venueId={venueId}
+              venues={venues}
+              isLoadingVenues={isLoadingVenues}
+              venueLoadError={venueLoadError}
               showStartAt={showStartAt}
               showEndAt={showEndAt}
               openAt={openAt}

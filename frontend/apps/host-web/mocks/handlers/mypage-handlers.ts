@@ -64,6 +64,19 @@ export const mypageHandlers = [
     }
 
     const body = (await request.json()) as { password?: string }
+    const hasOngoingShows = myPageShowsStore.some((show) =>
+      ["TICKETING", "UPCOMING"].includes(show.status)
+    )
+
+    if (hasOngoingShows) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 409,
+          errorMessage: "진행 중인 공연이 있어 탈퇴할 수 없습니다.",
+        },
+        { status: 409 }
+      )
+    }
 
     if (body.password !== getMockHostPassword()) {
       return HttpResponse.json(

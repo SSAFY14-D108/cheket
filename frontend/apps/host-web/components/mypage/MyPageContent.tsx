@@ -5,6 +5,7 @@ import Link from "next/link"
 import { CompanyInfoCard } from "@/components/mypage/CompanyInfoCard"
 import { EventCard } from "@/components/mypage/EventCard"
 import { LogoutButton } from "@/components/mypage/LogoutButton"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
@@ -13,25 +14,30 @@ import {
   fetchMyShows,
   fetchMyWalletBalance,
   type MyCompanyInfo,
+  type MyShowsPage,
   type MyShowSummary,
   type MyWalletBalance,
 } from "@/lib/mypage-api"
 
+const SHOWS_PAGE_SIZE = 8
+
 export function MyPageContent() {
   const { toast } = useToast()
   const [company, setCompany] = useState<MyCompanyInfo | null>(null)
-  const [shows, setShows] = useState<MyShowSummary[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasLoadError, setHasLoadError] = useState(false)
+  const [showsPage, setShowsPage] = useState<MyShowsPage | null>(null)
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true)
+  const [isShowsLoading, setIsShowsLoading] = useState(true)
+  const [hasSummaryLoadError, setHasSummaryLoadError] = useState(false)
+  const [hasShowsLoadError, setHasShowsLoadError] = useState(false)
+  const [currentPage, setCurrentPage] = useState(0)
 
   useEffect(() => {
     let isCancelled = false
 
-    async function loadMyPage() {
+    async function loadMySummary() {
       try {
-        const [companyInfo, showsPage, walletResult] = await Promise.all([
+        const [companyInfo, walletResult] = await Promise.all([
           fetchMyCompanyInfo(),
-          fetchMyShows({ page: 0, size: 20 }),
           fetchMyWalletBalance()
             .then((wallet) => ({ status: "fulfilled" as const, value: wallet }))
             .catch((error: unknown) => ({ status: "rejected" as const, reason: error })),
@@ -66,14 +72,13 @@ export function MyPageContent() {
         }
 
         setCompany(nextCompany)
-        setShows(showsPage.shows)
       } catch (error) {
         if (isCancelled) {
           return
         }
 
         if (!(error instanceof ApiError && error.status === 401)) {
-          setHasLoadError(true)
+          setHasSummaryLoadError(true)
 
           toast({
             title: "마이페이지 조회 실패",
@@ -86,17 +91,72 @@ export function MyPageContent() {
         }
       } finally {
         if (!isCancelled) {
-          setIsLoading(false)
+          setIsSummaryLoading(false)
         }
       }
     }
 
-    void loadMyPage()
+    void loadMySummary()
 
     return () => {
       isCancelled = true
     }
   }, [toast])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadShows() {
+      setIsShowsLoading(true)
+      setHasShowsLoadError(false)
+
+      try {
+        const nextShowsPage = await fetchMyShows({
+          page: currentPage,
+          size: SHOWS_PAGE_SIZE,
+        })
+
+        if (isCancelled) {
+          return
+        }
+
+        setShowsPage(nextShowsPage)
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        if (!(error instanceof ApiError && error.status === 401)) {
+          setHasShowsLoadError(true)
+
+          toast({
+            title: "공연 목록 조회 실패",
+            description:
+              error instanceof ApiError
+                ? error.message
+                : "등록한 공연 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsShowsLoading(false)
+        }
+      }
+    }
+
+    void loadShows()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [currentPage, toast])
+
+  const shows: MyShowSummary[] = showsPage?.shows ?? []
+  const totalShows = showsPage?.totalElements ?? 0
+  const totalPages = showsPage?.totalPages ?? 0
+  const isFirstPage = currentPage === 0
+  const isLastPage = totalPages === 0 || currentPage >= totalPages - 1
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -130,16 +190,50 @@ export function MyPageContent() {
               <CardTitle className="text-lg">회사 정보</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              {isLoading
+              {isSummaryLoading
                 ? "회사 정보를 불러오는 중입니다."
-                : "회사 정보를 불러오지 못했습니다."}
+                : hasSummaryLoadError
+                  ? "회사 정보를 불러오지 못했습니다."
+                  : "회사 정보가 없습니다."}
             </CardContent>
           </Card>
         )}
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-foreground">등록한 공연</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">등록한 공연</h2>
+            <p className="text-sm text-muted-foreground">
+              총 {totalShows}개의 공연이 등록되어 있습니다.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((previous) => Math.max(previous - 1, 0))}
+              disabled={isShowsLoading || isFirstPage}
+            >
+              이전
+            </Button>
+            <div className="min-w-24 text-center text-sm text-muted-foreground">
+              {totalPages > 0 ? `${currentPage + 1} / ${totalPages}` : "-"}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((previous) =>
+                  totalPages > 0 ? Math.min(previous + 1, totalPages - 1) : previous
+                )
+              }
+              disabled={isShowsLoading || isLastPage}
+            >
+              다음
+            </Button>
+          </div>
+        </div>
         {shows.length > 0 ? (
           <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {shows.map((event) => (
@@ -149,9 +243,9 @@ export function MyPageContent() {
         ) : (
           <Card className="mt-4">
             <CardContent className="pt-6 text-sm text-muted-foreground">
-              {isLoading
+              {isShowsLoading
                 ? "공연 목록을 불러오는 중입니다."
-                : hasLoadError
+                : hasShowsLoadError
                   ? "공연 목록을 불러오지 못했습니다."
                   : "아직 등록한 공연이 없습니다."}
             </CardContent>

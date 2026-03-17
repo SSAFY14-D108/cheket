@@ -4,10 +4,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { DateTimeRangePicker } from "@/components/common/DateTimeRangePicker"
-import { mockVenues } from "@/mocks/data/show-store"
+import type { HostShowVenueOption } from "@/lib/show-manage-api"
 
 interface SettingsCardBasicProps {
     venueId: string
+    venues: HostShowVenueOption[]
+    isLoadingVenues: boolean
+    venueLoadError: string
     showStartAt: string
     showEndAt: string
     openAt: string
@@ -19,6 +22,9 @@ interface SettingsCardBasicProps {
 
 export function SettingsCardBasic({
     venueId,
+    venues,
+    isLoadingVenues,
+    venueLoadError,
     showStartAt,
     showEndAt,
     openAt,
@@ -39,14 +45,20 @@ export function SettingsCardBasic({
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         value={venueId}
                         onChange={(e) => onChangeVenueId(e.target.value)}
+                        disabled={isLoadingVenues || Boolean(venueLoadError)}
                     >
-                        <option value="" disabled>장소를 선택하세요</option>
-                        {mockVenues.map((venue) => (
+                        <option value="" disabled>
+                            {isLoadingVenues ? "공연장 목록 불러오는 중..." : "장소를 선택하세요"}
+                        </option>
+                        {venues.map((venue) => (
                             <option key={venue.venueId} value={venue.venueId}>
                                 {venue.name} (최대 {venue.capacity}명)
                             </option>
                         ))}
                     </select>
+                    {venueLoadError && (
+                        <p className="text-xs text-destructive">{venueLoadError}</p>
+                    )}
                 </div>
                 <Separator />
 

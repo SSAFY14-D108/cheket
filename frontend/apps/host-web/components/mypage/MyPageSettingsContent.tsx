@@ -45,6 +45,7 @@ export function MyPageSettingsContent() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [deletePassword, setDeletePassword] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [hasLoadError, setHasLoadError] = useState(false)
 
   useEffect(() => {
     let isCancelled = false
@@ -66,6 +67,8 @@ export function MyPageSettingsContent() {
         if (isCancelled || (error instanceof ApiError && error.status === 401)) {
           return
         }
+
+        setHasLoadError(true)
 
         toast({
           title: "계정 정보 조회 실패",
@@ -96,11 +99,21 @@ export function MyPageSettingsContent() {
   const handleSave = async () => {
     const companyName = form.companyName.trim()
     const email = form.email.trim()
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
     if (!companyName && !email) {
       toast({
         title: "입력값 확인",
         description: "회사명 또는 이메일을 입력해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (email && !emailPattern.test(email)) {
+      toast({
+        title: "이메일 형식 확인",
+        description: "올바른 이메일 주소를 입력해주세요.",
         variant: "destructive",
       })
       return
@@ -123,6 +136,10 @@ export function MyPageSettingsContent() {
             }
           : previous
       )
+      setForm({
+        companyName,
+        email,
+      })
 
       toast({
         title: "저장 완료",
@@ -215,6 +232,11 @@ export function MyPageSettingsContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
+            {hasLoadError ? (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                계정 정보를 불러오지 못해 현재 값을 표시하지 못했습니다. 다시 시도해주세요.
+              </div>
+            ) : null}
             <div className="flex flex-col gap-2">
               <Label htmlFor="company-name">회사명</Label>
               <Input

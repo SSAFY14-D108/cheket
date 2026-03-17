@@ -15,12 +15,17 @@ export function useDashboardData(showId: string | undefined) {
 
   useEffect(() => {
     if (!showId) {
+      setData(null)
+      setLoading(false)
+      setError("공연 정보를 찾을 수 없습니다.")
       return
     }
 
     const currentShowId = showId
     let isCancelled = false
     hasLoadedDataRef.current = false
+    setLoading(true)
+    setError(null)
 
     async function loadDashboard() {
       try {

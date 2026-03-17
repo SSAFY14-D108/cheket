@@ -8,6 +8,7 @@ export interface Grade {
 
 export interface Stakeholder {
   role: "organizer" | "artist"
+  userId?: number
   name: string
   businessNo?: string
   phone?: string
@@ -164,8 +165,8 @@ export const mockEvents: Event[] = [
       { sectionId: 2, gradeName: "S", price: 100000, colorCode: "#aaaaaa", ticketEffectId: 3 },
     ],
     stakeholders: [
-      { role: "organizer", name: "뮤직페스티벌 주최사", businessNo: "123-45-67890", shareBps: 7000 },
-      { role: "artist", name: "박지연", phone: "010-1234-5678", shareBps: 3000 },
+      { role: "organizer", userId: 15, name: "뮤직페스티벌 주최사", businessNo: "123-45-67890", shareBps: 7000 },
+      { role: "artist", userId: 16, name: "박지연", phone: "010-1234-5678", shareBps: 3000 },
     ],
     refundPolicy: [
       { daysRemaining: 14, refundRate: 100 },
@@ -210,8 +211,8 @@ export const mockEvents: Event[] = [
     purchaseLimit: 4,
     grade: [{ sectionId: 3, gradeName: "일반", price: 80000, colorCode: "#000000", ticketEffectId: 1 }],
     stakeholders: [
-      { role: "organizer", name: "재즈협회", businessNo: "222-22", shareBps: 5000 },
-      { role: "artist", name: "재즈밴드", phone: "010-1111-2222", shareBps: 5000 },
+      { role: "organizer", userId: 17, name: "재즈협회", businessNo: "222-22", shareBps: 5000 },
+      { role: "artist", userId: 18, name: "재즈밴드", phone: "010-1111-2222", shareBps: 5000 },
     ],
     refundPolicy: [
       { daysRemaining: 5, refundRate: 100 },
@@ -253,8 +254,8 @@ export const mockEvents: Event[] = [
     purchaseLimit: 4,
     grade: [{ sectionId: 4, gradeName: "스탠딩", price: 55000, colorCode: "#FF5733", ticketEffectId: 4 }],
     stakeholders: [
-      { role: "organizer", name: "인디뮤직네트워크", businessNo: "333-33-33333", shareBps: 8000 },
-      { role: "artist", name: "록 밴드 연합", phone: "010-3333-3333", shareBps: 2000 },
+      { role: "organizer", userId: 19, name: "인디뮤직네트워크", businessNo: "333-33-33333", shareBps: 8000 },
+      { role: "artist", userId: 20, name: "록 밴드 연합", phone: "010-3333-3333", shareBps: 2000 },
     ],
     refundPolicy: [
       { daysRemaining: 3, refundRate: 100 },
@@ -300,8 +301,8 @@ export const mockEvents: Event[] = [
       { sectionId: 7, gradeName: "1일권(일)", price: 110000, colorCode: "#60A5FA", ticketEffectId: 4 },
     ],
     stakeholders: [
-      { role: "organizer", name: "썸머페스트 조직위", businessNo: "444-44-44444", shareBps: 6000 },
-      { role: "artist", name: "참여 아티스트 전체", phone: "010-4444-4444", shareBps: 4000 },
+      { role: "organizer", userId: 21, name: "썸머페스트 조직위", businessNo: "444-44-44444", shareBps: 6000 },
+      { role: "artist", userId: 22, name: "참여 아티스트 전체", phone: "010-4444-4444", shareBps: 4000 },
     ],
     refundPolicy: [
       { daysRemaining: 30, refundRate: 100 },
@@ -452,7 +453,7 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
     showId: event.showId,
     title: event.title,
     posterUrl: event.posterUrl,
-    artistName: event.artistName,
+    artist: event.artistName,
     venue: {
       venueId: event.venue.venueId,
       name: event.venue.name,
@@ -469,12 +470,16 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
     description: event.description,
     purchaseLimit: event.purchaseLimit,
     likeCount: event.likes,
-    grade: event.grade,
+    grade: event.grade.map((grade) => ({
+      ...grade,
+      ticketEffect: mockTicketEffects.find((effect) => effect.id === grade.ticketEffectId)?.effect ?? "",
+    })),
     stakeholders: event.stakeholders.map((stakeholder, index) => ({
       role: stakeholder.role,
-      userId: 15 + index,
+      userId: stakeholder.userId ?? 15 + index,
       shareBps: stakeholder.shareBps,
       name: stakeholder.name,
+      number: stakeholder.role === "organizer" ? stakeholder.businessNo : stakeholder.phone,
     })),
     refundPolicy: event.refundPolicy,
     sessionInfo: event.sessionInfo,

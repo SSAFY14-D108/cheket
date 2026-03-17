@@ -39,10 +39,25 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export function SessionBookingChart({ sessions }: SessionBookingChartProps) {
     const data = sessions.map((s) => ({
-        date: s.date.slice(5), // "YYYY-MM-DD" → "MM-DD"
+        date: s.date ? s.date.slice(5) : "-", // "YYYY-MM-DD" → "MM-DD"
         예매석: s.reservedSeats,
         전체석: s.capacity,
     }))
+
+    if (!data.length) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">회차별 예매 현황</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex h-72 items-center justify-center rounded-sm border border-dashed border-border text-sm text-muted-foreground">
+                        표시할 회차 데이터가 없습니다.
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>

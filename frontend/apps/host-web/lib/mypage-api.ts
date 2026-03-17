@@ -50,9 +50,14 @@ export interface MyShowsPage {
   totalPages: number
 }
 
-interface FetchMyShowsParams {
+export interface FetchMyShowsParams {
   page?: number
   size?: number
+}
+
+export interface UpdateMyCompanyInfoParams {
+  companyName?: string
+  email?: string
 }
 
 export async function fetchMyCompanyInfo() {
@@ -91,21 +96,28 @@ export async function fetchMyWalletBalance() {
   return response.data
 }
 
-interface UpdateMyCompanyInfoParams {
-  companyName?: string
-  email?: string
-}
-
 export async function updateMyCompanyInfo(payload: UpdateMyCompanyInfoParams) {
+  const normalizedPayload: UpdateMyCompanyInfoParams = {}
+  const companyName = payload.companyName?.trim()
+  const email = payload.email?.trim()
+
+  if (companyName) {
+    normalizedPayload.companyName = companyName
+  }
+
+  if (email) {
+    normalizedPayload.email = email
+  }
+
   return apiFetch<ApiMessageResponse>("/api/v1/hosts", {
     method: "PUT",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(normalizedPayload),
   })
 }
 
 export async function deleteMyAccount(password: string) {
   return apiFetch<ApiMessageResponse>("/api/v1/hosts", {
     method: "DELETE",
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ password: password.trim() }),
   })
 }
