@@ -18,4 +18,6 @@ public interface HostShowService {
 
     Long createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages);
+
+    void deleteShow(Long hostId, Long showId);
 }
