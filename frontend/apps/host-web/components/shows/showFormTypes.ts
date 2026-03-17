@@ -8,8 +8,7 @@ export interface Grade {
 }
 
 export interface Stakeholder {
-    role: 'organizer' | 'artist'
-    userId?: number
+    role: 'ORGANIZER' | 'ARTIST'
     name: string
     phone?: string
     businessNo?: string
@@ -24,8 +23,7 @@ export interface RefundItem {
 }
 
 export interface SessionItem {
-    sessionId: number | string
     sessionDate: string
-    sessionStartDate: string
-    capacity: string | number
+    sessionStartTime: string
+    capacity?: string | number
 }

@@ -67,11 +67,11 @@ export function SettingsCardTickets({
     const invalidSessionCount =
         showStartAt && showEndAt
             ? sessionInfo.filter((session) => {
-                if (!session.sessionDate || !session.sessionStartDate) {
+                if (!session.sessionDate || !session.sessionStartTime) {
                     return false
                 }
 
-                const sessionTimestamp = new Date(`${session.sessionDate}T${session.sessionStartDate}`).getTime()
+                const sessionTimestamp = new Date(`${session.sessionDate}T${session.sessionStartTime}`).getTime()
                 const showStartTimestamp = new Date(showStartAt).getTime()
                 const showEndTimestamp = new Date(showEndAt).getTime()
 
@@ -447,11 +447,11 @@ export function SettingsCardTickets({
                                 <div className="flex flex-col gap-1.5">
                                     <Label className="text-[10px]">공연 일자 및 시간</Label>
                                     <DateTimePicker
-                                        value={sess.sessionDate && sess.sessionStartDate ? `${sess.sessionDate}T${sess.sessionStartDate}` : undefined}
+                                        value={sess.sessionDate && sess.sessionStartTime ? `${sess.sessionDate}T${sess.sessionStartTime}` : undefined}
                                         onChange={(val) => {
                                             const [date, time] = val.split("T")
                                             onUpdateSession(idx, 'sessionDate', date)
-                                            onUpdateSession(idx, 'sessionStartDate', time)
+                                            onUpdateSession(idx, 'sessionStartTime', time)
                                         }}
                                         placeholder="공연 시작 날짜/시간"
                                         minDate={showStartAt ? new Date(showStartAt) : undefined}

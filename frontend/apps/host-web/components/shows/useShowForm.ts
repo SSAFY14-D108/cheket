@@ -36,6 +36,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [artistName, setArtistName] = useState(initialData?.artistName ?? "")
+  const [playtime, setPlaytime] = useState(toNumericString(initialData?.playtime))
   const [posterPreview, setPosterPreview] = useState<string | null>(initialData?.posterUrl ?? null)
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [description, setDescription] = useState(initialData?.description ?? "")
@@ -167,7 +168,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const addStakeholder = () => {
     setStakeholders((previous) => [
       ...previous,
-      { role: "artist", name: "", phone: "", shareBps: "", verified: false },
+      { role: "ARTIST", name: "", phone: "", shareBps: "", verified: false },
     ])
   }
 
@@ -213,7 +214,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
     setSessionInfo((previous) => [
       ...previous,
-      { sessionId: "", sessionDate: "", sessionStartDate: "", capacity: defaultCapacity },
+      { sessionDate: "", sessionStartTime: "", capacity: defaultCapacity },
     ])
   }
 
@@ -238,6 +239,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       mode,
       title,
       artistName,
+      playtime,
       posterPreview,
       posterFile,
       venueId,
@@ -267,6 +269,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
           buildUpdatePayload({
             title,
             artistName,
+            playtime,
             posterPreview,
             posterFile,
             venueId,
@@ -288,6 +291,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
           buildCreatePayload({
             title,
             artistName,
+            playtime,
             posterPreview,
             posterFile,
             venueId,
@@ -303,7 +307,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             sessionInfo,
           })
         )
-        window.alert(`공연이 등록되었습니다. (공연 ID: ${response.showId})`)
+        window.alert(`공연이 등록되었습니다. (공연 ID: ${response})`)
       }
 
       router.push("/mypage")
@@ -325,6 +329,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     isEdit,
     title,
     artistName,
+    playtime,
     posterPreview,
     description,
     venueId,
@@ -343,6 +348,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     isSubmitting,
     setTitle,
     setArtistName,
+    setPlaytime,
     setDescription,
     setPurchaseLimit,
     setShowStartAt,

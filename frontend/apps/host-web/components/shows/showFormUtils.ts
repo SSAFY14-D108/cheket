@@ -1,13 +1,8 @@
-import type {
-  CreateShowPayload,
-  HostShowDetail,
-  UpdateShowPayload,
-  ShowFormPayload,
-} from "@/lib/show-manage-api"
+import type { CreateShowPayload, HostShowDetail, ShowFormPayload } from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 
 const FIXED_PLATFORM_STAKEHOLDER: Stakeholder = {
-  role: "organizer",
+  role: "ORGANIZER",
   name: "CHEKET",
   businessNo: "000-00-00000",
   shareBps: "800",
@@ -19,6 +14,7 @@ export interface ShowFormValues {
   mode: "create" | "edit"
   title: string
   artistName: string
+  playtime: string
   posterPreview: string | null
   posterFile: File | null
   venueId: string
@@ -61,6 +57,38 @@ function toApiDateTimeValue(value: string) {
   return value.length === 16 ? `${value}:00` : value
 }
 
+export function toLocalDateTimeString(value: string) {
+  const normalizedDate = value.includes("T") ? value.slice(0, 10) : value
+  return `${normalizedDate}T00:00:00`
+}
+
+export function toFullLocalDateTimeString(dateValue: string, timeValue: string) {
+  const normalizedDate = dateValue.includes("T") ? dateValue.slice(0, 10) : dateValue
+  const normalizedTime = timeValue.includes("T")
+    ? timeValue.slice(11, 19)
+    : timeValue.length === 5
+      ? `${timeValue}:00`
+      : timeValue
+
+  return `${normalizedDate}T${normalizedTime}`
+}
+
+function normalizeSessionDateValue(value?: string | null) {
+  if (!value) {
+    return ""
+  }
+
+  return value.includes("T") ? value.slice(0, 10) : value
+}
+
+function normalizeSessionTimeValue(value?: string | null) {
+  if (!value) {
+    return ""
+  }
+
+  return value.includes("T") ? value.slice(11, 16) : value.slice(0, 5)
+}
+
 function buildGradeGroupingKey(grade: {
   gradeName: string
   price: number
@@ -75,8 +103,10 @@ function buildGradeGroupingKey(grade: {
   ].join("|")
 }
 
-function toSessionTimestamp(sessionDate: string, sessionStartDate: string) {
-  return new Date(`${sessionDate}T${sessionStartDate}`).getTime()
+function toSessionTimestamp(sessionDate: string, sessionStartTime: string) {
+  return new Date(
+    `${normalizeSessionDateValue(sessionDate)}T${normalizeSessionTimeValue(sessionStartTime)}`
+  ).getTime()
 }
 
 export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
@@ -116,29 +146,37 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
   if (!initialData?.stakeholders?.length) {
     return [
       { ...FIXED_PLATFORM_STAKEHOLDER },
-      { role: "organizer", name: "", businessNo: "", shareBps: "", verified: false },
-      { role: "artist", name: "", phone: "", shareBps: "", verified: false },
+      { role: "ORGANIZER", name: "", businessNo: "", shareBps: "", verified: false },
+      { role: "ARTIST", name: "", phone: "", shareBps: "", verified: false },
     ]
   }
 
-  const mappedStakeholders = initialData.stakeholders.map((stakeholder) => ({
-    role: stakeholder.role,
-    userId: stakeholder.userId,
-    name: stakeholder.name ?? "",
-    phone: stakeholder.role === "artist" ? stakeholder.number || "" : "",
-    businessNo: stakeholder.role === "organizer" ? stakeholder.number || "" : "",
-    shareBps: String(stakeholder.shareBps),
-    verified: Boolean(stakeholder.userId),
-    isFixed: stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name,
-    ...(stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name
-      ? {
-          businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo,
-          shareBps: FIXED_PLATFORM_STAKEHOLDER.shareBps,
-          verified: true,
-          isFixed: true,
-        }
-      : {}),
-  }))
+  const mappedStakeholders: Stakeholder[] = initialData.stakeholders.map((stakeholder) => {
+    const role: Stakeholder["role"] = stakeholder.role === "organizer" ? "ORGANIZER" : "ARTIST"
+    const businessNo = role === "ORGANIZER" ? stakeholder.number || "" : ""
+    const phone = role === "ARTIST" ? stakeholder.number || "" : ""
+    const isFixed =
+      stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name &&
+      businessNo === FIXED_PLATFORM_STAKEHOLDER.businessNo
+
+    return {
+      role,
+      name: stakeholder.name ?? "",
+      phone,
+      businessNo,
+      shareBps: String(stakeholder.shareBps),
+      verified: Boolean(stakeholder.userId || stakeholder.name),
+      isFixed,
+      ...(isFixed
+        ? {
+            businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo,
+            shareBps: FIXED_PLATFORM_STAKEHOLDER.shareBps,
+            verified: true,
+            isFixed: true,
+          }
+        : {}),
+    }
+  })
 
   const fixedStakeholderIndex = mappedStakeholders.findIndex(
     (stakeholder) =>
@@ -180,13 +218,14 @@ export function buildInitialRefundPolicy(initialData?: HostShowDetail): RefundIt
 
 export function buildInitialSessionInfo(initialData?: HostShowDetail): SessionItem[] {
   if (!initialData?.sessionInfo?.length) {
-    return [{ sessionId: "", sessionDate: "", sessionStartDate: "", capacity: "" }]
+    return [{ sessionDate: "", sessionStartTime: "", capacity: "" }]
   }
 
   return initialData.sessionInfo.map((session) => ({
-    sessionId: session.sessionId,
-    sessionDate: session.sessionDate,
-    sessionStartDate: session.sessionStartDate ?? session.sessionStartTime ?? "",
+    sessionDate: normalizeSessionDateValue(session.sessionDate),
+    sessionStartTime: normalizeSessionTimeValue(
+      session.sessionStartTime ?? session.sessionStartDate ?? ""
+    ),
     capacity: session.capacity,
   }))
 }
@@ -196,7 +235,7 @@ export function buildValidationMessage(values: ShowFormValues) {
     return "공연명을 입력해주세요."
   }
 
-  if (values.mode === "create" && !values.artistName.trim()) {
+  if (!values.artistName.trim()) {
     return "아티스트 또는 그룹명을 입력해주세요."
   }
 
@@ -224,6 +263,10 @@ export function buildValidationMessage(values: ShowFormValues) {
     return "공연 설명을 입력해주세요."
   }
 
+  if (!Number.isInteger(Number(values.playtime)) || Number(values.playtime) <= 0) {
+    return "공연 시간을 올바르게 입력해주세요."
+  }
+
   if (!Number.isInteger(Number(values.purchaseLimit)) || Number(values.purchaseLimit) <= 0) {
     return "구매 제한 개수를 올바르게 입력해주세요."
   }
@@ -241,9 +284,11 @@ export function buildValidationMessage(values: ShowFormValues) {
     return "좌석 등급, 가격, 구역 정보를 모두 입력해주세요."
   }
 
+  const distributableStakeholders = values.stakeholders.filter((stakeholder) => !stakeholder.isFixed)
+
   if (
-    values.stakeholders.length === 0 ||
-    values.stakeholders.some(
+    distributableStakeholders.length === 0 ||
+    distributableStakeholders.some(
       (stakeholder) =>
         !Number.isFinite(Number(stakeholder.shareBps)) || Number(stakeholder.shareBps) <= 0
     )
@@ -251,17 +296,17 @@ export function buildValidationMessage(values: ShowFormValues) {
     return "수익 분배 비율을 올바르게 입력해주세요."
   }
 
-  if (values.stakeholders.some((stakeholder) => !stakeholder.verified)) {
+  if (distributableStakeholders.some((stakeholder) => !stakeholder.verified)) {
     return "모든 이해관계자의 조회(인증)가 완료되어야 합니다."
   }
 
-  const stakeholderShareSum = values.stakeholders.reduce(
+  const stakeholderShareSum = distributableStakeholders.reduce(
     (sum, stakeholder) => sum + Number(stakeholder.shareBps),
     0
   )
 
-  if (stakeholderShareSum !== 10000) {
-    return "수익 분배 비율의 합계는 10000bps여야 합니다."
+  if (stakeholderShareSum !== 9200) {
+    return "수익 분배 비율의 합계는 9200bps여야 합니다."
   }
 
   if (
@@ -280,7 +325,7 @@ export function buildValidationMessage(values: ShowFormValues) {
 
   if (
     values.sessionInfo.length === 0 ||
-    values.sessionInfo.some((session) => !session.sessionDate || !session.sessionStartDate)
+    values.sessionInfo.some((session) => !session.sessionDate || !session.sessionStartTime)
   ) {
     return "회차 정보의 날짜와 시간을 모두 입력해주세요."
   }
@@ -290,8 +335,7 @@ export function buildValidationMessage(values: ShowFormValues) {
 
   if (
     values.sessionInfo.some((session) => {
-      const sessionTimestamp = toSessionTimestamp(session.sessionDate, session.sessionStartDate)
-
+      const sessionTimestamp = toSessionTimestamp(session.sessionDate, session.sessionStartTime)
       return sessionTimestamp < showStartDate || sessionTimestamp > showEndDate
     })
   ) {
@@ -302,55 +346,48 @@ export function buildValidationMessage(values: ShowFormValues) {
 }
 
 export function buildPayload(values: Omit<ShowFormValues, "mode">): ShowFormPayload {
-  const normalizedArtistName = values.artistName.trim()
   const sortedSessionInfo = [...values.sessionInfo].sort((left, right) => {
-    const leftTimestamp = toSessionTimestamp(left.sessionDate, left.sessionStartDate)
-    const rightTimestamp = toSessionTimestamp(right.sessionDate, right.sessionStartDate)
-
+    const leftTimestamp = toSessionTimestamp(left.sessionDate, left.sessionStartTime)
+    const rightTimestamp = toSessionTimestamp(right.sessionDate, right.sessionStartTime)
     return leftTimestamp - rightTimestamp
   })
 
-  const payload: ShowFormPayload = {
+  return {
     title: values.title.trim(),
     venueId: Number(values.venueId),
-    show: {
-      startAt: toApiDateTimeValue(values.showStartAt),
-      endAt: toApiDateTimeValue(values.showEndAt),
-    },
-    reservation: {
-      openAt: toApiDateTimeValue(values.openAt),
-      closeAt: toApiDateTimeValue(values.closeAt),
-    },
+    artist: values.artistName.trim(),
+    playtime: Number(values.playtime),
+    showStartDate: toApiDateTimeValue(values.showStartAt),
+    showEndDate: toApiDateTimeValue(values.showEndAt),
+    reservationStartDate: toApiDateTimeValue(values.openAt),
+    reservationEndDate: toApiDateTimeValue(values.closeAt),
     description: values.description.trim(),
     purchaseLimit: Number(values.purchaseLimit),
     grade: values.grades.map((grade) => ({
-      sectionId: parseSectionIds(grade.sectionId),
       gradeName: grade.gradeName.trim(),
       price: Number(grade.price),
       colorCode: grade.colorCode,
+      sectionIds: parseSectionIds(grade.sectionId),
       ...(grade.ticketEffectId ? { ticketEffectId: Number(grade.ticketEffectId) } : {}),
     })),
-    stakeholders: values.stakeholders.map((stakeholder) => ({
-      role: stakeholder.role,
-      ...(stakeholder.userId ? { userId: stakeholder.userId } : {}),
-      shareBps: Number(stakeholder.shareBps),
-    })),
+    stakeholders: values.stakeholders
+      .filter((stakeholder) => !stakeholder.isFixed)
+      .map((stakeholder) => ({
+        role: stakeholder.role,
+        businessNo:
+          stakeholder.role === "ORGANIZER" ? stakeholder.businessNo?.trim() || null : null,
+        phoneNumber: stakeholder.role === "ARTIST" ? stakeholder.phone?.trim() || null : null,
+        shareBps: Number(stakeholder.shareBps),
+      })),
     refundPolicy: values.refundPolicy.map((item) => ({
       daysRemaining: Number(item.daysRemaining),
       refundRate: Number(item.refundRate),
     })),
-    sessionInfo: sortedSessionInfo.map((session, index) => ({
-      sessionId: Number(session.sessionId) || index + 1,
-      sessionDate: session.sessionDate,
-      sessionStartDate: session.sessionStartDate,
+    sessionInfo: sortedSessionInfo.map((session) => ({
+      sessionDate: toLocalDateTimeString(session.sessionDate),
+      sessionStartTime: toFullLocalDateTimeString(session.sessionDate, session.sessionStartTime),
     })),
   }
-
-  if (normalizedArtistName) {
-    payload.artistName = normalizedArtistName
-  }
-
-  return payload
 }
 
 export function buildCreatePayload(values: Omit<ShowFormValues, "mode">): CreateShowPayload {
@@ -364,29 +401,9 @@ export function buildCreatePayload(values: Omit<ShowFormValues, "mode">): Create
   }
 }
 
-export function buildUpdatePayload(values: Omit<ShowFormValues, "mode">): UpdateShowPayload {
-  const basePayload = buildPayload(values)
-
+export function buildUpdatePayload(values: Omit<ShowFormValues, "mode">): CreateShowPayload {
   return {
-    title: basePayload.title,
-    posterUrl: values.posterPreview ?? undefined,
-    ...(basePayload.artistName ? { artistName: basePayload.artistName } : {}),
-    venueId: basePayload.venueId,
-    show: basePayload.show,
-    reservation: basePayload.reservation,
-    description: basePayload.description,
-    purchaseLimit: basePayload.purchaseLimit,
-    grade: basePayload.grade.flatMap((grade) =>
-      grade.sectionId.map((sectionId) => ({
-        sectionId,
-        gradeName: grade.gradeName,
-        price: grade.price,
-        colorCode: grade.colorCode,
-        ...(grade.ticketEffectId ? { ticketEffectId: grade.ticketEffectId } : {}),
-      }))
-    ),
-    stakeholders: basePayload.stakeholders,
-    refundPolicy: basePayload.refundPolicy,
-    sessionInfo: basePayload.sessionInfo,
+    show: buildPayload(values),
+    posterImageFile: values.posterFile ?? null,
   }
 }

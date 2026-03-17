@@ -22,6 +22,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     isEdit,
     title,
     artistName,
+    playtime,
     posterPreview,
     description,
     venueId,
@@ -40,6 +41,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     isSubmitting,
     setTitle,
     setArtistName,
+    setPlaytime,
     setDescription,
     setPurchaseLimit,
     setShowStartAt,
@@ -184,11 +186,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               venues={venues}
               isLoadingVenues={isLoadingVenues}
               venueLoadError={venueLoadError}
+              playtime={playtime}
               showStartAt={showStartAt}
               showEndAt={showEndAt}
               openAt={openAt}
               closeAt={closeAt}
               onChangeVenueId={handleVenueChange}
+              onChangePlaytime={setPlaytime}
               onChangeShowRange={(startAt, endAt) => {
                 setShowStartAt(startAt)
                 setShowEndAt(endAt)
