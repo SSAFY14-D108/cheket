@@ -4,6 +4,8 @@ import android.app.Application
 import android.util.Log
 import coil.Coil
 import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.ssafy.cheket.core.network.AuthDataStore
 import com.ssafy.cheket.core.network.EncryptedSharedPrefManager
 import com.ssafy.cheket.core.network.RetrofitClient
@@ -24,14 +26,25 @@ class CheketApplication : Application() {
         authDataStore = AuthDataStore(secureStorage)
         RetrofitClient.init(authDataStore)
 
-        // Coil: file:///android_asset/ URI 지원
+        // Coil ImageLoader: 메모리 100MB + 디스크 250MB + asset URI 지원
         Coil.setImageLoader(
             ImageLoader.Builder(this)
+                .memoryCache {
+                    MemoryCache.Builder(this)
+                        .maxSizePercent(0.25) // 앱 가용 메모리의 25%
+                        .build()
+                }
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(cacheDir.resolve("image_cache"))
+                        .maxSizeBytes(250L * 1024 * 1024) // 250MB
+                        .build()
+                }
                 .components { add(AssetImageFetcher.Factory()) }
+                .crossfade(true)
                 .build()
         )
 
-        // Mock API 사용 (서버 준비되면 RealAppContainer()로 변경)
         appContainer = RealAppContainer(authDataStore)
         Log.d(TAG, "onCreate() — using ${appContainer::class.simpleName}")
     }

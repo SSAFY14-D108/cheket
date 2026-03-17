@@ -303,6 +303,282 @@ object MockDataSource {
         return seats
     }
 
+    // ── Venue presets for seat map demo ──
+
+    data class VenueInfo(val name: String, val icon: String)
+
+    val venuePresets = listOf(
+        VenueInfo("올림픽체조경기장", "\uD83C\uDFDF\uFE0F"),
+        VenueInfo("블루스퀘어", "\uD83C\uDFAD"),
+        VenueInfo("세종문화회관", "\uD83C\uDFB5"),
+        VenueInfo("고척스카이돔", "\u26BE"),
+        VenueInfo("야외원형극장", "\uD83C\uDF3F"),
+    )
+
+    fun generateVenuePreset(index: Int): List<SeatMapSection> = when (index) {
+        0 -> venueOlympic()
+        1 -> venueBlueSquare()
+        2 -> venueSejong()
+        3 -> venueGocheok()
+        4 -> venueOutdoor()
+        else -> venueOlympic()
+    }
+
+    /** 기존 API 호환용 */
+    fun generateSeatMapSections(showId: String): List<SeatMapSection> = venueOlympic()
+
+    // ── Section definition helpers ──
+
+    private data class SecDef(
+        val name: String,
+        val grade: String,
+        val price: Int,
+        val color: String,
+        val rowDefs: List<Triple<Int, Int, Int>>,  // (globalRow, colStart, colEnd)
+    )
+
+    /** 단일 행 정의 */
+    private fun r(row: Int, cs: Int, ce: Int) = Triple(row, cs, ce)
+
+    /** 연속 행 정의 (동일 열 범위) */
+    private fun rr(rs: Int, re: Int, cs: Int, ce: Int) = (rs..re).map { Triple(it, cs, ce) }
+
+    private fun buildSections(defs: List<SecDef>): List<SeatMapSection> {
+        var seatId = 1L
+        val letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        return defs.mapIndexed { idx, def ->
+            val seats = mutableListOf<SectionSeat>()
+            val sortedRows = def.rowDefs.map { it.first }.distinct().sorted()
+            for ((globalRow, colStart, colEnd) in def.rowDefs) {
+                val localRowIdx = sortedRows.indexOf(globalRow)
+                val rowLetter = letters[localRowIdx.coerceIn(0, 25)]
+                var seatNum = 1
+                for (col in colStart..colEnd) {
+                    val m7 = (seatId % 7).toInt()
+                    val status = when {
+                        m7 == 2 || m7 == 5 -> "SOLD"
+                        (seatId % 11).toInt() == 3 -> "LOCKED"
+                        else -> "AVAILABLE"
+                    }
+                    seats.add(SectionSeat(seatId, seatId, globalRow, col, "$rowLetter$seatNum", status))
+                    seatId++
+                    seatNum++
+                }
+            }
+            SeatMapSection((idx + 1).toLong(), def.name, def.grade, def.price, def.color, seats)
+        }
+    }
+
+    // ── Venue 0: 올림픽체조경기장 ──
+    //  VIP 중앙 좁은 구역, R석 좌/우 분리, S석 3분할 (좌측 뒷줄 좁아짐), A석 4분할
+    private fun venueOlympic() = buildSections(listOf(
+        SecDef("VIP", "VIP", 180000, "#f59e0b",
+            rr(1, 3, 10, 26)),
+        SecDef("R석 좌", "R석", 140000, "#ef4444",
+            rr(5, 8, 1, 12)),
+        SecDef("R석 우", "R석", 140000, "#ef4444",
+            rr(5, 8, 24, 35)),
+        SecDef("S석 좌", "S석", 110000, "#3b82f6",
+            rr(10, 12, 1, 10) + listOf(r(13, 3, 10), r(14, 3, 10))),
+        SecDef("S석 중앙", "S석", 110000, "#3b82f6",
+            rr(10, 14, 13, 23)),
+        SecDef("S석 우", "S석", 110000, "#3b82f6",
+            rr(10, 12, 26, 35) + listOf(r(13, 26, 33), r(14, 26, 33))),
+        SecDef("A석 좌", "A석", 88000, "#22c55e",
+            rr(16, 19, 1, 8) + listOf(r(20, 3, 8), r(21, 3, 8))),
+        SecDef("A석 중앙좌", "A석", 88000, "#22c55e",
+            rr(16, 21, 10, 17)),
+        SecDef("A석 중앙우", "A석", 88000, "#22c55e",
+            rr(16, 21, 19, 26)),
+        SecDef("A석 우", "A석", 88000, "#22c55e",
+            rr(16, 19, 28, 35) + listOf(r(20, 28, 33), r(21, 28, 33))),
+    ))
+
+    // ── Venue 1: 블루스퀘어 (소극장) ──
+    //  소규모 공연장. 부채꼴로 뒤로 갈수록 넓어짐.
+    private fun venueBlueSquare() = buildSections(listOf(
+        SecDef("VIP", "VIP", 150000, "#f59e0b",
+            rr(1, 3, 8, 18)),
+        SecDef("R석", "R석", 120000, "#ef4444",
+            listOf(r(5, 10, 16), r(6, 9, 17), r(7, 8, 18), r(8, 7, 19), r(9, 6, 20))),
+        SecDef("S석", "S석", 90000, "#3b82f6",
+            listOf(r(11, 6, 20), r(12, 5, 21), r(13, 4, 22), r(14, 3, 23), r(15, 3, 23), r(16, 2, 24))),
+    ))
+
+    // ── Venue 2: 세종문화회관 (2층 구조) ──
+    //  1층 VIP + 좌/우 쐐기형 사이드 + 후방, 2층 3분할. 층간 갭 존재.
+    private fun venueSejong() = buildSections(listOf(
+        SecDef("1층 VIP", "VIP", 150000, "#f59e0b",
+            rr(1, 5, 8, 22)),
+        SecDef("1층 좌", "R석", 120000, "#ef4444",
+            listOf(r(2, 5, 6), r(3, 4, 6), r(4, 3, 6), r(5, 2, 6), r(6, 1, 6), r(7, 1, 6))),
+        SecDef("1층 우", "R석", 120000, "#ef4444",
+            listOf(r(2, 24, 25), r(3, 24, 26), r(4, 24, 27), r(5, 24, 28), r(6, 24, 29), r(7, 24, 29))),
+        SecDef("1층 후방", "S석", 110000, "#3b82f6",
+            rr(7, 12, 6, 24)),
+        SecDef("2층 좌", "A석", 80000, "#22c55e",
+            rr(15, 19, 1, 8)),
+        SecDef("2층 중앙", "A석", 80000, "#22c55e",
+            rr(15, 19, 10, 20)),
+        SecDef("2층 우", "A석", 80000, "#22c55e",
+            rr(15, 19, 22, 29)),
+    ))
+
+    // ── Venue 3: 고척스카이돔 ──
+    //  대형 돔. FLOOR 3분할, 1층 스탠드 4분할 (사이드 뒤로 확장), 2층 3분할.
+    private fun venueGocheok() = buildSections(listOf(
+        SecDef("FLOOR 중앙", "FLOOR", 180000, "#f59e0b",
+            rr(1, 3, 12, 24)),
+        SecDef("FLOOR 좌", "FLOOR", 180000, "#f59e0b",
+            rr(1, 3, 4, 10)),
+        SecDef("FLOOR 우", "FLOOR", 180000, "#f59e0b",
+            rr(1, 3, 26, 32)),
+        SecDef("1층 좌", "1층", 140000, "#ef4444",
+            listOf(r(5, 3, 8), r(6, 3, 8), r(7, 2, 8), r(8, 1, 8), r(9, 1, 8), r(10, 1, 8))),
+        SecDef("1층 중좌", "1층", 140000, "#ef4444",
+            rr(5, 10, 10, 17)),
+        SecDef("1층 중우", "1층", 140000, "#ef4444",
+            rr(5, 10, 19, 26)),
+        SecDef("1층 우", "1층", 140000, "#ef4444",
+            listOf(r(5, 28, 33), r(6, 28, 33), r(7, 28, 34), r(8, 28, 35), r(9, 28, 35), r(10, 28, 35))),
+        SecDef("2층 좌", "2층", 100000, "#3b82f6",
+            rr(12, 16, 1, 6)),
+        SecDef("2층 중앙", "2층", 100000, "#3b82f6",
+            rr(12, 16, 8, 28)),
+        SecDef("2층 우", "2층", 100000, "#3b82f6",
+            rr(12, 16, 30, 35)),
+    ))
+
+    // ── Venue 4: 야외원형극장 (부채꼴) ──
+    //  행이 뒤로 갈수록 양쪽으로 넓어지는 부채꼴. 좌/중앙/우 분리.
+    private fun venueOutdoor() = buildSections(listOf(
+        SecDef("VIP", "VIP", 160000, "#f59e0b",
+            listOf(r(1, 14, 22), r(2, 13, 23), r(3, 12, 24))),
+        SecDef("R석 좌", "R석", 130000, "#ef4444",
+            listOf(r(5, 10, 14), r(6, 9, 14), r(7, 8, 14))),
+        SecDef("R석 중앙", "R석", 130000, "#ef4444",
+            rr(5, 7, 15, 21)),
+        SecDef("R석 우", "R석", 130000, "#ef4444",
+            listOf(r(5, 22, 26), r(6, 22, 27), r(7, 22, 28))),
+        SecDef("S석 좌", "S석", 100000, "#3b82f6",
+            listOf(r(9, 7, 14), r(10, 6, 14), r(11, 5, 14), r(12, 4, 14), r(13, 3, 14))),
+        SecDef("S석 중앙", "S석", 100000, "#3b82f6",
+            rr(9, 13, 15, 21)),
+        SecDef("S석 우", "S석", 100000, "#3b82f6",
+            listOf(r(9, 22, 29), r(10, 22, 30), r(11, 22, 31), r(12, 22, 32), r(13, 22, 33))),
+        SecDef("A석 좌", "A석", 70000, "#22c55e",
+            listOf(r(15, 3, 14), r(16, 2, 14), r(17, 1, 14), r(18, 1, 14), r(19, 1, 14))),
+        SecDef("A석 중앙", "A석", 70000, "#22c55e",
+            rr(15, 19, 15, 21)),
+        SecDef("A석 우", "A석", 70000, "#22c55e",
+            listOf(r(15, 22, 33), r(16, 22, 34), r(17, 22, 35), r(18, 22, 35), r(19, 22, 35))),
+    ))
+
+    // ── 좌석 위치 + 구역 경계 계산 (순수 그리드, 워프 없음) ──
+
+    /**
+     * rowNum/colNum 기반 순수 그리드 배치:
+     *   - 같은 colNum → 정확히 같은 X 좌표
+     *   - 같은 rowNum → 정확히 같은 Y 좌표
+     * 구역 경계는 convex hull로 자동 계산.
+     */
+    fun calculateLayout(
+        sections: List<SeatMapSection>,
+    ): Pair<Map<Long, SeatPosition>, Map<Long, SectionBounds>> {
+        if (sections.isEmpty()) return Pair(emptyMap(), emptyMap())
+
+        val cellSize = SEAT_RADIUS * 2 + SEAT_GAP
+        val canvasCx = CANVAS_W / 2f
+        val startY = 170f
+
+        val allSeats = sections.flatMap { it.seats }
+        if (allSeats.isEmpty()) return Pair(emptyMap(), emptyMap())
+
+        val minCol = allSeats.minOf { it.colNum }
+        val maxCol = allSeats.maxOf { it.colNum }
+        val totalCols = maxCol - minCol + 1
+        val gridWidth = totalCols * cellSize
+        val minRow = allSeats.minOf { it.rowNum }
+
+        // 순수 그리드 배치: 같은 rowNum → 같은 Y, 같은 colNum → 같은 X
+        val seatPositions = mutableMapOf<Long, SeatPosition>()
+        for (section in sections) {
+            for (seat in section.seats) {
+                val x = canvasCx - gridWidth / 2f + (seat.colNum - minCol + 0.5f) * cellSize
+                val y = startY + (seat.rowNum - minRow + 0.5f) * cellSize
+                seatPositions[seat.sessionSeatId] = SeatPosition(x, y)
+            }
+        }
+
+        // 각 구역의 convex hull → SectionBounds
+        val pad = SEAT_RADIUS + 5f
+        val sectionBounds = mutableMapOf<Long, SectionBounds>()
+        for (section in sections) {
+            val points = mutableListOf<Pair<Float, Float>>()
+            for (seat in section.seats) {
+                val pos = seatPositions[seat.sessionSeatId] ?: continue
+                points.add(Pair(pos.cx - pad, pos.cy - pad))
+                points.add(Pair(pos.cx + pad, pos.cy - pad))
+                points.add(Pair(pos.cx - pad, pos.cy + pad))
+                points.add(Pair(pos.cx + pad, pos.cy + pad))
+            }
+            if (points.isEmpty()) continue
+            val hull = convexHull(points)
+            sectionBounds[section.sectionId] = polygonToBounds(hull)
+        }
+
+        return Pair(seatPositions, sectionBounds)
+    }
+
+    // ── Convex hull (Andrew's monotone chain) ──
+
+    private fun convexHull(points: List<Pair<Float, Float>>): List<Pair<Float, Float>> {
+        val sorted = points.sortedWith(compareBy({ it.first }, { it.second }))
+        if (sorted.size <= 2) return sorted
+
+        fun cross(o: Pair<Float, Float>, a: Pair<Float, Float>, b: Pair<Float, Float>): Float =
+            (a.first - o.first) * (b.second - o.second) -
+                    (a.second - o.second) * (b.first - o.first)
+
+        val lower = mutableListOf<Pair<Float, Float>>()
+        for (p in sorted) {
+            while (lower.size >= 2 && cross(lower[lower.size - 2], lower.last(), p) <= 0)
+                lower.removeAt(lower.lastIndex)
+            lower.add(p)
+        }
+        val upper = mutableListOf<Pair<Float, Float>>()
+        for (p in sorted.reversed()) {
+            while (upper.size >= 2 && cross(upper[upper.size - 2], upper.last(), p) <= 0)
+                upper.removeAt(upper.lastIndex)
+            upper.add(p)
+        }
+        lower.removeAt(lower.lastIndex)
+        upper.removeAt(upper.lastIndex)
+        return lower + upper
+    }
+
+    /** polygon 꼭짓점 → SectionBounds (bounding box + polygon) */
+    private fun polygonToBounds(polygon: List<Pair<Float, Float>>): SectionBounds {
+        val xs = polygon.map { it.first }
+        val ys = polygon.map { it.second }
+        val minX = xs.min()
+        val maxX = xs.max()
+        val minY = ys.min()
+        val maxY = ys.max()
+        return SectionBounds(
+            left = minX,
+            top = minY,
+            width = maxX - minX,
+            height = maxY - minY,
+            polygon = polygon,
+        )
+    }
+
+    // 캔버스 상수 (SeatMapScreen과 동일)
+    private const val CANVAS_W = 1000f
+    private const val SEAT_RADIUS = 10f
+    private const val SEAT_GAP = 4f
+
     fun getResaleGrouped(): List<ResaleGroupItem> =
         mockResaleItems.groupBy { it.showId }.map { (showId, items) ->
             ResaleGroupItem(
