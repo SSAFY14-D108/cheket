@@ -28,7 +28,9 @@ public record UpdateShowRequest(
     List<GradeInfo> grade,
 
     // ── 환불 정책 목록 (null이면 수정 안 함) ──
-    List<RefundPolicyInfo> refundPolicy) {
+    List<RefundPolicyInfo> refundPolicy,
+
+    List<String> existingDescriptionImageUrls) {
 
     public record SessionInfo(LocalDateTime sessionDate, // 회차 날짜
         LocalDateTime sessionStartTime // 시작 시간

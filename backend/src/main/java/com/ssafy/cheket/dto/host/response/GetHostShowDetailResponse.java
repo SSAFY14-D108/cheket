@@ -9,9 +9,10 @@ import java.time.LocalTime;
 import java.util.List;
 
 public record GetHostShowDetailResponse(Long showId, String title, String posterUrl, VenueInfo venue, ShowPeriod show,
-    ReservationPeriod reservation, String description, String artist, Integer purchaseLimit, Integer likeCount,
-    List<GradeInfo> grade, List<StakeholderInfo> stakeholders, List<RefundPolicyInfo> refundPolicy,
-    List<SessionInfo> sessionInfo, ShowStatus status, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    ReservationPeriod reservation, String description, String artist, Integer playtime, Integer purchaseLimit,
+    Integer likeCount, List<GradeInfo> grade, List<StakeholderInfo> stakeholders, List<RefundPolicyInfo> refundPolicy,
+    List<SessionInfo> sessionInfo, ShowStatus status, LocalDateTime createdAt, LocalDateTime updatedAt,
+    List<String> descriptionImages) {
 
     public record VenueInfo(Long venueId, String name, String address) {
     }

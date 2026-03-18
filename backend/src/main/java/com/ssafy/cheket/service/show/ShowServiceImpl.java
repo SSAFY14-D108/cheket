@@ -91,12 +91,16 @@ public class ShowServiceImpl implements ShowService {
                 refundPolicy.getRefundRate()))
             .toList();
 
+        List<String> descriptionImages = showImageRepository.findAllByShow_Id(showId).stream()
+            .map(ShowImage::getImageUrl).toList();
+
         return new GetShowDetailResponse(show.getId(), show.getTitle(), show.getPosterUrl(), show.getVenue().getName(),
             show.getPurchaseLimit(), show.getVenue().getRegion().getName(),
             new GetShowDetailResponse.ShowPeriod(show.getShowStartDate().toLocalDate(),
                 show.getShowEndDate().toLocalDate()),
             new GetShowDetailResponse.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
-            show.getStatus(), show.getDescription(), show.getArtist(), isLiked, likeCount, grades, refundPolicies);
+            show.getStatus(), show.getDescription(), show.getArtist(), show.getPlaytime(), isLiked, likeCount, grades,
+            refundPolicies, descriptionImages);
     }
 
     // 회차 목록 조회

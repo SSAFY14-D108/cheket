@@ -8,7 +8,8 @@ import java.util.List;
 
 public record GetShowDetailResponse(Long showId, String title, String posterUrl, String venue, Integer purchaseLimit,
     String region, ShowPeriod show, ReservationPeriod reservation, ShowStatus status, String description, String artist,
-    Boolean isLiked, Integer likeCount, List<GradeInfo> grade, List<RefundPolicyInfo> refundPolicy) {
+    Integer playtime, Boolean isLiked, Integer likeCount, List<GradeInfo> grade, List<RefundPolicyInfo> refundPolicy,
+    List<String> descriptionImages) {
 
     public record ShowPeriod(LocalDate showStartDate, LocalDate showEndDate) {
     }
