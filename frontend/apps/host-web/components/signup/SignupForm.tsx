@@ -24,6 +24,13 @@ const initialState: SignupState = {
   passwordConfirm: "",
 }
 
+function formatBusinessNo(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 10)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+}
+
 export function SignupForm() {
   const router = useRouter()
   const { toast } = useToast()
@@ -208,7 +215,8 @@ export function SignupForm() {
         <div className="flex flex-col gap-1">
           <LoginInput
             type="text"
-            placeholder="회사 이름"
+            placeholder="회사 이름 (예: 체켓엔터테인먼트)"
+            autoComplete="organization"
             value={form.companyName}
             onChange={(e) => updateField("companyName", e.target.value)}
           />
@@ -222,8 +230,10 @@ export function SignupForm() {
             <LoginInput
               type="text"
               placeholder="사업자등록번호 (예시: 122-90-38867)"
+              autoComplete="off"
+              inputMode="numeric"
               value={form.businessNo}
-              onChange={(e) => updateField("businessNo", e.target.value)}
+              onChange={(e) => updateField("businessNo", formatBusinessNo(e.target.value))}
             />
             <LoginButton
               type="button"
@@ -248,7 +258,9 @@ export function SignupForm() {
         <div className="flex flex-col gap-1">
           <LoginInput
             type="email"
-            placeholder="이메일"
+            placeholder="이메일 (예: host@company.com)"
+            autoComplete="email"
+            inputMode="email"
             value={form.email}
             onChange={(e) => updateField("email", e.target.value)}
           />
@@ -260,7 +272,8 @@ export function SignupForm() {
         <div className="flex flex-col gap-1">
           <LoginInput
             type="password"
-            placeholder="비밀번호"
+            placeholder="비밀번호 (8자 이상)"
+            autoComplete="new-password"
             value={form.password}
             onChange={(e) => updateField("password", e.target.value)}
           />
@@ -273,6 +286,7 @@ export function SignupForm() {
           <LoginInput
             type="password"
             placeholder="비밀번호 확인"
+            autoComplete="new-password"
             value={form.passwordConfirm}
             onChange={(e) => updateField("passwordConfirm", e.target.value)}
           />
