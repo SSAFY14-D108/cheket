@@ -43,6 +43,7 @@ type ShowMutationBody = {
     sessionDate?: string
     sessionStartTime?: string
   }>
+  existingDescriptionImageUrls?: string[] | null
 }
 
 async function parseShowMutationBody(request: Request) {
@@ -84,21 +85,30 @@ function toTimeOnly(value?: string) {
 function mapStakeholders(body: ShowMutationBody) {
   return (
     body.stakeholders?.map((stakeholder, index): {
-      role: "organizer" | "artist"
-      userId: number
+      role: "ORGANIZER" | "ARTIST"
+      id: number
       name: string
       businessNo?: string
       phone?: string
       shareBps: number
     } => ({
-      role: stakeholder.role === "ORGANIZER" ? "organizer" : "artist",
-      userId: 100 + index,
+      role: stakeholder.role === "ORGANIZER" ? "ORGANIZER" : "ARTIST",
+      id: 100 + index,
       name: stakeholder.role === "ORGANIZER" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
       businessNo: stakeholder.role === "ORGANIZER" ? stakeholder.businessNo ?? undefined : undefined,
       phone: stakeholder.role === "ARTIST" ? stakeholder.phoneNumber ?? undefined : undefined,
       shareBps: stakeholder.shareBps ?? 0,
     })) ?? []
   )
+}
+
+function getDescriptionImageUrls(formData: FormData) {
+  return formData
+    .getAll("descriptionImages")
+    .filter((entry): entry is File => entry instanceof File)
+    .map(
+      (_, index) => `http://localhost:3000/images/poster-${(index % 4) + 1}.jpg`
+    )
 }
 
 function mapSessions(body: ShowMutationBody, capacity: number) {
@@ -180,6 +190,7 @@ export const showHandlers = [
 
     const { body, formData } = await parseShowMutationBody(request)
     const posterImage = formData.get("posterImage")
+    const descriptionImageUrls = getDescriptionImageUrls(formData)
 
     if (!body.title || !body.venueId || !(posterImage instanceof File)) {
       return HttpResponse.json(
@@ -234,6 +245,7 @@ export const showHandlers = [
         closeAt: body.reservationEndDate ?? "2026-01-02T10:00:00",
       },
       description: body.description ?? "",
+      descriptionImages: descriptionImageUrls,
       purchaseLimit: body.purchaseLimit ?? 1,
       grade:
         body.grade?.map((grade) => ({
@@ -270,7 +282,7 @@ export const showHandlers = [
       { status: 201 }
     )
   }),
-  http.put("*/api/v1/hosts/shows/:showId", async ({ request, params }) => {
+  http.patch("*/api/v1/hosts/shows/:showId", async ({ request, params }) => {
     if (!isAuthorized(request)) {
       return createUnauthorizedResponse()
     }
@@ -303,6 +315,13 @@ export const showHandlers = [
       const selectedVenue = mockVenues.find((venue) => venue.venueId === nextVenueId)
       const capacity = selectedVenue?.capacity ?? previousEvent.capacity
       const posterImage = formData.get("posterImage")
+      const nextDescriptionImageUrls = getDescriptionImageUrls(formData)
+      const retainedDescriptionImageUrls = body.existingDescriptionImageUrls
+
+      const descriptionImages =
+        retainedDescriptionImageUrls === null || typeof retainedDescriptionImageUrls === "undefined"
+          ? previousEvent.descriptionImages ?? []
+          : [...retainedDescriptionImageUrls, ...nextDescriptionImageUrls]
 
       mockEventStore[eventIndex] = {
         ...previousEvent,
@@ -324,6 +343,7 @@ export const showHandlers = [
           closeAt: body.reservationEndDate ?? previousEvent.reservation.closeAt,
         },
         description: body.description ?? previousEvent.description,
+        descriptionImages,
         purchaseLimit: body.purchaseLimit ?? previousEvent.purchaseLimit,
         grade:
           body.grade?.map((grade) => ({

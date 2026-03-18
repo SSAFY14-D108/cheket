@@ -37,8 +37,8 @@ export interface HostShowGrade {
 }
 
 export interface HostShowStakeholder {
-  role: "organizer" | "artist"
-  userId?: number
+  role: "ORGANIZER" | "ARTIST"
+  id?: number
   shareBps: number
   name?: string
   number?: string
@@ -73,6 +73,7 @@ export interface HostShowDetail {
   stakeholders: HostShowStakeholder[]
   refundPolicy: HostShowRefundPolicy[]
   sessionInfo: HostShowSessionInfo[]
+  descriptionImages?: string[]
   status: string
   createdAt: string
   updatedAt: string
@@ -89,7 +90,7 @@ interface RawHostShowGrade {
 
 interface RawHostShowStakeholder {
   role?: unknown
-  userId?: unknown
+  id?: unknown
   businessNo?: unknown
   phoneNumber?: unknown
   shareBps?: unknown
@@ -134,6 +135,7 @@ interface RawHostShowDetail {
     refundRate?: unknown
   }>
   sessionInfo?: RawHostShowSessionInfo[]
+  descriptionImages?: unknown
   status?: unknown
   createdAt?: unknown
   updatedAt?: unknown
@@ -217,11 +219,8 @@ function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
       : [],
     stakeholders: Array.isArray(raw.stakeholders)
       ? raw.stakeholders.map((stakeholder) => ({
-          role:
-            stakeholder.role === "organizer" || stakeholder.role === "ORGANIZER"
-              ? "organizer"
-              : "artist",
-          userId: toOptionalSafeNumber(stakeholder.userId),
+          role: stakeholder.role === "ORGANIZER" ? "ORGANIZER" : "ARTIST",
+          id: toOptionalSafeNumber(stakeholder.id),
           shareBps: toSafeNumber(stakeholder.shareBps),
           name: toSafeString(stakeholder.name, ""),
           number: toSafeString(
@@ -246,6 +245,9 @@ function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
           sessionStartTime: toSafeString(session.sessionStartTime, ""),
           capacity: toSafeNumber(session.capacity),
         }))
+      : [],
+    descriptionImages: Array.isArray(raw.descriptionImages)
+      ? raw.descriptionImages.filter((url: unknown): url is string => typeof url === "string")
       : [],
     status: toSafeString(raw.status),
     createdAt: toSafeString(raw.createdAt),
@@ -301,6 +303,7 @@ export interface ShowFormPayload {
     sessionDate: string
     sessionStartTime: string
   }>
+  existingDescriptionImageUrls?: string[] | null
 }
 
 export interface CreateShowPayload {
@@ -411,7 +414,7 @@ export async function updateShow(showId: string | number, payload: CreateShowPay
   })
 
   const response = await apiFetch<ApiMessageResponse>(buildShowMutationPath(showId), {
-    method: "PUT",
+    method: "PATCH",
     body: formData,
   })
 
