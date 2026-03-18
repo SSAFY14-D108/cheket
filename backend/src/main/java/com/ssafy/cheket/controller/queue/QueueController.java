@@ -1,7 +1,13 @@
 package com.ssafy.cheket.controller.queue;
 
+import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.service.queue.QueueService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -10,4 +16,13 @@ import org.springframework.web.bind.annotation.*;
 public class QueueController {
     private final QueueService queueService;
 
+    @DeleteMapping
+    @Operation(summary = "대기열 이탈")
+    @SecurityRequirement(name = "bearerAuth")
+    // @SecurityRequirement(name = "queueToken")
+    public ResponseEntity<ApiResponse<Void>> leaveQueue(@AuthenticationPrincipal Long userId, @PathVariable Long showId,
+        @PathVariable Long sessionId, @RequestHeader("Queue-Token") String queueToken) {
+        queueService.leaveQueue(userId, showId, sessionId, queueToken);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "대기열에서 이탈하였습니다.", null));
+    }
 }
