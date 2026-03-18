@@ -44,40 +44,40 @@
 - Response: 201 Created
 - 📱 **화면**: `SignupScreen.kt` — 회원가입 폼
 
-### 1-5. SMS 인증번호 발송 ✅
+### 1-5. SMS 인증번호 발송 🔗
 - **POST** `/api/v1/auth/sms/send`
 - Auth: 불필요
-- Body: `{ phoneNumber: String }`
+- Body: `{ phoneNumber: String }` (하이픈 포함 형식: `010-1234-5678`)
 - Response: `{ httpStatusCode: 200 }`
-- 📱 **화면**: `SignupScreen.kt`, `FindAccountScreen.kt`, `PasswordResetScreen.kt`
+- 📱 **화면**: `SignupScreen.kt` (SignupViewModel에서 호출)
 
-### 1-6. SMS 인증번호 확인 ✅
+### 1-6. SMS 인증번호 확인 🔗
 - **POST** `/api/v1/auth/sms/verify`
 - Auth: 불필요
 - Body: `{ phoneNumber, code }`
 - Response: `{ verified: true }`
-- 📱 **화면**: `SignupScreen.kt`, `FindAccountScreen.kt`, `PasswordResetScreen.kt`
+- 📱 **화면**: `SignupScreen.kt` (SignupViewModel에서 호출)
 
-### 1-7. 비밀번호 찾기 (인증코드 발송) ✅
+### 1-7. 비밀번호 찾기 (인증코드 발송) 🔗
 - **POST** `/api/v1/auth/password`
 - Auth: 불필요
 - Body: `{ email: String }`
 - Response: 인증코드 발송
-- 📱 **화면**: `PasswordResetScreen.kt`
+- 📱 **화면**: `PasswordResetScreen.kt` — 이메일 입력 후 "발송" 버튼
 
-### 1-8. 비밀번호 재설정 ✅
+### 1-8. 비밀번호 재설정 🔗
 - **PATCH** `/api/v1/auth/reset-password`
 - Auth: 불필요
 - Body: `{ phoneNumber, code, newPassword }`
 - Response: `{ httpStatusCode: 200 }`
-- 📱 **화면**: `PasswordResetScreen.kt`
+- 📱 **화면**: `PasswordResetScreen.kt` — 전화번호+인증코드+새 비밀번호 입력 후 "재설정" 버튼
 
-### 1-9. 이메일 찾기 ✅
+### 1-9. 이메일 찾기 🔗
 - **POST** `/api/v1/users/email`
 - Auth: Bearer (@SecurityRequirement)
 - Body: `{ username, phoneNumber }`
 - Response: `{ email: String }`
-- 📱 **화면**: `FindAccountScreen.kt`
+- 📱 **화면**: `FindAccountScreen.kt` — 이름+전화번호 입력 후 계정 찾기
 
 ### 1-10. 유저 검색 (양도용) ✅
 - **GET** `/api/v1/auth/search`
@@ -86,18 +86,19 @@
 - Response: `{ id: Long, name: String, number: String }`
 - 📱 **화면**: `TransferScreen.kt`
 
-### 1-11. 이메일 중복 확인 ✅ ⚠️
+### 1-11. 이메일 중복 확인 🔗
 - **POST** `/api/v1/auth/duplicate`
 - Auth: 불필요
 - Body: `{ email: String }`
-- Response: `{ httpStatusCode: 200 }` (중복 시 에러)
+- Response: `{ httpStatusCode: 200 }` (중복 시 409 에러)
+- 📱 **화면**: `SignupScreen.kt` — "중복확인" 버튼 (SignupViewModel에서 호출)
 
-### 1-12. 비밀번호 변경 (로그인 상태) ✅ ⚠️
+### 1-12. 비밀번호 변경 (로그인 상태) 🔗
 - **PATCH** `/api/v1/auth/change-password`
 - Auth: Bearer (@AuthenticationPrincipal)
-- Body: `{ currentPassword, newPassword }`
+- Body: `{ oldPassword, newPassword }`
 - Response: `{ httpStatusCode: 200 }`
-- 📱 **화면**: `PasswordChangeScreen.kt`
+- 📱 **화면**: `PasswordChangeScreen.kt` — 현재/새 비밀번호 입력 후 "변경하기" 버튼
 
 ---
 
@@ -109,11 +110,11 @@
 - Response: `{ userId, username, phoneNumber, email }`
 - 📱 **화면**: `MyPageScreen.kt` — 프로필 정보 표시 (MyPageViewModel 연결)
 
-### 2-2. 회원 탈퇴 ❌
+### 2-2. 회원 탈퇴 🔗
 - **DELETE** `/api/v1/users`
-- Auth: Bearer
-- 📱 **화면**: `SettingsScreen.kt`
-- ❌ backend에 아직 미구현
+- Auth: Bearer (Authorization 헤더 + 선택적 Refresh-Token 헤더)
+- Response: `{ httpStatusCode: 200, responseMessage: "회원 탈퇴 완료" }`
+- 📱 **화면**: `MyPageScreen.kt` — "회원 탈퇴" 텍스트 → 2단계 확인 다이얼로그 → API 호출
 
 ### 2-3. 찜한 공연 목록 조회 🔗
 - **GET** `/api/v1/users/likes`
@@ -121,11 +122,12 @@
 - Response: `[{ showId, title, posterUrl, venue, showDate, status }]`
 - 📱 **화면**: `WishlistScreen.kt` — 찜 목록 (MyPageViewModel 연결)
 
-### 2-4. 알림 설정 변경 ❌
+### 2-4. 알림 설정 변경 🔗
 - **PUT** `/api/v1/users/notifications`
 - Auth: Bearer
 - Body: `{ notificationEnable: Boolean }`
-- ❌ backend에 아직 미구현
+- Response: `{ httpStatusCode: 200 }`
+- 📱 **화면**: `SettingsScreen.kt` — 푸시 알림 받기 토글 (공연 당일/전날 알림)
 
 ---
 
@@ -466,14 +468,14 @@
 
 | 섹션 | 전체 | 🔗 연결 | ✅ BE만 | ❌ 미구현 | ⚠️ FE 미사용 |
 |------|------|---------|---------|----------|-------------|
-| 1. Auth | 12 | 4 | 6 | 0 | 2 |
-| 2. User | 4 | 2 | 0 | 2 | 0 |
+| 1. Auth | 12 | 10 | 2 | 0 | 0 |
+| 2. User | 4 | 4 | 0 | 0 | 0 |
 | 3. Show | 9 | 7 | 1 | 0 | 1 |
 | 4. Ticket | 7 | 0 | 1 | 6 | 0 |
 | 5. Queue | 4 | 0 | 0 | 4 | 0 |
 | 6. Wallet | 4 | 3 | 0 | 1 | 0 |
 | 7. Resale | 5 | 3 | 2 | 0 | 0 |
-| **합계** | **45** | **19** | **10** | **13** | **3** |
+| **합계** | **45** | **27** | **4** | **11** | **3** |
 
 ---
 
@@ -482,9 +484,9 @@
 | 화면 | 연결 API | 상태 |
 |------|---------|------|
 | `LoginScreen` | 1-1 로그인 | 🔗 |
-| `SignupScreen` | 1-4 회원가입, 1-5 SMS, 1-6 SMS확인 | 🔗 |
-| `FindAccountScreen` | 1-9 이메일찾기, 1-5/1-6 SMS | ✅ |
-| `PasswordResetScreen` | 1-7/1-8 비밀번호 재설정 | ✅ |
+| `SignupScreen` | 1-4 회원가입, 1-5 SMS, 1-6 SMS확인, 1-11 이메일중복 | 🔗 |
+| `FindAccountScreen` | 1-9 이메일찾기 | 🔗 |
+| `PasswordResetScreen` | 1-7 인증코드발송, 1-8 비밀번호재설정 | 🔗 |
 | `HomeScreen` | 3-1 공연목록, 3-9 오픈예정 | 🔗 |
 | `ShowsScreen` | 3-1 공연목록 (region=Int, sort, keyword 필터) | 🔗 |
 | `ShowDetailScreen` | 3-2 공연상세, 3-5/3-6 찜, 3-8 환불정책 | 🔗 |
@@ -502,10 +504,10 @@
 | `ResaleDetailScreen` | 7-4 구매, 7-5 취소 | ✅ |
 | `WalletScreen` | 6-1 잔액 | 🔗 |
 | `WalletHistoryScreen` | 6-3 거래내역 | 🔗 |
-| `MyPageScreen` | 2-1 내정보, 2-3 찜목록, 6-1/6-2 잔액 | 🔗 |
+| `MyPageScreen` | 2-1 내정보, 2-2 회원탈퇴, 2-3 찜목록, 6-1/6-2 잔액 | 🔗 |
 | `WishlistScreen` | 2-3 찜목록 | 🔗 |
-| `SettingsScreen` | 1-2 로그아웃 | ✅ |
-| `PasswordChangeScreen` | 1-12 비밀번호변경 | ✅ |
+| `SettingsScreen` | 1-2 로그아웃, 2-4 알림설정 | 🔗 |
+| `PasswordChangeScreen` | 1-12 비밀번호변경 | 🔗 |
 
 ---
 

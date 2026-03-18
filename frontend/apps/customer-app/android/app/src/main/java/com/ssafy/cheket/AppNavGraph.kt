@@ -184,7 +184,7 @@ fun AppNavGraph(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
-                            popUpTo(Routes.HOME) { saveState = true }
+                            popUpTo(Routes.HOME) { inclusive = false }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -321,9 +321,14 @@ fun AppNavGraph(
                 PaymentScreen(
                     showId = showId,
                     onSuccess = {
+                        // 구매 플로우 전체를 백스택에서 제거 후 MY_TICKETS로 이동
                         navController.navigate(Routes.MY_TICKETS) {
-                            popUpTo(Routes.HOME) { saveState = true }
+                            popUpTo(Routes.HOME) {
+                                inclusive = false
+                                saveState = false
+                            }
                             launchSingleTop = true
+                            restoreState = false
                         }
                     },
                     onFailure = { sId, reason ->
@@ -488,12 +493,19 @@ fun AppNavGraph(
             }
             slideComposable(Routes.MY_PAGE) {
                 MyPageScreen(
+                    userService = appContainer.userService,
                     onWallet = { navController.navigate(Routes.WALLET) },
                     onWishlist = { navController.navigate(Routes.WISHLIST) },
                     onWalletHistory = { navController.navigate(Routes.WALLET_HISTORY) },
                     onTxHistory = { navController.navigate(Routes.TX_HISTORY) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
                     onLogout = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onWithdrawSuccess = {
+                        appContainer.authRepository.logout()
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -523,22 +535,26 @@ fun AppNavGraph(
             }
             slideComposable(Routes.SETTINGS) {
                 SettingsScreen(
+                    userService = appContainer.userService,
                     onPasswordChange = { navController.navigate(Routes.PASSWORD_CHANGE) },
                     onBack = { navController.popBackStack() },
                 )
             }
             slideComposable(Routes.PASSWORD_CHANGE) {
                 PasswordChangeScreen(
+                    authRepository = appContainer.authRepository,
                     onBack = { navController.popBackStack() },
                 )
             }
             slideComposable(Routes.FIND_ACCOUNT) {
                 FindAccountScreen(
+                    authService = appContainer.authService,
                     onBack = { navController.popBackStack() },
                 )
             }
             slideComposable(Routes.PASSWORD_RESET) {
                 PasswordResetScreen(
+                    authService = appContainer.authService,
                     onBack = { navController.popBackStack() },
                 )
             }

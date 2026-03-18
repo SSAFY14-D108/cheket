@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,25 +21,129 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.cheket.core.network.service.UserService
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun MyPageScreen(
+    userService: UserService,
     onWallet: () -> Unit,
     onWishlist: () -> Unit,
     onWalletHistory: () -> Unit = {},
     onTxHistory: () -> Unit = {},
     onSettings: () -> Unit = {},
     onLogout: () -> Unit,
+    onWithdrawSuccess: () -> Unit = onLogout,
     onBack: () -> Unit,
     viewModel: MyPageViewModel = viewModel(factory = MyPageViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // 회원탈퇴 2단계 다이얼로그 상태
+    var showWithdrawDialog1 by remember { mutableStateOf(false) }
+    var showWithdrawDialog2 by remember { mutableStateOf(false) }
+    var isWithdrawing by remember { mutableStateOf(false) }
+
+    // 1단계: 정말 탈퇴하시겠습니까?
+    if (showWithdrawDialog1) {
+        AlertDialog(
+            onDismissRequest = { showWithdrawDialog1 = false },
+            icon = { Icon(Icons.Outlined.Warning, null, tint = Danger, modifier = Modifier.size(32.dp)) },
+            title = { Text("회원 탈퇴", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+            text = {
+                Text(
+                    "정말 탈퇴하시겠습니까?\n\n탈퇴 시 모든 데이터가 삭제되며\n복구할 수 없습니다.",
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showWithdrawDialog1 = false
+                        showWithdrawDialog2 = true
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Danger),
+                ) { Text("탈퇴 진행", fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWithdrawDialog1 = false }) {
+                    Text("취소")
+                }
+            },
+        )
+    }
+
+    // 2단계: 최종 확인
+    if (showWithdrawDialog2) {
+        AlertDialog(
+            onDismissRequest = { if (!isWithdrawing) showWithdrawDialog2 = false },
+            icon = { Icon(Icons.Outlined.Warning, null, tint = Danger, modifier = Modifier.size(32.dp)) },
+            title = { Text("최종 확인", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+            text = {
+                Text(
+                    "보유한 티켓, CTK 잔액, 거래 내역 등\n모든 정보가 영구 삭제됩니다.\n\n정말로 탈퇴하시겠습니까?",
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp,
+                    color = Danger,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isWithdrawing = true
+                        scope.launch {
+                            try {
+                                val response = userService.deleteUser()
+                                Log.d("MyPageScreen", "deleteUser() statusCode=${response.httpStatusCode}")
+                                isWithdrawing = false
+                                showWithdrawDialog2 = false
+                                if (response.httpStatusCode in 200..299) {
+                                    Toast.makeText(context, "회원 탈퇴가 완료되었습니다", Toast.LENGTH_SHORT).show()
+                                    onWithdrawSuccess()
+                                } else {
+                                    Toast.makeText(context, response.responseMessage ?: "회원 탈퇴에 실패했습니다", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Log.e("MyPageScreen", "deleteUser() error", e)
+                                isWithdrawing = false
+                                showWithdrawDialog2 = false
+                                Toast.makeText(context, "회원 탈퇴에 실패했습니다", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    enabled = !isWithdrawing,
+                    colors = ButtonDefaults.buttonColors(containerColor = Danger),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    if (isWithdrawing) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                    } else {
+                        Text("회원 탈퇴", fontWeight = FontWeight.SemiBold, color = White)
+                    }
+                }
+            },
+            dismissButton = {
+                if (!isWithdrawing) {
+                    TextButton(onClick = { showWithdrawDialog2 = false }) {
+                        Text("취소")
+                    }
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = { AppHeader(title = "마이페이지", onBack = onBack) },
@@ -224,7 +329,7 @@ fun MyPageScreen(
                 textDecoration = TextDecoration.Underline,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .clickable { /* TODO */ },
+                    .clickable { showWithdrawDialog1 = true },
             )
 
             // Version

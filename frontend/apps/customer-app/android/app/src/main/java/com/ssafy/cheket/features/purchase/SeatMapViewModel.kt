@@ -90,6 +90,13 @@ class SeatMapViewModel(
 
                 Log.d(TAG, "loadFromApi() sections=${sectionDtos.size}, totalSeats=${sectionDtos.sumOf { it.seats.size }}")
 
+                // seat status distribution logging
+                val statusCounts = sectionDtos.flatMap { it.seats }.groupingBy { it.status }.eachCount()
+                Log.d(TAG, "loadFromApi() seat status distribution: $statusCounts")
+                sectionDtos.flatMap { it.seats }.take(5).forEach { seat ->
+                    Log.d(TAG, "  seat sample: id=${seat.sessionSeatId}, seatNo=${seat.seatNo}, status='${seat.status}', row=${seat.rowNum}, col=${seat.colNum}")
+                }
+
                 // DTO → Domain Model 변환
                 val sections = sectionDtos.map { dto -> dto.toDomain() }
 

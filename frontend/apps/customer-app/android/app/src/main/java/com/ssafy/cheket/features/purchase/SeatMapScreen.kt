@@ -664,6 +664,7 @@ private fun SheetSeatRow(
 private const val DEFAULT_ZOOM = 1.5f
 private const val DEFAULT_FOCUS_X = CANVAS_W / 2
 private const val DEFAULT_FOCUS_Y = CANVAS_H * 0.35f
+private const val FIT_PADDING = 40f  // 좌석 영역 fit 시 여백 (논리 좌표)
 
 @Composable
 private fun ZoomableSeatCanvas(
@@ -692,12 +693,45 @@ private fun ZoomableSeatCanvas(
 
         var prevViewH by remember { mutableFloatStateOf(0f) }
 
+        // 좌석 bounding box 계산 (스테이지 포함)
+        val seatBBox = remember(seatPositions) {
+            if (seatPositions.isEmpty()) null
+            else {
+                val sMinX = (seatPositions.values.minOfOrNull { it.cx - SEAT_RADIUS } ?: 0f)
+                    .coerceAtMost(STAGE_LEFT)
+                val sMaxX = (seatPositions.values.maxOfOrNull { it.cx + SEAT_RADIUS } ?: CANVAS_W)
+                    .coerceAtLeast(STAGE_LEFT + STAGE_W)
+                val sMinY = (seatPositions.values.minOfOrNull { it.cy - SEAT_RADIUS } ?: 0f)
+                    .coerceAtMost(STAGE_TOP)
+                val sMaxY = seatPositions.values.maxOfOrNull { it.cy + SEAT_RADIUS } ?: CANVAS_H
+                val bLeft = sMinX - FIT_PADDING
+                val bTop = sMinY - FIT_PADDING
+                val bW = (sMaxX - sMinX) + FIT_PADDING * 2
+                val bH = (sMaxY - sMinY) + FIT_PADDING * 2
+                val bCx = sMinX + (sMaxX - sMinX) / 2f
+                val bCy = sMinY + (sMaxY - sMinY) / 2f
+                floatArrayOf(bLeft, bTop, bW, bH, bCx, bCy)
+            }
+        }
+
         LaunchedEffect(viewW, viewH) {
             if (offsetX.isNaN() || offsetY.isNaN()) {
-                // 최초 진입: 기본 포커스 위치로 초기화
-                val scale = baseScale * DEFAULT_ZOOM
-                offsetX = viewW / 2 - DEFAULT_FOCUS_X * scale
-                offsetY = viewH / 2 - DEFAULT_FOCUS_Y * scale
+                // 최초 진입: 좌석 영역에 맞춰 auto-fit
+                if (seatBBox != null) {
+                    val bW = seatBBox[2]; val bH = seatBBox[3]
+                    val bCx = seatBBox[4]; val bCy = seatBBox[5]
+                    val fitZoomX = viewW / (bW * baseScale)
+                    val fitZoomY = viewH / (bH * baseScale)
+                    val fitZoom = minOf(fitZoomX, fitZoomY).coerceIn(0.5f, 12f)
+                    zoom = fitZoom
+                    val scale = baseScale * fitZoom
+                    offsetX = viewW / 2f - bCx * scale
+                    offsetY = viewH / 2f - bCy * scale
+                } else {
+                    val scale = baseScale * DEFAULT_ZOOM
+                    offsetX = viewW / 2 - DEFAULT_FOCUS_X * scale
+                    offsetY = viewH / 2 - DEFAULT_FOCUS_Y * scale
+                }
             } else if (prevViewH > 0f) {
                 // 전체화면↔미니 전환: baseScale·zoom 불변, 세로 중심만 보정
                 offsetY += (viewH - prevViewH) / 2f

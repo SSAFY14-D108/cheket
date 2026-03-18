@@ -33,7 +33,7 @@ interface AuthService {
     suspend fun checkEmailDuplicate(@Body request: EmailDuplicateRequest): ApiResponse<Unit>
 
     @PATCH("api/v1/auth/change-password")
-    suspend fun changePassword(@Body request: PasswordChangeRequest): ApiResponse<Unit>
+    suspend fun changePassword(@Body request: AuthChangePasswordRequest): ApiResponse<Unit>
 
     @GET("api/v1/auth/search")
     suspend fun searchUser(
