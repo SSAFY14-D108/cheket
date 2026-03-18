@@ -1,6 +1,6 @@
 package com.ssafy.cheket.config.queue;
 
-public class QueueHeaderConstants {
+public final class QueueHeaderConstants {
 
     private QueueHeaderConstants() {
     }
