@@ -11,8 +11,15 @@ public class SwaggerConfig {
 
     @Bean
     public OpenAPI openAPI() {
-        String schemeName = "bearerAuth";
-        return new OpenAPI().components(new Components().addSecuritySchemes(schemeName,
-            new SecurityScheme().name(schemeName).type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")));
+        String authSchemeName = "bearerAuth";
+        String queueSchemeName = "queueToken";
+
+        return new OpenAPI().components(new Components()
+            .addSecuritySchemes(authSchemeName,
+                new SecurityScheme().name(authSchemeName).type(SecurityScheme.Type.HTTP).scheme("bearer")
+                    .bearerFormat("JWT"))
+            .addSecuritySchemes(queueSchemeName, new SecurityScheme().name("Queue-Token")
+                .type(SecurityScheme.Type.APIKEY).in(SecurityScheme.In.HEADER)));
     }
+
 }
