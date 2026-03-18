@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -115,9 +116,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // 비밀번호 초기화
+    @Transactional
     @Override
     public void resetPassword(String phoneNumber, String code, String newPassword) {
-        smsService.verifySmsCode(phoneNumber.replace("-", ""), code);
+        smsService.verifyResetSmsCode(phoneNumber, code);
 
         if (newPassword == null || newPassword.isBlank()) {
             throw new BadRequestException("새 비밀번호는 필수입니다.");

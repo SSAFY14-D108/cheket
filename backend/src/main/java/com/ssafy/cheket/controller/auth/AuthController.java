@@ -58,7 +58,7 @@ public class AuthController {
     @Operation(summary = "비밀번호 초기화 시 필요한 인증코드 전송")
     public ResponseEntity<ApiResponse<Void>> sendPasswordResetVerificationCode(
         @RequestBody SmsSendForChangePasswordRequest request) {
-        smsService.sendPasswordResetVerificationCode(request.email());
+        smsService.sendPasswordResetVerificationCode(request.phoneNumber());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "인증 코드가 전송되었습니다.", null));
     }
 
