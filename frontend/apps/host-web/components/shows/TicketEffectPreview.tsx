@@ -31,6 +31,10 @@ export function TicketEffectPreview({
 }: TicketEffectPreviewProps) {
     // 기본 포스터 (업로드 안 했을 때)
     const displayImage = posterUrl || "/placeholder.svg"
+    const shouldBypassOptimization =
+        displayImage.startsWith("data:") ||
+        displayImage.startsWith("http://") ||
+        displayImage.startsWith("https://")
 
     // 효과 매핑 함수 (각 effect 문자열에 따른 CSS 스타일/클래스)
     const getEffectClasses = (effectStr: string) => {
@@ -87,7 +91,7 @@ export function TicketEffectPreview({
                                     alt="티켓 미리보기"
                                     fill
                                     className="object-cover"
-                                    unoptimized={displayImage.startsWith('data:')}
+                                    unoptimized={shouldBypassOptimization}
                                 />
                                 {ticketEffects.find(e => e.id.toString() === selectedEffectId)?.effect === 'glow2' && (
                                     <div className="absolute inset-0 z-10 pointer-events-none shimmer-overlay" />

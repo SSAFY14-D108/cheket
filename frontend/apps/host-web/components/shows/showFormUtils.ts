@@ -23,6 +23,7 @@ export interface ShowFormValues {
   openAt: string
   closeAt: string
   description: string
+  descriptionImageFiles: File[]
   purchaseLimit: string
   grades: Grade[]
   stakeholders: Stakeholder[]
@@ -398,6 +399,7 @@ export function buildCreatePayload(values: Omit<ShowFormValues, "mode">): Create
   return {
     show: buildPayload(values),
     posterImageFile: values.posterFile,
+    descriptionImageFiles: values.descriptionImageFiles,
   }
 }
 
@@ -405,5 +407,6 @@ export function buildUpdatePayload(values: Omit<ShowFormValues, "mode">): Create
   return {
     show: buildPayload(values),
     posterImageFile: values.posterFile ?? null,
+    descriptionImageFiles: values.descriptionImageFiles,
   }
 }
