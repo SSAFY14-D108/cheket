@@ -339,20 +339,29 @@ public class HostShowServiceImpl implements HostShowService {
             throw new ForbiddenException("본인이 등록한 공연만 수정할 수 있습니다.");
 
         // ── 2. 기본 정보: null이 아닌 필드만 수정 ──
-        if (request.title() != null) show.setTitle(request.title());
+        if (request.title() != null)
+            show.setTitle(request.title());
         if (request.venueId() != null) {
             Venue venue = venueRepository.findById(request.venueId())
                 .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
             show.setVenue(venue);
         }
-        if (request.artist() != null) show.setArtist(request.artist());
-        if (request.description() != null) show.setDescription(request.description());
-        if (request.playtime() != null) show.setPlaytime(request.playtime());
-        if (request.purchaseLimit() != null) show.setPurchaseLimit(request.purchaseLimit());
-        if (request.showStartDate() != null) show.setShowStartDate(request.showStartDate());
-        if (request.showEndDate() != null) show.setShowEndDate(request.showEndDate());
-        if (request.reservationStartDate() != null) show.setReservationStartDate(request.reservationStartDate());
-        if (request.reservationEndDate() != null) show.setReservationEndDate(request.reservationEndDate());
+        if (request.artist() != null)
+            show.setArtist(request.artist());
+        if (request.description() != null)
+            show.setDescription(request.description());
+        if (request.playtime() != null)
+            show.setPlaytime(request.playtime());
+        if (request.purchaseLimit() != null)
+            show.setPurchaseLimit(request.purchaseLimit());
+        if (request.showStartDate() != null)
+            show.setShowStartDate(request.showStartDate());
+        if (request.showEndDate() != null)
+            show.setShowEndDate(request.showEndDate());
+        if (request.reservationStartDate() != null)
+            show.setReservationStartDate(request.reservationStartDate());
+        if (request.reservationEndDate() != null)
+            show.setReservationEndDate(request.reservationEndDate());
         show.setUpdatedAt(LocalDateTime.now());
 
         // ── 3. 포스터 이미지: 파일이 있을 때만 교체 ──
@@ -381,25 +390,17 @@ public class HostShowServiceImpl implements HostShowService {
             sessionRepository.deleteAllByShowId(showId);
 
             // 새 회차 저장
-            List<Session> newSessions = sessionRepository.saveAll(
-                request.sessionInfo().stream()
-                    .map(s -> Session.builder()
-                        .showId(showId)
-                        .sessionDate(s.sessionDate())
-                        .sessionStartTime(s.sessionStartTime())
-                        .build())
-                    .toList());
+            List<Session> newSessions = sessionRepository
+                .saveAll(request.sessionInfo().stream().map(s -> Session.builder().showId(showId)
+                    .sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList());
 
             // 새 session_seats 재생성 (등급 정보가 같이 왔으면 새 등급 기준, 아니면 기존 등급 기준)
             List<Long> sectionIds;
             if (request.grade() != null) {
-                sectionIds = request.grade().stream()
-                    .flatMap(g -> g.sectionIds().stream())
-                    .distinct().toList();
+                sectionIds = request.grade().stream().flatMap(g -> g.sectionIds().stream()).distinct().toList();
             } else {
-                sectionIds = seatGradeRepository.findByShowId(showId).stream()
-                    .map(SeatGrade::getSectionId)
-                    .distinct().toList();
+                sectionIds = seatGradeRepository.findByShowId(showId).stream().map(SeatGrade::getSectionId).distinct()
+                    .toList();
             }
 
             if (!sectionIds.isEmpty()) {
@@ -407,11 +408,8 @@ public class HostShowServiceImpl implements HostShowService {
                 List<SessionSeat> sessionSeats = new ArrayList<>();
                 for (Session session : newSessions) {
                     for (Seat seat : seats) {
-                        sessionSeats.add(SessionSeat.builder()
-                            .sessionId(session.getId())
-                            .seatId(seat.getId())
-                            .status(SeatStatus.AVAILABLE)
-                            .build());
+                        sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                            .status(SeatStatus.AVAILABLE).build());
                     }
                 }
                 sessionSeatRepository.saveAll(sessionSeats);
@@ -424,14 +422,9 @@ public class HostShowServiceImpl implements HostShowService {
 
             for (UpdateShowRequest.GradeInfo grade : request.grade()) {
                 for (Long sectionId : grade.sectionIds()) {
-                    seatGradeRepository.save(SeatGrade.builder()
-                        .showId(showId)
-                        .sectionId(sectionId)
-                        .gradeName(grade.gradeName())
-                        .price(grade.price())
-                        .colorCode(grade.colorCode())
-                        .ticketEffectId(grade.ticketEffectId())
-                        .build());
+                    seatGradeRepository.save(SeatGrade.builder().showId(showId).sectionId(sectionId)
+                        .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
+                        .ticketEffectId(grade.ticketEffectId()).build());
                 }
             }
 
@@ -442,20 +435,16 @@ public class HostShowServiceImpl implements HostShowService {
                 if (!existingSessionIds.isEmpty()) {
                     sessionSeatRepository.deleteBySessionIdIn(existingSessionIds);
 
-                    List<Long> newSectionIds = request.grade().stream()
-                        .flatMap(g -> g.sectionIds().stream())
-                        .distinct().toList();
+                    List<Long> newSectionIds = request.grade().stream().flatMap(g -> g.sectionIds().stream()).distinct()
+                        .toList();
                     List<Seat> seats = seatRepository.findBySectionIdIn(newSectionIds);
                     List<Session> existingSessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
 
                     List<SessionSeat> sessionSeats = new ArrayList<>();
                     for (Session session : existingSessions) {
                         for (Seat seat : seats) {
-                            sessionSeats.add(SessionSeat.builder()
-                                .sessionId(session.getId())
-                                .seatId(seat.getId())
-                                .status(SeatStatus.AVAILABLE)
-                                .build());
+                            sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                                .status(SeatStatus.AVAILABLE).build());
                         }
                     }
                     sessionSeatRepository.saveAll(sessionSeats);
@@ -467,11 +456,8 @@ public class HostShowServiceImpl implements HostShowService {
         if (request.refundPolicy() != null) {
             refundPolicyRepository.deleteAllByShowId(showId);
             for (UpdateShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
-                refundPolicyRepository.save(RefundPolicy.builder()
-                    .showId(showId)
-                    .daysRemaining(policy.daysRemaining())
-                    .refundRate(policy.refundRate())
-                    .build());
+                refundPolicyRepository.save(RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
+                    .refundRate(policy.refundRate()).build());
             }
         }
     }

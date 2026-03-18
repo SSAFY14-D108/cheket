@@ -4,8 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 공연 부분 수정 요청 DTO (PATCH)
- * 모든 필드가 nullable → null이면 기존 값 유지, 값이 있으면 해당 필드만 수정
+ * 공연 부분 수정 요청 DTO (PATCH) 모든 필드가 nullable → null이면 기존 값 유지, 값이 있으면 해당 필드만 수정
  */
 public record UpdateShowRequest(
     // ── 공연 기본 정보 (null이면 수정 안 함) ──
