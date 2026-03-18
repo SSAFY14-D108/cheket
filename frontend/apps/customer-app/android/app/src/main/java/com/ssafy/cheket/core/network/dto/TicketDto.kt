@@ -35,9 +35,9 @@ data class QrResponse(
 
 data class UpcomingTicketDto(
     @SerializedName("ticketId") val ticketId: Long,
-    @SerializedName("numbering") val numbering: Int,
+    @SerializedName("numbering") val numbering: String,
     @SerializedName("posterUrl") val posterUrl: String,
-    @SerializedName("show") val show: TicketShowDto,
+    @SerializedName("showInfo") val show: TicketShowDto,
     @SerializedName("price") val price: Int,
     @SerializedName("seatId") val seatId: Long,
     @SerializedName("sectionName") val sectionName: String,

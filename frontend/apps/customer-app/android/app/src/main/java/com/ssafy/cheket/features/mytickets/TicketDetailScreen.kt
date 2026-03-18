@@ -166,7 +166,7 @@ fun TicketDetailScreen(
 
             // --- Action Buttons ---
             when (ticket.status) {
-                TicketStatus.SOLD -> {
+                TicketStatus.AVAILABLE -> {
                     // QR Check-in (primary)
                     Button(
                         onClick = { onQrCheckin(ticketId) },
@@ -218,6 +218,17 @@ fun TicketDetailScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Danger),
                     ) {
                         Text("판매 등록 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
+                    }
+                }
+
+                TicketStatus.SOLD -> {
+                    Button(
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Sold ticket", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
 

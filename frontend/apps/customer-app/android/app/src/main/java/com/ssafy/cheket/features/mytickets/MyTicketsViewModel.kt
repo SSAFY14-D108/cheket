@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 enum class TicketFilter(val label: String) {
-    ALL("전체"), SOLD("보유중"), LISTED("판매중")
+    ALL("전체"),
+    AVAILABLE("보유중"),
+    LISTED("판매중"),
 }
 
 data class MyTicketsUiState(
@@ -24,6 +26,7 @@ data class MyTicketsUiState(
     val filteredTickets: List<Ticket> = emptyList(),
     val selectedFilter: TicketFilter = TicketFilter.ALL,
     val isLoading: Boolean = true,
+    val errorMessage: String? = null,
 )
 
 class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewModel() {
@@ -31,12 +34,26 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
     val uiState: StateFlow<MyTicketsUiState> = _uiState.asStateFlow()
 
     init {
-        Log.d(TAG, "init — loading tickets")
+        Log.d(TAG, "init -> loading tickets")
         viewModelScope.launch {
-            ticketRepository.getTickets().collect { tickets ->
-                Log.d(TAG, "getTickets() received ${tickets.size} tickets")
-                _uiState.value = _uiState.value.copy(allTickets = tickets, isLoading = false)
-                applyFilter()
+            try {
+                ticketRepository.getTickets().collect { tickets ->
+                    Log.d(TAG, "getTickets() received ${tickets.size} tickets")
+                    _uiState.value = _uiState.value.copy(
+                        allTickets = tickets,
+                        isLoading = false,
+                        errorMessage = null,
+                    )
+                    applyFilter()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "getTickets() failed", e)
+                _uiState.value = _uiState.value.copy(
+                    allTickets = emptyList(),
+                    filteredTickets = emptyList(),
+                    isLoading = false,
+                    errorMessage = "티켓 목록을 불러오지 못했습니다.",
+                )
             }
         }
     }
@@ -51,7 +68,7 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
         val s = _uiState.value
         val result = when (s.selectedFilter) {
             TicketFilter.ALL -> s.allTickets
-            TicketFilter.SOLD -> s.allTickets.filter { it.status == TicketStatus.SOLD }
+            TicketFilter.AVAILABLE -> s.allTickets.filter { it.status == TicketStatus.AVAILABLE }
             TicketFilter.LISTED -> s.allTickets.filter { it.status == TicketStatus.LISTED }
         }
         Log.d(TAG, "applyFilter() filter=${s.selectedFilter}, resultCount=${result.size}")

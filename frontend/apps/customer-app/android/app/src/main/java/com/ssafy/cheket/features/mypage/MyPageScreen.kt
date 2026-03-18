@@ -46,7 +46,7 @@ fun MyPageScreen(
 ) {
     val user = remember { MockDataSource.mockUser }
     val tickets = remember { MockDataSource.mockTickets }
-    val soldCount = remember { tickets.count { it.status == TicketStatus.SOLD } }
+    val soldCount = remember { tickets.count { it.status == TicketStatus.AVAILABLE } }
     val usedCount = remember { tickets.count { it.status == TicketStatus.USED } }
     val wishlistCount = 3
 

@@ -37,7 +37,7 @@ class TicketRepositoryImpl(
             emit(tickets)
         } catch (e: Exception) {
             Log.e(TAG, "getTickets() error", e)
-            emit(emptyList())
+            throw e
         }
     }
 
@@ -102,10 +102,13 @@ class TicketRepositoryImpl(
     }
 
     private fun mapTicketStatus(status: String): TicketStatus = when (status.uppercase()) {
+        "AVAILABLE" -> TicketStatus.AVAILABLE
         "SOLD" -> TicketStatus.SOLD
         "LISTED" -> TicketStatus.LISTED
+        "ON-SALE" -> TicketStatus.LISTED
+        "ON_SALE" -> TicketStatus.LISTED
         "USED" -> TicketStatus.USED
         "EXPIRED" -> TicketStatus.EXPIRED
-        else -> TicketStatus.SOLD
+        else -> TicketStatus.AVAILABLE
     }
 }
