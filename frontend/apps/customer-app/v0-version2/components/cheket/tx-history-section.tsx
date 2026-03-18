@@ -92,9 +92,9 @@ function TxRow({ tx }: { tx: TxRecord }) {
   const isInFlight = tx.status === 'PENDING' || tx.status === 'CONFIRMING'
 
   return (
-    <div className={`rounded-xl overflow-hidden transition-all ${tx.status === 'FAILED' ? 'border border-red-200 bg-red-50/30' : isInFlight ? 'gradient-outline-surface-soft' : 'gradient-outline-surface'}`}>
+    <div className={`rounded-xl overflow-hidden transition-all ${tx.status === 'FAILED' ? 'border border-red-200 bg-red-50/30' : isInFlight ? 'elevated-surface-soft' : 'elevated-surface'}`}>
       <button className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-secondary/30 transition-colors" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0 ${tx.status === 'FAILED' ? 'bg-red-100' : 'gradient-outline-icon-button'}`}>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0 ${tx.status === 'FAILED' ? 'bg-red-100' : 'gradient-border-icon-button'}`}>
           <Icon className={`h-4 w-4 ${tx.status === 'FAILED' ? 'text-red-500' : 'text-[#333333]'}`} />
         </div>
 
@@ -156,8 +156,8 @@ export function TxHistorySection() {
 
   if (txRecords.length === 0) {
     return (
-      <div className="gradient-outline-surface rounded-xl p-6 text-center">
-        <div className="gradient-outline-icon-button mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full">
+      <div className="elevated-surface rounded-xl p-6 text-center">
+        <div className="gradient-border-icon-button mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full">
           <RefreshCw className="h-6 w-6 text-muted-foreground" />
         </div>
         <p className="mb-1 text-sm font-medium text-foreground">거래 기록이 없어요</p>

@@ -45,7 +45,7 @@ export function TransferFailedScreen() {
           </div>
         </div>
 
-        <div className="gradient-outline-surface rounded-2xl divide-y divide-border">
+        <div className="elevated-surface rounded-2xl divide-y divide-border">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Music2 className="h-4 w-4" />
@@ -90,13 +90,13 @@ export function TransferFailedScreen() {
         <div className="mt-auto flex flex-col gap-3">
           <button
             onClick={() => navigate('transfer', { ticketId: ticket.id })}
-            className="gradient-outline-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]"
+            className="gradient-border-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]"
           >
             다시 시도하기
           </button>
           <button
             onClick={() => navigate('my-tickets')}
-            className="gradient-outline-surface w-full rounded-xl py-3 text-sm font-semibold text-[#333333]"
+            className="elevated-surface w-full rounded-xl py-3 text-sm font-semibold text-[#333333]"
           >
             내 티켓으로 돌아가기
           </button>

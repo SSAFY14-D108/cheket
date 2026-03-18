@@ -14,7 +14,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
   return (
     <button
       onClick={onClick}
-      className="gradient-outline-surface-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-all hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)] active:scale-[0.98]"
+      className="elevated-surface-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-all hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)] active:scale-[0.98]"
     >
       <div className="relative h-28 w-[84px] flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
         <Image src={event.poster} alt={event.name} fill className="object-cover" sizes="84px" />

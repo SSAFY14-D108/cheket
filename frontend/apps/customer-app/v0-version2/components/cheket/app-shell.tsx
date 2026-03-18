@@ -55,7 +55,7 @@ export function AppShell({
           {resolvedShowBack ? (
             <button
               onClick={resolvedOnBack}
-              className="-ml-1 gradient-outline-icon-button h-8 w-8"
+              className="-ml-1 gradient-border-icon-button h-8 w-8"
               aria-label="뒤로가기"
             >
               <ChevronLeft className="h-5 w-5 text-foreground" />
@@ -72,9 +72,10 @@ export function AppShell({
               <Image
                 src="/logo2.webp"
                 alt="cheket"
-                width={140}
-                height={32}
-                className="h-auto w-[78px] object-contain"
+                width={164}
+                height={38}
+                className="h-auto w-[92px] object-contain"
+                style={{ filter: 'saturate(0.38) hue-rotate(32deg) brightness(1.02) contrast(1.02)' }}
                 priority
               />
             )

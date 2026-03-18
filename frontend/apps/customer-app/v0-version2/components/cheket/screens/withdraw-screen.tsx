@@ -50,13 +50,13 @@ export function WithdrawScreen() {
                       key={reason}
                       onClick={() => setSelectedReason(reason)}
                       className={cn(
-                        'gradient-outline-surface flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-sm transition-all',
+                        'elevated-surface flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-sm transition-all',
                         selectedReason === reason ? 'font-medium text-[#111111]' : 'text-foreground'
                       )}
                     >
                       {reason}
                       {selectedReason === reason && (
-                        <div className="gradient-outline-icon-button flex h-4 w-4 items-center justify-center rounded-full">
+                        <div className="gradient-border-icon-button flex h-4 w-4 items-center justify-center rounded-full">
                           <div className="h-1.5 w-1.5 rounded-full bg-[#111111]" />
                         </div>
                       )}
@@ -80,12 +80,12 @@ export function WithdrawScreen() {
                   </p>
                 </div>
 
-                <div className="gradient-outline-surface rounded-xl p-4 text-sm text-muted-foreground">
+                <div className="elevated-surface rounded-xl p-4 text-sm text-muted-foreground">
                   <p className="mb-2 font-medium text-[#111111]">탈퇴 사유</p>
                   <p>{selectedReason}</p>
                 </div>
 
-                <button onClick={() => setConfirmed(!confirmed)} className="gradient-outline-surface flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all">
+                <button onClick={() => setConfirmed(!confirmed)} className="elevated-surface flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all">
                   <div className={cn('flex h-5 w-5 items-center justify-center rounded border-2 transition-all', confirmed ? 'border-red-500 bg-red-500' : 'border-border')}>
                     {confirmed && (
                       <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 12 12">
@@ -102,7 +102,7 @@ export function WithdrawScreen() {
 
         <div className="border-t border-border p-4">
           {step === 'reason' ? (
-            <button onClick={handleNext} disabled={!selectedReason} className="gradient-outline-button flex w-full items-center justify-center gap-1 rounded-xl py-3.5 text-sm font-semibold text-[#111111] disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onClick={handleNext} disabled={!selectedReason} className="gradient-border-button flex w-full items-center justify-center gap-1 rounded-xl py-3.5 text-sm font-semibold text-[#111111] disabled:opacity-40 disabled:cursor-not-allowed">
               다음 <ChevronRight className="h-4 w-4" />
             </button>
           ) : (

@@ -24,7 +24,7 @@ export function ResalePurchaseCompleteScreen() {
       <div className="bg-white px-6 pb-6 pt-10">
         <div className="flex flex-col items-center">
           <div className="relative">
-            <div className="gradient-outline-icon-button flex h-20 w-20 items-center justify-center rounded-full">
+            <div className="gradient-border-icon-button flex h-20 w-20 items-center justify-center rounded-full">
               <CheckCircle className="h-10 w-10 text-[#333333]" strokeWidth={2} />
             </div>
             <span className="absolute inset-0 animate-ping rounded-full border-2 border-[#d6dde9]" />
@@ -35,7 +35,7 @@ export function ResalePurchaseCompleteScreen() {
       </div>
 
       <div className="flex flex-col gap-4 px-4 pb-8 pt-2">
-        <div className="gradient-outline-surface-soft overflow-hidden rounded-2xl shadow-sm">
+        <div className="elevated-surface-soft overflow-hidden rounded-2xl shadow-sm">
           <div className="relative h-36 w-full">
             <Image src={ticket.poster} alt={ticket.eventName} fill className="object-cover" sizes="390px" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -46,7 +46,7 @@ export function ResalePurchaseCompleteScreen() {
 
           <div className="relative flex items-center px-4 py-0">
             <div className="flex-1 border-t border-dashed border-border" />
-            <span className="gradient-outline-surface mx-3 rounded-full px-2 py-0.5 text-[10px] font-bold text-[#333333]">NFT</span>
+            <span className="elevated-surface mx-3 rounded-full px-2 py-0.5 text-[10px] font-bold text-[#333333]">NFT</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
@@ -68,7 +68,7 @@ export function ResalePurchaseCompleteScreen() {
           </div>
         </div>
 
-        <div className="gradient-outline-surface-soft flex flex-col gap-2.5 rounded-2xl px-4 py-4">
+        <div className="elevated-surface-soft flex flex-col gap-2.5 rounded-2xl px-4 py-4">
           <h3 className="mb-0.5 text-sm font-semibold text-[#111111]">결제 요약</h3>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">정가</span>
@@ -92,7 +92,7 @@ export function ResalePurchaseCompleteScreen() {
           </div>
         </div>
 
-        <div className="gradient-outline-surface-soft rounded-2xl px-4 py-4">
+        <div className="elevated-surface-soft rounded-2xl px-4 py-4">
           <p className="mb-2 text-xs font-semibold text-[#111111]">블록체인 처리 정보</p>
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between gap-4">
@@ -112,14 +112,14 @@ export function ResalePurchaseCompleteScreen() {
 
         <button
           onClick={() => navigate('ticket-detail', { ticketId: ticket.id })}
-          className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm"
+          className="gradient-border-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm"
         >
           티켓 상세 보기
           <ArrowRight className="h-4 w-4" />
         </button>
         <button
           onClick={() => navigate('my-tickets')}
-          className="gradient-outline-surface w-full rounded-xl py-3.5 text-sm font-medium text-foreground transition-colors"
+          className="elevated-surface w-full rounded-xl py-3.5 text-sm font-medium text-foreground transition-colors"
         >
           내 티켓으로 이동
         </button>

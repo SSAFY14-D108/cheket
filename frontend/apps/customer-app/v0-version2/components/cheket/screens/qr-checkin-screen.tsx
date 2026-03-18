@@ -81,7 +81,7 @@ export function QrCheckinScreen() {
 
         {checkedIn ? (
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="gradient-outline-icon-button flex h-24 w-24 items-center justify-center rounded-full">
+            <div className="gradient-border-icon-button flex h-24 w-24 items-center justify-center rounded-full">
               <span className="text-4xl text-[#333333]">✓</span>
             </div>
             <p className="text-xl font-bold text-[#111111]">체크인이 완료됐어요</p>
@@ -90,7 +90,7 @@ export function QrCheckinScreen() {
         ) : (
           <div className="flex flex-col items-center gap-6">
             <div className="relative">
-              <div className="gradient-outline-surface p-3 rounded-2xl shadow-lg">
+              <div className="elevated-surface p-3 rounded-2xl shadow-lg">
                 <MockQR value={otpValue} />
               </div>
               <div className="absolute -right-3 -top-3">
@@ -127,12 +127,12 @@ export function QrCheckinScreen() {
 
         <div className="flex w-full flex-col gap-3">
           {!checkedIn && (
-            <button onClick={handleCheckIn} className="gradient-outline-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]">
+            <button onClick={handleCheckIn} className="gradient-border-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]">
               체크인 처리 (Mock)
             </button>
           )}
           {checkedIn && (
-            <button onClick={goBack} className="gradient-outline-surface w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]">
+            <button onClick={goBack} className="elevated-surface w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]">
               돌아가기
             </button>
           )}

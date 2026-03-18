@@ -88,9 +88,9 @@ export function EventDateSelectionScreen() {
       <div className="flex flex-col gap-4 bg-gray-50 p-4">
         <p className="text-xs text-muted-foreground">원하는 날짜와 회차를 선택하면 예매 단계로 이어집니다.</p>
 
-        {detailLoading && <div className="gradient-outline-surface rounded-xl px-4 py-3 text-xs text-muted-foreground">KOPIS 상세 정보를 불러오는 중입니다.</div>}
+        {detailLoading && <div className="elevated-surface rounded-xl px-4 py-3 text-xs text-muted-foreground">KOPIS 상세 정보를 불러오는 중입니다.</div>}
 
-        <div className="gradient-outline-surface overflow-hidden rounded-2xl">
+        <div className="elevated-surface overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <ChevronLeft className="h-5 w-5 text-muted-foreground/30" />
             <span className="text-sm font-bold text-[#111111]">
@@ -155,7 +155,7 @@ export function EventDateSelectionScreen() {
                 key={eventDate.id}
                 onClick={() => navigate('waiting-queue', { eventId: resolvedEvent.id, eventDateId: eventDate.id })}
                 disabled={detailLoading}
-                className="gradient-outline-surface flex flex-col gap-3 rounded-2xl p-4 text-left transition-all active:scale-[0.98] disabled:opacity-60"
+                className="elevated-surface flex flex-col gap-3 rounded-2xl p-4 text-left transition-all active:scale-[0.98] disabled:opacity-60"
               >
                 <div className="flex w-full items-center justify-between">
                   <div>

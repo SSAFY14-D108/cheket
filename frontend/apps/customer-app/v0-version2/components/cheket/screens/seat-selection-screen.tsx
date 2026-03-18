@@ -172,7 +172,7 @@ export function SeatSelectionScreen() {
       <div className="flex flex-col gap-4 bg-gray-50 p-4">
         <p className="text-xs text-muted-foreground">공연 날짜를 먼저 선택해 주세요.</p>
 
-        <div className="gradient-outline-surface overflow-hidden rounded-2xl">
+        <div className="elevated-surface overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <ChevronLeft className="h-5 w-5 text-muted-foreground/30" />
             <span className="text-sm font-bold text-[#111111]">
@@ -244,7 +244,7 @@ export function SeatSelectionScreen() {
                   setCalendarDayShows([])
                   setStep('seats')
                 }}
-                className="gradient-outline-surface flex flex-col gap-3 rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
+                className="elevated-surface flex flex-col gap-3 rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
               >
                 <div className="flex w-full items-center justify-between">
                   <div>
@@ -372,7 +372,7 @@ export function SeatSelectionScreen() {
         </div>
 
         <div className="border-t border-border bg-surface px-4 py-2">
-          {detailLoading && <div className="gradient-outline-surface mb-2 rounded-lg px-3 py-2 text-xs text-muted-foreground">KOPIS 상세 정보를 불러오는 중입니다.</div>}
+          {detailLoading && <div className="elevated-surface mb-2 rounded-lg px-3 py-2 text-xs text-muted-foreground">KOPIS 상세 정보를 불러오는 중입니다.</div>}
           <div className="flex flex-wrap items-center gap-3">
             {event.grades.map((g, index) => (
               <div key={`${g.name}-${g.price}-${index}`} className="flex items-center gap-1.5 text-xs">
@@ -428,7 +428,7 @@ export function SeatSelectionScreen() {
               })
             }
             disabled={selectedSeats.length === 0 || detailLoading}
-            className="gradient-outline-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            className="gradient-border-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {selectedSeats.length > 0 ? `결제하기 (${selectedSeats.length}매)` : '좌석을 선택해 주세요'}
           </button>

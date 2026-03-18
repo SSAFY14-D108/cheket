@@ -90,7 +90,7 @@ export function SignupScreen() {
           <>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">이름</label>
-              <input className="gradient-outline-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none" placeholder="이름을 입력해 주세요" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className="elevated-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none" placeholder="이름을 입력해 주세요" value={name} onChange={(e) => setName(e.target.value)} />
               {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
             </div>
 
@@ -98,14 +98,14 @@ export function SignupScreen() {
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">이메일</label>
               <div className="flex gap-2">
                 <input
-                  className="gradient-outline-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                  className="elevated-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   disabled={emailVerified}
                 />
-                <button onClick={checkEmailDuplicate} disabled={emailVerified} className="gradient-outline-button rounded-xl px-4 text-xs font-semibold text-[#111111] disabled:opacity-50">
+                <button onClick={checkEmailDuplicate} disabled={emailVerified} className="gradient-border-button rounded-xl px-4 text-xs font-semibold text-[#111111] disabled:opacity-50">
                   {emailVerified ? '완료' : '중복 확인'}
                 </button>
               </div>
@@ -117,13 +117,13 @@ export function SignupScreen() {
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">휴대폰 번호</label>
               <div className="flex gap-2">
                 <input
-                  className="gradient-outline-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                  className="elevated-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                   placeholder="010-0000-0000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   type="tel"
                 />
-                <button onClick={sendSms} className="gradient-outline-button rounded-xl px-4 text-xs font-semibold text-[#111111] whitespace-nowrap">
+                <button onClick={sendSms} className="gradient-border-button rounded-xl px-4 text-xs font-semibold text-[#111111] whitespace-nowrap">
                   {codeSent ? '재전송' : 'SMS 인증'}
                 </button>
               </div>
@@ -135,14 +135,14 @@ export function SignupScreen() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">인증번호</label>
                 <div className="flex gap-2">
                   <input
-                    className="gradient-outline-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                    className="elevated-surface flex-1 rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                     placeholder="6자리 인증번호"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     maxLength={6}
                     type="number"
                   />
-                  <button onClick={verifyCode} disabled={codeVerified} className="gradient-outline-surface rounded-xl px-4 text-xs font-semibold text-[#111111] disabled:opacity-50 whitespace-nowrap">
+                  <button onClick={verifyCode} disabled={codeVerified} className="elevated-surface rounded-xl px-4 text-xs font-semibold text-[#111111] disabled:opacity-50 whitespace-nowrap">
                     {codeVerified ? (
                       <span className="flex items-center gap-1">
                         <Check className="h-3.5 w-3.5" />
@@ -158,7 +158,7 @@ export function SignupScreen() {
               </div>
             )}
 
-            <button onClick={handleNext} className="gradient-outline-button mt-auto w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]">
+            <button onClick={handleNext} className="gradient-border-button mt-auto w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]">
               다음
             </button>
           </>
@@ -167,7 +167,7 @@ export function SignupScreen() {
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">비밀번호 설정</label>
               <input
-                className="gradient-outline-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                className="elevated-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                 placeholder="비밀번호 (6자 이상)"
                 type="password"
                 value={password}
@@ -179,7 +179,7 @@ export function SignupScreen() {
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">비밀번호 확인</label>
               <input
-                className="gradient-outline-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                className="elevated-surface w-full rounded-xl py-3 px-4 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                 placeholder="비밀번호를 다시 입력해 주세요"
                 type="password"
                 value={passwordConfirm}
@@ -188,7 +188,7 @@ export function SignupScreen() {
               {errors.passwordConfirm && <p className="mt-1 text-xs text-red-400">{errors.passwordConfirm}</p>}
             </div>
 
-            <div className="gradient-outline-surface-soft rounded-xl p-4 text-xs text-muted-foreground space-y-2">
+            <div className="elevated-surface-soft rounded-xl p-4 text-xs text-muted-foreground space-y-2">
               <p className="font-semibold text-[#111111] text-sm mb-2">약관 동의</p>
               <p>[필수] 서비스 이용약관 동의</p>
               <p>[필수] 개인정보 수집 및 이용 동의</p>
@@ -202,7 +202,7 @@ export function SignupScreen() {
               {errors.agreed && <p className="text-red-400">{errors.agreed}</p>}
             </div>
 
-            <button onClick={handleSignup} className="gradient-outline-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] mt-auto">
+            <button onClick={handleSignup} className="gradient-border-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] mt-auto">
               가입 완료
             </button>
           </>

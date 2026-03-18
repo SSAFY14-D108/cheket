@@ -89,7 +89,7 @@ export function TransferScreen() {
       <div className="flex flex-col gap-5 p-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transfer Ticket</p>
-          <div className="gradient-outline-surface flex items-center gap-3 overflow-hidden rounded-2xl p-3">
+          <div className="elevated-surface flex items-center gap-3 overflow-hidden rounded-2xl p-3">
             <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={ticket.poster} alt={ticket.eventName} fill className="object-cover" sizes="56px" />
             </div>
@@ -120,20 +120,20 @@ export function TransferScreen() {
               value={phone}
               onChange={handlePhoneChange}
               placeholder="010-0000-0000"
-              className="gradient-outline-surface flex-1 rounded-xl px-4 py-3 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+              className="elevated-surface flex-1 rounded-xl px-4 py-3 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
             />
             <button
               onClick={handleVerify}
               disabled={isVerifying || phone.replace(/\D/g, '').length < 11}
-              className="gradient-outline-button whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+              className="gradient-border-button whitespace-nowrap rounded-xl px-4 py-3 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isVerifying ? '확인 중...' : '번호 확인'}
             </button>
           </div>
 
           {verifiedName ? (
-            <div className="gradient-outline-surface mt-3 flex items-center gap-3 rounded-xl p-3">
-              <div className="gradient-outline-icon-button flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full">
+            <div className="elevated-surface mt-3 flex items-center gap-3 rounded-xl p-3">
+              <div className="gradient-border-icon-button flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full">
                 <User className="h-4 w-4 text-[#333333]" />
               </div>
               <div className="min-w-0 flex-1">
@@ -169,7 +169,7 @@ export function TransferScreen() {
         <button
           onClick={handleTransfer}
           disabled={!verifiedName || isSubmitting}
-          className="gradient-outline-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="gradient-border-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isSubmitting ? '양도 처리 중...' : '양도하기'}
         </button>

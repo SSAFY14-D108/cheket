@@ -76,7 +76,7 @@ export function TicketDetailScreen() {
           </div>
         </div>
 
-        <div className="gradient-outline-surface-soft flex flex-col gap-3 rounded-xl p-4">
+        <div className="elevated-surface-soft flex flex-col gap-3 rounded-xl p-4">
           <h2 className="font-bold text-base text-foreground">{ticket.eventName}</h2>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="w-4 h-4 text-[#333333]" />
@@ -107,7 +107,7 @@ export function TicketDetailScreen() {
           )}
         </div>
 
-        <div className="gradient-outline-surface-soft rounded-xl p-4 text-xs text-muted-foreground">
+        <div className="elevated-surface-soft rounded-xl p-4 text-xs text-muted-foreground">
           <p className="font-semibold text-foreground mb-1.5">NFT 정보</p>
           <p>Token ID: #{ticket.id.split('_').pop()?.toUpperCase()}</p>
           <p className="mt-1">Owner: 0x3a9F...dE42</p>
@@ -118,20 +118,20 @@ export function TicketDetailScreen() {
             <>
               <button
                 onClick={() => navigate('qr-checkin', { ticketId: ticket.id })}
-                className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm"
+                className="gradient-border-button flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm"
               >
                 <QrCode className="w-4 h-4" /> QR 체크인
               </button>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => navigate('transfer', { ticketId: ticket.id })}
-                  className="gradient-outline-surface flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-foreground transition-all active:scale-[0.98]"
+                  className="elevated-surface flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-foreground transition-all active:scale-[0.98]"
                 >
                   <ArrowRightLeft className="w-4 h-4" /> 양도하기
                 </button>
                 <button
                   onClick={() => navigate('resale-create', { ticketId: ticket.id })}
-                  className="gradient-outline-surface flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-foreground transition-all active:scale-[0.98]"
+                  className="elevated-surface flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-foreground transition-all active:scale-[0.98]"
                 >
                   <ShoppingBag className="w-4 h-4" /> 판매하기
                 </button>
@@ -151,7 +151,7 @@ export function TicketDetailScreen() {
           {ticket.status === 'USED' && (
             <button
               disabled
-              className="gradient-outline-surface w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
+              className="elevated-surface w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
             >
               <QrCode className="w-4 h-4" /> 사용 완료
             </button>
@@ -160,7 +160,7 @@ export function TicketDetailScreen() {
 
         {showRefundConfirm && (
           <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
-            <div className="gradient-outline-surface w-full max-w-sm rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
+            <div className="elevated-surface w-full max-w-sm rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
               <div>
                 <h3 className="text-lg font-bold text-foreground">정말 환불하시겠습니까?</h3>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -168,7 +168,7 @@ export function TicketDetailScreen() {
                 </p>
               </div>
 
-              <div className="gradient-outline-surface-soft rounded-xl p-4">
+              <div className="elevated-surface-soft rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Receipt className="w-4 h-4 text-[#333333]" />
                   <h4 className="font-semibold text-sm text-foreground">환불 규정</h4>
@@ -183,7 +183,7 @@ export function TicketDetailScreen() {
                 </div>
               </div>
 
-              <div className="gradient-outline-surface-soft rounded-xl p-4 space-y-2">
+              <div className="elevated-surface-soft rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">결제 금액</span>
                   <span className="font-medium text-foreground">{ticket.originalPrice.toLocaleString()} CTK</span>
@@ -206,7 +206,7 @@ export function TicketDetailScreen() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setShowRefundConfirm(false)}
-                  className="gradient-outline-surface w-full rounded-xl py-3 text-sm font-semibold text-foreground transition-all"
+                  className="elevated-surface w-full rounded-xl py-3 text-sm font-semibold text-foreground transition-all"
                 >
                   취소
                 </button>

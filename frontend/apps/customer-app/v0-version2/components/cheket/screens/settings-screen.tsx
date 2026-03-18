@@ -11,7 +11,7 @@ export function SettingsScreen() {
   return (
     <AppShell title="설정" showBack onBack={goBack} showBottomNav={false}>
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-        <section className="gradient-outline-surface rounded-xl p-4">
+        <section className="elevated-surface rounded-xl p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#111111]">결제 및 혜택 알림</p>
@@ -24,7 +24,7 @@ export function SettingsScreen() {
         <section className="space-y-2">
           <button
             onClick={() => navigate('password-change')}
-            className="gradient-outline-surface flex w-full items-center justify-between rounded-lg px-4 py-3 transition-all active:scale-[0.98]"
+            className="elevated-surface flex w-full items-center justify-between rounded-lg px-4 py-3 transition-all active:scale-[0.98]"
           >
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-muted-foreground" />

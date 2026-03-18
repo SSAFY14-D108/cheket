@@ -49,7 +49,7 @@ export function PurchaseFailedScreen() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-8 bg-background p-6">
-      <div className={cn('gradient-outline-surface flex h-24 w-24 items-center justify-center rounded-full', config.color)}>
+      <div className={cn('elevated-surface flex h-24 w-24 items-center justify-center rounded-full', config.color)}>
         <FailIcon className="h-12 w-12" />
       </div>
 
@@ -59,10 +59,10 @@ export function PurchaseFailedScreen() {
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{config.description}</p>
       </div>
 
-      <div className="gradient-outline-surface rounded-full px-4 py-2 text-xs font-mono text-muted-foreground">오류 코드: {reason}</div>
+      <div className="elevated-surface rounded-full px-4 py-2 text-xs font-mono text-muted-foreground">오류 코드: {reason}</div>
 
       {reason === 'INSUFFICIENT_BALANCE' && (
-        <div className="gradient-outline-surface w-full rounded-xl p-4 text-center text-sm">
+        <div className="elevated-surface w-full rounded-xl p-4 text-center text-sm">
           <p className="mb-1 font-medium text-[#111111]">CTK 충전이 필요해요</p>
           <p className="text-xs text-muted-foreground">마이페이지 지갑 화면에서 CTK를 충전한 뒤 다시 예매를 진행해 주세요.</p>
         </div>
@@ -72,7 +72,7 @@ export function PurchaseFailedScreen() {
         {navParams.eventId && (
           <button
             onClick={() => navigate('seat-selection', { eventId: navParams.eventId })}
-            className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111]"
+            className="gradient-border-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111]"
           >
             <ArrowLeft className="h-4 w-4" />
             좌석 다시 선택
@@ -80,7 +80,7 @@ export function PurchaseFailedScreen() {
         )}
         <button
           onClick={() => navigateTab('home')}
-          className="gradient-outline-surface flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-[#111111]"
+          className="elevated-surface flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold text-[#111111]"
         >
           <Home className="h-4 w-4" />
           홈으로 이동

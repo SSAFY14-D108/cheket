@@ -97,7 +97,7 @@ export function TxHistoryScreen() {
         ) : (
           <div className="space-y-3 p-4">
             {allTxRecords.map((tx) => (
-              <div key={tx.id} className="gradient-outline-surface-soft rounded-2xl p-4">
+              <div key={tx.id} className="elevated-surface-soft rounded-2xl p-4">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-foreground">{tx.label}</p>

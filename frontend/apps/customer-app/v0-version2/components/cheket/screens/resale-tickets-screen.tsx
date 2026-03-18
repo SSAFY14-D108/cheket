@@ -102,7 +102,7 @@ export function ResaleTicketsScreen() {
     <AppShell title={LABELS.marketplace} showBack onBack={goBack}>
       <div className="relative flex h-full flex-col bg-gray-50">
         <div className="px-4 py-4">
-          <div className="gradient-outline-surface-soft flex gap-3 rounded-2xl p-3">
+          <div className="elevated-surface-soft flex gap-3 rounded-2xl p-3">
             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={event.poster} alt={event.name} fill className="object-cover" sizes="80px" />
             </div>
@@ -257,7 +257,7 @@ export function ResaleTicketsScreen() {
                       goBack()
                     }
                   }}
-                  className="gradient-outline-icon-button h-8 w-8"
+                  className="gradient-border-icon-button h-8 w-8"
                   aria-label="닫기"
                 >
                   <X className="h-5 w-5 text-foreground" />
