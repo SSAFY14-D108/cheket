@@ -295,6 +295,38 @@ public class HostShowServiceImpl implements HostShowService {
 
     @Override
     @Transactional
+    public void deleteShow(Long hostId, Long showId) {
+        // 1. 공연 존재 + 권한 확인
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (show.getStatus() != ShowStatus.DRAFT) {
+            throw new BadRequestException("임시저장 상태의 공연만 삭제할 수 있습니다.");
+        }
+        if (!show.getHost().getId().equals(hostId)) {
+            throw new ForbiddenException("본인이 등록한 공연만 삭제할 수 있습니다.");
+        }
+
+        // 2. FK 순서대로 삭제: session_seats → sessions → seat_grades → refund_policies →
+        // stakeholders → show_images
+        List<Long> sessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream().map(Session::getId)
+            .toList();
+        if (!sessionIds.isEmpty()) {
+            sessionSeatRepository.deleteBySessionIdIn(sessionIds);
+        }
+        sessionRepository.deleteAllByShowId(showId);
+        seatGradeRepository.deleteAllByShowId(showId);
+        refundPolicyRepository.deleteAllByShowId(showId);
+        stakeholderRepository.deleteAllByShowId(showId);
+        showImageRepository.deleteAllByShowId(showId);
+
+        // 3. S3 이미지 삭제
+        s3Uploader.deleteAllByShowId(showId);
+
+        // 4. 공연 삭제
+        showRepository.delete(show);
+    }
+
+    @Override
+    @Transactional
     public void updateShow(Long hostId, Long showId, UpdateShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages) {
 
@@ -381,7 +413,6 @@ public class HostShowServiceImpl implements HostShowService {
             }
         }
         sessionSeatRepository.saveAll(sessionSeats);
-
     }
 
     private ShowItem toShowItem(Show s) {

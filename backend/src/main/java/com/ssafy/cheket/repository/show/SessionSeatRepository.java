@@ -61,8 +61,8 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
               and ss.status = com.ssafy.cheket.enums.SeatStatus.SOLD
         """)
     int countReservedSeatsBySessionId(@Param("sessionId") Long sessionId);
+
     @Modifying
     @Query("DELETE FROM SessionSeat ss WHERE ss.sessionId IN :sessionIds")
     void deleteBySessionIdIn(@Param("sessionIds") List<Long> sessionIds);
-
 }

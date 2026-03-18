@@ -72,4 +72,13 @@ public class HostShowController {
         GetHostShowDetailResponse response = hostShowService.getHostShowDetail(hostId, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 완료", response));
     }
+
+    @DeleteMapping("/{showId}")
+    @Operation(summary = "공연 삭제")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> deleteShow(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        hostShowService.deleteShow(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 삭제 완료", null));
+    }
 }
