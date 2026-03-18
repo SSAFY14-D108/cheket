@@ -12,6 +12,22 @@ import { ApiError } from "@/lib/api"
 import { searchStakeholder } from "@/lib/stakeholder-api"
 import type { Stakeholder, RefundItem } from "./showFormTypes"
 
+/** 전화번호 자동 포매팅: 01012345678 → 010-1234-5678 */
+function formatPhoneNumber(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+}
+
+/** 사업자번호 자동 포매팅: 1234567890 → 123-45-67890 */
+function formatBusinessNo(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 10)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+}
+
 interface SettingsCardPoliciesProps {
   stakeholders: Stakeholder[]
   refundPolicy: RefundItem[]
@@ -162,10 +178,10 @@ export function SettingsCardPolicies({
 
                 {sh.role === "ORGANIZER" ? (
                   <Input
-                    placeholder="사업자번호 (숫자만)"
+                    placeholder="사업자번호 (예: 123-45-67890)"
                     value={sh.businessNo ?? ""}
                     onChange={(event) => {
-                      onUpdateStakeholder(idx, "businessNo", event.target.value)
+                      onUpdateStakeholder(idx, "businessNo", formatBusinessNo(event.target.value))
                       onUpdateStakeholder(idx, "verified", false)
                       onUpdateStakeholder(idx, "name", "")
                     }}
@@ -177,7 +193,7 @@ export function SettingsCardPolicies({
                     placeholder="연락처 (예: 010-1234-5678)"
                     value={sh.phone ?? ""}
                     onChange={(event) => {
-                      onUpdateStakeholder(idx, "phone", event.target.value)
+                      onUpdateStakeholder(idx, "phone", formatPhoneNumber(event.target.value))
                       onUpdateStakeholder(idx, "verified", false)
                       onUpdateStakeholder(idx, "name", "")
                     }}
