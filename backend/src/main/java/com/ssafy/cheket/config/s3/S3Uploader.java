@@ -59,6 +59,11 @@ public class S3Uploader {
         }
     }
 
+    public void delete(String imageUrl) {
+        String key = imageUrl.substring(imageUrl.indexOf(".com/") + 5);
+        s3Client.deleteObject(DeleteObjectRequest.builder().bucket(s3Properties.getS3().getBucket()).key(key).build());
+    }
+
     public void deleteAllByShowId(Long showId) {
         String prefix = "shows/" + showId + "/";
         String continuationToken = null;
@@ -96,8 +101,8 @@ public class S3Uploader {
     }
 
     private String getFileUrl(String key) {
-        return "https://" + s3Properties.getS3().getBucket() + ".s3."
-            + s3Properties.getRegion().getStaticRegion() + ".amazonaws.com/" + key;
+        return "https://" + s3Properties.getS3().getBucket() + ".s3." + s3Properties.getRegion().getStaticRegion()
+            + ".amazonaws.com/" + key;
     }
 
     private String extractExt(String filename) {

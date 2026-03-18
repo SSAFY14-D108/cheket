@@ -156,7 +156,8 @@ public class HostShowServiceImpl implements HostShowService {
                 show.getShowEndDate().toLocalDate()),
             new GetHostShowDetailResponse.ReservationPeriod(show.getReservationStartDate(),
                 show.getReservationEndDate()),
-            show.getDescription(), show.getArtist(), show.getPurchaseLimit(), likeRepository.countByShowId(showId),
+            show.getDescription(), show.getArtist(), show.getPlaytime(), show.getPurchaseLimit(),
+            likeRepository.countByShowId(showId),
 
             seatGrades.stream().map(grade -> {
                 TicketEffect ticketEffect = ticketEffectMap.get(grade.getTicketEffectId());
@@ -178,7 +179,8 @@ public class HostShowServiceImpl implements HostShowService {
                     session.getSessionDate().toLocalDate(), session.getSessionStartTime().toLocalTime(),
                     capacityMap.getOrDefault(session.getId(), 0)))
                 .toList(),
-            show.getStatus(), show.getCreatedAt(), show.getUpdatedAt());
+            show.getStatus(), show.getCreatedAt(), show.getUpdatedAt(),
+            showImageRepository.findAllByShow_Id(showId).stream().map(ShowImage::getImageUrl).toList());
     }
 
     @Override
@@ -370,9 +372,24 @@ public class HostShowServiceImpl implements HostShowService {
             show.setPosterUrl(posterUrl);
         }
 
-        // ── 4. 설명 이미지: 파일이 있을 때만 교체 ──
+        // ── 4. 설명 이미지 ──
+        List<String> existingUrls = request.existingDescriptionImageUrls();
+
+        // existingUrls가 null이면 이미지 수정 안 함
+        if (existingUrls != null) {
+            // 1. 기존 이미지 중 유지 목록에 없는 것 -> DB 삭제 + s3삭제
+            List<ShowImage> currentImages = showImageRepository.findAllByShow_Id(showId);
+            // 유지 목록에 없는 것만 삭제
+            for (ShowImage img : currentImages) {
+                if (!existingUrls.contains(img.getImageUrl())) {
+                    s3Uploader.delete(img.getImageUrl());
+                    showImageRepository.delete(img);
+                }
+            }
+        }
+
+        // 새 이미지만 업로드 + 저장
         if (descriptionImages != null && !descriptionImages.isEmpty()) {
-            showImageRepository.deleteAllByShowId(showId);
             for (MultipartFile image : descriptionImages) {
                 String imageUrl = s3Uploader.upload(image, showId);
                 showImageRepository.save(ShowImage.of(show, imageUrl));
