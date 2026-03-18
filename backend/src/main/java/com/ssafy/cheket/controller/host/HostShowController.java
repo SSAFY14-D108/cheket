@@ -3,6 +3,7 @@ package com.ssafy.cheket.controller.host;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
+import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.ShowItem;
 import com.ssafy.cheket.dto.ticket.response.GetTicketEffectsResponse;
@@ -33,6 +34,17 @@ public class HostShowController {
         @RequestPart(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
         Long showId = hostShowService.createShow(hostId, request, posterImage, descriptionImages);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 등록 완료", showId));
+    }
+
+    @PutMapping(value = "/{showId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "공연 정보 수정")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> updateShow(@AuthenticationPrincipal Long hostId, @PathVariable Long showId,
+        @RequestPart("show") UpdateShowRequest request,
+        @RequestPart(value = "posterImage", required = false) MultipartFile posterImage,
+        @RequestPart(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
+        hostShowService.updateShow(hostId, showId, request, posterImage, descriptionImages);
+        return ResponseEntity.ok(ApiResponse.ok(200, "공연 수정 완료", null));
     }
 
     @GetMapping("/effect")

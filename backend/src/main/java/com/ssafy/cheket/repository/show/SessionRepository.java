@@ -6,9 +6,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import org.springframework.data.jpa.repository.Modifying;
+
 import java.util.List;
 
 public interface SessionRepository extends JpaRepository<Session, Long> {
+
+    @Modifying
+    @Query("DELETE FROM Session s WHERE s.showId = :showId")
+    void deleteAllByShowId(@Param("showId") Long showId);
 
     @Query(value = """
         SELECT

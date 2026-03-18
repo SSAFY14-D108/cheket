@@ -3,7 +3,7 @@ package com.ssafy.cheket.dto.show.request;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record AddShowRequest(
+public record UpdateShowRequest(
     // ── 공연 기본 정보 ──
     String title, // 공연명
     Long venueId, // 공연장 ID
@@ -19,16 +19,13 @@ public record AddShowRequest(
     LocalDateTime reservationEndDate, // 예매 종료일시
 
     // ── 회차 목록 ──
-    List<SessionInfo> sessionInfo,
+    List<UpdateShowRequest.SessionInfo> sessionInfo,
 
     // ── 등급/가격 목록 ──
-    List<GradeInfo> grade,
+    List<UpdateShowRequest.GradeInfo> grade,
 
     // ── 환불 정책 목록 ──
-    List<RefundPolicyInfo> refundPolicy,
-
-    // ── 수익 배분 목록 ──
-    List<StakeholderInfo> stakeholders) {
+    List<UpdateShowRequest.RefundPolicyInfo> refundPolicy) {
     public record SessionInfo(LocalDateTime sessionDate, // 회차 날짜
         LocalDateTime sessionStartTime // 시작 시간
     ) {
@@ -47,9 +44,4 @@ public record AddShowRequest(
     ) {
     }
 
-    public record StakeholderInfo(String role, // "ORGANIZER" = HOST, "ARTIST" = USER
-        String businessNo, // ORGANIZER일 경우 사업자등록번호
-        String phoneNumber, // ARTIST일 경우 전화번호
-        Integer shareBps) {
-    }
 }
