@@ -3,6 +3,7 @@ package com.ssafy.cheket.service.host;
 import com.ssafy.cheket.config.s3.S3Uploader;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
+import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
 import com.ssafy.cheket.dto.show.response.ShowItem;
 import com.ssafy.cheket.dto.ticket.response.GetTicketEffectsResponse;
@@ -218,14 +219,14 @@ public class HostShowServiceImpl implements HostShowService {
         show.setPosterUrl(posterUrl);
 
         // 4. ③ sessions 저장 (회차)
-        List<Session> sessions = request.sessions().stream().map(s -> Session.builder().showId(showId)
+        List<Session> sessions = request.sessionInfo().stream().map(s -> Session.builder().showId(showId)
             .sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList();
         sessions = sessionRepository.saveAll(sessions);
 
         // 5. ④ seat_grades 저장 (등급 × 구역)
         List<Long> allSectionIds = new ArrayList<>();
 
-        for (AddShowRequest.GradeInfo grade : request.grades()) {
+        for (AddShowRequest.GradeInfo grade : request.grade()) {
             for (Long sectionId : grade.sectionIds()) { // section마다 설정
                 SeatGrade seatGrade = SeatGrade.builder().showId(showId).sectionId(sectionId)
                     .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
@@ -237,7 +238,7 @@ public class HostShowServiceImpl implements HostShowService {
         }
 
         // 6. ⑤ refund_policies 저장 (환불 정책)
-        for (AddShowRequest.RefundPolicyInfo policy : request.refundPolicies()) {
+        for (AddShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
             RefundPolicy refundPolicy = RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
                 .refundRate(policy.refundRate()).build();
             refundPolicyRepository.save(refundPolicy);
@@ -322,6 +323,96 @@ public class HostShowServiceImpl implements HostShowService {
 
         // 4. 공연 삭제
         showRepository.delete(show);
+    }
+
+    @Override
+    @Transactional
+    public void updateShow(Long hostId, Long showId, UpdateShowRequest request, MultipartFile posterImage,
+        List<MultipartFile> descriptionImages) {
+
+        // 1. 공연 존재 + 권한 확인
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (show.getStatus() != ShowStatus.DRAFT) {
+            throw new BadRequestException("임시저장 상태의 공연만 수정할 수 있습니다.");
+        }
+        if (!show.getHost().getId().equals(hostId))
+            throw new ForbiddenException("본인이 등록한 공연만 수정할 수 있습니다.");
+
+        // 2. Venue 조회
+        Venue venue = venueRepository.findById(request.venueId())
+            .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
+
+        // 3. 기본 정보 업데이트
+        show.setTitle(request.title());
+        show.setVenue(venue);
+        show.setArtist(request.artist());
+        show.setDescription(request.description());
+        show.setPlaytime(request.playtime());
+        show.setPurchaseLimit(request.purchaseLimit());
+        show.setShowStartDate(request.showStartDate());
+        show.setShowEndDate(request.showEndDate());
+        show.setReservationStartDate(request.reservationStartDate());
+        show.setReservationEndDate(request.reservationEndDate());
+        show.setUpdatedAt(LocalDateTime.now());
+
+        // 4. 포스터 이미지 업데이트 (있을때만)
+        if (posterImage != null && !posterImage.isEmpty()) {
+            String posterUrl = s3Uploader.upload(posterImage, showId);
+            show.setPosterUrl(posterUrl);
+        }
+
+        // 5. 설명 이미지 업데이트 (있을 때만)
+        if (descriptionImages != null && !descriptionImages.isEmpty()) {
+            showImageRepository.deleteAllByShowId(showId);
+            for (MultipartFile image : descriptionImages) {
+                String imageUrl = s3Uploader.upload(image, showId);
+                showImageRepository.save(ShowImage.of(show, imageUrl));
+            }
+        }
+
+        // 6. 기존 session_seats -> sessions 삭제 (FK 순서: session_seats 먼저)
+        List<Long> oldSessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream()
+            .map(Session::getId).toList();
+        if (!oldSessionIds.isEmpty()) {
+            sessionSeatRepository.deleteBySessionIdIn(oldSessionIds);
+        }
+        sessionRepository.deleteAllByShowId(showId);
+
+        // 7. 기존 등급, 환불 정책 삭제
+        seatGradeRepository.deleteAllByShowId(showId);
+        refundPolicyRepository.deleteAllByShowId(showId);
+
+        // 8. 새 회차 저장
+        List<Session> newSessions = sessionRepository.saveAll(request.sessionInfo().stream().map(s -> Session.builder()
+            .showId(showId).sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList());
+
+        // 9. 새 등급 저장
+        List<Long> allSectionIds = new ArrayList<>();
+        for (UpdateShowRequest.GradeInfo grade : request.grade()) {
+            for (Long sectionId : grade.sectionIds()) {
+                seatGradeRepository.save(SeatGrade.builder().showId(showId).sectionId(sectionId)
+                    .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
+                    .ticketEffectId(grade.ticketEffectId()).build());
+                allSectionIds.add(sectionId);
+            }
+        }
+
+        // 10. 새 환불 정책 저장
+        for (UpdateShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
+            refundPolicyRepository.save(RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
+                .refundRate(policy.refundRate()).build());
+        }
+
+        // 11. 새 session_seats 저장
+        List<Seat> seats = seatRepository.findBySectionIdIn(allSectionIds);
+        List<SessionSeat> sessionSeats = new ArrayList<>();
+        for (Session session : newSessions) {
+            for (Seat seat : seats) {
+                sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                    .status(SeatStatus.AVAILABLE).build());
+            }
+        }
+        sessionSeatRepository.saveAll(sessionSeats);
     }
 
     private ShowItem toShowItem(Show s) {
