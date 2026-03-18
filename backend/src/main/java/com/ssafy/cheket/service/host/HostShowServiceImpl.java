@@ -338,30 +338,30 @@ public class HostShowServiceImpl implements HostShowService {
         if (!show.getHost().getId().equals(hostId))
             throw new ForbiddenException("본인이 등록한 공연만 수정할 수 있습니다.");
 
-        // 2. Venue 조회
-        Venue venue = venueRepository.findById(request.venueId())
-            .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
-
-        // 3. 기본 정보 업데이트
-        show.setTitle(request.title());
-        show.setVenue(venue);
-        show.setArtist(request.artist());
-        show.setDescription(request.description());
-        show.setPlaytime(request.playtime());
-        show.setPurchaseLimit(request.purchaseLimit());
-        show.setShowStartDate(request.showStartDate());
-        show.setShowEndDate(request.showEndDate());
-        show.setReservationStartDate(request.reservationStartDate());
-        show.setReservationEndDate(request.reservationEndDate());
+        // ── 2. 기본 정보: null이 아닌 필드만 수정 ──
+        if (request.title() != null) show.setTitle(request.title());
+        if (request.venueId() != null) {
+            Venue venue = venueRepository.findById(request.venueId())
+                .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
+            show.setVenue(venue);
+        }
+        if (request.artist() != null) show.setArtist(request.artist());
+        if (request.description() != null) show.setDescription(request.description());
+        if (request.playtime() != null) show.setPlaytime(request.playtime());
+        if (request.purchaseLimit() != null) show.setPurchaseLimit(request.purchaseLimit());
+        if (request.showStartDate() != null) show.setShowStartDate(request.showStartDate());
+        if (request.showEndDate() != null) show.setShowEndDate(request.showEndDate());
+        if (request.reservationStartDate() != null) show.setReservationStartDate(request.reservationStartDate());
+        if (request.reservationEndDate() != null) show.setReservationEndDate(request.reservationEndDate());
         show.setUpdatedAt(LocalDateTime.now());
 
-        // 4. 포스터 이미지 업데이트 (있을때만)
+        // ── 3. 포스터 이미지: 파일이 있을 때만 교체 ──
         if (posterImage != null && !posterImage.isEmpty()) {
             String posterUrl = s3Uploader.upload(posterImage, showId);
             show.setPosterUrl(posterUrl);
         }
 
-        // 5. 설명 이미지 업데이트 (있을 때만)
+        // ── 4. 설명 이미지: 파일이 있을 때만 교체 ──
         if (descriptionImages != null && !descriptionImages.isEmpty()) {
             showImageRepository.deleteAllByShowId(showId);
             for (MultipartFile image : descriptionImages) {
@@ -370,49 +370,110 @@ public class HostShowServiceImpl implements HostShowService {
             }
         }
 
-        // 6. 기존 session_seats -> sessions 삭제 (FK 순서: session_seats 먼저)
-        List<Long> oldSessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream()
-            .map(Session::getId).toList();
-        if (!oldSessionIds.isEmpty()) {
-            sessionSeatRepository.deleteBySessionIdIn(oldSessionIds);
-        }
-        sessionRepository.deleteAllByShowId(showId);
+        // ── 5. 회차 (sessionInfo): null이면 건드리지 않음 ──
+        if (request.sessionInfo() != null) {
+            // 기존 session_seats → sessions 삭제 (FK 순서)
+            List<Long> oldSessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream()
+                .map(Session::getId).toList();
+            if (!oldSessionIds.isEmpty()) {
+                sessionSeatRepository.deleteBySessionIdIn(oldSessionIds);
+            }
+            sessionRepository.deleteAllByShowId(showId);
 
-        // 7. 기존 등급, 환불 정책 삭제
-        seatGradeRepository.deleteAllByShowId(showId);
-        refundPolicyRepository.deleteAllByShowId(showId);
+            // 새 회차 저장
+            List<Session> newSessions = sessionRepository.saveAll(
+                request.sessionInfo().stream()
+                    .map(s -> Session.builder()
+                        .showId(showId)
+                        .sessionDate(s.sessionDate())
+                        .sessionStartTime(s.sessionStartTime())
+                        .build())
+                    .toList());
 
-        // 8. 새 회차 저장
-        List<Session> newSessions = sessionRepository.saveAll(request.sessionInfo().stream().map(s -> Session.builder()
-            .showId(showId).sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList());
+            // 새 session_seats 재생성 (등급 정보가 같이 왔으면 새 등급 기준, 아니면 기존 등급 기준)
+            List<Long> sectionIds;
+            if (request.grade() != null) {
+                sectionIds = request.grade().stream()
+                    .flatMap(g -> g.sectionIds().stream())
+                    .distinct().toList();
+            } else {
+                sectionIds = seatGradeRepository.findByShowId(showId).stream()
+                    .map(SeatGrade::getSectionId)
+                    .distinct().toList();
+            }
 
-        // 9. 새 등급 저장
-        List<Long> allSectionIds = new ArrayList<>();
-        for (UpdateShowRequest.GradeInfo grade : request.grade()) {
-            for (Long sectionId : grade.sectionIds()) {
-                seatGradeRepository.save(SeatGrade.builder().showId(showId).sectionId(sectionId)
-                    .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
-                    .ticketEffectId(grade.ticketEffectId()).build());
-                allSectionIds.add(sectionId);
+            if (!sectionIds.isEmpty()) {
+                List<Seat> seats = seatRepository.findBySectionIdIn(sectionIds);
+                List<SessionSeat> sessionSeats = new ArrayList<>();
+                for (Session session : newSessions) {
+                    for (Seat seat : seats) {
+                        sessionSeats.add(SessionSeat.builder()
+                            .sessionId(session.getId())
+                            .seatId(seat.getId())
+                            .status(SeatStatus.AVAILABLE)
+                            .build());
+                    }
+                }
+                sessionSeatRepository.saveAll(sessionSeats);
             }
         }
 
-        // 10. 새 환불 정책 저장
-        for (UpdateShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
-            refundPolicyRepository.save(RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
-                .refundRate(policy.refundRate()).build());
-        }
+        // ── 6. 등급 (grade): null이면 건드리지 않음 ──
+        if (request.grade() != null) {
+            seatGradeRepository.deleteAllByShowId(showId);
 
-        // 11. 새 session_seats 저장
-        List<Seat> seats = seatRepository.findBySectionIdIn(allSectionIds);
-        List<SessionSeat> sessionSeats = new ArrayList<>();
-        for (Session session : newSessions) {
-            for (Seat seat : seats) {
-                sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
-                    .status(SeatStatus.AVAILABLE).build());
+            for (UpdateShowRequest.GradeInfo grade : request.grade()) {
+                for (Long sectionId : grade.sectionIds()) {
+                    seatGradeRepository.save(SeatGrade.builder()
+                        .showId(showId)
+                        .sectionId(sectionId)
+                        .gradeName(grade.gradeName())
+                        .price(grade.price())
+                        .colorCode(grade.colorCode())
+                        .ticketEffectId(grade.ticketEffectId())
+                        .build());
+                }
+            }
+
+            // 등급만 바뀌고 회차는 안 바뀐 경우 → session_seats 재생성
+            if (request.sessionInfo() == null) {
+                List<Long> existingSessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream()
+                    .map(Session::getId).toList();
+                if (!existingSessionIds.isEmpty()) {
+                    sessionSeatRepository.deleteBySessionIdIn(existingSessionIds);
+
+                    List<Long> newSectionIds = request.grade().stream()
+                        .flatMap(g -> g.sectionIds().stream())
+                        .distinct().toList();
+                    List<Seat> seats = seatRepository.findBySectionIdIn(newSectionIds);
+                    List<Session> existingSessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+
+                    List<SessionSeat> sessionSeats = new ArrayList<>();
+                    for (Session session : existingSessions) {
+                        for (Seat seat : seats) {
+                            sessionSeats.add(SessionSeat.builder()
+                                .sessionId(session.getId())
+                                .seatId(seat.getId())
+                                .status(SeatStatus.AVAILABLE)
+                                .build());
+                        }
+                    }
+                    sessionSeatRepository.saveAll(sessionSeats);
+                }
             }
         }
-        sessionSeatRepository.saveAll(sessionSeats);
+
+        // ── 7. 환불 정책 (refundPolicy): null이면 건드리지 않음 ──
+        if (request.refundPolicy() != null) {
+            refundPolicyRepository.deleteAllByShowId(showId);
+            for (UpdateShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
+                refundPolicyRepository.save(RefundPolicy.builder()
+                    .showId(showId)
+                    .daysRemaining(policy.daysRemaining())
+                    .refundRate(policy.refundRate())
+                    .build());
+            }
+        }
     }
 
     private ShowItem toShowItem(Show s) {
