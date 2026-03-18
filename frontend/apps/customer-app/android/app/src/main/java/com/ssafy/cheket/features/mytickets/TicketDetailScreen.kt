@@ -1,18 +1,44 @@
 package com.ssafy.cheket.features.mytickets
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.ConfirmationNumber
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,12 +47,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.model.TicketStatus
+import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.TicketStatusBadge
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.BorderColor
+import com.ssafy.cheket.ui.theme.CardBg
+import com.ssafy.cheket.ui.theme.Danger
+import com.ssafy.cheket.ui.theme.Muted
+import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.OnBackground
+import com.ssafy.cheket.ui.theme.Primary
+import com.ssafy.cheket.ui.theme.Warning
+import com.ssafy.cheket.ui.theme.White
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -36,11 +74,17 @@ fun TicketDetailScreen(
     onQrCheckin: (String) -> Unit,
     onTransfer: (String) -> Unit,
     onResaleCreate: (String) -> Unit,
+    onRefundSuccess: () -> Unit,
     onBack: () -> Unit,
+    refundViewModel: TicketRefundViewModel = viewModel(factory = TicketRefundViewModel.Factory),
 ) {
+    val refundUiState by refundViewModel.uiState.collectAsStateWithLifecycle()
     val ticket = remember(ticketId) {
-        MockDataSource.mockTickets.find { it.id == ticketId }
+        NavParams.selectedTicket?.takeIf { it.id == ticketId }
+            ?: MockDataSource.mockTickets.find { it.id == ticketId }
     }
+    var showRefundDialog by rememberSaveable { mutableStateOf(false) }
+    var refundErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = { AppHeader(title = "티켓 상세", onBack = onBack) },
@@ -48,26 +92,81 @@ fun TicketDetailScreen(
     ) { innerPadding ->
         if (ticket == null) {
             Box(
-                Modifier.fillMaxSize().padding(innerPadding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("티켓을 찾을 수 없습니다", color = MutedForeground, fontSize = 14.sp)
+                Text(
+                    text = "상세 정보를 불러오지 못했습니다.\n목록에서 다시 선택해주세요.",
+                    color = MutedForeground,
+                    fontSize = 14.sp,
+                )
             }
             return@Scaffold
         }
 
+        if (showRefundDialog) {
+            AlertDialog(
+                onDismissRequest = { showRefundDialog = false },
+                title = { Text("티켓 환불") },
+                text = { Text("정말 환불하시겠어요? 환불 후에는 되돌릴 수 없습니다.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showRefundDialog = false
+                            refundViewModel.refundTicket(
+                                ticketId = ticket.id,
+                                onSuccess = onRefundSuccess,
+                                onFailure = { message -> refundErrorMessage = message },
+                            )
+                        },
+                        enabled = !refundUiState.isRefunding,
+                    ) {
+                        if (refundUiState.isRefunding) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = White,
+                            )
+                        } else {
+                            Text("환불하기")
+                        }
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { showRefundDialog = false },
+                        enabled = !refundUiState.isRefunding,
+                    ) {
+                        Text("취소")
+                    }
+                },
+            )
+        }
+
+        refundErrorMessage?.let { message ->
+            AlertDialog(
+                onDismissRequest = { refundErrorMessage = null },
+                title = { Text("환불 실패") },
+                text = { Text(message) },
+                confirmButton = {
+                    Button(onClick = { refundErrorMessage = null }) {
+                        Text("확인")
+                    }
+                },
+            )
+        }
+
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // --- Poster + Status Badge ---
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 AsyncImage(
                     model = ticket.poster,
                     contentDescription = ticket.showName,
@@ -86,14 +185,16 @@ fun TicketDetailScreen(
                 }
             }
 
-            // --- Info Card ---
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     Text(
                         text = ticket.showName,
                         fontSize = 18.sp,
@@ -105,7 +206,7 @@ fun TicketDetailScreen(
 
                     HorizontalDivider(color = BorderColor)
 
-                    InfoRow(label = "일시", value = ticket.showDate)
+                    InfoRow(label = "공연일시", value = ticket.showDate)
                     InfoRow(label = "장소", value = ticket.venue)
                     InfoRow(label = "좌석", value = ticket.seatLabel)
                     InfoRow(label = "등급", value = ticket.grade)
@@ -119,32 +220,29 @@ fun TicketDetailScreen(
                             valueColor = Primary,
                         )
                     }
-
-                    if (ticket.status == TicketStatus.USED && ticket.attendedDate != null) {
-                        HorizontalDivider(color = BorderColor)
-                        InfoRow(label = "참석일", value = ticket.attendedDate)
-                    }
                 }
             }
 
-            // --- NFT Info ---
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.ConfirmationNumber,
+                            imageVector = Icons.Default.ConfirmationNumber,
                             contentDescription = null,
                             tint = Primary,
                             modifier = Modifier.size(18.dp),
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "NFT 정보",
+                            text = "NFT 정보",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OnBackground,
@@ -155,65 +253,106 @@ fun TicketDetailScreen(
 
                     NftInfoRow(
                         label = "Token ID",
-                        value = "CTK-${ticket.id.uppercase().replace("_", "-")}",
+                        value = ticket.numbering.ifBlank { ticket.id },
                     )
-                    NftInfoRow(
-                        label = "소유자 주소",
-                        value = MockDataSource.mockUser.walletAddress,
+
+                    ticket.metadataIpfsCid?.let {
+                        NftInfoRow(
+                            label = "Metadata CID",
+                            value = it,
+                        )
+                    } ?: Text(
+                        text = "메타데이터 연동 전입니다.",
+                        fontSize = 12.sp,
+                        color = MutedForeground,
                     )
                 }
             }
 
-            // --- Action Buttons ---
             when (ticket.status) {
                 TicketStatus.AVAILABLE -> {
-                    // QR Check-in (primary)
                     Button(
-                        onClick = { onQrCheckin(ticketId) },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        onClick = { onQrCheckin(ticket.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary),
                     ) {
                         Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("QR 체크인", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
 
-                    // Transfer + Resale (side by side)
                     Row(
-                        Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         OutlinedButton(
-                            onClick = { onTransfer(ticketId) },
-                            modifier = Modifier.weight(1f).height(48.dp),
+                            onClick = { onTransfer(ticket.id) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
                             border = ButtonDefaults.outlinedButtonBorder(enabled = true),
                         ) {
-                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text("양도하기", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
 
                         OutlinedButton(
-                            onClick = { onResaleCreate(ticketId) },
-                            modifier = Modifier.weight(1f).height(48.dp),
+                            onClick = { onResaleCreate(ticket.id) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
                             border = ButtonDefaults.outlinedButtonBorder(enabled = true),
                         ) {
                             Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text("판매하기", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        }
+                    }
+
+                    Button(
+                        onClick = { showRefundDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Warning.copy(alpha = 0.14f),
+                            contentColor = Warning,
+                        ),
+                        enabled = !refundUiState.isRefunding,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ConfirmationNumber,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (refundUiState.isRefunding) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = Warning,
+                            )
+                        } else {
+                            Text("환불하기", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     }
                 }
 
                 TicketStatus.LISTED -> {
                     Button(
-                        onClick = { /* cancel listing mock */ },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        onClick = { },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Danger),
                     ) {
@@ -222,40 +361,19 @@ fun TicketDetailScreen(
                 }
 
                 TicketStatus.SOLD -> {
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("Sold ticket", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
+                    DisabledActionButton(text = "판매 완료된 티켓입니다")
                 }
 
                 TicketStatus.USED -> {
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("사용 완료", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
+                    DisabledActionButton(text = "사용 완료된 티켓입니다")
                 }
 
                 TicketStatus.EXPIRED -> {
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("만료된 티켓", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
+                    DisabledActionButton(text = "만료된 티켓입니다")
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -267,7 +385,7 @@ private fun InfoRow(
     valueColor: androidx.compose.ui.graphics.Color = OnBackground,
 ) {
     Row(
-        Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -295,7 +413,21 @@ private fun NftInfoRow(label: String, value: String) {
     }
 }
 
+@Composable
+private fun DisabledActionButton(text: String) {
+    Button(
+        onClick = { },
+        enabled = false,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Text(text = text, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+    }
+}
+
 private fun formatPrice(price: Int): String {
-    val fmt = NumberFormat.getNumberInstance(Locale.KOREA)
-    return "${fmt.format(price)} CTK"
+    val format = NumberFormat.getNumberInstance(Locale.KOREA)
+    return "${format.format(price)} CTK"
 }

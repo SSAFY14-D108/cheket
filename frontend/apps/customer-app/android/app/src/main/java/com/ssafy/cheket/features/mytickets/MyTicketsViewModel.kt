@@ -34,11 +34,17 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
     val uiState: StateFlow<MyTicketsUiState> = _uiState.asStateFlow()
 
     init {
-        Log.d(TAG, "init -> loading tickets")
+        refreshTickets()
+    }
+
+    fun refreshTickets() {
+        Log.d(TAG, "refreshTickets()")
+        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+
         viewModelScope.launch {
             try {
                 ticketRepository.getTickets().collect { tickets ->
-                    Log.d(TAG, "getTickets() received ${tickets.size} tickets")
+                    Log.d(TAG, "refreshTickets() received ${tickets.size} tickets")
                     _uiState.value = _uiState.value.copy(
                         allTickets = tickets,
                         isLoading = false,
@@ -47,7 +53,7 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
                     applyFilter()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "getTickets() failed", e)
+                Log.e(TAG, "refreshTickets() failed", e)
                 _uiState.value = _uiState.value.copy(
                     allTickets = emptyList(),
                     filteredTickets = emptyList(),
@@ -65,14 +71,14 @@ class MyTicketsViewModel(private val ticketRepository: TicketRepository) : ViewM
     }
 
     private fun applyFilter() {
-        val s = _uiState.value
-        val result = when (s.selectedFilter) {
-            TicketFilter.ALL -> s.allTickets
-            TicketFilter.AVAILABLE -> s.allTickets.filter { it.status == TicketStatus.AVAILABLE }
-            TicketFilter.LISTED -> s.allTickets.filter { it.status == TicketStatus.LISTED }
+        val state = _uiState.value
+        val result = when (state.selectedFilter) {
+            TicketFilter.ALL -> state.allTickets
+            TicketFilter.AVAILABLE -> state.allTickets.filter { it.status == TicketStatus.AVAILABLE }
+            TicketFilter.LISTED -> state.allTickets.filter { it.status == TicketStatus.LISTED }
         }
-        Log.d(TAG, "applyFilter() filter=${s.selectedFilter}, resultCount=${result.size}")
-        _uiState.value = s.copy(filteredTickets = result)
+        Log.d(TAG, "applyFilter() filter=${state.selectedFilter}, resultCount=${result.size}")
+        _uiState.value = state.copy(filteredTickets = result)
     }
 
     companion object {

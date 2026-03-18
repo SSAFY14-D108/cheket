@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,9 +25,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.AppContainer
+import com.ssafy.cheket.core.model.Ticket
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.TicketCardItem
@@ -40,10 +45,23 @@ import com.ssafy.cheket.ui.theme.White
 @Composable
 fun MyTicketsScreen(
     appContainer: AppContainer,
-    onTicketClick: (String) -> Unit = {},
+    onTicketClick: (Ticket) -> Unit = {},
     viewModel: MyTicketsViewModel = viewModel(factory = MyTicketsViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshTickets()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -97,9 +115,9 @@ fun MyTicketsScreen(
 
             uiState.filteredTickets.isEmpty() -> {
                 val (emptyTitle, emptyDesc) = when (uiState.selectedFilter) {
-                    TicketFilter.ALL -> "보유한 티켓이 없습니다" to "공연을 예매하면 여기에 티켓이 표시됩니다."
-                    TicketFilter.AVAILABLE -> "보유 중인 티켓이 없습니다" to "현재 보유 중인 티켓이 없습니다."
-                    TicketFilter.LISTED -> "판매 중인 티켓이 없습니다" to "리세일에 등록한 티켓이 없습니다."
+                    TicketFilter.ALL -> "보유한 티켓이 없습니다" to "예매한 티켓이 생기면 여기에서 확인할 수 있어요."
+                    TicketFilter.AVAILABLE -> "현재 보유 중인 티켓이 없습니다" to "입장 전이거나 아직 판매 등록하지 않은 티켓이 없어요."
+                    TicketFilter.LISTED -> "판매 중인 티켓이 없습니다" to "리세일에 등록한 티켓이 아직 없어요."
                 }
                 EmptyState(
                     title = emptyTitle,
@@ -122,7 +140,7 @@ fun MyTicketsScreen(
                     items(items = uiState.filteredTickets) { ticket ->
                         TicketCardItem(
                             ticket = ticket,
-                            onClick = { onTicketClick(ticket.id) },
+                            onClick = { onTicketClick(ticket) },
                         )
                     }
                 }

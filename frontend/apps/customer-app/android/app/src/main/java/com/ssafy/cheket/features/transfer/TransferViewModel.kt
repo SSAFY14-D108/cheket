@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import kotlinx.coroutines.delay
+import com.ssafy.cheket.CheketApplication
+import com.ssafy.cheket.core.network.safeCall
+import com.ssafy.cheket.core.network.dto.TransferRequest
+import com.ssafy.cheket.core.network.service.TicketService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,107 +18,85 @@ import kotlinx.coroutines.launch
 data class TransferUiState(
     val phone: String = "",
     val formattedPhone: String = "",
-    val verifiedName: String? = null,
-    val verifyError: String? = null,
-    val isVerifying: Boolean = false,
+    val phoneError: String? = null,
     val isSubmitting: Boolean = false,
 )
 
-class TransferViewModel : ViewModel() {
+class TransferViewModel(
+    private val ticketService: TicketService,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(TransferUiState())
     val uiState: StateFlow<TransferUiState> = _uiState.asStateFlow()
 
-    init {
-        Log.d(TAG, "init")
-    }
-
     fun onPhoneChange(raw: String) {
-        // Only allow digits, max 11
         val digits = raw.filter { it.isDigit() }.take(11)
-        val formatted = formatPhoneNumber(digits)
         _uiState.value = _uiState.value.copy(
             phone = digits,
-            formattedPhone = formatted,
-            verifiedName = null,
-            verifyError = null,
+            formattedPhone = formatPhoneNumber(digits),
+            phoneError = null,
         )
-    }
-
-    fun verifyRecipient() {
-        val state = _uiState.value
-        Log.d(TAG, "verifyRecipient() phone=${state.formattedPhone}")
-        if (state.phone.length < 10) {
-            Log.w(TAG, "verifyRecipient() validation failed — phone too short")
-            _uiState.value = state.copy(verifyError = "올바른 전화번호를 입력해주세요")
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isVerifying = true, verifyError = null)
-            delay(800) // simulate network
-
-            val formatted = state.formattedPhone
-            val name = MockDataSource.phoneBook[formatted]
-
-            if (name != null) {
-                Log.d(TAG, "verifyRecipient() found name=$name")
-                _uiState.value = _uiState.value.copy(
-                    verifiedName = name,
-                    verifyError = null,
-                    isVerifying = false,
-                )
-            } else {
-                Log.w(TAG, "verifyRecipient() user not found for phone=$formatted")
-                _uiState.value = _uiState.value.copy(
-                    verifiedName = null,
-                    verifyError = "해당 전화번호의 사용자를 찾을 수 없습니다",
-                    isVerifying = false,
-                )
-            }
-        }
     }
 
     fun submitTransfer(
         ticketId: String,
         onSuccess: (String) -> Unit,
-        onFailure: (String) -> Unit,
+        onFailure: (String, String) -> Unit,
     ) {
         val state = _uiState.value
-        if (state.verifiedName == null) return
+        if (state.phone.length !in 10..11) {
+            _uiState.value = state.copy(phoneError = "전화번호를 정확히 입력해주세요.")
+            return
+        }
 
-        Log.d(TAG, "submitTransfer() ticketId=$ticketId, recipient=${state.verifiedName}")
+        val ticketIdLong = ticketId.toLongOrNull()
+        if (ticketIdLong == null) {
+            onFailure(ticketId, "잘못된 티켓 정보입니다.")
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSubmitting = true)
-            delay(1200) // simulate blockchain tx
+            _uiState.value = state.copy(isSubmitting = true, phoneError = null)
 
-            val formatted = state.formattedPhone
-            val willSucceed = formatted != "010-5555-4444"
+            val result = safeCall {
+                ticketService.transferTicket(
+                    ticketId = ticketIdLong,
+                    request = TransferRequest(phoneNumber = state.formattedPhone),
+                )
+            }
 
             _uiState.value = _uiState.value.copy(isSubmitting = false)
 
-            if (willSucceed) {
-                Log.d(TAG, "submitTransfer() success for ticketId=$ticketId")
-                onSuccess(ticketId)
-            } else {
-                Log.w(TAG, "submitTransfer() failed for ticketId=$ticketId (simulated failure)")
-                onFailure(ticketId)
-            }
+            result
+                .onSuccess { response ->
+                    Log.d(TAG, "submitTransfer() statusCode=${response.httpStatusCode}")
+                    if (response.httpStatusCode == 200) {
+                        onSuccess(ticketId)
+                    } else {
+                        onFailure(ticketId, response.responseMessage ?: "양도에 실패했습니다.")
+                    }
+                }
+                .onFailure { throwable ->
+                    val message = throwable.message ?: "양도 처리 중 오류가 발생했습니다."
+                    Log.e(TAG, "submitTransfer() failed: $message", throwable)
+                    onFailure(ticketId, message)
+                }
         }
     }
 
-    private fun formatPhoneNumber(digits: String): String {
-        return when {
-            digits.length <= 3 -> digits
-            digits.length <= 7 -> "${digits.substring(0, 3)}-${digits.substring(3)}"
-            else -> "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}"
-        }
+    private fun formatPhoneNumber(digits: String): String = when {
+        digits.length <= 3 -> digits
+        digits.length <= 7 -> "${digits.substring(0, 3)}-${digits.substring(3)}"
+        else -> "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}"
     }
 
     companion object {
         private const val TAG = "TransferViewModel"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer { TransferViewModel() }
+            initializer {
+                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
+                TransferViewModel(app.appContainer.ticketService)
+            }
         }
     }
 }

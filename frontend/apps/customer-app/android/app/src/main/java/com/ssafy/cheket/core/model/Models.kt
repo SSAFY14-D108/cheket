@@ -69,7 +69,10 @@ data class Ticket(
     val originalPrice: Int,
     val status: TicketStatus,
     val resalePrice: Int? = null,
+    val metadataIpfsCid: String? = null,
     val attendedDate: String? = null,
+    val numbering: String = "",
+    val effect: String? = null,
 )
 
 data class User(
