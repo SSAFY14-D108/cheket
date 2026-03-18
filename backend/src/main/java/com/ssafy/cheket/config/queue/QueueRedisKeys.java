@@ -21,7 +21,7 @@ public final class QueueRedisKeys {
     public static final String SEQ_PREFIX = "queue:seq:";
 
     // 현재 queue가 동작 중이 session 목록
-    public static final String ACTIVE_SESSIONS_KEY = "queue:sessions:active:";
+    public static final String ACTIVE_SESSIONS_KEY = "queue:sessions:active";
 
     // ACTIVE 권한 검증용 key
     public static final String ACTIVE_USER_KEY_PREFIX = "active:";
