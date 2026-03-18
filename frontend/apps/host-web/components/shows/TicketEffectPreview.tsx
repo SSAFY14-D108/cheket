@@ -116,7 +116,7 @@ export function TicketEffectPreview({
                                 >
                                     NONE
                                 </div>
-                                {ticketEffects.map(effect => {
+                                {ticketEffects.filter(effect => effect.effect.toLowerCase() !== "none").map(effect => {
                                     const isSelected = selectedEffectId === effect.id.toString()
                                     return (
                                         <div
