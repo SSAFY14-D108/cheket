@@ -13,23 +13,26 @@ import { createNotFoundResponse, createUnauthorizedResponse, isAuthorized } from
 
 type ShowMutationBody = {
   title?: string
-  posterUrl?: string
   venueId?: number
-  artistName?: string
-  show?: { startAt?: string; endAt?: string }
-  reservation?: { openAt?: string; closeAt?: string }
+  artist?: string
+  playtime?: number
+  showStartDate?: string
+  showEndDate?: string
+  reservationStartDate?: string
+  reservationEndDate?: string
   description?: string
   purchaseLimit?: number
   grade?: Array<{
-    sectionId?: number[] | number
+    sectionIds?: number[]
     gradeName?: string
     price?: number
     colorCode?: string
     ticketEffectId?: number
   }>
   stakeholders?: Array<{
-    role?: "organizer" | "artist"
-    userId?: number
+    role?: "ORGANIZER" | "ARTIST"
+    businessNo?: string | null
+    phoneNumber?: string | null
     shareBps?: number
   }>
   refundPolicy?: Array<{
@@ -37,22 +40,76 @@ type ShowMutationBody = {
     refundRate?: number
   }>
   sessionInfo?: Array<{
-    sessionId?: number
     sessionDate?: string
-    sessionStartDate?: string
+    sessionStartTime?: string
   }>
 }
 
-function normalizeGradeSectionIds(sectionId?: number[] | number) {
-  if (Array.isArray(sectionId)) {
-    return sectionId
+async function parseShowMutationBody(request: Request) {
+  const formData = await request.formData()
+  const showPart = formData.get("show")
+
+  if (typeof showPart === "string") {
+    return {
+      body: JSON.parse(showPart) as ShowMutationBody,
+      formData,
+    }
   }
 
-  if (Number.isInteger(sectionId)) {
-    return [sectionId]
+  if (showPart instanceof File) {
+    return {
+      body: (JSON.parse(await showPart.text()) as ShowMutationBody) ?? {},
+      formData,
+    }
   }
 
-  return []
+  return {
+    body: {} as ShowMutationBody,
+    formData,
+  }
+}
+
+function toDateOnly(value?: string) {
+  return value ? value.slice(0, 10) : "2026-01-01"
+}
+
+function toTimeOnly(value?: string) {
+  if (!value) {
+    return "19:00"
+  }
+
+  return value.includes("T") ? value.slice(11, 16) : value.slice(0, 5)
+}
+
+function mapStakeholders(body: ShowMutationBody) {
+  return (
+    body.stakeholders?.map((stakeholder, index): {
+      role: "organizer" | "artist"
+      userId: number
+      name: string
+      businessNo?: string
+      phone?: string
+      shareBps: number
+    } => ({
+      role: stakeholder.role === "ORGANIZER" ? "organizer" : "artist",
+      userId: 100 + index,
+      name: stakeholder.role === "ORGANIZER" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
+      businessNo: stakeholder.role === "ORGANIZER" ? stakeholder.businessNo ?? undefined : undefined,
+      phone: stakeholder.role === "ARTIST" ? stakeholder.phoneNumber ?? undefined : undefined,
+      shareBps: stakeholder.shareBps ?? 0,
+    })) ?? []
+  )
+}
+
+function mapSessions(body: ShowMutationBody, capacity: number) {
+  return (
+    body.sessionInfo?.map((session, index) => ({
+      sessionId: index + 1,
+      sessionDate: toDateOnly(session.sessionDate),
+      sessionStartDate: toTimeOnly(session.sessionStartTime),
+      capacity,
+    })) ?? []
+  )
 }
 
 export const showHandlers = [
@@ -121,10 +178,8 @@ export const showHandlers = [
       return createUnauthorizedResponse()
     }
 
-    const formData = await request.formData()
-    const showJson = formData.get("show")
+    const { body, formData } = await parseShowMutationBody(request)
     const posterImage = formData.get("posterImage")
-    const body = showJson ? (JSON.parse(String(showJson)) as ShowMutationBody) : {}
 
     if (!body.title || !body.venueId || !(posterImage instanceof File)) {
       return HttpResponse.json(
@@ -139,95 +194,78 @@ export const showHandlers = [
     const nextShowId = getNextShowId()
     const selectedVenue = mockVenues.find((venue) => venue.venueId === body.venueId)
     const venueName = selectedVenue?.name ?? `공연장 ${body.venueId}`
-    const newShowListItem = {
+    const capacity = selectedVenue?.capacity ?? 1000
+
+    myPageShowsStore.push({
       showId: nextShowId,
       title: body.title,
-      posterUrl: body.posterUrl ?? "/images/poster-1.jpg",
+      posterUrl: "/images/poster-1.jpg",
       venue: venueName,
       purchaseLimit: body.purchaseLimit ?? 1,
       region: "SEOUL",
       show: {
-        showStartDate: body.show?.startAt?.slice(0, 10) ?? "2026-01-01",
-        showEndDate:
-          body.show?.endAt?.slice(0, 10) ?? body.show?.startAt?.slice(0, 10) ?? "2026-01-01",
+        showStartDate: toDateOnly(body.showStartDate),
+        showEndDate: toDateOnly(body.showEndDate ?? body.showStartDate),
       },
       reservation: {
-        startDate: body.reservation?.openAt ?? "2026-01-01T10:00:00",
-        endDate: body.reservation?.closeAt ?? "2026-01-02T10:00:00",
+        startDate: body.reservationStartDate ?? "2026-01-01T10:00:00",
+        endDate: body.reservationEndDate ?? "2026-01-02T10:00:00",
       },
       status: "DRAFT",
-    }
-    const newEvent = {
+    })
+
+    mockEventStore.push({
       showId: nextShowId,
       title: body.title,
-      artistName: body.artistName ?? "미정",
-      posterUrl: body.posterUrl ?? "/images/poster-1.jpg",
+      artistName: body.artist ?? "미정",
+      playtime: body.playtime ?? 120,
+      posterUrl: "/images/poster-1.jpg",
       venue: {
         venueId: body.venueId,
         name: venueName,
         address: getVenueAddress(body.venueId),
       },
       show: {
-        startAt: body.show?.startAt ?? "2026-01-01T19:00:00",
-        endAt: body.show?.endAt ?? "2026-01-01T21:00:00",
+        startAt: body.showStartDate ?? "2026-01-01T19:00:00",
+        endAt: body.showEndDate ?? "2026-01-01T21:00:00",
       },
       reservation: {
-        openAt: body.reservation?.openAt ?? "2026-01-01T10:00:00",
-        closeAt: body.reservation?.closeAt ?? "2026-01-02T10:00:00",
+        openAt: body.reservationStartDate ?? "2026-01-01T10:00:00",
+        closeAt: body.reservationEndDate ?? "2026-01-02T10:00:00",
       },
       description: body.description ?? "",
       purchaseLimit: body.purchaseLimit ?? 1,
       grade:
         body.grade?.map((grade) => ({
-          sectionId: normalizeGradeSectionIds(grade.sectionId)[0] ?? 1,
+          sectionId: grade.sectionIds?.[0] ?? 1,
           gradeName: grade.gradeName ?? "일반",
           price: grade.price ?? 0,
           colorCode: grade.colorCode ?? "#7C6EF0",
           ...(grade.ticketEffectId ? { ticketEffectId: grade.ticketEffectId } : {}),
         })) ?? [],
-      stakeholders:
-        body.stakeholders?.map((stakeholder, index) => ({
-          role: stakeholder.role ?? "artist",
-          userId: stakeholder.userId ?? 100 + index,
-          name: stakeholder.role === "organizer" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
-          ...(stakeholder.role === "organizer"
-            ? { businessNo: `000-00-${String(index + 1).padStart(5, "0")}` }
-            : { phone: `010-0000-${String(index + 1).padStart(4, "0")}` }),
-          shareBps: stakeholder.shareBps ?? 0,
-        })) ?? [],
+      stakeholders: mapStakeholders(body),
       refundPolicy:
         body.refundPolicy?.map((policy) => ({
           daysRemaining: policy.daysRemaining ?? 0,
           refundRate: policy.refundRate ?? 0,
         })) ?? [],
-      sessionInfo:
-        body.sessionInfo?.map((session, index) => ({
-          sessionId: session.sessionId ?? index + 1,
-          sessionDate: session.sessionDate ?? "2026-01-01",
-          sessionStartDate: session.sessionStartDate ?? "19:00",
-          capacity: selectedVenue?.capacity ?? 1000,
-        })) ?? [],
+      sessionInfo: mapSessions(body, capacity),
       status: "DRAFT",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      capacity: selectedVenue?.capacity ?? 1000,
+      capacity,
       soldSeats: 0,
       enteredCount: 0,
       notEnteredCount: 0,
-      emptyCount: selectedVenue?.capacity ?? 1000,
+      emptyCount: capacity,
       likes: 0,
-    }
-
-    myPageShowsStore.push(newShowListItem)
-    mockEventStore.push(newEvent)
+    })
 
     return HttpResponse.json(
       {
         httpStatusCode: 201,
         responseMessage: "공연 등록 완료",
-        data: {
-          showId: nextShowId,
-        },
+        data: nextShowId,
       },
       { status: 201 }
     )
@@ -243,24 +281,9 @@ export const showHandlers = [
       return createNotFoundResponse()
     }
 
-    const body = (await request.json()) as ShowMutationBody
+    const { body, formData } = await parseShowMutationBody(request)
 
-    if (
-      !body.title &&
-      !body.posterUrl &&
-      !body.artistName &&
-      !body.venueId &&
-      !body.show?.startAt &&
-      !body.show?.endAt &&
-      !body.reservation?.openAt &&
-      !body.reservation?.closeAt &&
-      !body.description &&
-      body.purchaseLimit === undefined &&
-      !body.grade &&
-      !body.stakeholders &&
-      !body.refundPolicy &&
-      !body.sessionInfo
-    ) {
+    if (!body.title || !body.venueId) {
       return HttpResponse.json(
         {
           httpStatusCode: 400,
@@ -278,61 +301,48 @@ export const showHandlers = [
       const previousEvent = mockEventStore[eventIndex]
       const nextVenueId = body.venueId ?? previousEvent.venue.venueId
       const selectedVenue = mockVenues.find((venue) => venue.venueId === nextVenueId)
+      const capacity = selectedVenue?.capacity ?? previousEvent.capacity
+      const posterImage = formData.get("posterImage")
 
       mockEventStore[eventIndex] = {
         ...previousEvent,
         title: body.title ?? previousEvent.title,
-        artistName: body.artistName ?? previousEvent.artistName,
-        posterUrl: body.posterUrl ?? previousEvent.posterUrl,
+        artistName: body.artist ?? previousEvent.artistName,
+        playtime: body.playtime ?? previousEvent.playtime,
+        posterUrl: posterImage instanceof File ? previousEvent.posterUrl : previousEvent.posterUrl,
         venue: {
           venueId: nextVenueId,
           name: selectedVenue?.name ?? previousEvent.venue.name,
           address: selectedVenue ? getVenueAddress(nextVenueId) : previousEvent.venue.address,
         },
         show: {
-          startAt: body.show?.startAt ?? previousEvent.show.startAt,
-          endAt: body.show?.endAt ?? previousEvent.show.endAt,
+          startAt: body.showStartDate ?? previousEvent.show.startAt,
+          endAt: body.showEndDate ?? previousEvent.show.endAt,
         },
         reservation: {
-          openAt: body.reservation?.openAt ?? previousEvent.reservation.openAt,
-          closeAt: body.reservation?.closeAt ?? previousEvent.reservation.closeAt,
+          openAt: body.reservationStartDate ?? previousEvent.reservation.openAt,
+          closeAt: body.reservationEndDate ?? previousEvent.reservation.closeAt,
         },
         description: body.description ?? previousEvent.description,
         purchaseLimit: body.purchaseLimit ?? previousEvent.purchaseLimit,
         grade:
           body.grade?.map((grade) => ({
-            sectionId:
-              normalizeGradeSectionIds(grade.sectionId)[0] ??
-              previousEvent.grade[0]?.sectionId ??
-              1,
+            sectionId: grade.sectionIds?.[0] ?? previousEvent.grade[0]?.sectionId ?? 1,
             gradeName: grade.gradeName ?? "일반",
             price: grade.price ?? 0,
             colorCode: grade.colorCode ?? "#7C6EF0",
             ...(grade.ticketEffectId ? { ticketEffectId: grade.ticketEffectId } : {}),
           })) ?? previousEvent.grade,
-        stakeholders:
-          body.stakeholders?.map((stakeholder, index) => ({
-            role: stakeholder.role ?? "artist",
-            userId: stakeholder.userId ?? 100 + index,
-            name: stakeholder.role === "organizer" ? `주최측 ${index + 1}` : `아티스트 ${index + 1}`,
-            ...(stakeholder.role === "organizer"
-              ? { businessNo: `000-00-${String(index + 1).padStart(5, "0")}` }
-              : { phone: `010-0000-${String(index + 1).padStart(4, "0")}` }),
-            shareBps: stakeholder.shareBps ?? 0,
-          })) ?? previousEvent.stakeholders,
+        stakeholders: body.stakeholders ? mapStakeholders(body) : previousEvent.stakeholders,
         refundPolicy:
           body.refundPolicy?.map((policy) => ({
             daysRemaining: policy.daysRemaining ?? 0,
             refundRate: policy.refundRate ?? 0,
           })) ?? previousEvent.refundPolicy,
-        sessionInfo:
-          body.sessionInfo?.map((session, index) => ({
-            sessionId: session.sessionId ?? index + 1,
-            sessionDate: session.sessionDate ?? "2026-01-01",
-            sessionStartDate: session.sessionStartDate ?? "19:00",
-            capacity: selectedVenue?.capacity ?? previousEvent.capacity,
-          })) ?? previousEvent.sessionInfo,
+        sessionInfo: body.sessionInfo ? mapSessions(body, capacity) : previousEvent.sessionInfo,
         updatedAt: new Date().toISOString(),
+        capacity,
+        emptyCount: capacity,
       }
     }
 
@@ -344,16 +354,20 @@ export const showHandlers = [
       myPageShowsStore[myPageShowIndex] = {
         ...previousShow,
         title: body.title ?? previousShow.title,
-        posterUrl: body.posterUrl ?? previousShow.posterUrl,
+        posterUrl: previousShow.posterUrl,
         venue: selectedVenue?.name ?? previousShow.venue,
         purchaseLimit: body.purchaseLimit ?? previousShow.purchaseLimit,
         show: {
-          showStartDate: body.show?.startAt?.slice(0, 10) ?? previousShow.show.showStartDate,
-          showEndDate: body.show?.endAt?.slice(0, 10) ?? previousShow.show.showEndDate,
+          showStartDate: body.showStartDate
+            ? toDateOnly(body.showStartDate)
+            : previousShow.show.showStartDate,
+          showEndDate: body.showEndDate
+            ? toDateOnly(body.showEndDate)
+            : previousShow.show.showEndDate,
         },
         reservation: {
-          startDate: body.reservation?.openAt ?? previousShow.reservation.startDate,
-          endDate: body.reservation?.closeAt ?? previousShow.reservation.endDate,
+          startDate: body.reservationStartDate ?? previousShow.reservation.startDate,
+          endDate: body.reservationEndDate ?? previousShow.reservation.endDate,
         },
       }
     }

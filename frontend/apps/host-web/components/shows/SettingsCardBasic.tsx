@@ -11,11 +11,13 @@ interface SettingsCardBasicProps {
     venues: HostShowVenueOption[]
     isLoadingVenues: boolean
     venueLoadError: string
+    playtime: string
     showStartAt: string
     showEndAt: string
     openAt: string
     closeAt: string
     onChangeVenueId: (id: string) => void
+    onChangePlaytime: (value: string) => void
     onChangeShowRange: (start: string, end: string) => void
     onChangeReservationRange: (start: string, end: string) => void
 }
@@ -25,11 +27,13 @@ export function SettingsCardBasic({
     venues,
     isLoadingVenues,
     venueLoadError,
+    playtime,
     showStartAt,
     showEndAt,
     openAt,
     closeAt,
     onChangeVenueId,
+    onChangePlaytime,
     onChangeShowRange,
     onChangeReservationRange,
 }: SettingsCardBasicProps) {
@@ -59,6 +63,17 @@ export function SettingsCardBasic({
                     {venueLoadError && (
                         <p className="text-xs text-destructive">{venueLoadError}</p>
                     )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">공연 시간 (분)</Label>
+                    <input
+                        type="number"
+                        min="1"
+                        placeholder="예: 120"
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={playtime}
+                        onChange={(event) => onChangePlaytime(event.target.value)}
+                    />
                 </div>
                 <Separator />
 

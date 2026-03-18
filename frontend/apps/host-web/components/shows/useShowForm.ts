@@ -24,6 +24,14 @@ import {
   toNumericString,
 } from "./showFormUtils"
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
+
+function toRoundedMb(bytes: number) {
+  return Math.round(bytes / (1024 * 1024))
+}
+
 interface UseShowFormParams {
   mode: "create" | "edit"
   initialData?: HostShowDetail
@@ -36,9 +44,12 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [artistName, setArtistName] = useState(initialData?.artistName ?? "")
+  const [playtime, setPlaytime] = useState(toNumericString(initialData?.playtime))
   const [posterPreview, setPosterPreview] = useState<string | null>(initialData?.posterUrl ?? null)
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [description, setDescription] = useState(initialData?.description ?? "")
+  const [descriptionImageFiles, setDescriptionImageFiles] = useState<File[]>([])
+  const [descriptionImagePreviews, setDescriptionImagePreviews] = useState<string[]>([])
   const [venueId, setVenueId] = useState(initialData?.venue.venueId?.toString() ?? "")
   const [showStartAt, setShowStartAt] = useState(
     toLocalDateTimeValue(initialData?.show.showStartDate, "00:00")
@@ -114,12 +125,113 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       return
     }
 
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      toast({
+        title: "지원하지 않는 파일 형식",
+        description: "대표 포스터는 JPEG, PNG, WEBP 형식만 업로드 가능합니다.",
+        variant: "destructive",
+      })
+      event.target.value = ""
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "파일 용량 초과",
+        description: "대표 포스터는 5MB 이하만 업로드 가능합니다.",
+        variant: "destructive",
+      })
+      event.target.value = ""
+      return
+    }
+
+    const nextRequestSize =
+      file.size + descriptionImageFiles.reduce((total, descriptionFile) => total + descriptionFile.size, 0)
+
+    if (nextRequestSize > MAX_TOTAL_SIZE) {
+      toast({
+        title: "전체 용량 초과",
+        description: `이번 요청의 이미지 총합은 50MB를 넘을 수 없습니다. (현재 ${toRoundedMb(nextRequestSize)}MB)`,
+        variant: "destructive",
+      })
+      event.target.value = ""
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = () => {
       setPosterPreview(reader.result as string)
       setPosterFile(file)
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleDescriptionImagesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+
+    if (!files || files.length === 0) {
+      return
+    }
+
+    const fileArray = Array.from(files)
+
+    const invalidTypeFiles = fileArray.filter((file) => !ALLOWED_IMAGE_TYPES.has(file.type))
+    if (invalidTypeFiles.length > 0) {
+      toast({
+        title: "지원하지 않는 파일 형식",
+        description: "상세 이미지는 JPEG, PNG, WEBP 형식만 업로드 가능합니다.",
+        variant: "destructive",
+      })
+      event.target.value = ""
+      return
+    }
+
+    const oversizedFiles = fileArray.filter((file) => file.size > MAX_FILE_SIZE)
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "파일 용량 초과",
+        description: "각 상세 이미지는 5MB 이하만 업로드 가능합니다.",
+        variant: "destructive",
+      })
+      event.target.value = ""
+      return
+    }
+
+    const currentTotalSize = descriptionImageFiles.reduce((total, file) => total + file.size, 0)
+    const incomingTotalSize = fileArray.reduce((total, file) => total + file.size, 0)
+    const posterSize = posterFile?.size ?? 0
+    const nextTotalSize = posterSize + currentTotalSize + incomingTotalSize
+
+    if (nextTotalSize > MAX_TOTAL_SIZE) {
+      toast({
+        title: "전체 용량 초과",
+        description: `이번 요청의 이미지 총합은 50MB를 넘을 수 없습니다. (현재 ${toRoundedMb(nextTotalSize)}MB)`,
+        variant: "destructive",
+      })
+      event.target.value = ""
+      return
+    }
+
+    setDescriptionImageFiles((previous) => [...previous, ...fileArray])
+
+    const readers = fileArray.map(
+      (file) =>
+        new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+    )
+
+    Promise.all(readers).then((previews) => {
+      setDescriptionImagePreviews((previous) => [...previous, ...previews])
+    })
+    event.target.value = ""
+  }
+
+  const handleRemoveDescriptionImage = (targetIndex: number) => {
+    setDescriptionImageFiles((previous) => previous.filter((_, index) => index !== targetIndex))
+    setDescriptionImagePreviews((previous) => previous.filter((_, index) => index !== targetIndex))
   }
 
   const handleVenueChange = (nextVenueId: string) => {
@@ -167,7 +279,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const addStakeholder = () => {
     setStakeholders((previous) => [
       ...previous,
-      { role: "artist", name: "", phone: "", shareBps: "", verified: false },
+      { role: "ARTIST", name: "", phone: "", shareBps: "", verified: false },
     ])
   }
 
@@ -213,7 +325,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
     setSessionInfo((previous) => [
       ...previous,
-      { sessionId: "", sessionDate: "", sessionStartDate: "", capacity: defaultCapacity },
+      { sessionDate: "", sessionStartTime: "", capacity: defaultCapacity },
     ])
   }
 
@@ -238,6 +350,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       mode,
       title,
       artistName,
+      playtime,
       posterPreview,
       posterFile,
       venueId,
@@ -251,6 +364,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       stakeholders,
       refundPolicy,
       sessionInfo,
+      descriptionImageFiles,
     })
 
     if (validationMessage) {
@@ -267,6 +381,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
           buildUpdatePayload({
             title,
             artistName,
+            playtime,
             posterPreview,
             posterFile,
             venueId,
@@ -280,6 +395,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             stakeholders,
             refundPolicy,
             sessionInfo,
+            descriptionImageFiles,
           })
         )
         window.alert(response.responseMessage || "공연이 수정되었습니다.")
@@ -288,6 +404,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
           buildCreatePayload({
             title,
             artistName,
+            playtime,
             posterPreview,
             posterFile,
             venueId,
@@ -301,9 +418,10 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             stakeholders,
             refundPolicy,
             sessionInfo,
+            descriptionImageFiles,
           })
         )
-        window.alert(`공연이 등록되었습니다. (공연 ID: ${response.showId})`)
+        window.alert(`공연이 등록되었습니다. (공연 ID: ${response})`)
       }
 
       router.push("/mypage")
@@ -325,8 +443,11 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     isEdit,
     title,
     artistName,
+    playtime,
     posterPreview,
     description,
+    descriptionImageFiles,
+    descriptionImagePreviews,
     venueId,
     showStartAt,
     showEndAt,
@@ -343,6 +464,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     isSubmitting,
     setTitle,
     setArtistName,
+    setPlaytime,
     setDescription,
     setPurchaseLimit,
     setShowStartAt,
@@ -350,6 +472,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     setOpenAt,
     setCloseAt,
     handlePosterChange,
+    handleDescriptionImagesChange,
+    handleRemoveDescriptionImage,
     handleVenueChange,
     addGrade,
     removeGrade,

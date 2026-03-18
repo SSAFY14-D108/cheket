@@ -29,16 +29,21 @@ function formatShowPeriod(event: MyShowSummary) {
 }
 
 export function EventCard({ event }: EventCardProps) {
+  const posterSrc = event.posterUrl || POSTER_PLACEHOLDER
+  const shouldBypassOptimization =
+    posterSrc.startsWith("http://") || posterSrc.startsWith("https://")
+
   return (
     <Link href={`/shows/${event.showId}`}>
       <Card className="overflow-hidden transition-shadow hover:shadow-md cursor-pointer gap-0 py-0">
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
           <Image
-            src={event.posterUrl || POSTER_PLACEHOLDER}
+            src={posterSrc}
             alt={`${event.title} 포스터`}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            unoptimized={shouldBypassOptimization}
           />
         </div>
         <CardContent className="flex flex-col gap-2 p-4">
