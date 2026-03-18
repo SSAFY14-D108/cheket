@@ -115,6 +115,7 @@ public class HostServiceImpl implements HostService {
     }
 
     // 회사 정보 수정
+    @Transactional
     @Override
     public void modifyHostInfo(Long id, ModifyHostInfoRequest request) {
         Host host = hostRepository.findByIdAndDeletedAtIsNull(id)
