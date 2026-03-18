@@ -49,7 +49,9 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [description, setDescription] = useState(initialData?.description ?? "")
   const [descriptionImageFiles, setDescriptionImageFiles] = useState<File[]>([])
-  const [descriptionImagePreviews, setDescriptionImagePreviews] = useState<string[]>([])
+  const [descriptionImagePreviews, setDescriptionImagePreviews] = useState<string[]>(
+    isEdit ? (initialData?.descriptionImages ?? []) : []
+  )
   const [venueId, setVenueId] = useState(initialData?.venue.venueId?.toString() ?? "")
   const [showStartAt, setShowStartAt] = useState(
     toLocalDateTimeValue(initialData?.show.showStartDate, "00:00")
@@ -230,7 +232,26 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   }
 
   const handleRemoveDescriptionImage = (targetIndex: number) => {
-    setDescriptionImageFiles((previous) => previous.filter((_, index) => index !== targetIndex))
+    const targetPreview = descriptionImagePreviews[targetIndex]
+    const isExistingRemoteImage =
+      typeof targetPreview === "string" &&
+      (targetPreview.startsWith("http://") || targetPreview.startsWith("https://"))
+
+    if (!isExistingRemoteImage) {
+      const localFileIndex = descriptionImagePreviews
+        .slice(0, targetIndex + 1)
+        .filter(
+          (preview) =>
+            typeof preview === "string" &&
+            !preview.startsWith("http://") &&
+            !preview.startsWith("https://")
+        ).length - 1
+
+      setDescriptionImageFiles((previous) =>
+        previous.filter((_, index) => index !== localFileIndex)
+      )
+    }
+
     setDescriptionImagePreviews((previous) => previous.filter((_, index) => index !== targetIndex))
   }
 
@@ -396,7 +417,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             refundPolicy,
             sessionInfo,
             descriptionImageFiles,
-          })
+          }, descriptionImagePreviews)
         )
         window.alert(response.responseMessage || "공연이 수정되었습니다.")
       } else {

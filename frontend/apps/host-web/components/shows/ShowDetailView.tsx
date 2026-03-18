@@ -168,8 +168,8 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
                                 <div className="flex flex-wrap gap-2">
                                     {showDetail.stakeholders.map((stakeholder, index) => (
                                         <Badge key={index} variant="secondary" className="text-xs">
-                                            {stakeholder.name ?? `회원 ${stakeholder.userId}`}(
-                                            {stakeholder.role === "organizer" ? "주최" : "아티스트"}){" "}
+                                            {stakeholder.name ?? `회원 ${stakeholder.id}`}(
+                                            {stakeholder.role === "ORGANIZER" ? "주최" : "아티스트"}){" "}
                                             {(stakeholder.shareBps / 100).toFixed(1)}%
                                         </Badge>
                                     ))}

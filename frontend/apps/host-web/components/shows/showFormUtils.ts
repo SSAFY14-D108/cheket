@@ -153,7 +153,7 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
   }
 
   const mappedStakeholders: Stakeholder[] = initialData.stakeholders.map((stakeholder) => {
-    const role: Stakeholder["role"] = stakeholder.role === "organizer" ? "ORGANIZER" : "ARTIST"
+    const role: Stakeholder["role"] = stakeholder.role === "ORGANIZER" ? "ORGANIZER" : "ARTIST"
     const businessNo = role === "ORGANIZER" ? stakeholder.number || "" : ""
     const phone = role === "ARTIST" ? stakeholder.number || "" : ""
     const isFixed =
@@ -166,7 +166,7 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
       phone,
       businessNo,
       shareBps: String(stakeholder.shareBps),
-      verified: Boolean(stakeholder.userId || stakeholder.name),
+      verified: Boolean(stakeholder.id || stakeholder.name),
       isFixed,
       ...(isFixed
         ? {
@@ -403,9 +403,17 @@ export function buildCreatePayload(values: Omit<ShowFormValues, "mode">): Create
   }
 }
 
-export function buildUpdatePayload(values: Omit<ShowFormValues, "mode">): CreateShowPayload {
+export function buildUpdatePayload(
+  values: Omit<ShowFormValues, "mode">,
+  currentPreviews: string[] = []
+): CreateShowPayload {
+  const retainedUrls = currentPreviews.filter((url) => url.startsWith("http"))
+
   return {
-    show: buildPayload(values),
+    show: {
+      ...buildPayload(values),
+      existingDescriptionImageUrls: retainedUrls,
+    },
     posterImageFile: values.posterFile ?? null,
     descriptionImageFiles: values.descriptionImageFiles,
   }
