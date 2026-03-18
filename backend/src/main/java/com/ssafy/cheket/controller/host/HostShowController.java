@@ -36,8 +36,8 @@ public class HostShowController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 등록 완료", showId));
     }
 
-    @PutMapping(value = "/{showId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "공연 정보 수정")
+    @PatchMapping(value = "/{showId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "공연 정보 부분 수정 (PATCH)")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Void>> updateShow(@AuthenticationPrincipal Long hostId, @PathVariable Long showId,
         @RequestPart("show") UpdateShowRequest request,

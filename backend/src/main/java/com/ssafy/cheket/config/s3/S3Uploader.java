@@ -96,8 +96,8 @@ public class S3Uploader {
     }
 
     private String getFileUrl(String key) {
-        return "https://" + s3Properties.getS3().getBucket() + ".s3." + s3Properties.getRegion() + ".amazonaws.com/"
-            + key;
+        return "https://" + s3Properties.getS3().getBucket() + ".s3."
+            + s3Properties.getRegion().getStaticRegion() + ".amazonaws.com/" + key;
     }
 
     private String extractExt(String filename) {
