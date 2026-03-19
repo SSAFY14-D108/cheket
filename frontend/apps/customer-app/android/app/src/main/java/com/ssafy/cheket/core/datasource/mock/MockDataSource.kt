@@ -308,11 +308,32 @@ object MockDataSource {
     data class VenueInfo(val name: String, val icon: String)
 
     val venuePresets = listOf(
-        VenueInfo("올림픽체조경기장", "\uD83C\uDFDF\uFE0F"),
-        VenueInfo("블루스퀘어", "\uD83C\uDFAD"),
-        VenueInfo("세종문화회관", "\uD83C\uDFB5"),
-        VenueInfo("고척스카이돔", "\u26BE"),
-        VenueInfo("야외원형극장", "\uD83C\uDF3F"),
+        VenueInfo("올림픽체조경기장", "🏟️"),
+        VenueInfo("블루스퀘어", "🎭"),
+        VenueInfo("세종문화회관", "🎵"),
+        VenueInfo("고척스카이돔", "⚾"),
+        VenueInfo("야외원형극장", "🌿"),
+        // ── DB 공연장 20개 ──
+        VenueInfo("올림픽홀", "🏟️"),          // 5
+        VenueInfo("세종문화회관 대극장", "🎵"), // 6
+        VenueInfo("KSPO DOME", "🎪"),          // 7
+        VenueInfo("블루스퀘어 마스터카드홀", "🎭"), // 8
+        VenueInfo("예스24 라이브홀", "🎸"),     // 9
+        VenueInfo("고척스카이돔(DB)", "⚾"),    // 10
+        VenueInfo("잠실실내체육관", "🏀"),      // 11
+        VenueInfo("KBS 아레나", "📺"),         // 12
+        VenueInfo("홍대 롤링홀", "🎤"),        // 13
+        VenueInfo("벡스코", "🏢"),             // 14
+        VenueInfo("부산시민회관", "🌊"),        // 15
+        VenueInfo("대구 EXCO", "🏙️"),         // 16
+        VenueInfo("인천아트홀", "✈️"),          // 17
+        VenueInfo("광주 김대중컨벤션", "🌺"),   // 18
+        VenueInfo("대전예술의전당", "🔬"),      // 19
+        VenueInfo("경기아트센터", "🎨"),        // 20
+        VenueInfo("강릉아트센터", "🏔️"),       // 21
+        VenueInfo("제주아트센터", "🍊"),        // 22
+        VenueInfo("성남아트센터", "🎻"),        // 23
+        VenueInfo("소극장 카페씨어터", "☕"),   // 24
     )
 
     fun generateVenuePreset(index: Int): List<SeatMapSection> = when (index) {
@@ -321,6 +342,27 @@ object MockDataSource {
         2 -> venueSejong()
         3 -> venueGocheok()
         4 -> venueOutdoor()
+        // DB 공연장 20개 (실제 좌석 배치 참고)
+        5 -> dbOlympicHall()                            // 올림픽홀 (반원형)
+        6 -> dbSejongGrand()                            // 세종문화회관 대극장 (A~E블록+2층+3층)
+        7 -> dbKspoDome()                               // KSPO DOME (Floor+1층+2층+3층)
+        8 -> dbBlueSquareMaster()                       // 블루스퀘어 (부채꼴 1층)
+        9 -> dbYes24Live()                              // 예스24 라이브홀 (스탠딩+좌석)
+        10 -> dbGocheokDome()                           // 고척스카이돔 (Floor+1층+2층+3층)
+        11 -> dbJamsilArena()                           // 잠실실내체육관 (아레나형)
+        12 -> dbKbsArena()                              // KBS 아레나 (부채꼴)
+        13 -> dbRollingHall()                           // 홍대 롤링홀 (소극장 부채꼴)
+        14 -> dbBexco()                                 // 벡스코 (Floor+사이드+2층)
+        15 -> dbMediumFan(20)                           // 부산시민회관
+        16 -> dbMediumFan(18)                           // 대구 EXCO
+        17 -> dbMediumFan(18)                           // 인천아트홀
+        18 -> dbMediumFan(20)                           // 광주 김대중컨벤션
+        19 -> dbMediumFan(18)                           // 대전예술의전당
+        20 -> dbMediumFan(20)                           // 경기아트센터
+        21 -> dbSmallFan(16)                            // 강릉아트센터
+        22 -> dbSmallFan(16)                            // 제주아트센터
+        23 -> dbMediumFan(20)                           // 성남아트센터
+        24 -> dbSmallTheater()                          // 소극장 카페씨어터
         else -> venueOlympic()
     }
 
@@ -472,6 +514,215 @@ object MockDataSource {
             rr(15, 19, 15, 21)),
         SecDef("A석 우", "A석", 70000, "#22c55e",
             listOf(r(15, 22, 33), r(16, 22, 34), r(17, 22, 35), r(18, 22, 35), r(19, 22, 35))),
+    ))
+
+    // ── DB 공연장 (실제 좌석 배치 참고한 현실적 레이아웃) ──
+
+    /** 5: 올림픽홀 — 반원형 2층 구조, Floor + 사이드 블록 */
+    private fun dbOlympicHall() = buildSections(listOf(
+        SecDef("VIP (Floor)", "VIP", 180000, "#f59e0b",
+            listOf(r(1,8,18), r(2,7,19), r(3,6,20))),
+        SecDef("R석 좌", "R석", 140000, "#ef4444",
+            listOf(r(4,4,10), r(5,3,10), r(6,2,10), r(7,1,10), r(8,1,10))),
+        SecDef("R석 중앙", "R석", 140000, "#ef4444",
+            rr(4,8, 12,14)),
+        SecDef("R석 우", "R석", 140000, "#ef4444",
+            listOf(r(4,16,22), r(5,16,23), r(6,16,24), r(7,16,25), r(8,16,25))),
+        SecDef("S석 좌", "S석", 110000, "#3b82f6",
+            rr(10,13, 1,8)),
+        SecDef("S석 중앙", "S석", 110000, "#3b82f6",
+            listOf(r(10,10,16), r(11,9,17), r(12,9,17), r(13,9,17))),
+        SecDef("S석 우", "S석", 110000, "#3b82f6",
+            rr(10,13, 18,25)),
+        SecDef("A석 (2층)", "A석", 88000, "#22c55e",
+            listOf(r(16,3,23), r(17,2,24), r(18,1,25), r(19,1,25), r(20,1,25))),
+    ))
+
+    /** 6: 세종문화회관 대극장 — 1층 A~E블록 + 2층 3분할 + 3층 */
+    private fun dbSejongGrand() = buildSections(listOf(
+        SecDef("1층 C블록", "VIP", 180000, "#f59e0b",
+            listOf(r(1,10,18), r(2,9,19), r(3,9,19), r(4,9,19), r(5,9,19))),
+        SecDef("1층 B블록", "R석", 150000, "#ef4444",
+            listOf(r(1,5,8), r(2,4,8), r(3,4,8), r(4,3,8), r(5,3,8),
+                   r(6,3,8), r(7,2,8), r(8,2,8))),
+        SecDef("1층 D블록", "R석", 150000, "#ef4444",
+            listOf(r(1,20,23), r(2,20,24), r(3,20,24), r(4,20,25), r(5,20,25),
+                   r(6,20,25), r(7,20,26), r(8,20,26))),
+        SecDef("1층 A블록", "S석", 120000, "#3b82f6",
+            listOf(r(3,1,2), r(4,1,2), r(5,1,2), r(6,1,2), r(7,1,2), r(8,1,2))),
+        SecDef("1층 E블록", "S석", 120000, "#3b82f6",
+            listOf(r(3,27,28), r(4,27,28), r(5,27,28), r(6,27,28), r(7,27,28), r(8,27,28))),
+        SecDef("1층 후방", "S석", 120000, "#3b82f6",
+            listOf(r(6,9,19), r(7,8,20), r(8,8,20), r(9,7,21), r(10,7,21), r(11,6,22), r(12,6,22))),
+        SecDef("2층 좌", "A석", 90000, "#22c55e",
+            rr(15,18, 2,9)),
+        SecDef("2층 중앙", "A석", 90000, "#22c55e",
+            listOf(r(15,11,17), r(16,10,18), r(17,10,18), r(18,10,18))),
+        SecDef("2층 우", "A석", 90000, "#22c55e",
+            rr(15,18, 19,26)),
+        SecDef("3층", "B석", 60000, "#8b5cf6",
+            listOf(r(21,4,24), r(22,3,25), r(23,3,25), r(24,2,26))),
+    ))
+
+    /** 7: KSPO DOME — Floor 3분할 + 1층 스탠드 좌/우 + 2층 3분할 */
+    private fun dbKspoDome() = buildSections(listOf(
+        SecDef("FLOOR 중앙", "VIP", 200000, "#f59e0b",
+            rr(1,4, 10,22)),
+        SecDef("FLOOR 좌", "VIP", 200000, "#f59e0b",
+            rr(1,4, 3,8)),
+        SecDef("FLOOR 우", "VIP", 200000, "#f59e0b",
+            rr(1,4, 24,29)),
+        SecDef("1층 좌", "R석", 150000, "#ef4444",
+            listOf(r(6,2,8), r(7,1,8), r(8,1,8), r(9,1,8), r(10,1,8))),
+        SecDef("1층 중앙", "R석", 150000, "#ef4444",
+            rr(6,10, 10,22)),
+        SecDef("1층 우", "R석", 150000, "#ef4444",
+            listOf(r(6,24,30), r(7,24,31), r(8,24,31), r(9,24,31), r(10,24,31))),
+        SecDef("2층 좌", "S석", 110000, "#3b82f6",
+            rr(13,17, 1,7)),
+        SecDef("2층 중앙", "S석", 110000, "#3b82f6",
+            rr(13,17, 9,23)),
+        SecDef("2층 우", "S석", 110000, "#3b82f6",
+            rr(13,17, 25,31)),
+        SecDef("3층", "A석", 80000, "#22c55e",
+            listOf(r(20,3,29), r(21,2,30), r(22,2,30), r(23,1,31), r(24,1,31), r(25,1,31))),
+    ))
+
+    /** 8: 블루스퀘어 마스터카드홀 — 부채꼴 1층 + 2층 발코니 */
+    private fun dbBlueSquareMaster() = buildSections(listOf(
+        SecDef("VIP", "VIP", 150000, "#f59e0b",
+            listOf(r(1,6,12), r(2,5,13), r(3,4,14))),
+        SecDef("R석", "R석", 120000, "#ef4444",
+            listOf(r(5,5,13), r(6,4,14), r(7,3,15), r(8,2,16), r(9,2,16))),
+        SecDef("S석 (1층 후방)", "S석", 90000, "#3b82f6",
+            listOf(r(11,2,16), r(12,1,17), r(13,1,17), r(14,1,18), r(15,1,18))),
+    ))
+
+    /** 9: 예스24 라이브홀 — 스탠딩 구역 + 좌석 */
+    private fun dbYes24Live() = buildSections(listOf(
+        SecDef("VIP (스탠딩)", "VIP", 130000, "#f59e0b",
+            listOf(r(1,5,12), r(2,4,13))),
+        SecDef("R석", "R석", 100000, "#ef4444",
+            listOf(r(4,4,13), r(5,3,14), r(6,3,14), r(7,2,15))),
+        SecDef("S석", "S석", 80000, "#3b82f6",
+            listOf(r(9,2,15), r(10,1,16), r(11,1,16), r(12,1,16))),
+    ))
+
+    /** 10: 고척스카이돔(DB) — 대형 돔 FLOOR + 1층 + 2층 + 3층 */
+    private fun dbGocheokDome() = buildSections(listOf(
+        SecDef("FLOOR", "VIP", 200000, "#f59e0b",
+            listOf(r(1,8,22), r(2,7,23), r(3,6,24), r(4,5,25), r(5,5,25))),
+        SecDef("1층 좌", "R석", 150000, "#ef4444",
+            listOf(r(7,2,8), r(8,1,8), r(9,1,8), r(10,1,8), r(11,1,9), r(12,1,9))),
+        SecDef("1층 중앙", "R석", 150000, "#ef4444",
+            rr(7,12, 10,20)),
+        SecDef("1층 우", "R석", 150000, "#ef4444",
+            listOf(r(7,22,28), r(8,22,29), r(9,22,29), r(10,22,29), r(11,21,29), r(12,21,29))),
+        SecDef("2층 좌", "S석", 110000, "#3b82f6",
+            rr(15,19, 1,7)),
+        SecDef("2층 중앙", "S석", 110000, "#3b82f6",
+            listOf(r(15,9,21), r(16,8,22), r(17,8,22), r(18,8,22), r(19,8,22))),
+        SecDef("2층 우", "S석", 110000, "#3b82f6",
+            rr(15,19, 23,29)),
+        SecDef("3층", "A석", 80000, "#22c55e",
+            listOf(r(22,2,28), r(23,1,29), r(24,1,29), r(25,1,29),
+                   r(26,1,29), r(27,1,29), r(28,2,28), r(29,3,27), r(30,4,26))),
+    ))
+
+    /** 11: 잠실실내체육관 — 아레나형 Floor + 스탠드 좌/우 + 2층 */
+    private fun dbJamsilArena() = buildSections(listOf(
+        SecDef("VIP (Floor)", "VIP", 180000, "#f59e0b",
+            listOf(r(1,8,16), r(2,7,17), r(3,6,18), r(4,5,19))),
+        SecDef("1층 좌", "R석", 140000, "#ef4444",
+            listOf(r(5,2,7), r(6,1,7), r(7,1,7), r(8,1,7), r(9,1,8), r(10,1,8))),
+        SecDef("1층 중앙", "R석", 140000, "#ef4444",
+            rr(5,10, 9,15)),
+        SecDef("1층 우", "R석", 140000, "#ef4444",
+            listOf(r(5,17,22), r(6,17,23), r(7,17,23), r(8,17,23), r(9,16,23), r(10,16,23))),
+        SecDef("2층 좌", "S석", 100000, "#3b82f6",
+            rr(13,16, 1,6)),
+        SecDef("2층 중앙", "S석", 100000, "#3b82f6",
+            listOf(r(13,8,16), r(14,7,17), r(15,7,17), r(16,7,17))),
+        SecDef("2층 우", "S석", 100000, "#3b82f6",
+            rr(13,16, 18,23)),
+        SecDef("3층", "A석", 70000, "#22c55e",
+            listOf(r(19,2,22), r(20,1,23), r(21,1,23), r(22,1,23))),
+    ))
+
+    /** 12: KBS 아레나 — 중형, 부채꼴 */
+    private fun dbKbsArena() = buildSections(listOf(
+        SecDef("VIP", "VIP", 150000, "#f59e0b",
+            listOf(r(1,7,14), r(2,6,15), r(3,5,16))),
+        SecDef("R석", "R석", 120000, "#ef4444",
+            listOf(r(5,5,16), r(6,4,17), r(7,3,18), r(8,3,18), r(9,2,19))),
+        SecDef("S석", "S석", 90000, "#3b82f6",
+            listOf(r(11,2,19), r(12,1,20), r(13,1,20), r(14,1,20))),
+    ))
+
+    /** 13: 홍대 롤링홀 — 소극장 스탠딩+소수 좌석, 부채꼴 */
+    private fun dbRollingHall() = buildSections(listOf(
+        SecDef("전석", "전석", 80000, "#6366f1",
+            listOf(r(1,4,8), r(2,3,9), r(3,3,9), r(4,2,10), r(5,2,10),
+                   r(6,1,11), r(7,1,11), r(8,1,11))),
+    ))
+
+    /** 14: 벡스코 — 대형 컨벤션, Floor + 1층 + 2층 */
+    private fun dbBexco() = buildSections(listOf(
+        SecDef("VIP", "VIP", 180000, "#f59e0b",
+            listOf(r(1,8,18), r(2,7,19), r(3,6,20), r(4,5,21))),
+        SecDef("R석 좌", "R석", 140000, "#ef4444",
+            listOf(r(5,2,8), r(6,1,8), r(7,1,8), r(8,1,9), r(9,1,9), r(10,1,9))),
+        SecDef("R석 우", "R석", 140000, "#ef4444",
+            listOf(r(5,18,24), r(6,18,25), r(7,18,25), r(8,17,25), r(9,17,25), r(10,17,25))),
+        SecDef("S석", "S석", 110000, "#3b82f6",
+            listOf(r(5,10,16), r(6,10,16), r(7,10,16), r(8,10,16), r(9,10,16), r(10,10,16))),
+        SecDef("2층 좌", "A석", 80000, "#22c55e",
+            rr(13,16, 1,8)),
+        SecDef("2층 중앙", "A석", 80000, "#22c55e",
+            listOf(r(13,10,16), r(14,9,17), r(15,9,17), r(16,9,17))),
+        SecDef("2층 우", "A석", 80000, "#22c55e",
+            rr(13,16, 18,25)),
+    ))
+
+    /** 중형 공연장 — 부채꼴 3섹션 (범용) */
+    private fun dbMediumFan(maxCols: Int) = buildSections(listOf(
+        SecDef("VIP", "VIP", 150000, "#f59e0b",
+            listOf(r(1, maxCols/2-3, maxCols/2+3),
+                   r(2, maxCols/2-4, maxCols/2+4),
+                   r(3, maxCols/2-4, maxCols/2+4))),
+        SecDef("R석", "R석", 120000, "#ef4444",
+            listOf(r(5, maxCols/2-5, maxCols/2+5),
+                   r(6, maxCols/2-6, maxCols/2+6),
+                   r(7, maxCols/2-6, maxCols/2+6),
+                   r(8, maxCols/2-7, maxCols/2+7),
+                   r(9, maxCols/2-7, maxCols/2+7))),
+        SecDef("S석", "S석", 90000, "#3b82f6",
+            listOf(r(11, maxCols/2-7, maxCols/2+7),
+                   r(12, maxCols/2-8, maxCols/2+8),
+                   r(13, maxCols/2-8, maxCols/2+8),
+                   r(14, maxCols/2-9, maxCols/2+9),
+                   r(15, maxCols/2-9, maxCols/2+9))),
+    ))
+
+    /** 소형 공연장 — 부채꼴 2섹션 */
+    private fun dbSmallFan(maxCols: Int) = buildSections(listOf(
+        SecDef("R석", "R석", 120000, "#ef4444",
+            listOf(r(1, maxCols/2-3, maxCols/2+3),
+                   r(2, maxCols/2-4, maxCols/2+4),
+                   r(3, maxCols/2-4, maxCols/2+4),
+                   r(4, maxCols/2-5, maxCols/2+5),
+                   r(5, maxCols/2-5, maxCols/2+5))),
+        SecDef("S석", "S석", 90000, "#3b82f6",
+            listOf(r(7, maxCols/2-5, maxCols/2+5),
+                   r(8, maxCols/2-6, maxCols/2+6),
+                   r(9, maxCols/2-6, maxCols/2+6),
+                   r(10, maxCols/2-7, maxCols/2+7))),
+    ))
+
+    /** 소극장 — 부채꼴 전석 */
+    private fun dbSmallTheater() = buildSections(listOf(
+        SecDef("전석", "전석", 80000, "#6366f1",
+            listOf(r(1,3,7), r(2,2,8), r(3,2,8), r(4,1,9), r(5,1,9), r(6,1,9))),
     ))
 
     // ── 좌석 위치 + 구역 경계 계산 (순수 그리드, 워프 없음) ──
