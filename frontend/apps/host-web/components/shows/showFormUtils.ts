@@ -1,11 +1,14 @@
 import type { CreateShowPayload, HostShowDetail, ShowFormPayload } from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 
-const FIXED_PLATFORM_STAKEHOLDER: Stakeholder = {
+export const PLATFORM_FEE_BPS = 800
+export const PLATFORM_TOTAL_BPS = 10000
+
+export const FIXED_PLATFORM_STAKEHOLDER: Stakeholder = {
   role: "ORGANIZER",
   name: "CHEKET",
   businessNo: "000-00-00000",
-  shareBps: "800",
+  shareBps: String(PLATFORM_FEE_BPS),
   verified: true,
   isFixed: true,
 }
@@ -289,6 +292,10 @@ export function buildValidationMessage(values: ShowFormValues) {
     const distributableStakeholders = values.stakeholders.filter(
       (stakeholder) => !stakeholder.isFixed
     )
+    const totalShareBps = values.stakeholders.reduce(
+      (sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0),
+      0
+    )
 
     if (
       distributableStakeholders.length === 0 ||
@@ -304,13 +311,8 @@ export function buildValidationMessage(values: ShowFormValues) {
       return "모든 이해관계자의 조회(인증)가 완료되어야 합니다."
     }
 
-    const stakeholderShareSum = distributableStakeholders.reduce(
-      (sum, stakeholder) => sum + Number(stakeholder.shareBps),
-      0
-    )
-
-    if (stakeholderShareSum !== 9200) {
-      return "수익 분배 비율의 합계는 9200bps여야 합니다."
+    if (totalShareBps !== PLATFORM_TOTAL_BPS) {
+      return `정산 비율의 총합은 ${PLATFORM_TOTAL_BPS.toLocaleString()}bps여야 합니다. (플랫폼 ${PLATFORM_FEE_BPS.toLocaleString()}bps 포함)`
     }
   }
 
