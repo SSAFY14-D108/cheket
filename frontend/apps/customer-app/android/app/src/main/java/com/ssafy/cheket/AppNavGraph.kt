@@ -123,7 +123,7 @@ object Routes {
 }
 
 val bottomTabRoutes = listOf(
-    Routes.HOME, Routes.SHOWS, Routes.RESALE, Routes.MY_TICKETS, Routes.COLLECTION,
+    Routes.HOME, Routes.SHOWS, Routes.RESALE, Routes.MY_TICKETS, Routes.MY_PAGE,
 )
 
 private const val ANIM_DURATION = 300
@@ -250,6 +250,7 @@ fun AppNavGraph(
                         NavParams.selectedTicket = ticket
                         navController.navigate(Routes.ticketDetail(ticket.id))
                     },
+                    onCollection = { navController.navigate(Routes.COLLECTION) },
                 )
             }
             composable(Routes.COLLECTION) {
@@ -503,7 +504,7 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
-            slideComposable(Routes.MY_PAGE) {
+            composable(Routes.MY_PAGE) {
                 MyPageScreen(
                     userService = appContainer.userService,
                     onWallet = { navController.navigate(Routes.WALLET) },

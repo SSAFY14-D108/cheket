@@ -28,11 +28,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -91,9 +93,9 @@ fun ShowsScreen(
                             }),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Primary,
-                                unfocusedBorderColor = BorderColor,
-                                focusedContainerColor = Surface,
-                                unfocusedContainerColor = Surface,
+                                unfocusedBorderColor = Color(0xFFE8E8E8),
+                                focusedContainerColor = Color(0xFFE8E8E8),
+                                unfocusedContainerColor = Color(0xFFE8E8E8),
                             ),
                             modifier = Modifier
                                 .weight(1f)
@@ -134,18 +136,17 @@ fun ShowsScreen(
                                 sort.label,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (sel) White else MutedForeground,
+                                color = if (sel) Color(0xFF111111) else MutedForeground,
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(12.dp))
                                     .clickable { viewModel.onSortChange(sort) }
                                     .then(
                                         if (sel) Modifier
-                                            .background(Primary)
-                                            .border(1.dp, Primary, RoundedCornerShape(12.dp))
+                                            .shadow(2.dp, RoundedCornerShape(12.dp))
+                                            .background(Color(0xFFE5EBE8))
                                         else Modifier
-                                            .background(Muted)
-                                            .border(1.dp, BorderColor, RoundedCornerShape(12.dp))
+                                            .background(Color.Transparent)
                                     )
                                     .padding(vertical = 8.dp)
                                     .wrapContentWidth(Alignment.CenterHorizontally),
@@ -316,13 +317,13 @@ private fun RegionPill(label: String, selected: Boolean, onClick: () -> Unit) {
         label,
         fontSize = 12.sp,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-        color = if (selected) White else MutedForeground,
+        color = if (selected) Color(0xFF111111) else MutedForeground,
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .then(
-                if (selected) Modifier.background(Primary)
-                else Modifier.border(1.dp, BorderColor, RoundedCornerShape(20.dp))
+                if (selected) Modifier.background(Color(0xFFEEF2F1))
+                else Modifier
             )
             .padding(horizontal = 14.dp, vertical = 6.dp),
     )
