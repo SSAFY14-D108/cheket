@@ -49,6 +49,13 @@ blockchain:
     initial-transfer-amount: ${BLOCKCHAIN_INITIAL_TRANSFER_AMOUNT}
     ssf-contract-address: ${BLOCKCHAIN_SSF_CONTRACT}
     chain-id: ${BLOCKCHAIN_CHAIN_ID}
+    stakeholder-nft-address: ${BLOCKCHAIN_STAKEHOLDER_NFT}
+    event-nft-address: ${BLOCKCHAIN_EVENT_NFT}
+    ticket-nft-address: ${BLOCKCHAIN_TICKET_NFT}
+    settlement-address: ${BLOCKCHAIN_SETTLEMENT}
+    purchase-router-address: ${BLOCKCHAIN_PURCHASE_ROUTER}
+    marketplace-address: ${BLOCKCHAIN_MARKETPLACE}
+    escrow-address: ${BLOCKCHAIN_ESCROW}
 
 cloud:
     aws:
