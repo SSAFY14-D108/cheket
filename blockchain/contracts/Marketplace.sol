@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/access/Ownable.sol;
+import "@openzeppelin/contracts/access/Ownable.sol";
 // → onlyOwner modifier 제공 (배포한 사람만 특정 함수 호출 가능)
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
