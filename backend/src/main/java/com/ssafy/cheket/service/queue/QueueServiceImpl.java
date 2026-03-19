@@ -4,6 +4,7 @@ import com.ssafy.cheket.config.queue.QueueConstants;
 import com.ssafy.cheket.config.queue.QueueTokenGenerator;
 import com.ssafy.cheket.dto.queue.QueueTokenMeta;
 import com.ssafy.cheket.dto.queue.response.QueueEnterResponse;
+import com.ssafy.cheket.dto.queue.response.QueueInfoResponse;
 import com.ssafy.cheket.dto.queue.response.QueueSeatEnterResponse;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.Show;
@@ -78,6 +79,28 @@ public class QueueServiceImpl implements QueueService {
         promoteWaitingToActive(showId, sessionId, nowEpochSec);
 
         return buildQueueEnterResponse(queueToken, sessionId);
+    }
+
+    // 대기열 정보 조회
+    @Override
+    public QueueInfoResponse getQueueInfo(Long userId, Long showId, Long sessionId, String queueToken) {
+        validateQueueInfoRequest(showId, sessionId, queueToken);
+
+        QueueTokenMeta queueTokenMeta = queueRepository.findQueueTokenMeta(queueToken);
+        validateQueueToken(queueTokenMeta, userId, showId, sessionId);
+
+        long nowEpochSec = currentEpochSec();
+
+        if (queueTokenMeta.getStatus() == QueueStatus.ACTIVE) {
+            handleActiveExpirationIfNeeded(queueTokenMeta, queueToken, nowEpochSec);
+            queueTokenMeta = queueRepository.findQueueTokenMeta(queueToken);
+
+            if (queueTokenMeta == null) {
+                throw new NotFoundException("대기열 정보를 찾을 수 없습니다.");
+            }
+        }
+
+        return buildQueueInfoResponse(queueToken, sessionId, queueTokenMeta);
     }
 
     private QueueEnterResponse handleExistingQueueToken(Long userId, Long showId, Long sessionId, String queueToken,
@@ -211,7 +234,7 @@ public class QueueServiceImpl implements QueueService {
             queueRepository.deleteActiveUserKey(showId, sessionId, userId);
         }
 
-        queueRepository.deleteUserTokenMapping(userId, sessionId);
+        queueRepository.deleteUserTokenMapping(sessionId, userId);
 
         if (removeMeta) {
             queueRepository.deleteQueueTokenMeta(queueToken);
@@ -219,7 +242,7 @@ public class QueueServiceImpl implements QueueService {
     }
 
     private void clearUserQueueMapping(Long userId, Long sessionId) {
-        queueRepository.deleteUserTokenMapping(userId, sessionId);
+        queueRepository.deleteUserTokenMapping(sessionId, userId);
     }
 
     private LocalDateTime toLocalDatTime(Long epochSec) {
@@ -362,6 +385,74 @@ public class QueueServiceImpl implements QueueService {
 
     private long currentEpochSec() {
         return System.currentTimeMillis() / 1000;
+    }
+
+    private void validateQueueInfoRequest(Long showId, Long sessionId, String queueToken) {
+        if (showId == null || sessionId == null) {
+            throw new BadRequestException("공연 및 회차 정보는 필수입니다.");
+        }
+
+        if (queueToken == null || queueToken.isBlank()) {
+            throw new BadRequestException("Queue-Token 헤더는 필수입니다.");
+        }
+
+        if (!sessionRepository.existsByIdAndShowId(sessionId, showId)) {
+            throw new NotFoundException("존재하지 않는 공연 또는 회차입니다.");
+        }
+    }
+
+    private void handleActiveExpirationIfNeeded(QueueTokenMeta queueTokenMeta, String queueToken, long nowEpochSec) {
+        Long admitExpiresAt = queueTokenMeta.getAdmitExpiresAt();
+
+        if (admitExpiresAt == null || nowEpochSec > admitExpiresAt) {
+            queueRepository.updateStatus(queueToken, QueueStatus.EXPIRED);
+            queueRepository.removeFromActiveSet(queueTokenMeta.getSessionId(), queueToken);
+            queueRepository.deleteActiveUserKey(queueTokenMeta.getShowId(), queueTokenMeta.getSessionId(),
+                queueTokenMeta.getUserId());
+
+            promoteWaitingToActive(queueTokenMeta.getShowId(), queueTokenMeta.getSessionId(), nowEpochSec);
+        }
+    }
+
+    private QueueInfoResponse buildQueueInfoResponse(String queueToken, Long sessionId, QueueTokenMeta meta) {
+        QueueStatus status = meta.getStatus();
+
+        if (status == QueueStatus.WAITING) {
+            Long rank = queueRepository.getWaitingRank(sessionId, queueToken);
+
+            if (rank == null) {
+                throw new NotFoundException("대기열 정보를 찾을 수 없습니다.");
+            }
+
+            long aheadCount = rank;
+            long position = rank + 1;
+            long estimatedWaitSeconds = aheadCount * QueueConstants.ESTIMATED_WAIT_PER_PERSON_SECONDS;
+
+            return QueueInfoResponse.builder().status(QueueStatus.WAITING).position(position).aheadCount(aheadCount)
+                .estimatedWaitSeconds(estimatedWaitSeconds).admitExpiresAt(null).build();
+        }
+
+        if (status == QueueStatus.ACTIVE) {
+            return QueueInfoResponse.builder().status(QueueStatus.ACTIVE).position(null).aheadCount(null)
+                .estimatedWaitSeconds(null).admitExpiresAt(toLocalDatTime(meta.getAdmitExpiresAt())).build();
+        }
+
+        if (status == QueueStatus.EXPIRED) {
+            return QueueInfoResponse.builder().status(QueueStatus.EXPIRED).position(null).aheadCount(null)
+                .estimatedWaitSeconds(null).admitExpiresAt(toLocalDatTime(meta.getAdmitExpiresAt())).build();
+        }
+
+        if (status == QueueStatus.COMPLETED) {
+            return QueueInfoResponse.builder().status(QueueStatus.COMPLETED).position(null).aheadCount(null)
+                .estimatedWaitSeconds(null).admitExpiresAt(null).build();
+        }
+
+        if (status == QueueStatus.LEFT) {
+            return QueueInfoResponse.builder().status(QueueStatus.LEFT).position(null).aheadCount(null)
+                .estimatedWaitSeconds(null).admitExpiresAt(null).build();
+        }
+
+        throw new BadRequestException("유효하지 않은 대기열 상태입니다.");
     }
 
 }
