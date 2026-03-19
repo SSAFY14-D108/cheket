@@ -11,6 +11,11 @@ import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
 import { searchStakeholder } from "@/lib/stakeholder-api"
 import type { Stakeholder, RefundItem } from "./showFormTypes"
+import {
+  FIXED_PLATFORM_STAKEHOLDER,
+  PLATFORM_FEE_BPS,
+  PLATFORM_TOTAL_BPS,
+} from "./showFormUtils"
 
 /** 전화번호 자동 포매팅: 01012345678 → 010-1234-5678 */
 function formatPhoneNumber(value: string): string {
@@ -57,13 +62,12 @@ export function SettingsCardPolicies({
 }: SettingsCardPoliciesProps) {
   const { toast } = useToast()
   const [searchingIndexes, setSearchingIndexes] = useState<Record<number, boolean>>({})
-  const distributableStakeholders = stakeholders.filter((stakeholder) => !stakeholder.isFixed)
-  const stakeholderShareSum = distributableStakeholders.reduce(
+  const totalShareBps = stakeholders.reduce(
     (sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0),
     0
   )
-  const remainingShareBps = 9200 - stakeholderShareSum
-  const isStakeholderShareValid = stakeholderShareSum === 9200
+  const remainingShareBps = PLATFORM_TOTAL_BPS - totalShareBps
+  const isStakeholderShareValid = totalShareBps === PLATFORM_TOTAL_BPS
 
   const handleVerify = async (idx: number) => {
     const stakeholder = stakeholders[idx]
@@ -140,7 +144,8 @@ export function SettingsCardPolicies({
             </Button>
           </div>
           <div className="text-[10px] leading-tight text-muted-foreground">
-            플랫폼 800bps 선공제 후 나머지 금액 분배. 입력 대상 합계는 9200bps입니다.
+            총 정산 비율은 {PLATFORM_TOTAL_BPS.toLocaleString()}bps이며, 플랫폼 수수료{" "}
+            {PLATFORM_FEE_BPS.toLocaleString()}bps는 자동 고정됩니다.
           </div>
           {isEdit ? (
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
@@ -154,7 +159,7 @@ export function SettingsCardPolicies({
                 : "border-amber-300 bg-amber-50 text-amber-700"
             }`}
           >
-            현재 합계 {stakeholderShareSum.toLocaleString()} / 9,200bps
+            현재 합계 {totalShareBps.toLocaleString()} / {PLATFORM_TOTAL_BPS.toLocaleString()}bps
             {!isStakeholderShareValid &&
               `, ${
                 remainingShareBps > 0
@@ -167,7 +172,7 @@ export function SettingsCardPolicies({
             <div key={`sh${idx}`} className="mb-1 flex flex-col gap-1 border-b pb-2 last:border-0">
               {sh.isFixed && (
                 <div className="text-[10px] font-medium text-muted-foreground">
-                  플랫폼 수수료 (변경 불가)
+                  플랫폼 수수료 {PLATFORM_FEE_BPS.toLocaleString()}bps (자동 고정)
                 </div>
               )}
 
@@ -267,7 +272,9 @@ export function SettingsCardPolicies({
                   readOnly={sh.isFixed || isEdit}
                 />
                 <span className="shrink-0 whitespace-nowrap text-[9px] text-muted-foreground">
-                  예: 70%→7000
+                  {sh.isFixed
+                    ? `${FIXED_PLATFORM_STAKEHOLDER.name} 고정`
+                    : "예: 70%→7000"}
                 </span>
               </div>
             </div>

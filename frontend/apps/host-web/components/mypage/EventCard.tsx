@@ -6,19 +6,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, BarChart3, Ticket } from "lucide-react"
 import type { MyShowSummary } from "@/lib/mypage-api"
+import { getShowDisplayMeta } from "@/lib/show-display"
 
 interface EventCardProps {
   event: MyShowSummary
 }
 
 const POSTER_PLACEHOLDER = "/images/poster-1.jpg"
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "임시저장",
-  UPCOMING: "공개 예정",
-  TICKETING: "예매 중",
-  CLOSED: "종료",
-}
 
 function formatShowPeriod(event: MyShowSummary) {
   if (event.show.showStartDate === event.show.showEndDate) {
@@ -32,6 +26,7 @@ export function EventCard({ event }: EventCardProps) {
   const posterSrc = event.posterUrl || POSTER_PLACEHOLDER
   const shouldBypassOptimization =
     posterSrc.startsWith("http://") || posterSrc.startsWith("https://")
+  const displayMeta = getShowDisplayMeta(event)
 
   return (
     <Link href={`/shows/${event.showId}`}>
@@ -47,13 +42,17 @@ export function EventCard({ event }: EventCardProps) {
           />
         </div>
         <CardContent className="flex flex-col gap-2 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="text-base font-semibold text-foreground leading-snug text-balance">
+          <div className="flex flex-col gap-2">
+            <h3 className="min-h-[3.25rem] text-base font-semibold leading-snug text-foreground line-clamp-2">
               {event.title}
             </h3>
-            <Badge variant="outline">
-              {STATUS_LABELS[event.status] ?? event.status}
-            </Badge>
+            <div className="flex min-h-[2rem] flex-wrap items-start gap-1.5">
+              {displayMeta.badges.map((badge) => (
+                <Badge key={`${badge.phase}-${badge.label}`} variant="outline">
+                  {badge.label}
+                </Badge>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Calendar className="size-3.5 shrink-0" />

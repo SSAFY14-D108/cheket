@@ -1,20 +1,41 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { type HostShowDetail } from "@/lib/show-manage-api"
 import { ArrowLeft, Upload, ImagePlus, User, Music } from "lucide-react"
 import { DescriptionEditor } from "./DescriptionEditor"
 import { SettingsCardBasic } from "./SettingsCardBasic"
 import { SettingsCardTickets } from "./SettingsCardTickets"
 import { SettingsCardPolicies } from "./SettingsCardPolicies"
+import { PLATFORM_FEE_BPS, PLATFORM_TOTAL_BPS } from "./showFormUtils"
 import { useShowForm } from "./useShowForm"
 
 interface ShowFormProps {
   mode: "create" | "edit"
   initialData?: HostShowDetail
+}
+
+const SETTLEMENT_CONFIRM_TEXT = "정산 비율은 추후에 수정할 수 없습니다."
+
+function formatSharePercent(shareBps: string) {
+  const percent = (Number(shareBps) || 0) / 100
+  return `${new Intl.NumberFormat("ko-KR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(percent)}%`
 }
 
 export function ShowForm({ mode, initialData }: ShowFormProps) {
@@ -65,17 +86,70 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     addSession,
     removeSession,
     updateSession,
+    getValidationMessage,
     handleSubmit,
   } = useShowForm({ mode, initialData })
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState("")
 
   const headerTitle = isEdit ? "공연 수정" : "공연 등록"
   const submitLabel = isEdit ? "수정하기" : "등록하기"
   const isRemotePosterPreview =
     typeof posterPreview === "string" &&
     (posterPreview.startsWith("http://") || posterPreview.startsWith("https://"))
+  const stakeholderShareBps = useMemo(
+    () =>
+      stakeholders
+        .filter((stakeholder) => !stakeholder.isFixed)
+        .reduce((sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0), 0),
+    [stakeholders]
+  )
+  const settlementSummaryItems = useMemo(
+    () =>
+      stakeholders.map((stakeholder, index) => {
+        const displayName = stakeholder.isFixed
+          ? "플랫폼"
+          : stakeholder.name.trim() || `이해관계자 ${index}`
+
+        return {
+          name: displayName,
+          shareText: formatSharePercent(stakeholder.shareBps),
+          isFixed: Boolean(stakeholder.isFixed),
+        }
+      }),
+    [stakeholders]
+  )
+  const canConfirmCreate = confirmText.trim() === SETTLEMENT_CONFIRM_TEXT
+
+  const handlePrimarySubmit = () => {
+    const validationMessage = getValidationMessage()
+
+    if (validationMessage) {
+      window.alert(validationMessage)
+      return
+    }
+
+    if (isEdit) {
+      void handleSubmit()
+      return
+    }
+
+    setConfirmText("")
+    setIsConfirmOpen(true)
+  }
+
+  const handleConfirmCreate = () => {
+    if (!canConfirmCreate) {
+      return
+    }
+
+    setIsConfirmOpen(false)
+    void handleSubmit()
+  }
 
   return (
-    <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
+    <>
+      <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
       <div className="mb-6 mt-2 flex flex-col gap-6 border-b pb-8">
         <div className="flex items-center gap-3">
           <Link
@@ -304,7 +378,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               <Button
                 className="h-14 w-full text-lg font-bold shadow-lg transition-all hover:shadow-xl"
                 size="lg"
-                onClick={handleSubmit}
+                onClick={handlePrimarySubmit}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "처리 중..." : submitLabel}
@@ -313,6 +387,90 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+
+      <Dialog
+        open={isConfirmOpen}
+        onOpenChange={(open) => {
+          setIsConfirmOpen(open)
+          if (!open) {
+            setConfirmText("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>정산 비율 최종 확인</DialogTitle>
+            <DialogDescription>
+              공연 등록 후 정산 비율과 이해관계자 정보는 수정할 수 없습니다. 아래 정산 요약을 확인한 뒤 등록을 진행해주세요.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">총 정산 비율</span>
+              <span className="font-semibold">{PLATFORM_TOTAL_BPS.toLocaleString()}bps</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">플랫폼 수수료</span>
+              <span className="font-semibold">{PLATFORM_FEE_BPS.toLocaleString()}bps</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">이해관계자 입력 합계</span>
+              <span className="font-semibold">{stakeholderShareBps.toLocaleString()}bps</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+            정산 비율은 등록 이후 변경할 수 없습니다. 등록 전에 이해관계자, 사업자번호/연락처, 분배 비율을 다시 확인해주세요.
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="settlement-confirm-text">아래 문구를 그대로 입력해주세요.</Label>
+            <div className="rounded-md bg-muted px-3 py-2 font-semibold text-foreground">
+              {SETTLEMENT_CONFIRM_TEXT}
+            </div>
+            <Input
+              id="settlement-confirm-text"
+              value={confirmText}
+              onChange={(event) => setConfirmText(event.target.value)}
+              placeholder="안내 문구를 입력해주세요"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>정산 비율 요약</Label>
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border bg-background p-3">
+              {settlementSummaryItems.map((item) => (
+                <div
+                  key={`${item.name}-${item.shareText}`}
+                  className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm"
+                >
+                  <span className={item.isFixed ? "font-semibold text-foreground" : "text-foreground"}>
+                    {item.name}
+                  </span>
+                  <span className="font-semibold text-foreground">{item.shareText}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsConfirmOpen(false)
+                setConfirmText("")
+              }}
+            >
+              취소
+            </Button>
+            <Button onClick={handleConfirmCreate} disabled={!canConfirmCreate || isSubmitting}>
+              {isSubmitting ? "등록 중..." : "확인하고 등록하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

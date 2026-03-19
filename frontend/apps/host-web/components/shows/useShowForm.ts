@@ -366,8 +366,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     )
   }
 
-  const handleSubmit = async () => {
-    const validationMessage = buildValidationMessage({
+  const getValidationMessage = () =>
+    buildValidationMessage({
       mode,
       title,
       artistName,
@@ -387,6 +387,9 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       sessionInfo,
       descriptionImageFiles,
     })
+
+  const handleSubmit = async () => {
+    const validationMessage = getValidationMessage()
 
     if (validationMessage) {
       window.alert(validationMessage)
@@ -508,6 +511,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     addSession,
     removeSession,
     updateSession,
+    getValidationMessage,
     handleSubmit,
   }
 }

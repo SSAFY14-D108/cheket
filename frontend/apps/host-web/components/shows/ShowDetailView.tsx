@@ -9,7 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
 import { deleteShow, type HostShowDetail } from "@/lib/show-manage-api"
+import { getShowDisplayMeta } from "@/lib/show-display"
 import { ArrowLeft, Heart, Calendar, MapPin } from "lucide-react"
+import {
+    FIXED_PLATFORM_STAKEHOLDER,
+    PLATFORM_FEE_BPS,
+    PLATFORM_TOTAL_BPS,
+} from "./showFormUtils"
 
 interface ShowDetailViewProps {
     showDetail: HostShowDetail
@@ -22,11 +28,15 @@ function formatDateTime(value: string) {
 export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
     const router = useRouter()
     const { toast } = useToast()
+    const displayMeta = getShowDisplayMeta(showDetail)
 
     const totalCapacity = showDetail.sessionInfo.reduce(
         (sum, session) => sum + session.capacity,
         0
     )
+    const totalShareBps =
+        PLATFORM_FEE_BPS +
+        showDetail.stakeholders.reduce((sum, stakeholder) => sum + stakeholder.shareBps, 0)
 
     const handleEdit = () => {
         router.push(`/shows/${showDetail.showId}/edit`)
@@ -62,9 +72,18 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
                         className="flex size-9 items-center justify-center rounded-sm bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80"
                         aria-label="마이페이지로 돌아가기"
                     >
-                        <ArrowLeft className="size-4" />
+                            <ArrowLeft className="size-4" />
                     </Link>
-                    <h1 className="text-2xl font-bold text-foreground">{showDetail.title}</h1>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <h1 className="text-2xl font-bold text-foreground">{showDetail.title}</h1>
+                        <div className="flex flex-wrap gap-1.5">
+                            {displayMeta.badges.map((badge) => (
+                                <Badge key={`${badge.phase}-${badge.label}`} variant="outline">
+                                    {badge.label}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Heart className="size-4" />
@@ -165,7 +184,16 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
                         <CardContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <span className="text-sm text-muted-foreground">수익 분배</span>
+                                <p className="text-xs text-muted-foreground">
+                                    총 정산 비율은 {PLATFORM_TOTAL_BPS.toLocaleString()}bps이며, 플랫폼 수수료{" "}
+                                    {PLATFORM_FEE_BPS.toLocaleString()}bps가 고정 적용됩니다.
+                                </p>
                                 <div className="flex flex-wrap gap-2">
+                                    <Badge variant="secondary" className="text-xs">
+                                        {FIXED_PLATFORM_STAKEHOLDER.name}(플랫폼 /{" "}
+                                        {FIXED_PLATFORM_STAKEHOLDER.businessNo}){" "}
+                                        {(PLATFORM_FEE_BPS / 100).toFixed(1)}%
+                                    </Badge>
                                     {showDetail.stakeholders.map((stakeholder, index) => (
                                         <Badge key={index} variant="secondary" className="text-xs">
                                             {stakeholder.name ?? `회원 ${stakeholder.id}`}(
@@ -174,6 +202,10 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
                                         </Badge>
                                     ))}
                                 </div>
+                                <p className="text-xs text-muted-foreground">
+                                    현재 표시 합계 {totalShareBps.toLocaleString()} /{" "}
+                                    {PLATFORM_TOTAL_BPS.toLocaleString()}bps
+                                </p>
                             </div>
                             <Separator />
                             <div className="flex flex-col gap-1">

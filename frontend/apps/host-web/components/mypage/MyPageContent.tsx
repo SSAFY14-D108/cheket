@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
+import { compareShowsByDisplayOrder } from "@/lib/show-display"
 import {
   fetchMyCompanyInfo,
   fetchMyShows,
@@ -19,7 +20,8 @@ import {
   type MyWalletBalance,
 } from "@/lib/mypage-api"
 
-const SHOWS_PAGE_SIZE = 8
+const FETCH_SHOWS_SIZE = 100
+const DISPLAY_SHOWS_PAGE_SIZE = 8
 
 export function MyPageContent() {
   const { toast } = useToast()
@@ -112,8 +114,8 @@ export function MyPageContent() {
 
       try {
         const nextShowsPage = await fetchMyShows({
-          page: currentPage,
-          size: SHOWS_PAGE_SIZE,
+          page: 0,
+          size: FETCH_SHOWS_SIZE,
         })
 
         if (isCancelled) {
@@ -150,13 +152,23 @@ export function MyPageContent() {
     return () => {
       isCancelled = true
     }
-  }, [currentPage, toast])
+  }, [toast])
 
-  const shows: MyShowSummary[] = showsPage?.shows ?? []
+  const allShows: MyShowSummary[] = [...(showsPage?.shows ?? [])].sort(compareShowsByDisplayOrder)
   const totalShows = showsPage?.totalElements ?? 0
-  const totalPages = showsPage?.totalPages ?? 0
+  const totalPages = Math.ceil(allShows.length / DISPLAY_SHOWS_PAGE_SIZE)
   const isFirstPage = currentPage === 0
   const isLastPage = totalPages === 0 || currentPage >= totalPages - 1
+  const visibleShows = allShows.slice(
+    currentPage * DISPLAY_SHOWS_PAGE_SIZE,
+    (currentPage + 1) * DISPLAY_SHOWS_PAGE_SIZE
+  )
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages - 1) {
+      setCurrentPage(totalPages - 1)
+    }
+  }, [currentPage, totalPages])
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -234,9 +246,9 @@ export function MyPageContent() {
             </Button>
           </div>
         </div>
-        {shows.length > 0 ? (
+        {visibleShows.length > 0 ? (
           <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {shows.map((event) => (
+            {visibleShows.map((event) => (
               <EventCard key={event.showId} event={event} />
             ))}
           </div>

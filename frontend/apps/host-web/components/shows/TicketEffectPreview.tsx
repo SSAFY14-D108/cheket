@@ -29,6 +29,9 @@ export function TicketEffectPreview({
     onSelectEffect,
     ticketEffects
 }: TicketEffectPreviewProps) {
+    const selectedEffect = ticketEffects.find((effect) => effect.id.toString() === selectedEffectId)
+    const normalizedEffectKey = selectedEffect?.effect?.trim().toLowerCase() || ""
+
     // 기본 포스터 (업로드 안 했을 때)
     const displayImage = posterUrl || "/placeholder.svg"
     const shouldBypassOptimization =
@@ -57,7 +60,7 @@ export function TicketEffectPreview({
     }
 
     const currentEffectName = selectedEffectId
-        ? ticketEffects.find(e => e.id.toString() === selectedEffectId)?.effect?.toUpperCase() || '선택 안됨'
+        ? selectedEffect?.effect?.toUpperCase() || '선택 안됨'
         : '선택 안됨'
 
     return (
@@ -84,7 +87,7 @@ export function TicketEffectPreview({
                         {/* 왼쪽: 실시간 티켓 미리보기 화면 */}
                         <div className="flex-shrink-0 flex flex-col items-center gap-2 w-[120px]">
                             <div
-                                className={`relative w-full aspect-[3/4] rounded-md overflow-hidden bg-muted transition-all duration-300 border-2 ${selectedEffectId ? getEffectClasses(ticketEffects.find(e => e.id.toString() === selectedEffectId)?.effect || '') : 'border-transparent shadow-sm'}`}
+                                className={`relative w-full aspect-[3/4] rounded-md overflow-hidden bg-muted transition-all duration-300 border-2 ${selectedEffectId ? getEffectClasses(normalizedEffectKey) : 'border-transparent shadow-sm'}`}
                             >
                                 <Image
                                     src={displayImage}
@@ -93,7 +96,7 @@ export function TicketEffectPreview({
                                     className="object-cover"
                                     unoptimized={shouldBypassOptimization}
                                 />
-                                {ticketEffects.find(e => e.id.toString() === selectedEffectId)?.effect === 'glow2' && (
+                                {normalizedEffectKey === 'glow2' && (
                                     <div className="absolute inset-0 z-10 pointer-events-none shimmer-overlay" />
                                 )}
                                 {!posterUrl && (
