@@ -1,222 +1,196 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol;
+// → onlyOwner modifier 제공 (배포한 사람만 특정 함수 호출 가능)
+
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+// → ERC-721 NFT(TicketNFT)의 인터페이스
+// → transferFrom(), ownerOf() 등 호출 가능
 
 /**
- * @title Marketplace (티켓 재판매 마켓)
- * @notice 티켓 NFT의 재판매/양도를 처리
- *         EventNFT의 resaleCapBps로 가격 상한 제한 (암표 방지)
+ * @title Marketplace (지정 양도 — 기획안 7.7)
+ * @notice 1:1 무료 직접 양도 처리
  *
- * [흐름 - 재판매]
- * 1. 판매자가 TicketNFT approve → listResale() → 마켓에 등록
- * 2. 구매자가 SSF approve → buyResale() → SSF는 판매자에게, 티켓은 구매자에게
+ * [역할 분리]
+ * 유료 거래 (리세일) → Escrow가 처리 (SSF + NFT 원자적 교환)
+ * 무료 양도           → Marketplace가 처리 (NFT만 전송, SSF 이동 없음)
  *
- * [흐름 - 양도]
- * 1. 소유자가 TicketNFT approve → directTransfer() → 무료 전송
+ * [양도 흐름 — 기획안 7.7]
+ * 1. 보내는 사람이 받는 사람 전화번호 입력
+ * 2. 서버: 전화번호 → 계정 → Custodial 지갑 주소 매핑
+ * 3. 화면에 닉네임 표시 ("박지연 님에게 양도합니다")
+ * 4. 확인 → maxPerWallet 검증 (받는 사람)
+ * 5. Marketplace.directTransfer()
+ * 6. 양측 Push 알림
  *
- * [가격 상한]
- * resaleCapBps = 10000 → 원가 100%까지 허용 (원가 이하로만 판매)
- * resaleCapBps = 5000  → 원가 50%까지 허용
+ * [Custodial 구조]
+ * 사용자는 지갑 주소를 모름
+ * 전화번호 → 계정 → 지갑 주소 매핑은 백엔드가 처리
+ * 사용자 입장에서는 "전화번호로 양도"
+ * → 블록체인을 모르는 일반 관객도 쉽게 사용 가능
+ *
+ * [왜 Marketplace를 통하는가?]
+ * TicketNFT.transferFrom()을 직접 호출해도 되지만:
+ * ① 이벤트 로그를 남기기 위해 (DirectTransferred)
+ *    → 양도 이력을 on-chain에 기록
+ *    → 누가 누구에게 양도했는지 투명하게 추적
+ * ② 추후 양도 제한 로직 추가 가능
+ *    → 예: 공연 당일 양도 불가
+ *    → 예: 동일 티켓 양도 횟수 제한
+ * ③ 양도 이력 관리 (이벤트 로그 기반)
+ *    → 앱에서 "이 티켓의 전체 거래 이력" 표시 가능
+ *
+ * [기획안 7.7]
+ * "무료 양도 전용. 유료 양도는 리세일 마켓(Escrow) 이용."
+ * "지갑 주소 대신 전화번호를 식별자로 사용
+ *  — Custodial 구조에서 사용자는 자신의 지갑 주소를 알 필요 없음."
+ *
+ * [사전 조건]
+ * 보내는 사람이 TicketNFT.approve(Marketplace주소, ticketId) 필요
+ * → "Marketplace가 내 NFT를 대신 보내도 됨"
+ * → Custodial 구조에서 백엔드가 보내는 사람 Keystore로 대리 서명
  */
 contract Marketplace is Ownable {
 
-    // ========== 상태 변수 ==========
+    // ========== 상태 변수 (storage = 블록체인 영구 저장) ==========
 
-    IERC20 public ssfToken;
+    // TicketNFT 컨트랙트
     IERC721 public ticketNFT;
 
-    struct Listing {
-        address seller;         // 판매자
-        uint256 ticketId;       // 티켓 NFT ID
-        uint256 originalPrice;  // 원래 구매 가격
-        uint256 resalePrice;    // 재판매 가격
-        bool isActive;          // 활성 상태
-        uint256 listedAt;       // 등록 시각
-    }
+    // ========== 이벤트 (블록체인 로그) ==========
 
-    uint256 private _nextListingId;
-
-    // listingId => Listing
-    mapping(uint256 => Listing) public listings;
-
-    // ticketId => listingId (중복 등록 방지)
-    mapping(uint256 => uint256) public ticketListing;
-
-    // ticketId => 등록 여부
-    mapping(uint256 => bool) public isListed;
-
-    // ========== 이벤트 ==========
-
-    event Listed(
-        uint256 indexed listingId,
-        address indexed seller,
-        uint256 indexed ticketId,
-        uint256 resalePrice
-    );
-
-    event Sold(
-        uint256 indexed listingId,
-        address indexed buyer,
-        address indexed seller,
-        uint256 ticketId,
-        uint256 resalePrice
-    );
-
-    event ListingCancelled(
-        uint256 indexed listingId,
-        uint256 indexed ticketId
-    );
-
+    // 양도 완료 시 발생 → 백엔드 Event Listener가 감지 → DB 업데이트
     event DirectTransferred(
-        uint256 indexed ticketId,
-        address indexed from,
-        address indexed to
+        uint256 indexed ticketId,       // topics[1]: 어떤 티켓?
+        address indexed from,           // topics[2]: 보내는 사람
+        address indexed to              // topics[3]: 받는 사람
     );
+    // 로그 예시:
+    //   "티켓 #42가 0xAAA → 0xBBB로 양도됨"
+    //   → 앱에서 거래 이력 조회 시 표시
+    //   → 누구나 조회 가능 (투명성)
 
-    // ========== 생성자 ==========
+    // ========== 생성자 (배포 시 1번만 실행) ==========
 
     /**
-     * @param _ssfToken SSF 토큰 주소
      * @param _ticketNFT TicketNFT 컨트랙트 주소
+     *
+     * Marketplace는 TicketNFT만 다루므로 (SSF 이동 없음)
+     * 생성자에서 TicketNFT 주소만 받으면 됨
+     *
+     * [왜 SSF(IERC20)가 없는가?]
+     * 무료 양도 → SSF 이동 없음 → SSF 컨트랙트 불필요
+     * 유료 거래(리세일)는 Escrow가 담당
      */
-    constructor(
-        address _ssfToken,
-        address _ticketNFT
-    ) Ownable(msg.sender) {
-        require(_ssfToken != address(0), "Invalid SSF address");
-        require(_ticketNFT != address(0), "Invalid TicketNFT address");
-        ssfToken = IERC20(_ssfToken);
+    constructor(address _ticketNFT) Ownable(msg.sender) {
+        // Ownable(msg.sender) → 배포한 사람(플랫폼 지갑)이 owner
+        require(_ticketNFT != address(0), "Invalid TicketNFT");
         ticketNFT = IERC721(_ticketNFT);
+        // "이 주소의 컨트랙트를 ERC-721로 취급"
+        // → ticketNFT.transferFrom(), ticketNFT.ownerOf() 호출 가능
     }
 
-    // ========== 재판매 등록 ==========
-
-    /**
-     * @notice 티켓을 재판매 등록
-     * @dev 호출 전 판매자가 ticketNFT.approve(marketplace, ticketId) 필요
-     * @param ticketId 티켓 NFT ID
-     * @param originalPrice 원래 구매 가격 (백엔드에서 전달)
-     * @param resalePrice 재판매 희망 가격
-     * @param resaleCapBps 가격 상한 비율 (EventNFT에서 조회, 백엔드 전달)
-     * @return listingId 등록 ID
-     */
-    function listResale(
-        uint256 ticketId,
-        uint256 originalPrice,
-        uint256 resalePrice,
-        uint256 resaleCapBps
-    ) external returns (uint256) {
-        // 티켓 소유자 확인
-        require(ticketNFT.ownerOf(ticketId) == msg.sender, "Not ticket owner");
-        // 중복 등록 방지
-        require(!isListed[ticketId], "Already listed");
-        // 가격 상한 검증: resalePrice <= originalPrice * resaleCapBps / 10000
-        uint256 maxPrice = (originalPrice * resaleCapBps) / 10000;
-        require(resalePrice <= maxPrice, "Exceeds resale cap");
-        require(resalePrice > 0, "Price must be > 0");
-
-        // 티켓을 마켓플레이스로 전송 (에스크로 역할)
-        ticketNFT.transferFrom(msg.sender, address(this), ticketId);
-
-        uint256 listingId = _nextListingId++;
-
-        listings[listingId] = Listing({
-            seller: msg.sender,
-            ticketId: ticketId,
-            originalPrice: originalPrice,
-            resalePrice: resalePrice,
-            isActive: true,
-            listedAt: block.timestamp
-        });
-
-        ticketListing[ticketId] = listingId;
-        isListed[ticketId] = true;
-
-        emit Listed(listingId, msg.sender, ticketId, resalePrice);
-        return listingId;
-    }
-
-    // ========== 재판매 구매 ==========
-
-    /**
-     * @notice 재판매 티켓 구매
-     * @dev 호출 전 구매자가 ssfToken.approve(marketplace, resalePrice) 필요
-     * @param listingId 등록 ID
-     */
-    function buyResale(uint256 listingId) external {
-        Listing storage l = listings[listingId];
-        require(l.isActive, "Not active listing");
-        require(msg.sender != l.seller, "Cannot buy own ticket");
-
-        l.isActive = false;
-        isListed[l.ticketId] = false;
-
-        // SSF: 구매자 → 판매자
-        bool success = ssfToken.transferFrom(msg.sender, l.seller, l.resalePrice);
-        require(success, "SSF transfer failed");
-
-        // 티켓: 마켓플레이스 → 구매자
-        ticketNFT.transferFrom(address(this), msg.sender, l.ticketId);
-
-        emit Sold(listingId, msg.sender, l.seller, l.ticketId, l.resalePrice);
-    }
-
-    // ========== 등록 취소 ==========
-
-    /**
-     * @notice 재판매 등록 취소 (티켓 반환)
-     * @param listingId 등록 ID
-     */
-    function cancelListing(uint256 listingId) external {
-        Listing storage l = listings[listingId];
-        require(l.isActive, "Not active listing");
-        require(l.seller == msg.sender || owner() == msg.sender, "Not authorized");
-
-        l.isActive = false;
-        isListed[l.ticketId] = false;
-
-        // 티켓: 마켓플레이스 → 판매자에게 반환
-        ticketNFT.transferFrom(address(this), l.seller, l.ticketId);
-
-        emit ListingCancelled(listingId, l.ticketId);
-    }
-
-    // ========== 양도 (무료 전송) ==========
+    // ========== 지정 양도 (무료 1:1 전송) ==========
 
     /**
      * @notice 티켓을 다른 사람에게 무료 양도
-     * @dev 호출 전 ticketNFT.approve(marketplace, ticketId) 필요
-     * @param ticketId 티켓 NFT ID
-     * @param to 양도받을 지갑 주소
+     *
+     * [기획안 7.7 흐름]
+     * 1. 앱: 보내는 사람이 받는 사람 전화번호 입력
+     * 2. 백엔드: 전화번호 → DB에서 계정 조회 → Custodial 지갑 주소 매핑
+     * 3. 앱: 화면에 닉네임 표시 ("박지연 님에게 양도합니다")
+     * 4. 앱: 사용자가 "확인" 버튼 클릭
+     * 5. 백엔드: maxPerWallet 검증 (받는 사람이 구매 한도 초과하지 않는지)
+     * 6. 백엔드: 보내는 사람 Keystore로 approve TX 대리 서명
+     * 7. 백엔드: 플랫폼 개인키로 Marketplace.directTransfer() 호출 ← 이 함수
+     * 8. Event Listener: DirectTransferred 감지 → DB 업데이트
+     * 9. 백엔드: 양측 Push 알림
+     *
+     * [on-chain 소유권 검증]
+     * ownerOf(ticketId) == from 검증
+     * → DB가 해킹되어 잘못된 from이 와도 on-chain에서 차단
+     * → "실제 소유자만 양도 가능" 보장
+     *
+     * [왜 onlyOwner인가?]
+     * Custodial 구조 → 사용자가 직접 호출하지 않음
+     * 백엔드가 검증 후 플랫폼 개인키로 호출
+     * → maxPerWallet 등 추가 검증을 백엔드에서 처리
+     *
+     * [사전 조건]
+     * 보내는 사람이 TicketNFT.approve(Marketplace주소, ticketId) 필요
+     * → "Marketplace가 내 NFT를 대신 보내도 됨"
+     * → Custodial 구조에서 백엔드가 보내는 사람 Keystore로 대리 서명
+     * → 사용자는 "양도" 버튼만 누르면 됨
+     *
+     * @param from 보내는 사람 지갑 (양도하는 사람)
+     * @param to 받는 사람 지갑 (양도받는 사람)
+     * @param ticketId TicketNFT tokenId
      */
-    function directTransfer(uint256 ticketId, address to) external {
-        require(ticketNFT.ownerOf(ticketId) == msg.sender, "Not ticket owner");
-        require(!isListed[ticketId], "Ticket is listed");
+    function directTransfer(
+        address from,       // 보내는 사람 지갑 → 값 타입 → 스택
+        address to,         // 받는 사람 지갑 → 값 타입 → 스택
+        uint256 ticketId    // 티켓 tokenId → 값 타입 → 스택
+    ) external onlyOwner {
+        // onlyOwner = 플랫폼(백엔드)만 호출 가능
+        // 사용자가 직접 호출 불가 (Custodial 구조)
+
+        require(ticketNFT.ownerOf(ticketId) == from, "Not ticket owner");
+        // on-chain 소유권 검증
+        // ownerOf = ERC721 표준 함수: tokenId의 실제 소유자 조회
+        //
+        // [왜 on-chain에서 확인?]
+        // DB가 해킹되어 from이 실제 소유자가 아닌 주소로 올 수 있음
+        // → on-chain ownerOf()로 실제 소유자 확인
+        // → 실제 소유자가 아니면 revert → 양도 불가
+        //
+        // 비유: 택배 발송 시 신분증 확인
+        // → "이 사람이 진짜 물건 주인인지" 블록체인에서 직접 확인
+
         require(to != address(0), "Invalid address");
-        require(to != msg.sender, "Cannot transfer to self");
+        // 빈 주소(0x0)로 양도하면 NFT가 사라짐 → 방지
 
-        ticketNFT.transferFrom(msg.sender, to, ticketId);
+        require(to != from, "Cannot transfer to self");
+        // 자기 자신에게 양도는 의미 없음 → 방지
 
-        emit DirectTransferred(ticketId, msg.sender, to);
-    }
+        // ========== NFT 전송: 보내는 사람 → 받는 사람 ==========
 
-    // ========== 조회 함수 ==========
+        ticketNFT.transferFrom(from, to, ticketId);
+        // ERC721 내부:
+        //   _owners[ticketId] = to     (소유자: from → to)
+        //   _balances[from] -= 1       (보내는 사람 보유 수 -1)
+        //   _balances[to] += 1         (받는 사람 보유 수 +1)
+        //
+        // SSF 이동 없음 (무료 양도)
+        //
+        // 사전 조건: from이 approve(Marketplace, ticketId) 해놔야 함
+        // → Custodial: 백엔드가 from의 Keystore로 대리 서명
+        //
+        // [티켓 상태는?]
+        // status는 변경 없음 (계속 VALID)
+        // 리세일/양도 시 소유자만 바뀌고 상태는 그대로
+        // → VALID인 티켓만 양도 가능 (USED/REFUNDED/EXPIRED는 못 양도)
+        //   → 이건 백엔드에서 사전 검증
 
-    function getListing(uint256 listingId) external view returns (
-        address seller,
-        uint256 ticketId,
-        uint256 originalPrice,
-        uint256 resalePrice,
-        bool isActive
-    ) {
-        Listing storage l = listings[listingId];
-        return (l.seller, l.ticketId, l.originalPrice, l.resalePrice, l.isActive);
-    }
+        // ========== 이벤트 로그 ==========
 
-    function totalListings() external view returns (uint256) {
-        return _nextListingId;
+        emit DirectTransferred(ticketId, from, to);
+        // 블록체인에 로그 영구 기록:
+        //   "ticketId #42가 0xAAA에서 0xBBB로 양도됨"
+        //
+        // 백엔드 Event Listener가 감지:
+        //   → DB 소유자 업데이트 (tickets.user_id = 받는 사람)
+        //   → walletTicketCount 업데이트 (백엔드에서 별도 처리)
+        //   → 양측 Push 알림:
+        //     보내는 사람: "박지연 님에게 양도가 완료되었습니다"
+        //     받는 사람: "김철수 님이 티켓을 양도했습니다"
+        //
+        // [거래 이력 조회]
+        // ERC721 Transfer 이벤트 + DirectTransferred 이벤트
+        // → 앱에서 "이 티켓의 전체 이력" 표시 가능:
+        //   [2026-03-15] 발행됨 (플랫폼)
+        //   [2026-03-16] 구매 (구매자A)
+        //   [2026-03-17] 양도 (구매자A → 구매자B) ← 이 이벤트
+        //   [2026-03-18] 입장 (구매자B)
     }
 }
