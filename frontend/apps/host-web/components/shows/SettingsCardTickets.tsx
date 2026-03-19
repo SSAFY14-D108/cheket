@@ -273,7 +273,7 @@ export function SettingsCardTickets({
                                 <div className="flex-1 relative">
                                     <Input
                                         type="text"
-                                        placeholder="가격 (예: 150,000)"
+                                        placeholder="가격 (예: 15 CTK)"
                                         value={grade.price ? Number(grade.price).toLocaleString() : ''}
                                         onChange={e => {
                                             const rawValue = e.target.value.replace(/,/g, '');
@@ -281,9 +281,9 @@ export function SettingsCardTickets({
                                                 onUpdateGrade(idx, 'price', rawValue)
                                             }
                                         }}
-                                        className="h-8 text-xs pl-5 pr-2"
+                                        className="h-8 text-xs pl-2 pr-10"
                                     />
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium">₩</span>
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground font-medium">CTK</span>
                                 </div>
                                 <div className="w-[35%] shrink-0">
                                     {(() => {
@@ -344,7 +344,7 @@ export function SettingsCardTickets({
                                                                                 ? 'bg-primary text-primary-foreground border-primary'
                                                                                 : isDisabled
                                                                                     ? 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-50'
-                                                                                : 'bg-background hover:bg-muted border-border'
+                                                                                    : 'bg-background hover:bg-muted border-border'
                                                                                 }`}
                                                                             aria-disabled={isDisabled && !isSelected}
                                                                         >

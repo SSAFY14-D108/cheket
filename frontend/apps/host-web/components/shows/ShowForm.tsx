@@ -185,7 +185,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <Label className="block text-base font-semibold">상세 이미지(여러 장 가능)</Label>
+              <Label className="block text-base font-semibold">상세 포스터</Label>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -229,7 +229,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                       width={320}
                       height={200}
                       className="h-full w-full object-cover"
-                      unoptimized={preview.startsWith("data:")}
+                      unoptimized={preview.startsWith("data:") || preview.startsWith("http")}
                     />
                     <button
                       type="button"
