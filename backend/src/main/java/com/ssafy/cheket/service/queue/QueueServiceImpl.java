@@ -4,13 +4,11 @@ import com.ssafy.cheket.config.queue.QueueConstants;
 import com.ssafy.cheket.config.queue.QueueTokenGenerator;
 import com.ssafy.cheket.dto.queue.QueueTokenMeta;
 import com.ssafy.cheket.dto.queue.response.QueueEnterResponse;
+import com.ssafy.cheket.dto.queue.response.QueueSeatEnterResponse;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.QueueStatus;
-import com.ssafy.cheket.exception.common.BadRequestException;
-import com.ssafy.cheket.exception.common.ConflictException;
-import com.ssafy.cheket.exception.common.ForbiddenException;
-import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.exception.common.*;
 import com.ssafy.cheket.repository.queue.QueueRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
@@ -231,6 +229,7 @@ public class QueueServiceImpl implements QueueService {
         return Instant.ofEpochSecond(epochSec).atZone(KST).toLocalDateTime();
     }
 
+    // 대기열 이탈
     @Transactional
     @Override
     public void leaveQueue(Long userId, Long showId, Long sessionId, String queueToken) {
@@ -263,6 +262,61 @@ public class QueueServiceImpl implements QueueService {
         promoteWaitingToActive(sessionId);
     }
 
+    // 좌석 선택 진입
+    @Transactional
+    @Override
+    public QueueSeatEnterResponse enterSeatSelection(Long userId, Long showId, Long sessionId, String queueToken) {
+        QueueTokenMeta meta = queueRepository.findQueueTokenMeta(queueToken);
+        validateQueueToken(meta, userId, showId, sessionId);
+        QueueStatus status = meta.getStatus();
+
+        if (status == QueueStatus.WAITING)
+            throw new ForbiddenException("아직 입장 차례가 아닙니다.");
+        if (status == QueueStatus.EXPIRED)
+            throw new GoneException("입장 가능 시간이 만료되었습니다.");
+        if (status == QueueStatus.LEFT)
+            throw new ForbiddenException("이미 이탈한 대기열입니다.");
+        if (status == QueueStatus.COMPLETED)
+            throw new ConflictException("이미 좌석 선택 화면에 진입했습니다.");
+        if (status != QueueStatus.ACTIVE)
+            throw new ForbiddenException("진입할 수 없는 대기열 싱태입니다.");
+
+        long nowEpochSec = currentEpochSec();
+        Long admitExpiresAt = meta.getAdmitExpiresAt();
+
+        if (admitExpiresAt == null || nowEpochSec >= admitExpiresAt) {
+            queueRepository.updateStatus(queueToken, QueueStatus.EXPIRED);
+            queueRepository.removeFromActiveSet(sessionId, queueToken);
+            queueRepository.deleteActiveUserKey(showId, sessionId, userId);
+            queueRepository.deleteUserTokenMapping(sessionId, userId);
+
+            promoteWaitingToActive(sessionId);
+
+            throw new GoneException("입장 가능 시간이 만료되었습니다.");
+        }
+
+        if (!queueRepository.existsActiveUserKey(showId, sessionId, userId)
+            || !queueRepository.isActiveMember(sessionId, queueToken))
+            throw new GoneException("입장 권한이 만료되었거나 이미 사용되었습니다.");
+
+        String seatAccessToken = QueueTokenGenerator.generateSeatAccessToken();
+        queueRepository.saveSeatAccessToken(seatAccessToken, userId, showId, sessionId,
+            QueueConstants.SEAT_ACCESS_TTL_SECONDS);
+
+        queueRepository.updateStatus(queueToken, QueueStatus.COMPLETED);
+        queueRepository.updateEnteredAt(queueToken, nowEpochSec);
+
+        queueRepository.removeFromActiveSet(sessionId, queueToken);
+        queueRepository.deleteActiveUserKey(showId, sessionId, userId);
+        queueRepository.deleteUserTokenMapping(sessionId, userId);
+
+        promoteWaitingToActive(sessionId);
+
+        return QueueSeatEnterResponse.builder().seatAccessToken(seatAccessToken)
+            .seatAccessExpiresAt(toLocalDatTime(nowEpochSec + QueueConstants.SEAT_ACCESS_TTL_SECONDS)).build();
+    }
+
+    // 대기열 승격
     private void promoteWaitingToActive(Long sessionId) {
         long currentActiveCount = queueRepository.getActiveCount(sessionId);
         long availableSlots = ACTIVE_LIMIT - currentActiveCount;
@@ -294,6 +348,7 @@ public class QueueServiceImpl implements QueueService {
         }
     }
 
+    // queueToken 검증
     private void validateQueueToken(QueueTokenMeta meta, Long userId, Long showId, Long sessionId) {
         if (meta == null)
             throw new NotFoundException("유효하지 않은 queueToken 입니다.");
