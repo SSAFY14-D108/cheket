@@ -119,7 +119,7 @@ function ConcertRanking({
           <button
             key={event.id}
             onClick={() => onEventClick(event.id)}
-            className="gradient-outline-surface-soft flex w-32 flex-shrink-0 flex-col gap-1.5 rounded-2xl p-2 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+            className="elevated-surface-soft flex w-32 flex-shrink-0 flex-col gap-1.5 rounded-2xl p-2 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
           >
             <div className="relative h-44 w-full overflow-hidden rounded-xl bg-secondary">
               <Image src={event.poster} alt={event.name} fill className="object-cover" sizes="128px" />
@@ -153,7 +153,7 @@ function OpenSchedule({
           <button
             key={event.id}
             onClick={() => onEventClick(event.id)}
-            className="gradient-outline-surface-soft flex w-[80vw] max-w-[300px] flex-shrink-0 gap-3 rounded-2xl p-3 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.98]"
+            className="elevated-surface-soft flex w-[80vw] max-w-[300px] flex-shrink-0 gap-3 rounded-2xl p-3 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.98]"
           >
             <div className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={event.poster} alt={event.name} fill className="object-cover" sizes="80px" />
@@ -163,8 +163,8 @@ function OpenSchedule({
               <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{event.name}</p>
               <p className="text-xs text-gray-500">{getVenueLabel(event.venue)}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="rounded-md bg-[#e8f6ef] px-2 py-0.5 text-[10px] font-bold text-[#333333] shadow-[0_4px_12px_rgba(196,247,224,0.24)]">{event.region}</span>
-                <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                <span className="badge-info">{event.region}</span>
+                <span className="badge-status text-[#5f6b76]">
                   {event.status === 'ON_SALE' ? '예매중' : '매진'}
                 </span>
               </div>
@@ -204,7 +204,7 @@ function DiscountSection() {
                 resaleEntrySource: 'home',
               })
             }
-            className="gradient-outline-surface-soft flex gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.99]"
+            className="elevated-surface-soft flex gap-3 rounded-2xl px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.99]"
           >
             <div className="relative h-32 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={item.poster} alt={item.eventName} fill className="object-cover" sizes="96px" />
@@ -214,7 +214,7 @@ function DiscountSection() {
             </div>
 
             <div className="min-w-0 flex-1 py-0.5">
-              <div className="mb-1.5 inline-flex items-center gap-1 rounded-md bg-[#e8f6ef] px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-[0_4px_12px_rgba(196,247,224,0.22)]">
+              <div className="badge-info mb-1.5 gap-1 font-medium">
                 <Tag className="h-2.5 w-2.5" />
                 2차 거래
               </div>
@@ -249,7 +249,7 @@ function RecommendationSection({
       <div className="flex gap-3 px-4">
         <button
           onClick={() => navigate('wishlist')}
-          className="gradient-outline-surface-soft flex h-36 w-28 flex-shrink-0 flex-col items-center justify-center gap-2 rounded-2xl shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.98]"
+          className="elevated-surface-soft flex h-36 w-28 flex-shrink-0 flex-col items-center justify-center gap-2 rounded-2xl shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.98]"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <Heart className="h-6 w-6 text-[#333333]" />
@@ -263,7 +263,7 @@ function RecommendationSection({
         {recommendedEvent ? (
           <button
             onClick={() => onEventClick(recommendedEvent.id)}
-            className="gradient-outline-surface-soft flex flex-1 gap-3 rounded-2xl p-3 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.98]"
+            className="elevated-surface-soft flex flex-1 gap-3 rounded-2xl p-3 text-left shadow-[0_6px_18px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] active:scale-[0.98]"
           >
             <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={recommendedEvent.poster} alt={recommendedEvent.name} fill className="object-cover" sizes="80px" />

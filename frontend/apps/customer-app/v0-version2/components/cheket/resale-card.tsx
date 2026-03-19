@@ -21,7 +21,7 @@ export function ResaleCard({ item, onClick }: ResaleCardProps) {
   return (
     <button
       onClick={onClick}
-      className="gradient-outline-surface-soft w-full rounded-xl px-3 py-2.5 text-left transition-all hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)] active:scale-[0.98]"
+      className="elevated-surface-soft w-full rounded-xl px-3 py-2.5 text-left transition-all hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)] active:scale-[0.98]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">

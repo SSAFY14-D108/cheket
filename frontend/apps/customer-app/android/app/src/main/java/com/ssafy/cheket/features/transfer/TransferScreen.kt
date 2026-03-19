@@ -2,19 +2,37 @@ package com.ssafy.cheket.features.transfer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +41,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,7 +54,16 @@ import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.BorderColor
+import com.ssafy.cheket.ui.theme.CardBg
+import com.ssafy.cheket.ui.theme.Danger
+import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.OnBackground
+import com.ssafy.cheket.ui.theme.Primary
+import com.ssafy.cheket.ui.theme.SubText
+import com.ssafy.cheket.ui.theme.Warning
+import com.ssafy.cheket.ui.theme.White
 
 @Composable
 fun TransferScreen(
@@ -46,7 +77,8 @@ fun TransferScreen(
     val focusManager = LocalFocusManager.current
 
     val ticket = remember(ticketId) {
-        MockDataSource.mockTickets.find { it.id == ticketId }
+        NavParams.selectedTicket?.takeIf { it.id == ticketId }
+            ?: MockDataSource.mockTickets.find { it.id == ticketId }
     }
 
     Scaffold(
@@ -61,7 +93,6 @@ fun TransferScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // --- Ticket Summary Card ---
             if (ticket != null) {
                 Card(
                     shape = RoundedCornerShape(12.dp),
@@ -70,7 +101,7 @@ fun TransferScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        Modifier.padding(12.dp),
+                        modifier = Modifier.padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -88,20 +119,16 @@ fun TransferScreen(
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(
-                                ticket.showName,
+                                text = ticket.showName,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = OnBackground,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            Text(text = ticket.showDate, fontSize = 12.sp, color = MutedForeground)
                             Text(
-                                ticket.showDate,
-                                fontSize = 12.sp,
-                                color = MutedForeground,
-                            )
-                            Text(
-                                "${ticket.seatLabel} / ${ticket.grade}",
+                                text = "${ticket.seatLabel} / ${ticket.grade}",
                                 fontSize = 12.sp,
                                 color = MutedForeground,
                             )
@@ -110,7 +137,6 @@ fun TransferScreen(
                 }
             }
 
-            // --- Phone Input Section ---
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
@@ -118,119 +144,48 @@ fun TransferScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    Modifier.padding(16.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
-                        "양도 대상자 확인",
+                        text = "받는 사람 전화번호",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = OnBackground,
                     )
 
                     OutlinedTextField(
-                        value = uiState.formattedPhone,
+                        value = uiState.phone,
                         onValueChange = { viewModel.onPhoneChange(it) },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("010-0000-0000", color = SubText, fontSize = 14.sp) },
+                        placeholder = { Text("010-1234-5678", color = SubText, fontSize = 14.sp) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Phone,
                             imeAction = ImeAction.Done,
                         ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                viewModel.verifyRecipient()
-                            },
-                        ),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
                             unfocusedBorderColor = BorderColor,
                             cursorColor = Primary,
                         ),
-                        isError = uiState.verifyError != null,
-                        supportingText = if (uiState.verifyError != null) {
-                            { Text(uiState.verifyError!!, color = Danger, fontSize = 12.sp) }
-                        } else null,
+                        visualTransformation = PhoneNumberVisualTransformation(),
+                        isError = uiState.phoneError != null,
+                        supportingText = uiState.phoneError?.let { message ->
+                            { Text(message, color = Danger, fontSize = 12.sp) }
+                        },
                     )
 
-                    Button(
-                        onClick = {
-                            focusManager.clearFocus()
-                            viewModel.verifyRecipient()
-                        },
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        enabled = uiState.phone.length >= 10 && !uiState.isVerifying,
-                    ) {
-                        if (uiState.isVerifying) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = White,
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Text("확인", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        }
-                    }
+                    Text(
+                        text = "숫자만 입력하면 양도 요청 시 자동으로 형식이 적용됩니다.",
+                        fontSize = 12.sp,
+                        color = MutedForeground,
+                    )
                 }
             }
 
-            // --- Verified User Card ---
-            if (uiState.verifiedName != null) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.08f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, Success.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
-                ) {
-                    Row(
-                        Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(Success.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = Success,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                uiState.verifiedName!!,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = OnBackground,
-                            )
-                            Text(
-                                uiState.formattedPhone,
-                                fontSize = 13.sp,
-                                color = MutedForeground,
-                            )
-                        }
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = "확인됨",
-                            tint = Success,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                }
-            }
-
-            // --- Notice Section ---
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Warning.copy(alpha = 0.10f)),
@@ -238,51 +193,55 @@ fun TransferScreen(
                     .fillMaxWidth()
                     .border(1.dp, Warning.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Warning,
+                            imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = Warning,
                             modifier = Modifier.size(18.dp),
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "유의사항",
+                            text = "안내사항",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OnBackground,
                         )
                     }
-                    NoticeItem("양도 후에는 티켓 소유권이 즉시 이전됩니다.")
-                    NoticeItem("양도된 티켓은 되돌릴 수 없습니다.")
-                    NoticeItem("블록체인 네트워크 상태에 따라 처리 시간이 소요될 수 있습니다.")
-                    NoticeItem("양도 대상자가 Cheket 회원이어야 합니다.")
+                    NoticeItem("양도 요청 후에는 티켓이 즉시 이전될 수 있어요.")
+                    NoticeItem("받는 사람 전화번호를 다시 한 번 확인해주세요.")
+                    NoticeItem("양도 실패 시 실패 화면에서 사유를 확인할 수 있어요.")
                 }
             }
 
-            // --- Transfer Button ---
             Button(
                 onClick = {
-                    // Save to NavParams before navigating
-                    NavParams.recipientName = uiState.verifiedName ?: ""
+                    focusManager.clearFocus()
+                    NavParams.recipientName = ""
                     NavParams.recipientPhone = uiState.formattedPhone
 
                     viewModel.submitTransfer(
                         ticketId = ticketId,
                         onSuccess = { id ->
+                            NavParams.transferFailureReason = ""
                             onTransferComplete(id)
                         },
-                        onFailure = { id ->
-                            NavParams.transferFailureReason = "블록체인 트랜잭션 처리 중 오류가 발생했습니다. 네트워크 상태를 확인 후 다시 시도해주세요."
+                        onFailure = { id, message ->
+                            NavParams.transferFailureReason = message
                             onTransferFailed(id)
                         },
                     )
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                enabled = uiState.verifiedName != null && !uiState.isSubmitting,
+                enabled = !uiState.isSubmitting,
             ) {
                 if (uiState.isSubmitting) {
                     CircularProgressIndicator(
@@ -290,15 +249,44 @@ fun TransferScreen(
                         color = White,
                         strokeWidth = 2.dp,
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Text("양도 처리 중...", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("양도 요청 중...", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 } else {
                     Text("양도하기", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+private class PhoneNumberVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val digits = text.text
+        val formatted = buildString {
+            digits.forEachIndexed { index, char ->
+                append(char)
+                if (index == 2 && digits.length > 3) append('-')
+                if (index == 6 && digits.length > 7) append('-')
+            }
+        }
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = when {
+                offset <= 3 -> offset
+                offset <= 7 -> offset + 1
+                else -> offset + 2
+            }.coerceAtMost(formatted.length)
+
+            override fun transformedToOriginal(offset: Int): Int = when {
+                offset <= 3 -> offset
+                offset <= 8 -> offset - 1
+                else -> offset - 2
+            }.coerceIn(0, digits.length)
+        }
+
+        return TransformedText(AnnotatedString(formatted), offsetMapping)
     }
 }
 
@@ -306,13 +294,13 @@ fun TransferScreen(
 private fun NoticeItem(text: String) {
     Row(verticalAlignment = Alignment.Top) {
         Text(
-            "\u2022",
+            text = "\u2022",
             fontSize = 12.sp,
             color = MutedForeground,
             modifier = Modifier.padding(end = 6.dp, top = 1.dp),
         )
         Text(
-            text,
+            text = text,
             fontSize = 12.sp,
             color = MutedForeground,
             lineHeight = 18.sp,

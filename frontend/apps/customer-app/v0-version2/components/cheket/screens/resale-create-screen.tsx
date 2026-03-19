@@ -48,7 +48,7 @@ export function ResaleCreateScreen() {
   if (success) {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-6 bg-background p-6 text-center">
-        <div className="gradient-outline-icon-button flex h-20 w-20 items-center justify-center rounded-full">
+        <div className="gradient-border-icon-button flex h-20 w-20 items-center justify-center rounded-full">
           <CheckCircle className="h-10 w-10 text-[#333333]" />
         </div>
 
@@ -62,7 +62,7 @@ export function ResaleCreateScreen() {
           <p className="mt-2 text-xs text-muted-foreground">등록 상태는 내 티켓에서 확인할 수 있어요.</p>
         </div>
 
-        <button onClick={() => navigate('my-tickets')} className="gradient-outline-button w-full py-3.5 text-sm">
+        <button onClick={() => navigate('my-tickets')} className="gradient-border-button w-full py-3.5 text-sm">
           내 티켓 보러가기
         </button>
       </div>
@@ -72,7 +72,7 @@ export function ResaleCreateScreen() {
   return (
     <AppShell showBack onBack={goBack} title="판매 등록" showBottomNav={false}>
       <div className="flex flex-col gap-4 p-4">
-        <div className="gradient-outline-surface-soft overflow-hidden rounded-xl">
+        <div className="elevated-surface-soft overflow-hidden rounded-xl">
           <div className="relative aspect-[2.5/1] w-full">
             <img src={ticket.poster} alt={ticket.eventName} className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -84,7 +84,7 @@ export function ResaleCreateScreen() {
           <div className="flex flex-col gap-2 p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#111111]">{ticket.seatLabel}</span>
-              <span className="gradient-outline-surface rounded-full px-2 py-0.5 text-xs font-semibold text-[#333333]">
+              <span className="elevated-surface rounded-full px-2 py-0.5 text-xs font-semibold text-[#333333]">
                 {ticket.grade}
               </span>
             </div>
@@ -99,7 +99,7 @@ export function ResaleCreateScreen() {
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">리세일 가격 설정</label>
           <div className="relative">
             <input
-              className="gradient-outline-surface w-full rounded-xl px-4 py-3.5 pr-14 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+              className="elevated-surface w-full rounded-xl px-4 py-3.5 pr-14 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
               placeholder="가격 입력"
               value={price}
               onChange={(e) => {
@@ -127,7 +127,7 @@ export function ResaleCreateScreen() {
           ) : null}
         </div>
 
-        <div className="gradient-outline-surface-soft rounded-xl p-4 text-xs leading-relaxed text-muted-foreground">
+        <div className="elevated-surface-soft rounded-xl p-4 text-xs leading-relaxed text-muted-foreground">
           <p className="mb-1 font-semibold text-[#111111]">안내사항</p>
           <p>리세일 가격은 정가 이하로만 설정 가능합니다.</p>
           <p>등록 후 리세일 마켓에 즉시 노출됩니다.</p>
@@ -139,7 +139,7 @@ export function ResaleCreateScreen() {
         <button
           onClick={handleSubmit}
           disabled={!isValid}
-          className="gradient-outline-button mt-auto w-full py-4 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          className="gradient-border-button mt-auto w-full py-4 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           판매 등록
         </button>

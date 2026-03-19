@@ -105,7 +105,7 @@ export function WaitingQueueScreen() {
               </div>
             </div>
 
-            <div className="gradient-outline-surface flex w-full flex-col gap-3 rounded-xl p-4">
+            <div className="elevated-surface flex w-full flex-col gap-3 rounded-xl p-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
@@ -130,7 +130,7 @@ export function WaitingQueueScreen() {
         {queueState === 'READY_TO_ENTER' && (
           <>
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="gradient-outline-icon-button flex h-24 w-24 items-center justify-center rounded-full">
+              <div className="gradient-border-icon-button flex h-24 w-24 items-center justify-center rounded-full">
                 <CheckCircle2 className="h-12 w-12 text-[#333333]" />
               </div>
               <div>
@@ -143,12 +143,12 @@ export function WaitingQueueScreen() {
               </div>
             </div>
 
-            <div className="gradient-outline-surface w-full rounded-xl p-4 text-center">
+            <div className="elevated-surface w-full rounded-xl p-4 text-center">
               <p className="text-sm font-medium text-[#111111]">{event.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">{event.date}</p>
             </div>
 
-            <button onClick={handleEnter} className="gradient-outline-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]">
+            <button onClick={handleEnter} className="gradient-border-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]">
               바로 입장하기
             </button>
           </>
@@ -174,13 +174,13 @@ export function WaitingQueueScreen() {
                   setPosition(MOCK_QUEUE_POSITION)
                   setReadyCountdown(60)
                 }}
-                className="gradient-outline-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]"
+                className="gradient-border-button w-full rounded-xl py-4 text-sm font-semibold text-[#111111]"
               >
                 다시 대기하기
               </button>
               <button
                 onClick={goBack}
-                className={cn('gradient-outline-surface w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]', 'transition-all active:scale-[0.98]')}
+                className={cn('elevated-surface w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111]', 'transition-all active:scale-[0.98]')}
               >
                 이전 화면으로
               </button>

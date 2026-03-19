@@ -1,6 +1,7 @@
 package com.ssafy.cheket.core.navigation
 
 import com.ssafy.cheket.core.model.Seat
+import com.ssafy.cheket.core.model.Ticket
 import com.ssafy.cheket.core.model.Show
 
 /**
@@ -14,6 +15,7 @@ object NavParams {
     var recipientName: String = ""
     var recipientPhone: String = ""
     var transferFailureReason: String = ""
+    var selectedTicket: Ticket? = null
     var showInfo: Show? = null
 
     fun clearPurchase() {
@@ -27,5 +29,9 @@ object NavParams {
         recipientName = ""
         recipientPhone = ""
         transferFailureReason = ""
+    }
+
+    fun clearSelectedTicket() {
+        selectedTicket = null
     }
 }

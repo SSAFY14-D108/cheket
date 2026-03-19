@@ -172,7 +172,7 @@ private fun TicketOverlay(
                 .appendQueryParameter("seat", it.seatLabel)
                 .appendQueryParameter("grade", it.grade)
                 .appendQueryParameter("poster", it.poster)
-                .appendQueryParameter("id", it.id)
+                .appendQueryParameter("id", it.numbering.ifBlank { it.id })
                 .appendQueryParameter("price", it.originalPrice.toString())
                 .build()
                 .toString()
@@ -360,7 +360,7 @@ private fun CompactTicketCard(ticket: Ticket, isGold: Boolean, onClick: () -> Un
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "No.${ticket.id.takeLast(4).padStart(4, '0')}", fontSize = 7.sp,
+                ticket.numbering.ifBlank { "No.${ticket.id.takeLast(4).padStart(4, '0')}" }, fontSize = 7.sp,
                 color = White.copy(alpha = 0.6f), fontFamily = FontFamily.Monospace
             )
         }

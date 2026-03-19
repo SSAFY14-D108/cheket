@@ -207,7 +207,7 @@ object MockDataSource {
 
     val mockTickets = listOf(
         Ticket("tkt_001", "evt_001", "AESPA WORLD TOUR 2025", "2025.04.12 (토) 19:00",
-            "올림픽체조경기장, 서울", "$P/aespa.webp", "evt_001_C3", "C열 3번", "R석", 140000, TicketStatus.SOLD),
+            "올림픽체조경기장, 서울", "$P/aespa.webp", "evt_001_C3", "C열 3번", "R석", 140000, TicketStatus.AVAILABLE),
         Ticket("tkt_002", "evt_002", "METALLICA M72 WORLD TOUR", "2025.05.24 (토) 18:00",
             "고척스카이돔, 서울", "$P/metallica.webp", "evt_002_B7", "B열 7번", "FLOOR", 150000, TicketStatus.LISTED, resalePrice = 145000),
         Ticket("tkt_003", "evt_005", "JARASUM JAZZ FESTIVAL", "2024.10.05 (토) 12:00",

@@ -13,15 +13,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.core.model.TicketStatus
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.ui.theme.BadgeExpired
+import com.ssafy.cheket.ui.theme.BadgeListed
+import com.ssafy.cheket.ui.theme.BadgeSold
+import com.ssafy.cheket.ui.theme.BadgeUsed
+import com.ssafy.cheket.ui.theme.StatusOnSale
+import com.ssafy.cheket.ui.theme.StatusSoldOut
 
 @Composable
 fun TicketStatusBadge(status: TicketStatus) {
     val (bg, text, label) = when (status) {
-        TicketStatus.SOLD -> Triple(BadgeSold.copy(alpha = 0.15f), BadgeSold, "보유중")
+        TicketStatus.AVAILABLE -> Triple(BadgeSold.copy(alpha = 0.15f), BadgeSold, "보유중")
         TicketStatus.LISTED -> Triple(BadgeListed.copy(alpha = 0.15f), BadgeListed, "판매중")
-        TicketStatus.USED -> Triple(BadgeUsed.copy(alpha = 0.15f), BadgeUsed, "사용됨")
-        TicketStatus.EXPIRED -> Triple(BadgeExpired.copy(alpha = 0.15f), BadgeExpired, "만료됨")
+        TicketStatus.SOLD -> Triple(BadgeExpired.copy(alpha = 0.15f), BadgeExpired, "판매완료")
+        TicketStatus.USED -> Triple(BadgeUsed.copy(alpha = 0.15f), BadgeUsed, "사용완료")
+        TicketStatus.EXPIRED -> Triple(BadgeExpired.copy(alpha = 0.15f), BadgeExpired, "만료")
     }
     StatusLabel(bg = bg, text = text, label = label)
 }
@@ -38,7 +44,13 @@ fun ShowStatusBadge(status: ShowStatus) {
 @Composable
 private fun StatusLabel(bg: Color, text: Color, label: String) {
     Text(
-        text = label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = text,
-        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(bg).padding(horizontal = 6.dp, vertical = 2.dp),
+        text = label,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = text,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(bg)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }

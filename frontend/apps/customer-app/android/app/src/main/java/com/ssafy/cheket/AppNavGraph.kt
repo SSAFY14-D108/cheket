@@ -246,7 +246,10 @@ fun AppNavGraph(
             composable(Routes.MY_TICKETS) {
                 MyTicketsScreen(
                     appContainer = appContainer,
-                    onTicketClick = { ticketId -> navController.navigate(Routes.ticketDetail(ticketId)) },
+                    onTicketClick = { ticket ->
+                        NavParams.selectedTicket = ticket
+                        navController.navigate(Routes.ticketDetail(ticket.id))
+                    },
                 )
             }
             composable(Routes.COLLECTION) {
@@ -373,6 +376,13 @@ fun AppNavGraph(
                     onQrCheckin = { navController.navigate(Routes.qrCheckin(it)) },
                     onTransfer = { navController.navigate(Routes.transfer(it)) },
                     onResaleCreate = { navController.navigate(Routes.resaleCreate(it)) },
+                    onRefundSuccess = {
+                        navController.navigate(Routes.MY_TICKETS) {
+                            popUpTo(Routes.MY_TICKETS) { inclusive = true }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -412,8 +422,9 @@ fun AppNavGraph(
                 TransferCompleteScreen(
                     ticketId = ticketId,
                     onGoToTickets = { navController.navigate(Routes.MY_TICKETS) {
-                        popUpTo(Routes.HOME) { saveState = true }
+                        popUpTo(Routes.MY_TICKETS) { inclusive = true }
                         launchSingleTop = true
+                        restoreState = false
                     } },
                     onGoHome = { navController.navigate(Routes.HOME) {
                         popUpTo(Routes.HOME) { inclusive = true }
@@ -431,8 +442,9 @@ fun AppNavGraph(
                         popUpTo(Routes.MY_TICKETS)
                     } },
                     onGoToTickets = { navController.navigate(Routes.MY_TICKETS) {
-                        popUpTo(Routes.HOME) { saveState = true }
+                        popUpTo(Routes.MY_TICKETS) { inclusive = true }
                         launchSingleTop = true
+                        restoreState = false
                     } },
                 )
             }

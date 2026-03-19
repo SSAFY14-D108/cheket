@@ -14,7 +14,7 @@ export function TicketCard({ ticket, onClick }: TicketCardProps) {
   return (
     <button
       onClick={onClick}
-      className="gradient-outline-surface-soft flex w-full gap-3 rounded-xl p-3 text-left transition-all hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)] active:scale-[0.98]"
+      className="elevated-surface-soft flex w-full gap-3 rounded-xl p-3 text-left transition-all hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)] active:scale-[0.98]"
     >
       <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
         <Image src={ticket.poster} alt={ticket.eventName} fill className="object-cover" sizes="80px" />

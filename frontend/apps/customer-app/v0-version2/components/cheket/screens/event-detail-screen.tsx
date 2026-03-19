@@ -74,7 +74,7 @@ export function EventDetailScreen() {
     <button
       onClick={() => navigate('event-date-selection', { eventId: displayEvent.id })}
       disabled={!canBuy}
-      className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+      className="gradient-border-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
     >
       예매하기
       <ChevronRight className="h-4 w-4" />
@@ -133,10 +133,10 @@ export function EventDetailScreen() {
             </div>
           </div>
 
-          {detailLoading ? <div className="gradient-outline-surface rounded-xl p-4 text-sm text-muted-foreground">공연 상세 정보를 불러오는 중입니다.</div> : null}
+          {detailLoading ? <div className="elevated-surface rounded-xl p-4 text-sm text-muted-foreground">공연 상세 정보를 불러오는 중입니다.</div> : null}
 
           {(displayEvent.runtime || displayEvent.ageRating || displayEvent.cast) ? (
-            <div className="gradient-outline-surface grid gap-2 rounded-xl p-4">
+            <div className="elevated-surface grid gap-2 rounded-xl p-4">
               {displayEvent.runtime ? (
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
                   <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#6b7280]" />
@@ -158,14 +158,14 @@ export function EventDetailScreen() {
             </div>
           ) : null}
 
-          {displayEvent.description ? <p className="gradient-outline-surface-soft rounded-xl p-4 text-sm leading-relaxed text-muted-foreground">{displayEvent.description}</p> : null}
+          {displayEvent.description ? <p className="elevated-surface-soft rounded-xl p-4 text-sm leading-relaxed text-muted-foreground">{displayEvent.description}</p> : null}
 
           <div>
             <h3 className="mb-3 text-sm font-semibold text-[#111111]">가격 안내</h3>
             {hasStructuredGrades ? (
               <div className="flex flex-col gap-2">
                 {displayEvent.grades.map((grade, index) => (
-                  <div key={`${grade.name}-${grade.price}-${index}`} className="gradient-outline-surface-soft flex items-center justify-between rounded-xl px-4 py-3">
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="elevated-surface-soft flex items-center justify-between rounded-xl px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-[#111111]">{grade.name}</span>
                       <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
@@ -177,11 +177,11 @@ export function EventDetailScreen() {
                 ))}
               </div>
             ) : displayEvent.priceInfo ? (
-              <div className="gradient-outline-surface-soft rounded-xl px-4 py-3 text-sm leading-relaxed text-[#111111]">{displayEvent.priceInfo}</div>
+              <div className="elevated-surface-soft rounded-xl px-4 py-3 text-sm leading-relaxed text-[#111111]">{displayEvent.priceInfo}</div>
             ) : (
               <div className="flex flex-col gap-2">
                 {displayEvent.grades.map((grade, index) => (
-                  <div key={`${grade.name}-${grade.price}-${index}`} className="gradient-outline-surface-soft flex items-center justify-between rounded-xl px-4 py-3">
+                  <div key={`${grade.name}-${grade.price}-${index}`} className="elevated-surface-soft flex items-center justify-between rounded-xl px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-[#111111]">{grade.name}</span>
                       <span className={`text-xs ${grade.remaining === 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
@@ -201,7 +201,7 @@ export function EventDetailScreen() {
                 <ImageIcon className="h-4 w-4 text-[#6b7280]" />
                 <h3 className="text-sm font-semibold text-[#111111]">공연 소개 이미지</h3>
               </div>
-              <div className="gradient-outline-surface overflow-hidden rounded-xl">
+              <div className="elevated-surface overflow-hidden rounded-xl">
                 {displayEvent.introImages.map((imageUrl, index) => (
                   <div key={`${imageUrl}-${index}`} className="overflow-hidden">
                     <Image
@@ -219,7 +219,7 @@ export function EventDetailScreen() {
           ) : null}
 
           {refundRules.length > 0 ? (
-            <div className="gradient-outline-surface rounded-xl p-4">
+            <div className="elevated-surface rounded-xl p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-[#6b7280]" />
                 <h3 className="text-sm font-semibold text-[#111111]">환불 규정</h3>

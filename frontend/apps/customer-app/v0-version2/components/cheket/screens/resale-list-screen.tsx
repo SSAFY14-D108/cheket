@@ -161,7 +161,7 @@ export function ResaleListScreen() {
                       resaleEntrySource: 'marketplace',
                     })
                   }
-                  className="gradient-outline-surface-soft overflow-hidden rounded-2xl text-left transition-all active:scale-[0.98]"
+                  className="elevated-surface-soft overflow-hidden rounded-2xl text-left transition-all active:scale-[0.98]"
                 >
                   <div className="relative h-28 w-full overflow-hidden bg-secondary">
                     <Image

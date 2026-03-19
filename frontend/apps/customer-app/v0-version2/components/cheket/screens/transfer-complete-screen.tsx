@@ -30,8 +30,8 @@ export function TransferCompleteScreen() {
             <div className="absolute right-1 top-3 h-1.5 w-1.5 rounded-full bg-[#c5e2ff]" />
             <div className="absolute bottom-2 left-0 h-1.5 w-1.5 rounded-full bg-[#c4f7e0]" />
             <div className="absolute bottom-0 right-3 h-2.5 w-2.5 rounded-full bg-[#dfe7ff]" />
-            <div className="gradient-outline-icon-button flex h-24 w-24 items-center justify-center rounded-full">
-              <div className="gradient-outline-icon-button flex h-16 w-16 items-center justify-center rounded-full bg-white">
+            <div className="gradient-border-icon-button flex h-24 w-24 items-center justify-center rounded-full">
+              <div className="gradient-border-icon-button flex h-16 w-16 items-center justify-center rounded-full bg-white">
                 <CheckCircle2 className="h-8 w-8 text-[#333333]" />
               </div>
             </div>
@@ -42,7 +42,7 @@ export function TransferCompleteScreen() {
           </div>
         </div>
 
-        <div className="gradient-outline-surface overflow-hidden rounded-2xl">
+        <div className="elevated-surface overflow-hidden rounded-2xl">
           <div className="flex items-center gap-3 border-b border-[#edf1f4] p-4">
             <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
               <Image src={ticket.poster} alt={ticket.eventName} fill className="object-cover" sizes="48px" />
@@ -69,7 +69,7 @@ export function TransferCompleteScreen() {
                 <span>받는 사람</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="gradient-outline-icon-button flex h-5 w-5 items-center justify-center rounded-full">
+                <div className="gradient-border-icon-button flex h-5 w-5 items-center justify-center rounded-full">
                   <User className="h-3 w-3 text-[#333333]" />
                 </div>
                 <span className="text-sm font-semibold text-[#111111]">{recipientName}</span>
@@ -85,7 +85,7 @@ export function TransferCompleteScreen() {
           </div>
         </div>
 
-        <div className="gradient-outline-surface flex flex-col gap-3 rounded-2xl p-4">
+        <div className="elevated-surface flex flex-col gap-3 rounded-2xl p-4">
           <div>
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Transaction Hash</p>
             <div className="flex items-center justify-between gap-3">
@@ -116,13 +116,13 @@ export function TransferCompleteScreen() {
         <div className="mt-auto flex flex-col gap-3">
           <button
             onClick={() => navigate('my-tickets')}
-            className="gradient-outline-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98]"
+            className="gradient-border-button flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-semibold text-[#111111] transition-all active:scale-[0.98]"
           >
             내 티켓 보기
           </button>
           <button
             onClick={() => navigateTab('home')}
-            className="gradient-outline-surface w-full rounded-xl py-3 text-sm font-semibold text-[#333333] transition-all active:scale-[0.98]"
+            className="elevated-surface w-full rounded-xl py-3 text-sm font-semibold text-[#333333] transition-all active:scale-[0.98]"
           >
             홈으로 돌아가기
           </button>

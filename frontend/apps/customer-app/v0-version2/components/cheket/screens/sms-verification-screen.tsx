@@ -31,10 +31,10 @@ export function SmsVerificationScreen() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="010-1234-5678"
-                  className="gradient-outline-surface flex-1 rounded-lg px-4 py-3 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                  className="elevated-surface flex-1 rounded-lg px-4 py-3 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                   disabled={codeSent}
                 />
-                <button onClick={handleSendCode} disabled={!phone || codeSent} className="gradient-outline-surface rounded-lg px-4 py-3 text-sm font-medium text-[#111111] disabled:opacity-40 disabled:cursor-not-allowed">
+                <button onClick={handleSendCode} disabled={!phone || codeSent} className="elevated-surface rounded-lg px-4 py-3 text-sm font-medium text-[#111111] disabled:opacity-40 disabled:cursor-not-allowed">
                   {codeSent ? '전송됨' : '인증번호'}
                 </button>
               </div>
@@ -49,7 +49,7 @@ export function SmsVerificationScreen() {
                   onChange={(e) => setVerificationCode(e.target.value)}
                   placeholder="6자리 인증번호 입력"
                   maxLength={6}
-                  className="gradient-outline-surface w-full rounded-lg px-4 py-3 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
+                  className="elevated-surface w-full rounded-lg px-4 py-3 text-sm text-[#111111] placeholder:text-muted-foreground focus:outline-none"
                 />
               </div>
             )}
@@ -57,7 +57,7 @@ export function SmsVerificationScreen() {
         </div>
 
         <div className="border-t border-border p-4">
-          <button onClick={handleVerify} disabled={!codeSent || !verificationCode} className="gradient-outline-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] disabled:opacity-40 disabled:cursor-not-allowed">
+          <button onClick={handleVerify} disabled={!codeSent || !verificationCode} className="gradient-border-button w-full rounded-xl py-3.5 text-sm font-semibold text-[#111111] disabled:opacity-40 disabled:cursor-not-allowed">
             인증 완료
           </button>
         </div>

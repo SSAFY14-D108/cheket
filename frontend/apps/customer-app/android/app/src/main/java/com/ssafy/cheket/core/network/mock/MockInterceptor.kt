@@ -75,7 +75,7 @@ class MockInterceptor : Interceptor {
             // ── Ticket ──
             method == "POST" && path.matches(Regex(".*/sessions/\\d+/purchase")) -> purchase()
             method == "POST" && path.matches(Regex(".*/sessions/\\d+/seats")) -> ok("좌석 선점 완료")
-            method == "GET" && path.endsWith("/tickets/upcoming") -> upcomingTickets()
+            method == "GET" && path.endsWith("/tickets/upcoming") -> upcomingTicketsV2()
             method == "GET" && path.endsWith("/tickets/collection") -> collectionTickets()
             method == "POST" && path.matches(Regex(".*/tickets/\\d+/transfer")) -> ok("양도 완료")
             method == "POST" && path.matches(Regex(".*/tickets/\\d+/qr")) -> qrCode()
@@ -229,6 +229,11 @@ class MockInterceptor : Interceptor {
     private fun upcomingTickets() = wrap("""[
         {"ticketId":1,"numbering":1,"posterUrl":"$P/aespa.webp","show":{"showId":1,"name":"AESPA WORLD TOUR 2026","date":"2026-04-12","venue":"올림픽체조경기장, 서울"},"price":140000,"seatId":6,"sectionName":"가","seatNo":"B-1","grade":"R석","status":"UPCOMING"},
         {"ticketId":2,"numbering":2,"posterUrl":"$P/metallica.webp","show":{"showId":2,"name":"METALLICA M72 WORLD TOUR","date":"2026-05-24","venue":"고척스카이돔, 서울"},"price":150000,"seatId":11,"sectionName":"가","seatNo":"B-7","grade":"FLOOR","status":"ON-SALE"}
+    ]""")
+
+    private fun upcomingTicketsV2() = wrap("""[
+        {"ticketId":1,"numbering":"#0001","posterUrl":"$P/aespa.webp","showInfo":{"showId":1,"name":"AESPA WORLD TOUR 2026","date":"2026-04-12","venue":"?Ñ‰â”?ìŽŒê»œè­°ê³Œê¼æ¹²ê³—ì˜£, ?ì’–ìŠ±"},"price":140000,"seatId":6,"sectionName":"åª›Â€","seatNo":"B-1","grade":"R??,"status":"AVAILABLE"},
+        {"ticketId":2,"numbering":"#0002","posterUrl":"$P/metallica.webp","showInfo":{"showId":2,"name":"METALLICA M72 WORLD TOUR","date":"2026-05-24","venue":"æ€¨ì¢Žì¿ƒ?ã…¼ë­…?ëŒ€ë£˜, ?ì’–ìŠ±"},"price":150000,"seatId":11,"sectionName":"åª›Â€","seatNo":"B-7","grade":"FLOOR","status":"LISTED"}
     ]""")
 
     private fun collectionTickets() = wrap("""[

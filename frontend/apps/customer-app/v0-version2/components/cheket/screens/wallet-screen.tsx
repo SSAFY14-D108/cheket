@@ -97,7 +97,7 @@ export function WalletScreen() {
           <p className="mt-3 text-center text-xs text-muted-foreground">실제 충전 기능은 추후 연결 예정입니다.</p>
         </div>
 
-        <button onClick={() => navigate('wallet-history')} className="gradient-outline-button flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-sm">
+        <button onClick={() => navigate('wallet-history')} className="gradient-border-button flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-sm">
           <span>지갑 거래 내역</span>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </button>

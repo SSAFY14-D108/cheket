@@ -68,7 +68,7 @@ export function ResaleDetailContent({
   return (
     <div className={`flex flex-col gap-3 ${embedded ? 'px-4 pb-5' : 'p-4'}`}>
       {embedded ? (
-        <div className="gradient-outline-surface-soft flex gap-3 rounded-2xl p-3">
+        <div className="elevated-surface-soft flex gap-3 rounded-2xl p-3">
           <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-secondary">
             <Image
               src={item.poster}
@@ -99,7 +99,7 @@ export function ResaleDetailContent({
             <Image src={item.poster} alt={item.eventName} fill className="object-cover" sizes="390px" />
           </div>
 
-          <div className="gradient-outline-surface-soft flex flex-col gap-2 rounded-2xl p-4">
+          <div className="elevated-surface-soft flex flex-col gap-2 rounded-2xl p-4">
             <h2 className="text-base font-bold text-foreground">{item.eventName}</h2>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4 text-[#333333]" />
@@ -113,7 +113,7 @@ export function ResaleDetailContent({
         </>
       )}
 
-      <div className={`gradient-outline-surface-soft flex flex-col rounded-2xl ${embedded ? 'gap-2 p-3' : 'gap-3 p-4'}`}>
+      <div className={`elevated-surface-soft flex flex-col rounded-2xl ${embedded ? 'gap-2 p-3' : 'gap-3 p-4'}`}>
         <h3 className="text-sm font-semibold text-foreground">{LABELS.ticketInfo}</h3>
         <div className="flex items-center justify-between gap-3">
           <span className={`${embedded ? 'text-xs' : 'text-sm'} text-muted-foreground`}>{LABELS.seat}</span>
@@ -157,7 +157,7 @@ export function ResaleDetailContent({
         </div>
       )}
 
-      <div className={`gradient-outline-surface-soft rounded-2xl ${embedded ? 'p-3 text-[11px]' : 'p-4 text-xs'} leading-relaxed text-muted-foreground`}>
+      <div className={`elevated-surface-soft rounded-2xl ${embedded ? 'p-3 text-[11px]' : 'p-4 text-xs'} leading-relaxed text-muted-foreground`}>
         <p className="mb-1 font-semibold text-foreground">{LABELS.noticeTitle}</p>
         <p>{LABELS.noticeBody1}</p>
         <p>{LABELS.noticeBody2}</p>
@@ -174,7 +174,7 @@ export function ResaleDetailContent({
       <button
         onClick={handleBuy}
         disabled={!hasSufficientBalance}
-        className={`gradient-outline-button w-full ${embedded ? 'py-3 text-sm' : 'py-4 text-sm'} disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`gradient-border-button w-full ${embedded ? 'py-3 text-sm' : 'py-4 text-sm'} disabled:cursor-not-allowed disabled:opacity-40`}
       >
         {LABELS.buy}
       </button>

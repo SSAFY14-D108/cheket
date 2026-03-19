@@ -22,6 +22,7 @@ class TicketRepositoryImpl(
             val tickets = response.data?.map { dto ->
                 Ticket(
                     id = dto.ticketId.toString(),
+                    numbering = dto.numbering,
                     showId = dto.show.showId.toString(),
                     showName = dto.show.name,
                     showDate = dto.show.date,
@@ -32,12 +33,14 @@ class TicketRepositoryImpl(
                     grade = dto.grade,
                     originalPrice = dto.price,
                     status = mapTicketStatus(dto.status),
+                    resalePrice = dto.resalePrice,
+                    metadataIpfsCid = dto.metadataIpfsCid,
                 )
             } ?: emptyList()
             emit(tickets)
         } catch (e: Exception) {
             Log.e(TAG, "getTickets() error", e)
-            emit(emptyList())
+            throw e
         }
     }
 
@@ -49,6 +52,7 @@ class TicketRepositoryImpl(
             val tickets = response.data?.map { dto ->
                 Ticket(
                     id = dto.ticketId.toString(),
+                    numbering = dto.numbering,
                     showId = dto.show.showId.toString(),
                     showName = dto.show.name,
                     showDate = dto.show.date,
@@ -59,6 +63,8 @@ class TicketRepositoryImpl(
                     grade = dto.grade,
                     originalPrice = dto.price,
                     status = mapTicketStatus(dto.status),
+                    resalePrice = dto.resalePrice,
+                    metadataIpfsCid = dto.metadataIpfsCid,
                 )
             }?.filter { it.status == status } ?: emptyList()
             emit(tickets)
@@ -76,16 +82,18 @@ class TicketRepositoryImpl(
             val tickets = response.data?.map { dto ->
                 Ticket(
                     id = dto.ticketId.toString(),
+                    numbering = dto.numbering,
                     showId = dto.show.showId.toString(),
                     showName = dto.show.name,
                     showDate = dto.show.date,
                     venue = dto.show.venue,
                     poster = dto.posterUrl,
-                    seatId = "",
+                    seatId = dto.seatId?.toString() ?: "",
                     seatLabel = "${dto.sectionName} ${dto.seatNo}",
                     grade = dto.grade,
                     originalPrice = 0,
                     status = TicketStatus.USED,
+                    effect = dto.show.effect,
                 )
             } ?: emptyList()
             emit(tickets)
@@ -102,10 +110,13 @@ class TicketRepositoryImpl(
     }
 
     private fun mapTicketStatus(status: String): TicketStatus = when (status.uppercase()) {
+        "AVAILABLE" -> TicketStatus.AVAILABLE
         "SOLD" -> TicketStatus.SOLD
         "LISTED" -> TicketStatus.LISTED
+        "ON-SALE" -> TicketStatus.LISTED
+        "ON_SALE" -> TicketStatus.LISTED
         "USED" -> TicketStatus.USED
         "EXPIRED" -> TicketStatus.EXPIRED
-        else -> TicketStatus.SOLD
+        else -> TicketStatus.AVAILABLE
     }
 }
