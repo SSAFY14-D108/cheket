@@ -6,3 +6,6 @@ coverage.json
 typechain
 typechain-types
 .env
+.deps
+.states
+.claude

@@ -241,8 +241,8 @@ contract Escrow is Ownable {
     constructor(
         address _ssfToken,
         address _ticketNFT
-    ) Ownable(msg.sender) {
-        // Ownable(msg.sender) → 배포한 사람(플랫폼 지갑)이 owner
+    ) {
+        // v4: Ownable() 자동으로 msg.sender가 owner
         require(_ssfToken != address(0), "Invalid SSF");
         require(_ticketNFT != address(0), "Invalid TicketNFT");
         ssfToken = IERC20(_ssfToken);
@@ -297,10 +297,10 @@ contract Escrow is Ownable {
      * @param seller 판매자 지갑
      * @param ticketId TicketNFT tokenId
      * @param ssfAmount 리세일 희망 가격 (SSF)
-     * @param originalPrice 원가 (TicketNFT.price, 가격 상한 기준)
-     * @param resaleCapBps 가격 상한 (EventNFT.resaleCapBps)
      * @param deadline 거래 만료 시각 (unix timestamp)
      * @return dealId 생성된 거래 ID
+     *
+     * originalPrice, resaleCapBps는 on-chain에서 직접 조회 (파라미터 제거)
      */
     function createDeal(
         address seller,

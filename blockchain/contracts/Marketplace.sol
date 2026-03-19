@@ -118,8 +118,8 @@ contract Marketplace is Ownable {
      * 무료 양도 → SSF 이동 없음 → SSF 컨트랙트 불필요
      * 유료 거래(리세일)는 Escrow가 담당
      */
-    constructor(address _ticketNFT) Ownable(msg.sender) {
-        // Ownable(msg.sender) → 배포한 사람(플랫폼 지갑)이 owner
+    constructor(address _ticketNFT) {
+        // v4: Ownable() 자동으로 msg.sender가 owner
         require(_ticketNFT != address(0), "Invalid TicketNFT");
         ticketNFT = IERC721(_ticketNFT);
         ticketNFTAddress = _ticketNFT;

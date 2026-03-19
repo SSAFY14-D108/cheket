@@ -130,7 +130,7 @@ contract EventNFT is ERC721, Ownable {
     // ERC721("이름", "심볼") → NFT 컬렉션 이름과 티커 설정
     // Ownable(msg.sender) → 배포한 사람(= 플랫폼 지갑)이 owner
 
-    constructor() ERC721("CHEKET Event", "CEVT") Ownable(msg.sender) {}
+    constructor() ERC721("CHEKET Event", "CEVT") {}
 
     // ========== 이벤트 생성 ==========
 

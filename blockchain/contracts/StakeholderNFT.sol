@@ -101,7 +101,7 @@ contract StakeholderNFT is ERC721, Ownable {
     // ERC721("이름", "심볼") → NFT 컬렉션 이름과 티커 설정
     // Ownable(msg.sender) → 배포한 사람(= 플랫폼 지갑)이 owner
 
-    constructor() ERC721("CHEKET Stakeholder", "CSTK") Ownable(msg.sender) {}
+    constructor() ERC721("CHEKET Stakeholder", "CSTK") {}
 
     // ========== Soulbound: 전송 차단 ==========
     /**
@@ -116,20 +116,26 @@ contract StakeholderNFT is ERC721, Ownable {
      *   transfer: from=0xAAA   to=0xBBB  → 차단 ❌ (전송)
      *   burn:     from=0xAAA   to=0x0000 → 허용 ✅ (소각)
      */
-    function _update(
-        address to, // 받는 사람 주소
-        uint256 tokenId, // NFT 토큰 ID
-        address auth // 권한 검증용 (ERC721 내부에서 사용)
-    ) internal override returns (address) {
-        address from = _ownerOf(tokenId); // 현재 이 NFT의 소유자를 조회
-
-        // from=실제주소 AND to=실제주소 → 전송이므로 차단 "A에서 B로 전송"
+    /**
+     * @dev v4에서는 _beforeTokenTransfer()가 mint/transfer/burn 전에 호출되는 훅
+     * _update()는 v5 전용이므로 v4에서는 이 함수를 사용
+     *
+     * 호출 케이스:
+     *   mint:     from=0x0000  to=0xAAA  → 허용 ✅ (새로 생성)
+     *   transfer: from=0xAAA   to=0xBBB  → 차단 ❌ (전송)
+     *   burn:     from=0xAAA   to=0x0000 → 허용 ✅ (소각)
+     */
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override {
+        // from=실제주소 AND to=실제주소 → 전송이므로 차단
         if (from != address(0) && to != address(0)) {
             revert("Soulbound: transfer not allowed");
         }
-                
-        // mint 또는 burn은 부모 함수 실행 (허용)
-        return super._update(to, tokenId, auth);
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
     // ========== 민팅 함수 ==========
