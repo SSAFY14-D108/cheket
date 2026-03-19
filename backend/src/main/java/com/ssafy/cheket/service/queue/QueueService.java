@@ -7,4 +7,5 @@ public interface QueueService {
     // 대기열 진입
     QueueEnterResponse enterQueue(Long userId, Long showId, Long sessionId);
 
+    void leaveQueue(Long userId, Long showId, Long sessionId, String queueToken);
 }

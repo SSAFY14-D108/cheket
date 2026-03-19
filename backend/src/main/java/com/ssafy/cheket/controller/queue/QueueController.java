@@ -26,4 +26,13 @@ public class QueueController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "대기열 진입에 성공했습니다.", response));
     }
 
+    @DeleteMapping
+    @Operation(summary = "대기열 이탈")
+    @SecurityRequirement(name = "bearerAuth")
+    // @SecurityRequirement(name = "queueToken")
+    public ResponseEntity<ApiResponse<Void>> leaveQueue(@AuthenticationPrincipal Long userId, @PathVariable Long showId,
+        @PathVariable Long sessionId, @RequestHeader("Queue-Token") String queueToken) {
+        queueService.leaveQueue(userId, showId, sessionId, queueToken);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "대기열에서 이탈하였습니다.", null));
+    }
 }
