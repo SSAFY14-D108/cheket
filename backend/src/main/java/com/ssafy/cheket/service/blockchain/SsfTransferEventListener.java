@@ -16,9 +16,15 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.generated.Uint256;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.EthFilter;
+import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.protocol.core.methods.response.EthLog;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.utils.Numeric;
@@ -26,7 +32,10 @@ import org.web3j.utils.Numeric;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * SSF(ERC-20) Transfer 이벤트 폴러
@@ -128,8 +137,9 @@ public class SsfTransferEventListener {
             long toBlock = latestBlock.longValue(); // 현재 최신 블록까지
 
             // 새 블록이 없으면 (아직 10초 안 지남) → 이번 사이클 스킵
-            if (fromBlock > toBlock)
+            if (fromBlock > toBlock) {
                 return;
+            }
 
             // RPC 부하 방지: 한 번에 최대 100블록만
             // 서버가 오래 다운됐으면, 여러 사이클에 걸쳐 100블록씩 따라잡음
@@ -154,13 +164,12 @@ public class SsfTransferEventListener {
             if (logs != null && !logs.isEmpty()) {
                 log.info("SSF Transfer 이벤트 감지: {}건 (블록 {}-{})", logs.size(), fromBlock, toBlock);
 
+                // 같은 폴링 사이클에서 잔액 동기화한 지갑 추적 (중복 balanceOf 호출 방지)
+                Set<String> syncedAddresses = new HashSet<>();
+
                 for (EthLog.LogResult logResult : logs) {
                     if (logResult instanceof EthLog.LogObject) {
-                        // 각 Transfer 이벤트를 하나씩 처리
-                        // eth_getLogs는 블록에 '이미 포함된' 이벤트만 반환
-                        // mempool에 있는(아직 대기 중인) tx는 안 나옴
-                        // eth_getLogs에서 나옴 = 블록에 포함됨 = 확정!
-                        processTransferLog(((EthLog.LogObject) logResult).get());
+                        processTransferLog(((EthLog.LogObject) logResult).get(), syncedAddresses);
                     }
                 }
             }
@@ -198,15 +207,11 @@ public class SsfTransferEventListener {
      */
     // 그래서 ethLog.getLogs()가 비어있으면 → 그 블록 범위에서 SSF 전송이 없었다는 뜻이고, 있으면 → 하나씩 꺼내서
     // processTransferLog()로 처리
-    private void processTransferLog(Log logEntry) {
+    private void processTransferLog(Log logEntry, Set<String> syncedAddresses) {
         try {
             String txHash = logEntry.getTransactionHash();
             BigInteger blockNumber = logEntry.getBlockNumber();
 
-            // 이벤트 디코딩
-            // topics[1]에서 주소 추출: 32바이트 hex에서 뒤 20바이트만 (앞 12바이트는 0패딩)
-            // "0x" + 2글자 + 24글자(0패딩) + 40글자(주소) = 66글자
-            // substring(26) → 40글자 주소부분만 추출
             String fromAddress = "0x" + logEntry.getTopics().get(1).substring(26);
             String toAddress = "0x" + logEntry.getTopics().get(2).substring(26);
             BigInteger value = Numeric.toBigInt(logEntry.getData());
@@ -215,8 +220,6 @@ public class SsfTransferEventListener {
                 blockNumber);
 
             // ── DB 매칭: txHash로 우리 시스템의 트랜잭션 찾기 ──
-            // WalletServiceImpl이 tx 전송 시 txHash를 DB에 저장했었음 (SUBMITTED 상태)
-            // 여기서 그 레코드를 찾아서 CONFIRMED로 업데이트
             transactionRepository.findByTxHash(txHash).ifPresent(transaction -> {
                 if (transaction.getTxStatus() == TxStatus.SUBMITTED) {
                     transactionService.updateToConfirmed(transaction.getId(), blockNumber.longValue());
@@ -224,20 +227,60 @@ public class SsfTransferEventListener {
                 }
             });
 
-            // ── 수신 지갑 잔액 업데이트 ──
-            // 우리 시스템에 등록된 지갑이면 ctkBalance에 받은 금액 더해줌
-            // 외부에서 직접 보낸 SSF도 여기서 잡힘 (우리가 보낸 것만이 아니라, 모든 Transfer)
-            // SSAFY 네트워크 안이지만 우리 서버(API)를 안 거치고 직접 보낸 SSF도 반영됨
-            walletRepository.findByAddressIgnoreCase(toAddress).ifPresent(wallet -> {
-                int currentBalance = wallet.getCtkBalance() != null ? wallet.getCtkBalance() : 0;
-                wallet.setCtkBalance(currentBalance + value.intValue());
-                wallet.setBalanceSyncedAt(LocalDateTime.now());
-                walletRepository.save(wallet);
-                log.info("지갑 잔액 업데이트: {} → {} SSF", toAddress, wallet.getCtkBalance());
-            });
+            // ── 수신·송신 지갑 잔액 동기화 (온체인 balanceOf 덮어쓰기) ──
+            // 기존: += value (중복 처리 시 잔액 부풀림)
+            // 변경: 온체인 balanceOf()로 정확한 잔액을 가져와서 덮어쓰기
+            // → 서버 재시작으로 같은 이벤트를 재처리해도 항상 정확한 잔액 유지
+            syncWalletBalance(toAddress, syncedAddresses);
+            syncWalletBalance(fromAddress, syncedAddresses);
 
         } catch (Exception e) {
             log.error("Transfer 이벤트 처리 에러: {}", logEntry.getTransactionHash(), e);
         }
+    }
+
+    /**
+     * 온체인 balanceOf()를 조회하여 DB 잔액을 덮어쓰기 syncedAddresses로 같은 폴링 사이클 내 중복 조회 방지
+     */
+    private void syncWalletBalance(String address, Set<String> syncedAddresses) {
+        String lowerAddress = address.toLowerCase();
+
+        // 이번 폴링에서 이미 동기화한 지갑이면 스킵
+        if (syncedAddresses.contains(lowerAddress)) {
+            return;
+        }
+
+        walletRepository.findByAddressIgnoreCase(address).ifPresent(wallet -> {
+            try {
+                int onChainBalance = queryOnChainBalance(address);
+                wallet.setCtkBalance(onChainBalance);
+                wallet.setBalanceSyncedAt(LocalDateTime.now());
+                walletRepository.save(wallet);
+                syncedAddresses.add(lowerAddress);
+                log.info("지갑 잔액 동기화 (on-chain): {} → {} SSF", address, onChainBalance);
+            } catch (Exception e) {
+                log.error("잔액 동기화 실패: {}", address, e);
+            }
+        });
+    }
+
+    /**
+     * ERC-20 balanceOf(address) 온체인 조회
+     */
+    private int queryOnChainBalance(String address) throws Exception {
+        Function balanceOf = new Function("balanceOf", Collections.singletonList(new Address(address)),
+            Collections.singletonList(new TypeReference<Uint256>() {
+            }));
+
+        String encoded = FunctionEncoder.encode(balanceOf);
+        EthCall ethCall = web3j.ethCall(org.web3j.protocol.core.methods.request.Transaction
+            .createEthCallTransaction(address, ssfContractAddress, encoded), DefaultBlockParameterName.LATEST).send();
+
+        if (ethCall.hasError()) {
+            throw new RuntimeException("balanceOf 조회 실패: " + ethCall.getError().getMessage());
+        }
+
+        List<Type> decoded = FunctionReturnDecoder.decode(ethCall.getValue(), balanceOf.getOutputParameters());
+        return ((BigInteger) decoded.get(0).getValue()).intValue();
     }
 }
