@@ -289,6 +289,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             />
 
             <SettingsCardPolicies
+              isEdit={isEdit}
               stakeholders={stakeholders}
               refundPolicy={refundPolicy}
               onAddStakeholder={addStakeholder}

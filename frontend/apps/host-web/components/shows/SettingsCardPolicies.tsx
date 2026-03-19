@@ -29,6 +29,7 @@ function formatBusinessNo(value: string): string {
 }
 
 interface SettingsCardPoliciesProps {
+  isEdit: boolean
   stakeholders: Stakeholder[]
   refundPolicy: RefundItem[]
   onAddStakeholder: () => void
@@ -44,6 +45,7 @@ interface SettingsCardPoliciesProps {
 }
 
 export function SettingsCardPolicies({
+  isEdit,
   stakeholders,
   refundPolicy,
   onAddStakeholder,
@@ -127,13 +129,24 @@ export function SettingsCardPolicies({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Label className="text-sm">수익 분배 (BPS)</Label>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddStakeholder}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={onAddStakeholder}
+              disabled={isEdit}
+            >
               <Plus className="size-3" />
             </Button>
           </div>
           <div className="text-[10px] leading-tight text-muted-foreground">
             플랫폼 800bps 선공제 후 나머지 금액 분배. 입력 대상 합계는 9200bps입니다.
           </div>
+          {isEdit ? (
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+              정산 비율과 이해관계자 정보는 공연 등록 후 수정할 수 없습니다.
+            </div>
+          ) : null}
           <div
             className={`rounded-md border px-3 py-2 text-[11px] ${
               isStakeholderShareValid
@@ -170,7 +183,7 @@ export function SettingsCardPolicies({
                     onUpdateStakeholder(idx, "phone", "")
                     onUpdateStakeholder(idx, "businessNo", "")
                   }}
-                  disabled={sh.isFixed}
+                  disabled={sh.isFixed || isEdit}
                 >
                   <option value="ORGANIZER">사업자</option>
                   <option value="ARTIST">개인</option>
@@ -185,8 +198,8 @@ export function SettingsCardPolicies({
                       onUpdateStakeholder(idx, "verified", false)
                       onUpdateStakeholder(idx, "name", "")
                     }}
-                    className={`h-8 min-w-0 flex-1 text-xs ${sh.isFixed ? "bg-muted/50" : ""}`}
-                    readOnly={sh.isFixed}
+                    className={`h-8 min-w-0 flex-1 text-xs ${sh.isFixed || isEdit ? "bg-muted/50" : ""}`}
+                    readOnly={sh.isFixed || isEdit}
                   />
                 ) : (
                   <Input
@@ -197,8 +210,8 @@ export function SettingsCardPolicies({
                       onUpdateStakeholder(idx, "verified", false)
                       onUpdateStakeholder(idx, "name", "")
                     }}
-                    className={`h-8 min-w-0 flex-1 text-xs ${sh.isFixed ? "bg-muted/50" : ""}`}
-                    readOnly={sh.isFixed}
+                    className={`h-8 min-w-0 flex-1 text-xs ${sh.isFixed || isEdit ? "bg-muted/50" : ""}`}
+                    readOnly={sh.isFixed || isEdit}
                   />
                 )}
 
@@ -208,7 +221,7 @@ export function SettingsCardPolicies({
                     size="sm"
                     className="h-8 shrink-0 px-2 text-xs"
                     onClick={() => void handleVerify(idx)}
-                    disabled={Boolean(searchingIndexes[idx])}
+                    disabled={Boolean(searchingIndexes[idx]) || isEdit}
                   >
                     <Search className="mr-1 size-3" />
                     {searchingIndexes[idx] ? "조회 중..." : "조회"}
@@ -221,6 +234,7 @@ export function SettingsCardPolicies({
                     size="icon"
                     className="h-8 w-8 shrink-0 text-muted-foreground"
                     onClick={() => onRemoveStakeholder(idx)}
+                    disabled={isEdit}
                   >
                     <Trash2 className="size-3" />
                   </Button>
@@ -249,8 +263,8 @@ export function SettingsCardPolicies({
                   placeholder="비율(BPS)"
                   value={sh.shareBps}
                   onChange={(event) => onUpdateStakeholder(idx, "shareBps", event.target.value)}
-                  className={`h-8 w-[100px] text-xs ${sh.isFixed ? "bg-muted/50" : ""}`}
-                  readOnly={sh.isFixed}
+                  className={`h-8 w-[100px] text-xs ${sh.isFixed || isEdit ? "bg-muted/50" : ""}`}
+                  readOnly={sh.isFixed || isEdit}
                 />
                 <span className="shrink-0 whitespace-nowrap text-[9px] text-muted-foreground">
                   예: 70%→7000

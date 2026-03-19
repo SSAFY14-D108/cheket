@@ -289,7 +289,7 @@ export interface ShowFormPayload {
     colorCode: string
     ticketEffectId?: number
   }>
-  stakeholders: Array<{
+  stakeholders?: Array<{
     role: "ORGANIZER" | "ARTIST"
     businessNo: string | null
     phoneNumber: string | null
