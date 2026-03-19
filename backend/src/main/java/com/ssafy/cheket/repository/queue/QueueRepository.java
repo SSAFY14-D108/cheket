@@ -14,13 +14,109 @@ import java.util.Set;
 @Repository
 @RequiredArgsConstructor
 public class QueueRepository {
+
     private final StringRedisTemplate redisTemplate;
+
+    // queueToken 조회
+    public String getQueueToken(Long userid, Long sessionId) {
+        String key = QueueRedisKeys.USER_TOKEN_PREFIX + sessionId + ":" + userid;
+        return redisTemplate.opsForValue().get(key);
+    }
+
+    // 동일 유저가 동일 회차에 대해 기존 queueToken 을 가지고 있는지 확인
+    public boolean hasQueueToken(Long userId, Long sessionId) {
+        String queueToken = redisTemplate.opsForValue().get(QueueRedisKeys.userTokenKey(sessionId, userId));
+        return queueToken != null && !queueToken.isBlank();
+    }
+
+    // queueToken 저정
+    public void saveUserQueueToken(Long userId, Long sessionId, String queueToken) {
+        redisTemplate.opsForValue().set(QueueRedisKeys.userTokenKey(sessionId, userId), queueToken);
+    }
+
+    // 회차별 대기열 순번 증가
+    public Long incrementSequence(Long sessionId) {
+        return redisTemplate.opsForValue().increment(QueueRedisKeys.seqKey(sessionId));
+    }
+
+    // waiting queue 에 사용자 등록
+    public void addWaiting(Long sessionId, String queueToken, Long joinSeq) {
+        redisTemplate.opsForZSet().add(QueueRedisKeys.waitKey(sessionId), queueToken, joinSeq.doubleValue());
+    }
+
+    // 현재 queueToken 의 waiting 순번 조회
+    public Long getWaitingRank(Long sessionId, String queueToken) {
+        return redisTemplate.opsForZSet().rank(QueueRedisKeys.waitKey(sessionId), queueToken);
+    }
+
+    // queueTokenMeta 저장
+    public void saveQueueMeta(String queueToken, QueueTokenMeta meta) {
+        String key = QueueRedisKeys.tokenKey(queueToken);
+
+        redisTemplate.opsForHash().put(key, "userId", String.valueOf(meta.getUserId()));
+        redisTemplate.opsForHash().put(key, "showId", String.valueOf(meta.getShowId()));
+        redisTemplate.opsForHash().put(key, "sessionId", String.valueOf(meta.getSessionId()));
+        redisTemplate.opsForHash().put(key, "status", meta.getStatus().name());
+        redisTemplate.opsForHash().put(key, "joinSeq", String.valueOf(meta.getJoinSeq()));
+        redisTemplate.opsForHash().put(key, "joinedAt", String.valueOf(meta.getJoinedAt()));
+
+        if (meta.getAdmitExpiresAt() != null) {
+            redisTemplate.opsForHash().put(key, "admitExpiresAt", String.valueOf(meta.getAdmitExpiresAt()));
+        }
+        if (meta.getEnteredAt() != null) {
+            redisTemplate.opsForHash().put(key, "enteredAt", String.valueOf(meta.getEnteredAt()));
+        }
+        if (meta.getLeftAt() != null) {
+            redisTemplate.opsForHash().put(key, "leftAt", String.valueOf(meta.getLeftAt()));
+        }
+    }
+
+    // queueTokenMeta 삭제
+    public void deleteQueueTokenMeta(String queueToken) {
+        redisTemplate.delete(QueueRedisKeys.tokenKey(queueToken));
+    }
+
+    // queueToken 의 상태 조회
+    public QueueStatus getQueueStatus(String queueToken) {
+        Object status = redisTemplate.opsForHash().get(QueueRedisKeys.tokenKey(queueToken), "status");
+
+        if (status == null)
+            return null;
+        return QueueStatus.valueOf(status.toString());
+    }
+
+    // queueToken 의 userId 조회
+    public Long getUserId(String queueToken) {
+        Object userId = redisTemplate.opsForHash().get(QueueRedisKeys.tokenKey(queueToken), "userId");
+        return (userId == null) ? null : parseLong(userId.toString());
+    }
+
+    // ACTIVE 만료 시각 조회
+    public Long getAdmitExpiresAt(String queueToken) {
+        Object admitExpiresAt = redisTemplate.opsForHash().get(QueueRedisKeys.tokenKey(queueToken), "admitExpiresAt");
+        return (admitExpiresAt == null) ? null : parseLong(admitExpiresAt.toString());
+    }
+
+    // 활성 최차 목록에 sessionId 추가
+    public void addActiveSession(Long sessionId) {
+        redisTemplate.opsForSet().add(QueueRedisKeys.ACTIVE_SESSIONS_KEY, String.valueOf(sessionId));
+    }
+
+    // 특정 queueToken 이 ACTIVE 집합에 있는지 확인
+    public boolean isActiveMember(Long sessionId, String queueToken) {
+        Long rank = redisTemplate.opsForZSet().rank(QueueRedisKeys.activeSetKey(sessionId), queueToken);
+        return rank != null;
+    }
 
     // queueToken에 해당하는 Redis hash를 조회해서 메타 정보를 반환
     public QueueTokenMeta findQueueTokenMeta(String queueToken) {
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(QueueRedisKeys.tokenKey(queueToken));
 
         if (entries.isEmpty())
+            return null;
+
+        if (entries.get("userId") == null || entries.get("showId") == null || entries.get("sessionId") == null
+            || entries.get("status") == null || entries.get("joinSeq") == null || entries.get("joinedAt") == null)
             return null;
 
         return QueueTokenMeta.builder().userId(parseLong(entries.get("userId")))
@@ -113,4 +209,5 @@ public class QueueRepository {
             return null;
         return QueueStatus.valueOf(String.valueOf(value));
     }
+
 }
