@@ -40,7 +40,7 @@ export function SettingsCardBasic({
     return (
         <Card>
             <CardHeader className="py-4">
-                <CardTitle className="text-lg">기본 정보</CardTitle>
+                <CardTitle className="text-lg">공연 정보</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4 pb-4">
                 <div className="flex flex-col gap-1.5">

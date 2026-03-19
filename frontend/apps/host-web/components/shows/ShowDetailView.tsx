@@ -139,7 +139,7 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
                                             className="text-xs"
                                             style={{ borderLeft: `3px solid ${seat.colorCode}` }}
                                         >
-                                            {seat.gradeName}: {seat.price.toLocaleString()}원
+                                            {seat.gradeName}: {seat.price.toLocaleString()}CTK
                                         </Badge>
                                     ))}
                                 </div>
