@@ -285,29 +285,33 @@ export function buildValidationMessage(values: ShowFormValues) {
     return "좌석 등급, 가격, 구역 정보를 모두 입력해주세요."
   }
 
-  const distributableStakeholders = values.stakeholders.filter((stakeholder) => !stakeholder.isFixed)
-
-  if (
-    distributableStakeholders.length === 0 ||
-    distributableStakeholders.some(
-      (stakeholder) =>
-        !Number.isFinite(Number(stakeholder.shareBps)) || Number(stakeholder.shareBps) <= 0
+  if (values.mode === "create") {
+    const distributableStakeholders = values.stakeholders.filter(
+      (stakeholder) => !stakeholder.isFixed
     )
-  ) {
-    return "수익 분배 비율을 올바르게 입력해주세요."
-  }
 
-  if (distributableStakeholders.some((stakeholder) => !stakeholder.verified)) {
-    return "모든 이해관계자의 조회(인증)가 완료되어야 합니다."
-  }
+    if (
+      distributableStakeholders.length === 0 ||
+      distributableStakeholders.some(
+        (stakeholder) =>
+          !Number.isFinite(Number(stakeholder.shareBps)) || Number(stakeholder.shareBps) <= 0
+      )
+    ) {
+      return "수익 분배 비율을 올바르게 입력해주세요."
+    }
 
-  const stakeholderShareSum = distributableStakeholders.reduce(
-    (sum, stakeholder) => sum + Number(stakeholder.shareBps),
-    0
-  )
+    if (distributableStakeholders.some((stakeholder) => !stakeholder.verified)) {
+      return "모든 이해관계자의 조회(인증)가 완료되어야 합니다."
+    }
 
-  if (stakeholderShareSum !== 9200) {
-    return "수익 분배 비율의 합계는 9200bps여야 합니다."
+    const stakeholderShareSum = distributableStakeholders.reduce(
+      (sum, stakeholder) => sum + Number(stakeholder.shareBps),
+      0
+    )
+
+    if (stakeholderShareSum !== 9200) {
+      return "수익 분배 비율의 합계는 9200bps여야 합니다."
+    }
   }
 
   if (
@@ -408,10 +412,12 @@ export function buildUpdatePayload(
   currentPreviews: string[] = []
 ): CreateShowPayload {
   const retainedUrls = currentPreviews.filter((url) => url.startsWith("http"))
+  const showPayload = { ...buildPayload(values) }
+  delete showPayload.stakeholders
 
   return {
     show: {
-      ...buildPayload(values),
+      ...showPayload,
       existingDescriptionImageUrls: retainedUrls,
     },
     posterImageFile: values.posterFile ?? null,

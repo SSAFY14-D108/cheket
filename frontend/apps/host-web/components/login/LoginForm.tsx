@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { type FormEvent, useState } from "react"
 import { useRouter } from "next/navigation"
 import { LoginInput } from "@/components/common/LoginInput"
 import { LoginButton } from "@/components/common/LoginButton"
@@ -61,8 +61,21 @@ export function LoginForm() {
     router.push("/signup")
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isSubmitting) {
+      return
+    }
+
+    void handleLogin()
+  }
+
   return (
-    <div className="flex w-full max-w-md flex-col gap-5 rounded-lg border border-dashed border-gray-400 p-8 px-6">
+    <form
+      onSubmit={handleSubmit}
+      className="flex w-full max-w-md flex-col gap-5 rounded-lg border border-dashed border-gray-400 p-8 px-6"
+    >
       <h1 className="text-center text-2xl font-bold tracking-tight text-primary">
         CHEKET HOST
       </h1>
@@ -103,9 +116,8 @@ export function LoginForm() {
 
       <div className="flex flex-col gap-2">
         <LoginButton
-          type="button"
+          type="submit"
           variant="primary"
-          onClick={handleLogin}
           disabled={isSubmitting}
         >
           {isSubmitting ? "로그인 중..." : "로그인"}
@@ -119,6 +131,6 @@ export function LoginForm() {
           회원가입
         </LoginButton>
       </div>
-    </div>
+    </form>
   )
 }
