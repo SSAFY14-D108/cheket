@@ -40,6 +40,7 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.web3j:core:4.12.3' // Web3j 의존성 추가
+    implementation 'org.web3j:codegen:4.12.3' // Web3j 코드 생성용
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6' // JJWT 의존성 추가
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6' // JJWT 의존성 추가
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6' // JJWT 의존성 추가
@@ -76,4 +77,45 @@ checkstyle {
 
 tasks.named('check') {
     dependsOn 'spotlessCheck'
+}
+
+// Web3j Java Wrapper 생성 태스크
+tasks.register('generateContractWrappers', JavaExec) {
+    group = 'web3j'
+    description = 'ABI에서 Java Wrapper 클래스 생성'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.web3j.codegen.SolidityFunctionWrapperGenerator'
+
+    def contracts = ['StakeholderNFT', 'EventNFT', 'TicketNFT', 'PurchaseRouter', 'Settlement', 'Marketplace', 'Escrow']
+    def abiDir = "${rootProject.projectDir}/../blockchain/artifacts/contracts"
+    def outputDir = "${projectDir}/src/main/java"
+    def packageName = 'com.ssafy.cheket.blockchain.contract'
+
+    doFirst {
+        contracts.each { name ->
+            def abiFile = file("${abiDir}/${name}.sol/${name}.json")
+            if (!abiFile.exists()) {
+                throw new GradleException("ABI not found: ${abiFile}")
+            }
+
+            // ABI JSON에서 abi, bytecode 추출
+            def json = new groovy.json.JsonSlurper().parse(abiFile)
+            def abi = groovy.json.JsonOutput.toJson(json.abi)
+            def bin = json.bytecode ?: ''
+
+            def tmpAbi = file("${buildDir}/tmp/abi/${name}.abi")
+            def tmpBin = file("${buildDir}/tmp/abi/${name}.bin")
+            tmpAbi.parentFile.mkdirs()
+            tmpAbi.text = abi
+            tmpBin.text = bin
+
+            // web3j codegen 실행
+            javaexec {
+                classpath = sourceSets.main.runtimeClasspath
+                mainClass = 'org.web3j.codegen.SolidityFunctionWrapperGenerator'
+                args = ['-a', tmpAbi.absolutePath, '-b', tmpBin.absolutePath, '-o', outputDir, '-p', packageName]
+            }
+            println "Generated: ${packageName}.${name}"
+        }
+    }
 }
