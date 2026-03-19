@@ -3,6 +3,7 @@ package com.ssafy.cheket.controller.queue;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.queue.response.QueueEnterResponse;
 import com.ssafy.cheket.dto.queue.response.QueueInfoResponse;
+import com.ssafy.cheket.dto.queue.response.QueueSeatEnterResponse;
 import com.ssafy.cheket.service.queue.QueueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -45,5 +46,15 @@ public class QueueController {
         @PathVariable Long sessionId, @RequestHeader("Queue-Token") String queueToken) {
         queueService.leaveQueue(userId, showId, sessionId, queueToken);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "대기열에서 이탈하였습니다.", null));
+    }
+
+    @PostMapping("/enter")
+    @Operation(summary = "좌석 선택 진입")
+    @SecurityRequirement(name = "bearerAuth")
+    // @SecurityRequirement(name = "queueToken")
+    public ResponseEntity<ApiResponse<QueueSeatEnterResponse>> enterSeatSelection(@AuthenticationPrincipal Long userId,
+        @PathVariable Long showId, @PathVariable Long sessionId, @RequestHeader("Queue-Token") String queueToken) {
+        QueueSeatEnterResponse response = queueService.enterSeatSelection(userId, showId, sessionId, queueToken);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "좌석 선택 화면애 진입했습니다.", response));
     }
 }
