@@ -2,6 +2,7 @@ package com.ssafy.cheket.core.navigation
 
 import com.ssafy.cheket.core.model.Seat
 import com.ssafy.cheket.core.model.Ticket
+import com.ssafy.cheket.core.model.Show
 
 /**
  * Navigation 간 복잡한 데이터를 전달하기 위한 싱글톤.
@@ -15,11 +16,13 @@ object NavParams {
     var recipientPhone: String = ""
     var transferFailureReason: String = ""
     var selectedTicket: Ticket? = null
+    var showInfo: Show? = null
 
     fun clearPurchase() {
         selectedSeats = emptyList()
         totalPrice = 0
         failureReason = ""
+        showInfo = null
     }
 
     fun clearTransfer() {

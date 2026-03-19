@@ -37,8 +37,8 @@ export interface HostShowGrade {
 }
 
 export interface HostShowStakeholder {
-  role: "organizer" | "artist"
-  userId: number
+  role: "ORGANIZER" | "ARTIST"
+  id?: number
   shareBps: number
   name?: string
   number?: string
@@ -62,6 +62,7 @@ export interface HostShowDetail {
   title: string
   posterUrl: string
   artistName?: string
+  playtime?: number
   venue: HostShowVenueInfo
   show: HostShowPeriod
   reservation: HostReservationPeriod
@@ -72,6 +73,7 @@ export interface HostShowDetail {
   stakeholders: HostShowStakeholder[]
   refundPolicy: HostShowRefundPolicy[]
   sessionInfo: HostShowSessionInfo[]
+  descriptionImages?: string[]
   status: string
   createdAt: string
   updatedAt: string
@@ -88,7 +90,9 @@ interface RawHostShowGrade {
 
 interface RawHostShowStakeholder {
   role?: unknown
-  userId?: unknown
+  id?: unknown
+  businessNo?: unknown
+  phoneNumber?: unknown
   shareBps?: unknown
   name?: unknown
   number?: unknown
@@ -121,6 +125,7 @@ interface RawHostShowDetail {
     endDate?: unknown
   }
   description?: unknown
+  playtime?: unknown
   purchaseLimit?: unknown
   likeCount?: unknown
   grade?: RawHostShowGrade[]
@@ -130,6 +135,7 @@ interface RawHostShowDetail {
     refundRate?: unknown
   }>
   sessionInfo?: RawHostShowSessionInfo[]
+  descriptionImages?: unknown
   status?: unknown
   createdAt?: unknown
   updatedAt?: unknown
@@ -147,12 +153,41 @@ function toSafeString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback
 }
 
+function toOptionalSafeNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : typeof value === "string" && value.trim() && Number.isFinite(Number(value))
+      ? Number(value)
+      : undefined
+}
+
+function normalizeSessionDate(value: unknown) {
+  const safeValue = toSafeString(value)
+
+  if (!safeValue) {
+    return ""
+  }
+
+  return safeValue.includes("T") ? safeValue.slice(0, 10) : safeValue
+}
+
+function normalizeSessionStartLabel(value: unknown) {
+  const safeValue = toSafeString(value)
+
+  if (!safeValue) {
+    return ""
+  }
+
+  return safeValue.includes("T") ? safeValue.slice(11, 16) : safeValue.slice(0, 5)
+}
+
 function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
   return {
     showId: toSafeNumber(raw.showId),
     title: toSafeString(raw.title),
     posterUrl: toSafeString(raw.posterUrl),
     artistName: toSafeString(raw.artist),
+    playtime: toOptionalSafeNumber(raw.playtime),
     venue: {
       venueId: toSafeNumber(raw.venue?.venueId),
       name: toSafeString(raw.venue?.name),
@@ -184,11 +219,14 @@ function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
       : [],
     stakeholders: Array.isArray(raw.stakeholders)
       ? raw.stakeholders.map((stakeholder) => ({
-          role: stakeholder.role === "organizer" ? "organizer" : "artist",
-          userId: toSafeNumber(stakeholder.userId),
+          role: stakeholder.role === "ORGANIZER" ? "ORGANIZER" : "ARTIST",
+          id: toOptionalSafeNumber(stakeholder.id),
           shareBps: toSafeNumber(stakeholder.shareBps),
           name: toSafeString(stakeholder.name, ""),
-          number: toSafeString(stakeholder.number, ""),
+          number: toSafeString(
+            stakeholder.number ?? stakeholder.businessNo ?? stakeholder.phoneNumber,
+            ""
+          ),
         }))
       : [],
     refundPolicy: Array.isArray(raw.refundPolicy)
@@ -200,11 +238,16 @@ function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
     sessionInfo: Array.isArray(raw.sessionInfo)
       ? raw.sessionInfo.map((session) => ({
           sessionId: toSafeNumber(session.sessionId),
-          sessionDate: toSafeString(session.sessionDate),
-          sessionStartDate: toSafeString(session.sessionStartDate, ""),
+          sessionDate: normalizeSessionDate(session.sessionDate),
+          sessionStartDate: normalizeSessionStartLabel(
+            session.sessionStartDate ?? session.sessionStartTime
+          ),
           sessionStartTime: toSafeString(session.sessionStartTime, ""),
           capacity: toSafeNumber(session.capacity),
         }))
+      : [],
+    descriptionImages: Array.isArray(raw.descriptionImages)
+      ? raw.descriptionImages.filter((url: unknown): url is string => typeof url === "string")
       : [],
     status: toSafeString(raw.status),
     createdAt: toSafeString(raw.createdAt),
@@ -231,27 +274,25 @@ export interface HostShowVenueOption {
 export interface ShowFormPayload {
   title: string
   venueId: number
-  artistName?: string
-  show: {
-    startAt: string
-    endAt: string
-  }
-  reservation: {
-    openAt: string
-    closeAt: string
-  }
+  artist: string
+  playtime: number
+  showStartDate: string
+  showEndDate: string
+  reservationStartDate: string
+  reservationEndDate: string
   description: string
   purchaseLimit: number
   grade: Array<{
-    sectionId: number[]
+    sectionIds: number[]
     gradeName: string
     price: number
     colorCode: string
     ticketEffectId?: number
   }>
   stakeholders: Array<{
-    role: "organizer" | "artist"
-    userId?: number
+    role: "ORGANIZER" | "ARTIST"
+    businessNo: string | null
+    phoneNumber: string | null
     shareBps: number
   }>
   refundPolicy: Array<{
@@ -259,54 +300,16 @@ export interface ShowFormPayload {
     refundRate: number
   }>
   sessionInfo: Array<{
-    sessionId: number
     sessionDate: string
-    sessionStartDate: string
+    sessionStartTime: string
   }>
+  existingDescriptionImageUrls?: string[] | null
 }
 
 export interface CreateShowPayload {
   show: ShowFormPayload
-  posterImageFile: File
+  posterImageFile?: File | null
   descriptionImageFiles?: File[]
-}
-
-export interface UpdateShowPayload {
-  title?: string
-  posterUrl?: string
-  venueId?: number
-  artistName?: string
-  show?: {
-    startAt?: string
-    endAt?: string
-  }
-  reservation?: {
-    openAt?: string
-    closeAt?: string
-  }
-  description?: string
-  purchaseLimit?: number
-  grade?: Array<{
-    sectionId: number
-    gradeName: string
-    price: number
-    colorCode: string
-    ticketEffectId?: number
-  }>
-  stakeholders?: Array<{
-    role: "organizer" | "artist"
-    userId?: number
-    shareBps: number
-  }>
-  refundPolicy?: Array<{
-    daysRemaining: number
-    refundRate: number
-  }>
-  sessionInfo?: Array<{
-    sessionId: number
-    sessionDate: string
-    sessionStartDate: string
-  }>
 }
 
 function buildShowDetailPath(showId: string | number) {
@@ -367,6 +370,10 @@ export async function fetchShowVenues() {
 }
 
 export async function createShow(payload: CreateShowPayload) {
+  if (!payload.posterImageFile) {
+    throw new Error("대표 포스터 파일이 필요합니다.")
+  }
+
   const formData = new FormData()
 
   formData.append(
@@ -380,7 +387,7 @@ export async function createShow(payload: CreateShowPayload) {
     formData.append("descriptionImages", imageFile)
   })
 
-  const response = await apiFetch<ApiResponse<{ showId: number }>>(buildCreateShowPath(), {
+  const response = await apiFetch<ApiResponse<number>>(buildCreateShowPath(), {
     method: "POST",
     body: formData,
   })
@@ -388,10 +395,27 @@ export async function createShow(payload: CreateShowPayload) {
   return response.data
 }
 
-export async function updateShow(showId: string | number, payload: UpdateShowPayload) {
+export async function updateShow(showId: string | number, payload: CreateShowPayload) {
+  const formData = new FormData()
+
+  formData.append(
+    "show",
+    new Blob([JSON.stringify(payload.show)], {
+      type: "application/json",
+    })
+  )
+
+  if (payload.posterImageFile) {
+    formData.append("posterImage", payload.posterImageFile)
+  }
+
+  payload.descriptionImageFiles?.forEach((imageFile) => {
+    formData.append("descriptionImages", imageFile)
+  })
+
   const response = await apiFetch<ApiMessageResponse>(buildShowMutationPath(showId), {
-    method: "PUT",
-    body: JSON.stringify(payload),
+    method: "PATCH",
+    body: formData,
   })
 
   return response

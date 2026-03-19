@@ -22,13 +22,25 @@ enum class SortOption(val label: String, val apiValue: String) {
     CLOSING("오픈임박순", "DEADLINE"),
 }
 
-/** 백엔드 Region enum에 대응하는 지역 필터 */
-enum class RegionOption(val label: String, val apiValue: String) {
-    SEOUL("서울", "SEOUL"),
-    BUSAN("부울경", "BUSAN"),
-    GUMI("구미", "GUMI"),
-    DAEJEON("대전", "DAEJEON"),
-    GWANGJU("광주", "GWANGJU"),
+/** 백엔드 Region 코드 (Int)에 대응하는 지역 필터 */
+enum class RegionOption(val label: String, val apiValue: Int) {
+    SEOUL("서울", 11),
+    GYEONGGI("경기", 41),
+    INCHEON("인천", 28),
+    BUSAN("부산", 26),
+    DAEGU("대구", 27),
+    GWANGJU("광주", 29),
+    DAEJEON("대전", 30),
+    ULSAN("울산", 31),
+    SEJONG("세종", 36),
+    GANGWON("강원", 42),
+    CHUNGBUK("충북", 43),
+    CHUNGNAM("충남", 44),
+    JEONBUK("전북", 45),
+    JEONNAM("전남", 46),
+    GYEONGBUK("경북", 47),
+    GYEONGNAM("경남", 48),
+    JEJU("제주", 50),
 }
 
 data class ShowsUiState(
@@ -123,11 +135,10 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
             }
 
             val keyword = s.searchQuery.trim().ifBlank { null }
-            // 지역: 복수 선택 시 첫 번째만 전달 (API가 단일 값)
-            val region = s.selectedRegions.firstOrNull()?.apiValue
+            val regions = s.selectedRegions.map { it.apiValue }.ifEmpty { null }
 
             val result = showRepository.getShowsPage(
-                region = region,
+                regions = regions,
                 sort = s.sortBy.apiValue,
                 keyword = keyword,
                 page = page,

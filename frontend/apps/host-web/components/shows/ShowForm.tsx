@@ -22,7 +22,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     isEdit,
     title,
     artistName,
+    playtime,
     posterPreview,
+    descriptionImagePreviews,
     description,
     venueId,
     venues,
@@ -40,6 +42,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     isSubmitting,
     setTitle,
     setArtistName,
+    setPlaytime,
     setDescription,
     setPurchaseLimit,
     setShowStartAt,
@@ -47,6 +50,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     setOpenAt,
     setCloseAt,
     handlePosterChange,
+    handleDescriptionImagesChange,
+    handleRemoveDescriptionImage,
     handleVenueChange,
     addGrade,
     removeGrade,
@@ -65,6 +70,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
   const headerTitle = isEdit ? "공연 수정" : "공연 등록"
   const submitLabel = isEdit ? "수정하기" : "등록하기"
+  const isRemotePosterPreview =
+    typeof posterPreview === "string" &&
+    (posterPreview.startsWith("http://") || posterPreview.startsWith("https://"))
 
   return (
     <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
@@ -135,7 +143,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                       src={posterPreview}
                       alt="포스터 미리보기"
                       fill
-                      unoptimized={posterPreview.startsWith("data:")}
+                      unoptimized={posterPreview.startsWith("data:") || isRemotePosterPreview}
                       className="object-contain"
                     />
                   </div>
@@ -160,7 +168,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                   </div>
                   <div className="text-center">
                     <p className="font-medium text-foreground">클릭하여 포스터 업로드</p>
-                    <p className="mt-1 text-sm">세로형 이미지 (권장 비율 3:4)</p>
+                    <p className="mt-1 text-sm text-muted-foreground">세로형 이미지 (권장 3:4)</p>
+                    <p className="mt-1 text-xs font-medium text-destructive">최대 5MB</p>
                   </div>
                 </div>
               )}
@@ -168,10 +177,71 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             <input
               id="poster-upload"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="sr-only"
               onChange={handlePosterChange}
             />
+          </div>
+
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <Label className="block text-base font-semibold">상세 이미지(여러 장 가능)</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById("description-image-upload")?.click()}
+                >
+                  <ImagePlus className="mr-2 size-4" />
+                  이미지 추가
+                </Button>
+                <span className="text-xs text-muted-foreground">(장당 5MB, 요청당 총 50MB 제한)</span>
+              </div>
+            </div>
+
+            <input
+              id="description-image-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="sr-only"
+              onChange={handleDescriptionImagesChange}
+            />
+
+            {descriptionImagePreviews.length === 0 ? (
+              <div
+                className="flex min-h-[140px] cursor-pointer flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/60"
+                onClick={() => document.getElementById("description-image-upload")?.click()}
+              >
+                <Upload className="size-6" />
+                <div className="text-center">
+                  <p className="text-sm">상세 이미지를 업로드하세요 (여러 장 선택 가능)</p>
+                  <p className="mt-1 text-xs">(JPEG, PNG, WEBP / 장당 5MB / 요청당 총 50MB)</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                {descriptionImagePreviews.map((preview, index) => (
+                  <div key={preview + index} className="group relative overflow-hidden rounded-md border bg-muted/30">
+                    <Image
+                      src={preview}
+                      alt={`상세 이미지 ${index + 1}`}
+                      width={320}
+                      height={200}
+                      className="h-full w-full object-cover"
+                      unoptimized={preview.startsWith("data:")}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={() => handleRemoveDescriptionImage(index)}
+                    >
+                      제거
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <DescriptionEditor value={description} onChange={setDescription} />
@@ -184,11 +254,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               venues={venues}
               isLoadingVenues={isLoadingVenues}
               venueLoadError={venueLoadError}
+              playtime={playtime}
               showStartAt={showStartAt}
               showEndAt={showEndAt}
               openAt={openAt}
               closeAt={closeAt}
               onChangeVenueId={handleVenueChange}
+              onChangePlaytime={setPlaytime}
               onChangeShowRange={(startAt, endAt) => {
                 setShowStartAt(startAt)
                 setShowEndAt(endAt)

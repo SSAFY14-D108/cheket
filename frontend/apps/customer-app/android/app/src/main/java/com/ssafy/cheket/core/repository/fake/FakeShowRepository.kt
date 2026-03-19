@@ -13,15 +13,16 @@ private const val TAG = "FakeShowRepo"
 class FakeShowRepository : ShowRepository {
 
     override suspend fun getShowsPage(
-        region: String?,
+        regions: List<Int>?,
         sort: String?,
         keyword: String?,
         page: Int,
         size: Int,
     ): ShowPage {
         val all = MockDataSource.mockShows
+        val regionNames = regions?.map { RegionCode.toName(it) }
         val filtered = all.filter { show ->
-            (region == null || show.region == region) &&
+            (regionNames == null || show.region in regionNames) &&
                     (keyword == null || show.name.contains(keyword, ignoreCase = true))
         }
         val start = (page * size).coerceAtMost(filtered.size)

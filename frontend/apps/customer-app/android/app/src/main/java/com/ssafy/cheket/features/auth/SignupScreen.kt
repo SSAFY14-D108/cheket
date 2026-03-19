@@ -1,6 +1,8 @@
 package com.ssafy.cheket.features.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -151,8 +153,10 @@ private fun Step1Content(uiState: SignupUiState, viewModel: SignupViewModel) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = uiState.phone,
-                onValueChange = viewModel::onPhoneChange,
+                onValueChange = { viewModel.onPhoneChange(it.filter { c -> c.isDigit() }.take(11)) },
                 placeholder = { Text("010-0000-0000", fontSize = 14.sp) },
+                visualTransformation = com.ssafy.cheket.core.ui.component.PhoneVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(20.dp),
                 singleLine = true,
                 colors = inputColors(),

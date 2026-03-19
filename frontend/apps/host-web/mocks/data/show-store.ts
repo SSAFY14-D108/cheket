@@ -7,8 +7,8 @@ export interface Grade {
 }
 
 export interface Stakeholder {
-  role: "organizer" | "artist"
-  userId?: number
+  role: "ORGANIZER" | "ARTIST"
+  id?: number
   name: string
   businessNo?: string
   phone?: string
@@ -31,6 +31,7 @@ export interface Event {
   showId: number
   title: string
   artistName: string
+  playtime: number
   posterUrl: string
   venue: {
     venueId: number
@@ -46,6 +47,7 @@ export interface Event {
     closeAt: string
   }
   description: string
+  descriptionImages?: string[]
   purchaseLimit: number
   grade: Grade[]
   stakeholders: Stakeholder[]
@@ -142,6 +144,7 @@ export const mockEvents: Event[] = [
     showId: 42,
     title: "CHEKET LIVE: Spring Night",
     artistName: "에스파",
+    playtime: 120,
     posterUrl: "/images/poster-1.jpg",
     venue: {
       venueId: 1,
@@ -158,6 +161,10 @@ export const mockEvents: Event[] = [
     },
     description:
       "CHEKET 아티스트들과 함께하는 단독 공연입니다.\n- 전석 지정좌석\n- 만 7세 이상 관람가",
+    descriptionImages: [
+      "http://localhost:3000/images/poster-1.jpg",
+      "http://localhost:3000/images/poster-2.jpg",
+    ],
     purchaseLimit: 2,
     grade: [
       { sectionId: 1, gradeName: "VIP", price: 150000, colorCode: "#7C6EF0", ticketEffectId: 1 },
@@ -165,8 +172,8 @@ export const mockEvents: Event[] = [
       { sectionId: 2, gradeName: "S", price: 100000, colorCode: "#aaaaaa", ticketEffectId: 3 },
     ],
     stakeholders: [
-      { role: "organizer", userId: 15, name: "뮤직페스티벌 주최사", businessNo: "123-45-67890", shareBps: 7000 },
-      { role: "artist", userId: 16, name: "박지연", phone: "010-1234-5678", shareBps: 3000 },
+      { role: "ORGANIZER", id: 15, name: "뮤직페스티벌 주최사", businessNo: "123-45-67890", shareBps: 7000 },
+      { role: "ARTIST", id: 16, name: "박지연", phone: "010-1234-5678", shareBps: 3000 },
     ],
     refundPolicy: [
       { daysRemaining: 14, refundRate: 100 },
@@ -192,6 +199,7 @@ export const mockEvents: Event[] = [
     showId: 43,
     title: "봄날의 재즈 나이트",
     artistName: "재즈 올스타즈",
+    playtime: 150,
     posterUrl: "/images/poster-2.jpg",
     venue: {
       venueId: 2,
@@ -208,11 +216,12 @@ export const mockEvents: Event[] = [
     },
     description:
       "봄밤의 감성을 채워줄 재즈 공연. 국내외 최고의 재즈 뮤지션들이 펼치는 특별한 무대입니다.",
+    descriptionImages: ["http://localhost:3000/images/poster-2.jpg"],
     purchaseLimit: 4,
     grade: [{ sectionId: 3, gradeName: "일반", price: 80000, colorCode: "#000000", ticketEffectId: 1 }],
     stakeholders: [
-      { role: "organizer", userId: 17, name: "재즈협회", businessNo: "222-22", shareBps: 5000 },
-      { role: "artist", userId: 18, name: "재즈밴드", phone: "010-1111-2222", shareBps: 5000 },
+      { role: "ORGANIZER", id: 17, name: "재즈협회", businessNo: "222-22", shareBps: 5000 },
+      { role: "ARTIST", id: 18, name: "재즈밴드", phone: "010-1111-2222", shareBps: 5000 },
     ],
     refundPolicy: [
       { daysRemaining: 5, refundRate: 100 },
@@ -235,6 +244,7 @@ export const mockEvents: Event[] = [
     showId: 44,
     title: "Rolling Indie Night",
     artistName: "실리카겔 & 잔나비",
+    playtime: 180,
     posterUrl: "/images/poster-3.jpg",
     venue: {
       venueId: 4,
@@ -251,11 +261,12 @@ export const mockEvents: Event[] = [
     },
     description:
       "대한민국 인디 록의 중심, 롤링홀에서 펼쳐지는 뜨거운 인디 밴드들의 릴레이 공연! 스트레스를 날려버릴 강렬한 사운드가 여러분을 기다립니다.",
+    descriptionImages: ["http://localhost:3000/images/poster-3.jpg"],
     purchaseLimit: 4,
     grade: [{ sectionId: 4, gradeName: "스탠딩", price: 55000, colorCode: "#FF5733", ticketEffectId: 4 }],
     stakeholders: [
-      { role: "organizer", userId: 19, name: "인디뮤직네트워크", businessNo: "333-33-33333", shareBps: 8000 },
-      { role: "artist", userId: 20, name: "록 밴드 연합", phone: "010-3333-3333", shareBps: 2000 },
+      { role: "ORGANIZER", id: 19, name: "인디뮤직네트워크", businessNo: "333-33-33333", shareBps: 8000 },
+      { role: "ARTIST", id: 20, name: "록 밴드 연합", phone: "010-3333-3333", shareBps: 2000 },
     ],
     refundPolicy: [
       { daysRemaining: 3, refundRate: 100 },
@@ -278,6 +289,7 @@ export const mockEvents: Event[] = [
     showId: 45,
     title: "2026 한강 썸머 뮤직 페스티벌",
     artistName: "Various Artists",
+    playtime: 540,
     posterUrl: "/images/poster-4.jpg",
     venue: {
       venueId: 3,
@@ -294,6 +306,10 @@ export const mockEvents: Event[] = [
     },
     description:
       "무더운 여름을 시원하게 날려버릴 한강 최대의 야외 음악 축제! 2일 동안 펼쳐지는 국내외 최정상급 아티스트들의 무대와 다채로운 즐길거리가 풍성하게 준비되어 있습니다.",
+    descriptionImages: [
+      "http://localhost:3000/images/poster-4.jpg",
+      "http://localhost:3000/images/poster-1.jpg",
+    ],
     purchaseLimit: 4,
     grade: [
       { sectionId: 5, gradeName: "2일권", price: 180000, colorCode: "#1D4ED8", ticketEffectId: 2 },
@@ -301,8 +317,8 @@ export const mockEvents: Event[] = [
       { sectionId: 7, gradeName: "1일권(일)", price: 110000, colorCode: "#60A5FA", ticketEffectId: 4 },
     ],
     stakeholders: [
-      { role: "organizer", userId: 21, name: "썸머페스트 조직위", businessNo: "444-44-44444", shareBps: 6000 },
-      { role: "artist", userId: 22, name: "참여 아티스트 전체", phone: "010-4444-4444", shareBps: 4000 },
+      { role: "ORGANIZER", id: 21, name: "썸머페스트 조직위", businessNo: "444-44-44444", shareBps: 6000 },
+      { role: "ARTIST", id: 22, name: "참여 아티스트 전체", phone: "010-4444-4444", shareBps: 4000 },
     ],
     refundPolicy: [
       { daysRemaining: 30, refundRate: 100 },
@@ -426,6 +442,7 @@ export function cloneMockEvent(event: Event) {
     stakeholders: event.stakeholders.map((stakeholder) => ({ ...stakeholder })),
     refundPolicy: event.refundPolicy.map((policy) => ({ ...policy })),
     sessionInfo: event.sessionInfo.map((session) => ({ ...session })),
+    descriptionImages: event.descriptionImages ? [...event.descriptionImages] : [],
   }
 }
 
@@ -454,6 +471,7 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
     title: event.title,
     posterUrl: event.posterUrl,
     artist: event.artistName,
+    playtime: event.playtime,
     venue: {
       venueId: event.venue.venueId,
       name: event.venue.name,
@@ -468,6 +486,7 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
       endDate: event.reservation.closeAt,
     },
     description: event.description,
+    descriptionImages: event.descriptionImages ?? [],
     purchaseLimit: event.purchaseLimit,
     likeCount: event.likes,
     grade: event.grade.map((grade) => ({
@@ -476,10 +495,10 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
     })),
     stakeholders: event.stakeholders.map((stakeholder, index) => ({
       role: stakeholder.role,
-      userId: stakeholder.userId ?? 15 + index,
+      id: stakeholder.id ?? 15 + index,
       shareBps: stakeholder.shareBps,
       name: stakeholder.name,
-      number: stakeholder.role === "organizer" ? stakeholder.businessNo : stakeholder.phone,
+      number: stakeholder.role === "ORGANIZER" ? stakeholder.businessNo : stakeholder.phone,
     })),
     refundPolicy: event.refundPolicy,
     sessionInfo: event.sessionInfo,

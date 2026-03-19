@@ -29,16 +29,16 @@ class ShowRepositoryImpl(
         )
 
     override suspend fun getShowsPage(
-        region: String?,
+        regions: List<Int>?,
         sort: String?,
         keyword: String?,
         page: Int,
         size: Int,
     ): ShowPage {
-        Log.d(TAG, "getShowsPage(region=$region, sort=$sort, keyword=$keyword, page=$page, size=$size)")
+        Log.d(TAG, "getShowsPage(regions=$regions, sort=$sort, keyword=$keyword, page=$page, size=$size)")
         return try {
             val response = showService.getShows(
-                region = region,
+                regions = regions,
                 sort = sort,
                 keyword = keyword,
                 page = page,

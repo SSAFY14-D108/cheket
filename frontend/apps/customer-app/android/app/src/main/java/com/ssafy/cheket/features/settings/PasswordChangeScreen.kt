@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -19,14 +20,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssafy.cheket.core.repository.AuthRepository
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun PasswordChangeScreen(
+    authRepository: AuthRepository,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -39,6 +44,8 @@ fun PasswordChangeScreen(
     var currentError by remember { mutableStateOf<String?>(null) }
     var newError by remember { mutableStateOf<String?>(null) }
     var confirmError by remember { mutableStateOf<String?>(null) }
+
+    var isLoading by remember { mutableStateOf(false) }
 
     fun validate(): Boolean {
         var valid = true
@@ -192,18 +199,39 @@ fun PasswordChangeScreen(
             // Submit Button
             Button(
                 onClick = {
-                    if (validate()) {
-                        Toast.makeText(context, "비밀번호가 변경되었습니다", Toast.LENGTH_SHORT).show()
-                        onBack()
+                    if (validate() && !isLoading) {
+                        isLoading = true
+                        scope.launch {
+                            val result = authRepository.changePassword(
+                                oldPassword = currentPassword,
+                                newPassword = newPassword,
+                            )
+                            isLoading = false
+                            result.onSuccess {
+                                Toast.makeText(context, "비밀번호가 변경되었습니다", Toast.LENGTH_SHORT).show()
+                                onBack()
+                            }.onFailure { e ->
+                                currentError = e.message ?: "비밀번호 변경에 실패했습니다"
+                            }
+                        }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
             ) {
-                Text("변경하기", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = White)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = White,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("변경하기", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = White)
+                }
             }
 
             Spacer(Modifier.height(16.dp))

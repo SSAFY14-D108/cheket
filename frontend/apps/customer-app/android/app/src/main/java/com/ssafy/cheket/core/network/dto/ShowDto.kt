@@ -76,21 +76,24 @@ data class SessionDto(
 
 // ── Seats ──
 
-data class SeatsResponse(
-    @SerializedName("sections") val sections: List<SeatSectionDto>,
-)
+/** Backend returns List<GetSeatsResponse> directly as data field */
+typealias SeatsResponse = List<SeatSectionDto>
 
 data class SeatSectionDto(
     @SerializedName("sectionId") val sectionId: Long,
     @SerializedName("sectionName") val sectionName: String,
+    @SerializedName("gradeName") val gradeName: String,
+    @SerializedName("price") val price: Int,
+    @SerializedName("colorCode") val colorCode: String,
     @SerializedName("seats") val seats: List<SeatDto>,
 )
 
 data class SeatDto(
+    @SerializedName("sessionSeatId") val sessionSeatId: Long,
     @SerializedName("seatId") val seatId: Long,
+    @SerializedName("rowNum") val rowNum: Int,
+    @SerializedName("colNum") val colNum: Int,
     @SerializedName("seatNo") val seatNo: String,
-    @SerializedName("grade") val grade: String,
-    @SerializedName("price") val price: Int,
     @SerializedName("status") val status: String,
 )
 

@@ -13,14 +13,14 @@ interface ResaleService {
 
     @GET("api/v1/resales")
     suspend fun getResaleShows(
-        @Query("region") region: String? = null,
+        @Query("regions") regions: List<Int>? = null,
         @Query("sort") sort: String? = null,
         @Query("keyword") keyword: String? = null,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20,
     ): ApiResponse<ResaleShowListResponse>
 
-    @GET("api/v1/resales/{showId}")
+    @GET("api/v1/resales/shows/{showId}")
     suspend fun getResaleTickets(
         @Path("showId") showId: Long,
         @Query("sort") sort: String? = null,

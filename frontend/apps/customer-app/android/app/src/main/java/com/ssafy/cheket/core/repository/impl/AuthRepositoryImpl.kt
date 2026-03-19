@@ -7,6 +7,7 @@ import com.ssafy.cheket.core.network.AuthEventBus
 import com.ssafy.cheket.core.network.AuthEvent
 import com.ssafy.cheket.core.network.AuthLogoutReason
 import com.ssafy.cheket.core.network.AuthTokens
+import com.ssafy.cheket.core.network.dto.AuthChangePasswordRequest
 import com.ssafy.cheket.core.network.dto.LoginRequest
 import com.ssafy.cheket.core.network.dto.SignupRequest
 import com.ssafy.cheket.core.network.service.AuthService
@@ -86,6 +87,24 @@ class AuthRepositoryImpl(
         } catch (e: Exception) {
             Log.e(TAG, "signup() error", e)
             false
+        }
+    }
+
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
+        Log.d(TAG, "changePassword()")
+        return try {
+            val response = authService.changePassword(
+                AuthChangePasswordRequest(oldPassword = oldPassword, newPassword = newPassword)
+            )
+            Log.d(TAG, "changePassword() statusCode=${response.httpStatusCode}")
+            if (response.httpStatusCode in 200..299) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.responseMessage ?: "비밀번호 변경 실패"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "changePassword() error", e)
+            Result.failure(e)
         }
     }
 
