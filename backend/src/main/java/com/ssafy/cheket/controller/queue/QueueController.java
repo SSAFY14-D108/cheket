@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.queue;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.queue.response.QueueEnterResponse;
+import com.ssafy.cheket.dto.queue.response.QueueInfoResponse;
 import com.ssafy.cheket.service.queue.QueueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,6 +25,16 @@ public class QueueController {
         @PathVariable Long showId, @PathVariable Long sessionId) {
         QueueEnterResponse response = queueService.enterQueue(userId, showId, sessionId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "대기열 진입에 성공했습니다.", response));
+    }
+
+    @GetMapping("/status")
+    @Operation(summary = "대기 상태 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    // @SecurityRequirement(name = "queueToken")
+    public ResponseEntity<ApiResponse<QueueInfoResponse>> getQueueInfo(@AuthenticationPrincipal Long userId,
+        @PathVariable Long showId, @PathVariable Long sessionId, @RequestHeader("Queue-Token") String queueToken) {
+        QueueInfoResponse response = queueService.getQueueInfo(userId, showId, sessionId, queueToken);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "대기열 상태 조회에 성공했습니다.", response));
     }
 
     @DeleteMapping
