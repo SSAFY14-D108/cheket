@@ -157,6 +157,20 @@ public class QueueRepository {
             String.valueOf(admitExpiresAt));
     }
 
+    // 좌석 선택 화면 진입 시각 저장
+    public void updateEnteredAt(String queueToken, Long enteredAt) {
+        redisTemplate.opsForHash().put(QueueRedisKeys.tokenKey(queueToken), "enteredAt", String.valueOf(enteredAt));
+    }
+
+    public void saveSeatAccessToken(String seatAccessToken, Long userId, Long showId, Long sessionId, long ttlSeconds) {
+        String key = QueueRedisKeys.seatAccessKey(seatAccessToken);
+
+        redisTemplate.opsForHash().put(key, "userId", String.valueOf(userId));
+        redisTemplate.opsForHash().put(key, "showId", String.valueOf(showId));
+        redisTemplate.opsForHash().put(key, "sessionId", String.valueOf(sessionId));
+        redisTemplate.expire(key, Duration.ofSeconds(ttlSeconds));
+    }
+
     // sessionId + userId 기준 토큰 매핑 삭제
     public void deleteUserTokenMapping(Long sessionId, Long userId) {
         redisTemplate.delete(QueueRedisKeys.userTokenKey(sessionId, userId));
