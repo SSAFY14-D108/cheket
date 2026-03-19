@@ -362,23 +362,23 @@ contract TicketNFT is ERC721, Ownable {
 
         // count만큼 반복하여 민팅
         for (uint256 i = 0; i < count; i++) {
-            _safeMint(to, startTokenId + i);
-            // i=0: tokenId = startTokenId + 0
-            // i=1: tokenId = startTokenId + 1
-            // ...
+            uint256 tokenId = startTokenId + i;
+            _safeMint(to, tokenId);
 
-            tickets[startTokenId + i] = TicketInfo({
+            tickets[tokenId] = TicketInfo({
                 eventId: eventId,
                 sessionId: sessionId,
                 section: section,
                 row: row,
                 seat: startSeat + i, // 좌석 번호 자동 증가
-                // startSeat=1이면: 1, 2, 3, 4, 5...
                 grade: grade,
                 price: price,
                 status: TicketStatus.VALID,
                 mintedAt: block.timestamp
             });
+
+            // 배치에서도 개별 이벤트 발행 → 백엔드 Event Listener가 DB 동기화 가능
+            emit TicketMinted(tokenId, to, eventId, sessionId);
         }
 
         _nextTokenId = startTokenId + count;
