@@ -15,17 +15,17 @@ val Muted = Color(0xFFF2F7F6)
 
 // Text
 val OnBackground = Color(0xFF0D1F1A)
-val MutedForeground = Color(0xFF6B7280)
+val MutedForeground = Color(0xFF5C7A73)   // v0: --muted-foreground
 val SubText = Color(0xFF9CA3AF)
 
 // Borders
-val BorderColor = Color(0xFFE5E7EB)
+val BorderColor = Color(0xFFD8EFEA)       // v0: --border (민트 계열)
 
-// Status badges (tickets)
-val BadgeSold = Color(0xFF7C9EF8)
-val BadgeListed = Color(0xFF00C598)
-val BadgeUsed = Color(0xFF7A8A85)
-val BadgeExpired = Color(0xFFE53E3E)
+// Status badges (tickets) — v0 badge-status 매핑
+val BadgeSold = Color(0xFF5A6FFF)         // v0: #5a6fff
+val BadgeListed = Color(0xFFF08A3C)       // v0: #f08a3c
+val BadgeUsed = Color(0xFF707A86)         // v0: #707a86
+val BadgeExpired = Color(0xFFE05A5A)      // v0: #e05a5a
 
 // Event status
 val StatusOnSale = Color(0xFF00C598)

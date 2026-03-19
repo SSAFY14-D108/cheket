@@ -1,57 +1,44 @@
 package com.ssafy.cheket.features.collection
 
-import android.annotation.SuppressLint
-import android.graphics.Color as AndroidColor
-import android.net.Uri
-import android.util.Log
-import android.webkit.ConsoleMessage
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.Ticket
-import com.ssafy.cheket.core.model.TicketStatus
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
 
-private const val COLLECTION_BASE_URL = "https://j14d108.p.ssafy.io/collection/index.html"
-
+// ─────────────────────────────────────────────────────────────────────
+// CollectionScreen — 2-column grid with collectible NFT ticket cards
+// ─────────────────────────────────────────────────────────────────────
 @Composable
 fun CollectionScreen(
     appContainer: AppContainer,
@@ -59,310 +46,471 @@ fun CollectionScreen(
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTicket by remember { mutableStateOf<Ticket?>(null) }
+    val tiltState by rememberTiltState(maxDegrees = 10f)
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // ── Collection grid ──
-        Scaffold(
-            topBar = { AppHeader(title = "컬렉션") }
-        ) { innerPadding ->
-            if (uiState.usedTickets.isEmpty() && !uiState.isLoading) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    EmptyState(
-                        "아직 컬렉션이 없어요", "공연을 관람하면 티켓이 여기에 모입니다",
-                        Modifier.weight(1f)
-                    )
-                    // ── 테스트 버튼: 더미 데이터로 WebView 확인 ──
-                    Button(
-                        onClick = {
-                            selectedTicket = Ticket(
-                                id = "9999",
-                                showId = "1",
-                                showName = "CHEKET 테스트 콘서트",
-                                showDate = "2026-03-15",
-                                venue = "SSAFY 서울캠퍼스",
-                                poster = "https://picsum.photos/400/600",
-                                seatId = "A-12",
-                                seatLabel = "A구역 12번",
-                                grade = "VIP",
-                                originalPrice = 99000,
-                                status = TicketStatus.USED,
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        modifier = Modifier.padding(bottom = 32.dp),
+    Scaffold(
+        topBar = { AppHeader(title = "컬렉션") },
+    ) { innerPadding ->
+        if (uiState.usedTickets.isEmpty() && !uiState.isLoading) {
+            EmptyState(
+                title = "아직 컬렉션이 없어요",
+                description = "공연을 관람하면 티켓이 여기에 모입니다",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            )
+        } else {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .background(Background)
+                    .padding(innerPadding),
+            ) {
+                // Subtitle area
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Muted,
                     ) {
-                        Text("🎫 WebView 테스트", color = White)
-                    }
-                }
-            } else {
-                Column(Modifier.fillMaxSize().background(Background).padding(innerPadding)) {
-                    Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Muted,
-                        ) {
-                            Text(
-                                "${uiState.usedTickets.size}장",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MutedForeground,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            )
-                        }
-                        Spacer(Modifier.height(8.dp))
                         Text(
-                            "관람한 공연의 소장 티켓을 모아보세요. 카드를 탭하면 상세 정보를 볼 수 있어요.",
-                            fontSize = 12.sp, color = MutedForeground, lineHeight = 18.sp,
+                            "${uiState.usedTickets.size}장",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MutedForeground,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         )
                     }
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        itemsIndexed(uiState.usedTickets) { index, ticket ->
-                            CompactTicketCard(
-                                ticket = ticket,
-                                isGold = index == 0,
-                                onClick = { selectedTicket = ticket },
-                            )
-                        }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "관람한 공연의 소장 티켓을 모아보세요.\n카드를 탭하면 뒤집어 상세 정보를 볼 수 있어요.",
+                        fontSize = 12.sp,
+                        color = MutedForeground,
+                        lineHeight = 18.sp,
+                    )
+                }
+
+                // 2-column grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    itemsIndexed(uiState.usedTickets, key = { _, t -> t.id }) { _, ticket ->
+                        CollectibleTicketCard(
+                            ticket = ticket,
+                            holoVariant = getTicketHoloVariant(ticket.id),
+                            numberAura = getNumberAura(ticket.id),
+                            sensorTiltX = tiltState.x,
+                            sensorTiltY = tiltState.y,
+                            onLongPress = { onTicketClick(ticket.id) },
+                        )
                     }
                 }
             }
         }
-
-        // ── Overlay modal with WebView ──
-        TicketOverlay(
-            ticket = selectedTicket,
-            onDismiss = { selectedTicket = null },
-        )
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Full-screen WebView overlay with transparent background
+// CollectibleTicketCard — Flip card with holo overlay, tilt, sparkles
 // ─────────────────────────────────────────────────────────────────────
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun TicketOverlay(
-    ticket: Ticket?,
-    onDismiss: () -> Unit,
+private fun CollectibleTicketCard(
+    ticket: Ticket,
+    holoVariant: HoloVariant,
+    numberAura: NumberAuraType,
+    sensorTiltX: Float,
+    sensorTiltY: Float,
+    onLongPress: () -> Unit,
 ) {
-    val visible = ticket != null
+    var flipped by remember { mutableStateOf(false) }
+    val rotation by animateFloatAsState(
+        targetValue = if (flipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "cardFlip",
+    )
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(300)),
-        exit = fadeOut(tween(250)),
-    ) {
-        var isLoading by remember { mutableStateOf(true) }
-        val url = ticket?.let {
-            Uri.parse(COLLECTION_BASE_URL)
-                .buildUpon()
-                .appendQueryParameter("name", it.showName)
-                .appendQueryParameter("date", it.showDate)
-                .appendQueryParameter("venue", it.venue)
-                .appendQueryParameter("seat", it.seatLabel)
-                .appendQueryParameter("grade", it.grade)
-                .appendQueryParameter("poster", it.poster)
-                .appendQueryParameter("id", it.numbering.ifBlank { it.id })
-                .appendQueryParameter("price", it.originalPrice.toString())
-                .build()
-                .toString()
-        } ?: ""
+    // Touch-based tilt (on press)
+    var touchTiltX by remember { mutableFloatStateOf(0f) }
+    var touchTiltY by remember { mutableFloatStateOf(0f) }
+    val animatedTouchTiltX by animateFloatAsState(touchTiltX, tween(150), label = "touchTiltX")
+    val animatedTouchTiltY by animateFloatAsState(touchTiltY, tween(150), label = "touchTiltY")
+    var cardSize by remember { mutableStateOf(IntSize.Zero) }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            // WebView (HTML 자체가 반투명 배경 + 센터링 처리)
-            if (ticket != null) {
-                AndroidView(
-                    factory = { context ->
-                        WebView(context).apply {
-                            setBackgroundColor(AndroidColor.BLACK)
+    // Combine sensor tilt (subtle) with touch tilt
+    val finalTiltX = sensorTiltX * 0.3f + animatedTouchTiltX
+    val finalTiltY = sensorTiltY * 0.3f + animatedTouchTiltY
 
-                            webChromeClient = object : WebChromeClient() {
-                                override fun onConsoleMessage(cm: ConsoleMessage?): Boolean {
-                                    Log.d("CollectionWV", "[JS] ${cm?.message()} (${cm?.sourceId()}:${cm?.lineNumber()})")
-                                    return true
-                                }
-                            }
+    val density = LocalDensity.current.density
 
-                            webViewClient = object : WebViewClient() {
-                                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                                    Log.d("CollectionWV", "▶ onPageStarted: $url")
-                                }
-
-                                override fun onPageFinished(view: WebView?, u: String?) {
-                                    Log.d("CollectionWV", "✅ onPageFinished: $u")
-
-                                    // WebView에서 vh 단위가 0 으로 잡히는 문제 우회:
-                                    // body를 fixed 전체 화면으로 잡고 flex 센터링 + scene 애니메이션 제거
-                                    view?.evaluateJavascript(
-                                        """
-                                        var b=document.body;
-                                        b.style.position='fixed';
-                                        b.style.inset='0';
-                                        b.style.width='100%';
-                                        b.style.height='100%';
-                                        b.style.display='flex';
-                                        b.style.alignItems='center';
-                                        b.style.justifyContent='center';
-                                        b.style.overflow='hidden';
-                                        var s=document.querySelector('.scene');
-                                        if(s){
-                                          s.style.animation='none';
-                                          s.style.opacity='1';
-                                          s.style.transform='scale(1) rotateX(0deg)';
-                                        }
-                                        """.trimIndent(),
-                                        null,
-                                    )
-
-                                    // DOM 디버그
-                                    view?.evaluateJavascript(
-                                        """
-                                        (function(){
-                                          var s=document.querySelector('.scene');
-                                          var cf=document.querySelector('.card-flip');
-                                          var b=document.body;
-                                          var poster=document.querySelector('.poster');
-                                          var holo=document.querySelector('.holo-layer');
-                                          return 'scene='+(!s?'null':(s.offsetWidth+'x'+s.offsetHeight))
-                                            +' cardFlip='+(!cf?'null':(cf.offsetWidth+'x'+cf.offsetHeight))
-                                            +' bodyW='+b.offsetWidth+' bodyH='+b.offsetHeight
-                                            +' vpH='+window.innerHeight
-                                            +' holo='+(!holo?'null':(holo.offsetWidth+'x'+holo.offsetHeight))
-                                            +' poster='+(!poster?'null':(poster.naturalWidth+'x'+poster.naturalHeight+' loaded='+poster.complete))
-                                            +' title='+document.title;
-                                        })()
-                                        """.trimIndent(),
-                                    ) { result ->
-                                        Log.d("CollectionWV", "🔍 DOM: $result")
-                                    }
-
-                                    isLoading = false
-                                }
-
-                                override fun onReceivedError(
-                                    view: WebView?, request: WebResourceRequest?,
-                                    error: WebResourceError?,
-                                ) {
-                                    Log.e("CollectionWV", "❌ Error: ${error?.description} (${error?.errorCode}) url=${request?.url}")
-                                }
-                            }
-
-                            // 하드웨어 가속 렌더링
-                            setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
-
-                            settings.apply {
-                                javaScriptEnabled = true
-                                domStorageEnabled = true
-                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                                useWideViewPort = true
-                                loadWithOverviewMode = true
-                                cacheMode = WebSettings.LOAD_DEFAULT
-                                loadsImagesAutomatically = true
-                                blockNetworkImage = false
-                            }
-                            Log.d("CollectionWV", "🚀 loadUrl: $url")
-                            loadUrl(url)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(0.51f)
+            .then(
+                if (numberAura != NumberAuraType.NONE) Modifier.numberAura(numberAura)
+                else Modifier
+            )
+            .onSizeChanged { cardSize = it }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        if (cardSize.width > 0 && cardSize.height > 0) {
+                            val nx = (offset.x / cardSize.width - 0.5f) * 2f
+                            val ny = (offset.y / cardSize.height - 0.5f) * 2f
+                            touchTiltX = -ny * 8f
+                            touchTiltY = nx * 8f
                         }
+                        tryAwaitRelease()
+                        touchTiltX = 0f
+                        touchTiltY = 0f
                     },
-                    modifier = Modifier.fillMaxSize(),
+                    onTap = {
+                        flipped = !flipped
+                    },
+                    onLongPress = {
+                        onLongPress()
+                    },
                 )
             }
-
-            // 로딩 스피너
-            AnimatedVisibility(
-                visible = isLoading,
-                enter = fadeIn(),
-                exit = fadeOut(tween(400)),
-                modifier = Modifier.align(Alignment.Center),
-            ) {
-                CircularProgressIndicator(
-                    color = Primary,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
-
-            // 닫기 버튼 (우상단)
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(16.dp)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(White.copy(alpha = 0.15f)),
-            ) {
-                Icon(Icons.Default.Close, "닫기", tint = White, modifier = Modifier.size(20.dp))
+            .graphicsLayer {
+                rotationX = finalTiltX
+                rotationY = finalTiltY + rotation
+                cameraDistance = 12f * density
+            },
+    ) {
+        if (rotation <= 90f) {
+            TicketFrontFace(
+                ticket = ticket,
+                holoVariant = holoVariant,
+                numberAura = numberAura,
+                tiltX = finalTiltX,
+                tiltY = finalTiltY,
+            )
+        } else {
+            Box(Modifier.graphicsLayer { rotationY = 180f }) {
+                TicketBackFace(ticket = ticket)
             }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Compact ticket card for the grid
+// Front face: poster + holo overlay + sparkles
 // ─────────────────────────────────────────────────────────────────────
 @Composable
-private fun CompactTicketCard(ticket: Ticket, isGold: Boolean, onClick: () -> Unit) {
+private fun TicketFrontFace(
+    ticket: Ticket,
+    holoVariant: HoloVariant,
+    numberAura: NumberAuraType,
+    tiltX: Float,
+    tiltY: Float,
+) {
+    val holoColors = remember(holoVariant) { getHoloColors(holoVariant) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "holoShimmer")
+    val shimmerPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shimmerPhase",
+    )
+
     Box(
         Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.59f)
+            .fillMaxSize()
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .then(if (isGold) Modifier.border(1.5.dp, GoldColor, RoundedCornerShape(10.dp)) else Modifier)
+            .background(Color(0xFF0B0F1A)),
     ) {
+        // Poster image
         AsyncImage(
-            ticket.poster, ticket.showName,
-            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+            model = ticket.poster,
+            contentDescription = ticket.showName,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
         )
+
+        // Dark bottom gradient
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            if (isGold) Color(0x30D5B45A) else Color.Transparent,
-                            Color(0xDD0B0F1A)
+                            Color(0x080B0F1A),
+                            Color(0x200B0F1A),
+                            Color(0x940B0F1A),
                         ),
-                        startY = 60f,
                     )
                 )
         )
-        if (isGold) {
-            Box(Modifier.align(Alignment.TopEnd).padding(6.dp)) {
-                Icon(Icons.Outlined.Star, "Gold", tint = GoldColor, modifier = Modifier.size(16.dp))
-            }
-        }
-        Text(
-            "CONCERT TICKET", fontSize = 7.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold,
-            color = White.copy(alpha = 0.8f), modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
+
+        // Top darkening
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0x1F000000),
+                            Color.Transparent,
+                        ),
+                        endY = 200f,
+                    )
+                )
         )
-        Column(Modifier.align(Alignment.BottomStart).padding(8.dp)) {
-            Text(
-                "CHEKET", fontSize = if (isGold) 18.sp else 14.sp, fontWeight = FontWeight.Black,
-                color = if (isGold) GoldColor else White, letterSpacing = (-0.5).sp
-            )
-            Text(
-                ticket.showName, fontSize = 8.sp, fontWeight = FontWeight.Bold,
-                color = White.copy(alpha = 0.9f),
-                maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 11.sp
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                ticket.numbering.ifBlank { "No.${ticket.id.takeLast(4).padStart(4, '0')}" }, fontSize = 7.sp,
-                color = White.copy(alpha = 0.6f), fontFamily = FontFamily.Monospace
+
+        // Holographic overlay
+        Box(
+            Modifier
+                .fillMaxSize()
+                .drawWithContent {
+                    drawContent()
+                    drawHolographicOverlay(holoColors, shimmerPhase, tiltX, tiltY)
+                }
+        )
+
+        // Glare effect following tilt
+        Box(
+            Modifier
+                .fillMaxSize()
+                .glareEffect(tiltX, tiltY)
+        )
+
+        // Sparkle particles for spark-rare numbers
+        if (numberAura == NumberAuraType.SPARK_RARE) {
+            SparkleParticles(
+                particleCount = 8,
+                modifier = Modifier.fillMaxSize(),
             )
         }
+
+        // "COLLECTIBLE TICKET" label
+        Text(
+            "COLLECTIBLE TICKET",
+            fontSize = 7.sp,
+            letterSpacing = 1.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = White.copy(alpha = 0.7f),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(10.dp),
+        )
+
+        // Bottom info
+        Column(
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                ticket.showName,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 14.sp,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                ticket.numbering.ifBlank { "No.${ticket.id.takeLast(4).padStart(4, '0')}" },
+                fontSize = 8.sp,
+                color = White.copy(alpha = 0.6f),
+                fontFamily = FontFamily.Monospace,
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Back face: ticket details on dark overlay
+// ─────────────────────────────────────────────────────────────────────
+@Composable
+private fun TicketBackFace(ticket: Ticket) {
+    val gradeColor = remember(ticket.grade) { getGradeColor(ticket.grade) }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF0B0F1A)),
+    ) {
+        // Dimmed poster
+        AsyncImage(
+            model = ticket.poster,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            alpha = 0.26f,
+        )
+        // Dark overlay
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xE6090D18),
+                            Color(0xED090D18),
+                        )
+                    )
+                )
+        )
+
+        // Info content
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+        ) {
+            Text(
+                "COLLECTIBLE TICKET",
+                fontSize = 9.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = White.copy(alpha = 0.5f),
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                ticket.showName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                color = White.copy(alpha = 0.9f),
+                lineHeight = 17.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Divider
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(White.copy(alpha = 0.2f))
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            // Date
+            BackInfoRow(label = "DATE", value = ticket.showDate.split(" ").firstOrNull() ?: ticket.showDate)
+            Spacer(Modifier.height(6.dp))
+            // Venue
+            BackInfoRow(label = "VENUE", value = ticket.venue)
+
+            Spacer(Modifier.height(12.dp))
+
+            // Divider
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(White.copy(alpha = 0.15f))
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            // Grade & Seat boxes
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                SeatInfoBox(
+                    label = "GRADE",
+                    value = ticket.grade,
+                    accentColor = gradeColor.bg,
+                    modifier = Modifier.weight(1f),
+                )
+                SeatInfoBox(
+                    label = "SEAT",
+                    value = ticket.seatLabel,
+                    accentColor = Color(0xFFF8E28A),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // NFT ID at bottom
+            Text(
+                ticket.numbering.ifBlank { "#${ticket.id.takeLast(4).padStart(4, '0')}" },
+                fontSize = 9.sp,
+                color = White.copy(alpha = 0.3f),
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BackInfoRow(label: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            label,
+            fontSize = 8.sp,
+            letterSpacing = 1.sp,
+            fontWeight = FontWeight.Bold,
+            color = White.copy(alpha = 0.3f),
+            modifier = Modifier.widthIn(min = 36.dp),
+        )
+        Text(
+            value,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = White.copy(alpha = 0.75f),
+            lineHeight = 13.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun SeatInfoBox(
+    label: String,
+    value: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(accentColor.copy(alpha = 0.12f))
+            .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            label,
+            fontSize = 7.sp,
+            letterSpacing = 1.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = White.copy(alpha = 0.3f),
+        )
+        Text(
+            value,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = accentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
     }
 }

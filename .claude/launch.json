@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "v0-dev",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\npx.cmd",
+      "runtimeArgs": ["next", "dev", "--webpack"],
+      "port": 3000,
+      "autoPort": false,
+      "cwd": "frontend/apps/customer-app/v0-version2"
+    }
+  ]
+}

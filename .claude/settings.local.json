@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
   "permissions": {
     "allow": [
       "Read(C:/Users/SSAFY/Documents/S14P21D108/**)",
@@ -70,7 +73,8 @@
       "Bash(sed -i 's/region = \"\"경기\"\",/region = 41,/g' \"C:\\\\Users\\\\SSAFY\\\\Documents\\\\S14P21D108_frontend\\\\frontend\\\\apps\\\\customer-app\\\\android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ssafy\\\\cheket\\\\core\\\\datasource\\\\mock\\\\MockDataSource.kt\")",
       "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -type f -name Show*.java)",
       "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -name *Controller.java -type f)",
-      "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -name *.java)"
+      "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -name *.java)",
+      "mcp__Desktop_Commander__write_file"
     ]
   }
 }

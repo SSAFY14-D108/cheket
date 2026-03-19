@@ -77,15 +77,16 @@ private const val ZOOM_SHOW_LABELS = 4.0f
 /* ── 미니 프리뷰 높이 ── */
 private val MINI_CANVAS_HEIGHT = 350.dp
 
-/* ── 디자인 색상 ── */
+/* ── 디자인 색상 (v0 matched) ── */
 private val CanvasBg = Color(0xFFF1F5F9)
-private val StageDark = Color(0xFF0F172A)
-private val StageAccent = Color(0xFF1E293B)
-private val SeatSold = Color(0xFFCBD5E1)
+private val StageWhite = Color.White          // v0: white box
+private val StageShadow = Color(0x0A0F172A)   // v0: shadow rgba(15,23,42,0.04)
+private val SeatSold = Color(0xFFE5E7EB)      // v0: #e5e7eb
 private val SeatLocked = Color(0xFFFEF3C7)
 private val SeatLockedBorder = Color(0xFFF59E0B)
 private val SheetBg = Color(0xFFFAFAFC)
 private val ChipBg = Color(0xFF0F172A)
+private val V0MutedFg = Color(0xFF6B7280)     // v0: muted-foreground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -848,50 +849,37 @@ private fun ZoomableSeatCanvas(
 /* ── Canvas 드로잉 함수들 ── */
 
 private fun DrawScope.drawStage() {
-    // 스테이지 본체
-    val stageGradient = Brush.verticalGradient(
-        colors = listOf(StageDark, StageAccent),
-        startY = STAGE_TOP,
-        endY = STAGE_TOP + STAGE_H,
-    )
+    // v0: white box with shadow, "STAGE" in muted text
+    // Shadow (soft drop shadow)
     drawRoundRect(
-        brush = stageGradient,
+        color = Color(0x0A0F172A),
+        topLeft = Offset(STAGE_LEFT - 2f, STAGE_TOP + 4f),
+        size = Size(STAGE_W + 4f, STAGE_H + 4f),
+        cornerRadius = CornerRadius(16f, 16f),
+    )
+    // White box
+    drawRoundRect(
+        color = Color.White,
         topLeft = Offset(STAGE_LEFT, STAGE_TOP),
         size = Size(STAGE_W, STAGE_H),
         cornerRadius = CornerRadius(16f, 16f),
     )
-    // 하단 하이라이트
-    drawRoundRect(
-        color = Color.White.copy(alpha = 0.08f),
-        topLeft = Offset(STAGE_LEFT + 2f, STAGE_TOP + STAGE_H - 20f),
-        size = Size(STAGE_W - 4f, 18f),
-        cornerRadius = CornerRadius(8f, 8f),
-    )
-    // 텍스트
+    // "STAGE" text — muted foreground, bold, uppercase tracking
     drawContext.canvas.nativeCanvas.drawText(
         "STAGE",
         STAGE_LEFT + STAGE_W / 2,
         STAGE_TOP + STAGE_H / 2 + 7f,
         android.graphics.Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 22f
+            color = android.graphics.Color.parseColor("#6B7280")
+            textSize = 16f
             textAlign = android.graphics.Paint.Align.CENTER
             typeface = android.graphics.Typeface.create(
                 android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD
             )
             isAntiAlias = true
-            letterSpacing = 0.15f
+            letterSpacing = 0.25f
         }
     )
-    // 스테이지 아래 반원형 데코
-    val arcPath = Path().apply {
-        moveTo(STAGE_LEFT + 100f, STAGE_TOP + STAGE_H)
-        quadraticTo(
-            STAGE_LEFT + STAGE_W / 2, STAGE_TOP + STAGE_H + 30f,
-            STAGE_LEFT + STAGE_W - 100f, STAGE_TOP + STAGE_H,
-        )
-    }
-    drawPath(arcPath, color = Color(0xFFE2E8F0).copy(alpha = 0.4f), style = Stroke(width = 1.5f))
 }
 
 private fun DrawScope.drawSectionBlock(
@@ -980,45 +968,70 @@ private fun DrawScope.drawSeats(
     showLabels: Boolean,
     seatPositions: Map<Long, SeatPosition>,
 ) {
+    val seatSize = SEAT_RADIUS * 2f  // v0: w-6 h-6 equivalent
+    val cornerR = 2f                 // v0: rounded-sm ≈ 2px
+
     section.seats.forEach { seat ->
         val pos = seatPositions[seat.sessionSeatId] ?: return@forEach
         val cx = pos.cx
         val cy = pos.cy
         val isSelected = seat.sessionSeatId in selectedSeatIds
+        val left = cx - SEAT_RADIUS
+        val top = cy - SEAT_RADIUS
 
-        // 선택된 좌석 글로우 링
+        // v0: selected seats have scale-110 + shadow
+        val drawSize = if (isSelected) seatSize * 1.1f else seatSize
+        val drawRadius = SEAT_RADIUS * if (isSelected) 1.1f else 1f
+        val drawLeft = cx - drawRadius
+        val drawTop = cy - drawRadius
+
+        // v0 color logic:
+        // selected → solid grade color, white text
+        // available → grade color at 0x33 alpha bg, grade color at 0x88 border
+        // sold/locked → #e5e7eb (gray)
+        val fillColor = when {
+            isSelected -> sectionColor                           // v0: grade color
+            seat.status == "AVAILABLE" -> sectionColor.copy(alpha = 0.2f)  // v0: ${color}33
+            seat.status == "SOLD" -> SeatSold
+            seat.status == "LOCKED" -> SeatLocked
+            else -> SeatSold
+        }
+        val strokeColor = when {
+            isSelected -> sectionColor
+            seat.status == "AVAILABLE" -> sectionColor.copy(alpha = 0.53f) // v0: ${color}88
+            seat.status == "LOCKED" -> SeatLockedBorder.copy(alpha = 0.5f)
+            else -> Color.Transparent
+        }
+
+        // v0: selected shadow
         if (isSelected) {
-            drawCircle(
-                color = Primary.copy(alpha = 0.25f),
-                radius = SEAT_RADIUS + 4f,
-                center = Offset(cx, cy),
+            drawRoundRect(
+                color = sectionColor.copy(alpha = 0.3f),
+                topLeft = Offset(drawLeft - 1f, drawTop + 1f),
+                size = Size(drawSize + 2f, drawSize + 2f),
+                cornerRadius = CornerRadius(cornerR + 1f, cornerR + 1f),
             )
         }
 
-        val fillColor = when {
-            isSelected -> Primary
-            seat.status == "AVAILABLE" -> Color.White
-            seat.status == "SOLD" -> SeatSold
-            seat.status == "LOCKED" -> SeatLocked
-            else -> Color.LightGray
-        }
-        val strokeColor = when {
-            isSelected -> Primary
-            seat.status == "AVAILABLE" -> sectionColor.copy(alpha = 0.4f)
-            seat.status == "LOCKED" -> SeatLockedBorder.copy(alpha = 0.5f)
-            else -> Color(0xFFD1D5DB)
-        }
-        val strokeWidth = if (isSelected) 1.8f else 1f
-
-        drawCircle(color = fillColor, radius = SEAT_RADIUS, center = Offset(cx, cy))
-        drawCircle(
-            color = strokeColor,
-            radius = SEAT_RADIUS,
-            center = Offset(cx, cy),
-            style = Stroke(width = strokeWidth),
+        // Seat rectangle (v0: rounded-sm)
+        drawRoundRect(
+            color = fillColor,
+            topLeft = Offset(drawLeft, drawTop),
+            size = Size(drawSize, drawSize),
+            cornerRadius = CornerRadius(cornerR, cornerR),
         )
+        // Border
+        if (strokeColor != Color.Transparent) {
+            drawRoundRect(
+                color = strokeColor,
+                topLeft = Offset(drawLeft, drawTop),
+                size = Size(drawSize, drawSize),
+                cornerRadius = CornerRadius(cornerR, cornerR),
+                style = Stroke(width = 1f),
+            )
+        }
 
-        // 선택된 좌석 체크 마크
+        // v0: selected = "✓" white text, available = empty
         if (isSelected && !showLabels) {
             val checkPaint = android.graphics.Paint().apply {
                 color = android.graphics.Color.WHITE
@@ -1030,6 +1043,7 @@ private fun DrawScope.drawSeats(
             drawContext.canvas.nativeCanvas.drawText("✓", cx, cy + 3.5f, checkPaint)
         }
 
+        // Seat labels at high zoom
         if (showLabels) {
             val paint = android.graphics.Paint().apply {
                 this.color = if (isSelected) android.graphics.Color.WHITE
@@ -1039,6 +1053,16 @@ private fun DrawScope.drawSeats(
                 isAntiAlias = true
             }
             drawContext.canvas.nativeCanvas.drawText(seat.seatNo, cx, cy + 2.5f, paint)
+        }
+
+        // v0: unavailable seats have opacity-40
+        if (seat.status != "AVAILABLE" && !isSelected) {
+            drawRoundRect(
+                color = Color.White.copy(alpha = 0.6f),
+                topLeft = Offset(drawLeft, drawTop),
+                size = Size(drawSize, drawSize),
+                cornerRadius = CornerRadius(cornerR, cornerR),
+            )
         }
     }
 }

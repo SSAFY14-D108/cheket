@@ -6,14 +6,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,17 +37,20 @@ import com.ssafy.cheket.core.model.Ticket
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.TicketCardItem
-import com.ssafy.cheket.ui.theme.Background
-import com.ssafy.cheket.ui.theme.BorderColor
-import com.ssafy.cheket.ui.theme.Muted
+import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
+import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.MutedForeground
-import com.ssafy.cheket.ui.theme.Primary
-import com.ssafy.cheket.ui.theme.White
+
+private val V0Background = Color(0xFFF9FAFB)
+private val V0ActiveFilterBg = Color(0xFFEEF2F1)
+private val V0ActiveFilterText = Color(0xFF111111)
+private val V0ForegroundText = Color(0xFF111111)
 
 @Composable
 fun MyTicketsScreen(
     appContainer: AppContainer,
     onTicketClick: (Ticket) -> Unit = {},
+    onCollection: () -> Unit = {},
     viewModel: MyTicketsViewModel = viewModel(factory = MyTicketsViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -65,83 +70,113 @@ fun MyTicketsScreen(
 
     Scaffold(
         topBar = {
-            Column {
-                AppHeader(title = "내 티켓")
+            AppHeader(title = "내 티켓")
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(V0Background)
+                .padding(innerPadding),
+        ) {
+            // Filter tabs + Collection button row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                // Filter pills (scrollable)
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(items = TicketFilter.entries.toList()) { filter ->
                         val selected = uiState.selectedFilter == filter
                         Text(
                             text = filter.label,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (selected) White else MutedForeground,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (selected) V0ActiveFilterText else MutedForeground,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
+                                .clip(RoundedCornerShape(50))
                                 .clickable { viewModel.onFilterChange(filter) }
-                                .background(if (selected) Primary else Muted)
-                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                                .background(if (selected) V0ActiveFilterBg else Color.Transparent)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
                 }
-                HorizontalDivider(color = BorderColor)
-            }
-        },
-    ) { innerPadding ->
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Background)
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = Primary)
-                }
-            }
 
-            uiState.errorMessage != null -> {
-                EmptyState(
-                    title = "티켓을 불러오지 못했습니다",
-                    description = uiState.errorMessage ?: "잠시 후 다시 시도해주세요.",
+                // Collection button — gradient-border-button rounded-full
+                Text(
+                    text = "컬렉션",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = V0ForegroundText,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                        .clip(RoundedCornerShape(50))
+                        .gradientBorder(shape = RoundedCornerShape(50))
+                        .clickable(onClick = onCollection)
+                        .background(Color.White)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
 
-            uiState.filteredTickets.isEmpty() -> {
-                val (emptyTitle, emptyDesc) = when (uiState.selectedFilter) {
-                    TicketFilter.ALL -> "보유한 티켓이 없습니다" to "예매한 티켓이 생기면 여기에서 확인할 수 있어요."
-                    TicketFilter.AVAILABLE -> "현재 보유 중인 티켓이 없습니다" to "입장 전이거나 아직 판매 등록하지 않은 티켓이 없어요."
-                    TicketFilter.LISTED -> "판매 중인 티켓이 없습니다" to "리세일에 등록한 티켓이 아직 없어요."
-                }
-                EmptyState(
-                    title = emptyTitle,
-                    description = emptyDesc,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                )
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Background)
-                        .padding(innerPadding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(items = uiState.filteredTickets) { ticket ->
-                        TicketCardItem(
-                            ticket = ticket,
-                            onClick = { onTicketClick(ticket) },
+            // Content area
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            color = MutedForeground,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.padding(32.dp),
                         )
+                    }
+                }
+
+                uiState.errorMessage != null -> {
+                    EmptyState(
+                        title = "티켓을 불러오지 못했습니다",
+                        description = uiState.errorMessage ?: "잠시 후 다시 시도해주세요.",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                uiState.filteredTickets.isEmpty() -> {
+                    val (emptyTitle, emptyDesc) = when (uiState.selectedFilter) {
+                        TicketFilter.ALL -> "티켓이 없어요" to "예매하거나 양도받은 티켓이 여기에 표시됩니다."
+                        TicketFilter.AVAILABLE -> "보유 중인 티켓이 없어요" to "아직 보유 중인 티켓이 없습니다."
+                        TicketFilter.LISTED -> "판매 중인 티켓이 없어요" to "현재 판매 중인 티켓이 없습니다."
+                    }
+                    EmptyState(
+                        title = emptyTitle,
+                        description = emptyDesc,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(items = uiState.filteredTickets) { ticket ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .elevatedSurfaceSoft(shape = RoundedCornerShape(12.dp)),
+                            ) {
+                                TicketCardItem(
+                                    ticket = ticket,
+                                    onClick = { onTicketClick(ticket) },
+                                )
+                            }
+                        }
                     }
                 }
             }

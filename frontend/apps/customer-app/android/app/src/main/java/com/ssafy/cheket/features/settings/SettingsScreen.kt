@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.ssafy.cheket.core.network.dto.NotificationRequest
 import com.ssafy.cheket.core.network.service.UserService
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -51,85 +52,75 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Push notification toggle
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .elevatedSurface()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "푸시 알림 받기",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = OnBackground,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "공연 당일/전날 예약한 공연의 알림을 받습니다.",
-                            fontSize = 12.sp,
-                            color = MutedForeground,
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Switch(
-                        checked = allowNotifications,
-                        onCheckedChange = { newValue ->
-                            if (isUpdating) return@Switch
-                            val previousValue = allowNotifications
-                            allowNotifications = newValue
-                            isUpdating = true
-                            scope.launch {
-                                try {
-                                    val response = userService.updateNotification(
-                                        NotificationRequest(notificationEnable = newValue)
-                                    )
-                                    Log.d(TAG, "updateNotification($newValue) statusCode=${response.httpStatusCode}")
-                                    isUpdating = false
-                                    if (response.httpStatusCode !in 200..299) {
-                                        allowNotifications = previousValue
-                                        Toast.makeText(context, "알림 설정 변경에 실패했습니다", Toast.LENGTH_SHORT).show()
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "updateNotification() error", e)
-                                    isUpdating = false
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "푸시 알림 받기",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OnBackground,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "공연 당일/전날 예약한 공연의 알림을 받습니다.",
+                        fontSize = 12.sp,
+                        color = MutedForeground,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(
+                    checked = allowNotifications,
+                    onCheckedChange = { newValue ->
+                        if (isUpdating) return@Switch
+                        val previousValue = allowNotifications
+                        allowNotifications = newValue
+                        isUpdating = true
+                        scope.launch {
+                            try {
+                                val response = userService.updateNotification(
+                                    NotificationRequest(notificationEnable = newValue)
+                                )
+                                Log.d(TAG, "updateNotification($newValue) statusCode=${response.httpStatusCode}")
+                                isUpdating = false
+                                if (response.httpStatusCode !in 200..299) {
                                     allowNotifications = previousValue
                                     Toast.makeText(context, "알림 설정 변경에 실패했습니다", Toast.LENGTH_SHORT).show()
                                 }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "updateNotification() error", e)
+                                isUpdating = false
+                                allowNotifications = previousValue
+                                Toast.makeText(context, "알림 설정 변경에 실패했습니다", Toast.LENGTH_SHORT).show()
                             }
-                        },
-                        enabled = !isUpdating,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = White,
-                            checkedTrackColor = Primary,
-                        ),
-                    )
-                }
+                        }
+                    },
+                    enabled = !isUpdating,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = White,
+                        checkedTrackColor = Primary,
+                    ),
+                )
             }
 
             // Password change
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .elevatedSurface()
+                    .clickable(onClick = onPasswordChange)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onPasswordChange)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Outlined.Lock, null, tint = MutedForeground, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text("비밀번호 변경", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = OnBackground, modifier = Modifier.weight(1f))
-                    Icon(Icons.Outlined.ChevronRight, null, tint = SubText, modifier = Modifier.size(20.dp))
-                }
+                Icon(Icons.Outlined.Lock, null, tint = MutedForeground, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(12.dp))
+                Text("비밀번호 변경", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = OnBackground, modifier = Modifier.weight(1f))
+                Icon(Icons.Outlined.ChevronRight, null, tint = SubText, modifier = Modifier.size(20.dp))
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.ssafy.cheket.features.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Notifications
@@ -36,9 +35,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.*
+import com.ssafy.cheket.core.ui.component.elevatedSurface
+import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+
+// ── v0 Design Tokens ──
+private val V0Background = Color(0xFFFCFCFC)
+private val V0Card = Color(0xFFFFFFFF)
+private val V0Border = Color(0xFFD8EFEA)
+private val V0TextPrimary = Color(0xFF111111)
+private val V0TextMuted = Color(0xFF5C7A73)
+private val V0TextSub = Color(0xFF9CA3AF)
+private val V0ActiveFilterBg = Color(0xFFEEF2F1)
+private val V0SectionDivider = Color(0xFFF3F4F6) // gray-100
+private val V0Gray500 = Color(0xFF6B7280)
+private val V0Gray900 = Color(0xFF111827)
+private val V0Red500 = Color(0xFFEF4444)
 
 @Composable
 fun HomeScreen(
@@ -52,12 +66,16 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            Surface(shadowElevation = 1.dp) {
+            // Simple top bar - no Material elevation shadow
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(V0Card)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -65,25 +83,26 @@ fun HomeScreen(
                         "CHEKET",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
-                        color = Primary,
+                        color = V0TextPrimary,
                         letterSpacing = (-1).sp,
                     )
                     Row {
                         IconButton(onClick = {}) {
-                            Icon(Icons.Outlined.Notifications, contentDescription = "알림", tint = OnBackground)
+                            Icon(Icons.Outlined.Notifications, contentDescription = "알림", tint = V0TextPrimary)
                         }
                         IconButton(onClick = onMyPage) {
-                            Icon(Icons.Filled.Person, contentDescription = "마이페이지", tint = OnBackground)
+                            Icon(Icons.Filled.Person, contentDescription = "마이페이지", tint = V0TextPrimary)
                         }
                     }
                 }
             }
         },
+        containerColor = V0Background,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Background)
+                .background(Color(0xFFF9FAFB)) // bg-gray-50
                 .padding(innerPadding),
         ) {
             // 1. Hero Banner
@@ -94,13 +113,10 @@ fun HomeScreen(
                 )
             }
 
-            // thin divider
-            item { Box(Modifier.fillMaxWidth().height(1.dp).background(BorderColor)) }
-
             // 2. Ranking
             item {
                 Column(Modifier.padding(top = 20.dp, bottom = 16.dp)) {
-                    HomeSectionHeader(title = "랭킹", onMore = {})
+                    HomeSectionHeader(title = "랭킹")
                     RankingSection(
                         items = uiState.rankingItems,
                         onItemClick = { onShowClick(it) },
@@ -108,10 +124,10 @@ fun HomeScreen(
                 }
             }
 
-            // section divider
-            item { Box(Modifier.fillMaxWidth().height(8.dp).background(Muted.copy(alpha = 0.6f))) }
+            // section divider (gray-100)
+            item { Box(Modifier.fillMaxWidth().height(8.dp).background(V0SectionDivider)) }
 
-            // 3. Open Schedule (horizontal cards)
+            // 3. Open Schedule
             item {
                 OpenScheduleSection(
                     items = uiState.openSchedule,
@@ -120,7 +136,7 @@ fun HomeScreen(
             }
 
             // section divider
-            item { Box(Modifier.fillMaxWidth().height(8.dp).background(Muted.copy(alpha = 0.6f))) }
+            item { Box(Modifier.fillMaxWidth().height(8.dp).background(V0SectionDivider)) }
 
             // 4. Recommendation
             item {
@@ -131,7 +147,7 @@ fun HomeScreen(
             }
 
             // section divider
-            item { Box(Modifier.fillMaxWidth().height(8.dp).background(Muted.copy(alpha = 0.6f))) }
+            item { Box(Modifier.fillMaxWidth().height(8.dp).background(V0SectionDivider)) }
 
             // 5. Discount (resale items with discount)
             item {
@@ -142,7 +158,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(32.dp))
             }
 
-            // 🧪 좌석 배치도 테스트 (하단 숨김)
+            // seat map test (hidden at bottom)
             item {
                 TextButton(
                     onClick = { onSeatMapTest("evt_001") },
@@ -151,9 +167,9 @@ fun HomeScreen(
                         .padding(bottom = 16.dp),
                 ) {
                     Text(
-                        "🧪 좌석맵 테스트",
+                        "좌석맵 테스트",
                         fontSize = 11.sp,
-                        color = MutedForeground.copy(alpha = 0.5f),
+                        color = V0TextSub.copy(alpha = 0.5f),
                     )
                 }
             }
@@ -161,12 +177,12 @@ fun HomeScreen(
     }
 }
 
-// ── Hero Banner (aspect 4:3, title→subtitle→venue→dates, counter pill) ──
+// ── Hero Banner (aspect 4:3, gradient from-black/70 via-black/20 to-transparent, counter pill) ──
 
 @Composable
 private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit) {
     if (slides.isEmpty()) {
-        Box(Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Muted))
+        Box(Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color(0xFFE5E7EB)))
         return
     }
     val pagerState = rememberPagerState { slides.size }
@@ -191,22 +207,27 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                // gradient overlay
+                // v0 gradient: from-black/70 via-black/20 to-transparent (bottom to top)
                 Box(
                     Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    Color(0x33000000),
-                                    Color(0xB3000000),
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    0.4f to Color(0x33000000), // black/20
+                                    1f to Color(0xB3000000),   // black/70
                                 ),
                             ),
                         ),
                 )
-                // text: title → subtitle → venue → dates (each on separate line)
-                Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                // text overlay: bottom-left
+                Column(
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                ) {
+                    // text-xl font-black white
                     Text(
                         slide.title,
                         color = White,
@@ -214,6 +235,7 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
                         fontWeight = FontWeight.Black,
                         lineHeight = 24.sp,
                     )
+                    // text-sm font-bold text-white/90
                     Text(
                         slide.subtitle,
                         color = White.copy(alpha = 0.9f),
@@ -221,6 +243,7 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 2.dp),
                     )
+                    // text-xs text-white/70
                     Text(
                         slide.venue,
                         color = White.copy(alpha = 0.7f),
@@ -236,7 +259,7 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
             }
         }
 
-        // counter pill: bottom-right
+        // counter pill: bg-black/50 rounded-full backdrop-blur (bottom-right)
         Box(
             Modifier
                 .align(Alignment.BottomEnd)
@@ -277,7 +300,7 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
     }
 }
 
-// ── Section Header ("전체보기" + chevron) ──
+// ── Section Header (v0: text-base font-bold + "더보기" text link with ChevronRight) ──
 
 @Composable
 private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
@@ -289,8 +312,10 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = OnBackground)
+        // text-base font-bold text-foreground
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = V0TextPrimary)
         if (onMore != null) {
+            // text link: text-xs text-muted-foreground + ChevronRight icon
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
@@ -299,19 +324,19 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("전체보기", fontSize = 12.sp, color = MutedForeground)
+                Text("더보기", fontSize = 12.sp, color = V0TextMuted)
                 Icon(
-                    Icons.Default.KeyboardArrowRight,
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MutedForeground,
+                    tint = V0TextMuted,
                 )
             }
         }
     }
 }
 
-// ── Ranking (w-32 h-44 posters) ──
+// ── Ranking Section (v0: elevated-surface-soft rounded-2xl cards) ──
 
 @Composable
 private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Unit) {
@@ -320,29 +345,35 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(items.take(5)) { item ->
+            // v0 rank badge colors: gold/silver/bronze
             val rankBg = when (item.rank) {
-                1 -> Color(0xFFEAB308)
-                2 -> Color(0xFF9CA3AF)
-                3 -> Color(0xFFB45309)
-                else -> OnBackground
+                1 -> Color(0xFFEAB308)  // yellow-500
+                2 -> Color(0xFF9CA3AF)  // gray-400
+                3 -> Color(0xFFB45309)  // amber-700
+                else -> Color(0xFF374151)  // gray-700
             }
+            // elevated-surface-soft rounded-2xl card
             Column(
                 modifier = Modifier
                     .width(128.dp)
-                    .clickable { onItemClick(item.showId) },
+                    .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
+                    .clickable { onItemClick(item.showId) }
+                    .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                // poster with rank badge
                 Box {
                     AsyncImage(
                         item.poster,
                         item.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .width(128.dp)
+                            .fillMaxWidth()
                             .height(176.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Muted),
+                            .background(Color(0xFFF3F4F6)),
                     )
+                    // rank badge: circle with gold/silver/bronze
                     Box(
                         Modifier
                             .padding(8.dp)
@@ -360,22 +391,28 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                         )
                     }
                 }
+                // title: text-xs font-semibold text-gray-900
                 Text(
                     item.name,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = OnBackground,
+                    color = V0Gray900,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp,
                 )
-                Text(item.venue, fontSize = 10.sp, color = MutedForeground)
+                // venue: text-[10px] text-gray-500
+                Text(
+                    item.venue,
+                    fontSize = 10.sp,
+                    color = V0Gray500,
+                )
             }
         }
     }
 }
 
-// ── Open Schedule (horizontal scroll cards, bg secondary) ──
+// ── Open Schedule (v0: elevated-surface-soft horizontal scroll cards) ──
 
 @Composable
 private fun OpenScheduleSection(
@@ -385,26 +422,23 @@ private fun OpenScheduleSection(
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val cardWidth = minOf((screenWidth * 0.8f).toInt(), 300).dp
 
-    Column(
-        Modifier
-            .background(Muted.copy(alpha = 0.4f))
-            .padding(vertical = 20.dp),
-    ) {
+    Column(Modifier.padding(vertical = 20.dp)) {
         HomeSectionHeader(title = "오픈 예정", onMore = {})
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(items) { item ->
+            items(items.size) { index ->
+                val item = items[index]
+                // elevated-surface-soft rounded-2xl card
                 Row(
                     modifier = Modifier
                         .width(cardWidth)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(CardBg)
-                        .border(1.dp, BorderColor, RoundedCornerShape(16.dp))
+                        .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
                         .clickable { onItemClick(item.showId) }
                         .padding(12.dp),
                 ) {
+                    // poster: h-24 w-20 rounded-xl
                     AsyncImage(
                         item.poster,
                         item.name,
@@ -412,53 +446,51 @@ private fun OpenScheduleSection(
                         modifier = Modifier
                             .size(width = 80.dp, height = 96.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Muted),
+                            .background(Color(0xFFF3F4F6)),
                     )
                     Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f).padding(vertical = 2.dp)) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .padding(vertical = 2.dp),
+                    ) {
+                        // open label: first item #111111, others #4b5563
                         Text(
                             item.openLabel,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (item.isToday) Primary else Info,
+                            color = if (index == 0) V0TextPrimary else Color(0xFF4B5563),
                         )
+                        // name: text-sm font-semibold text-gray-900
                         Text(
                             item.name,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = OnBackground,
+                            color = V0Gray900,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             lineHeight = 18.sp,
                             modifier = Modifier.padding(top = 4.dp),
                         )
+                        // venue: text-xs text-gray-500
                         Text(
                             item.openType,
                             fontSize = 12.sp,
-                            color = MutedForeground,
+                            color = V0Gray500,
                             modifier = Modifier.padding(top = 2.dp),
                         )
                         Spacer(Modifier.height(8.dp))
+                        // tags
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             item.tags.forEach { tag ->
-                                val isHot = tag == "HOT"
                                 Text(
                                     tag,
                                     fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isHot) Danger else Primary,
+                                    fontWeight = FontWeight.Medium,
+                                    color = V0TextMuted,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (isHot) Danger.copy(alpha = 0.1f)
-                                            else Primary.copy(alpha = 0.1f),
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (isHot) Danger.copy(alpha = 0.2f)
-                                            else Primary.copy(alpha = 0.2f),
-                                            RoundedCornerShape(6.dp),
-                                        )
+                                        .background(V0ActiveFilterBg)
                                         .padding(horizontal = 8.dp, vertical = 2.dp),
                                 )
                             }
@@ -470,7 +502,7 @@ private fun OpenScheduleSection(
     }
 }
 
-// ── Recommendation Section (wishlist card + recommended show) ──
+// ── Recommendation Section (v0: wishlist card + recommended show) ──
 
 @Composable
 private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Unit) {
@@ -478,75 +510,62 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
     val recommendedShow = shows.firstOrNull() ?: return
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "추천 공연")
+        HomeSectionHeader(title = "취향 저격 추천")
         Row(
             Modifier.padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Wishlist card
-            Box(
+            // Wishlist card: elevated-surface-soft, h-36 w-28
+            Column(
                 modifier = Modifier
                     .width(112.dp)
                     .height(144.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Primary.copy(alpha = 0.2f),
-                                Primary.copy(alpha = 0.1f),
-                                Muted,
-                            ),
-                        ),
-                    )
-                    .border(1.dp, Primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                    .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
                     .clickable {},
-                contentAlignment = Alignment.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                // circle icon bg: bg-gray-100
+                Box(
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFF3F4F6)),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Primary.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.Favorite,
-                            contentDescription = "찜",
-                            tint = Primary,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "찜한 공연",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
-                        )
-                        Text(
-                            "$wishlistCount",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Primary,
-                        )
-                    }
+                    Icon(
+                        Icons.Default.Favorite,
+                        contentDescription = "찜",
+                        tint = Color(0xFF333333),
+                        modifier = Modifier.size(24.dp),
+                    )
                 }
+                Spacer(Modifier.height(8.dp))
+                // text-xs font-bold text-gray-900
+                Text(
+                    "찜한 공연",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V0Gray900,
+                )
+                // text-lg font-bold text-[#111111]
+                Text(
+                    "$wishlistCount",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V0TextPrimary,
+                )
             }
 
-            // Recommended show card
+            // Recommended show card: elevated-surface-soft
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CardBg)
-                    .border(1.dp, BorderColor, RoundedCornerShape(16.dp))
+                    .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
                     .clickable { onShowClick(recommendedShow.id) }
                     .padding(12.dp),
             ) {
+                // poster: h-28 w-20 rounded-xl
                 AsyncImage(
                     recommendedShow.poster,
                     recommendedShow.name,
@@ -554,7 +573,7 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
                     modifier = Modifier
                         .size(width = 80.dp, height = 112.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Muted),
+                        .background(Color(0xFFF3F4F6)),
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(
@@ -562,34 +581,43 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
                         .weight(1f)
                         .padding(vertical = 2.dp),
                 ) {
+                    // name: text-sm font-semibold text-gray-900
                     Text(
                         recommendedShow.name,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = OnBackground,
+                        color = V0Gray900,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         lineHeight = 18.sp,
                     )
+                    // date: text-xs text-gray-500
                     Text(
                         recommendedShow.date,
                         fontSize = 12.sp,
-                        color = MutedForeground,
+                        color = V0Gray500,
                         modifier = Modifier.padding(top = 4.dp),
                     )
+                    // venue: text-xs text-gray-500
                     Text(
                         recommendedShow.venue.split(",").first().trim(),
                         fontSize = 12.sp,
-                        color = MutedForeground,
+                        color = V0Gray500,
                     )
+                    // price: text-xs font-medium text-[#333333]
                     if (recommendedShow.grades.isNotEmpty()) {
-                        Text(
-                            "%,d CTK~".format(recommendedShow.grades.first().price),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Primary,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
+                        val lowestPrice = recommendedShow.grades
+                            .filter { it.price > 0 }
+                            .minOfOrNull { it.price }
+                        if (lowestPrice != null) {
+                            Text(
+                                "%,d CTK~".format(lowestPrice),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF333333),
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -597,7 +625,7 @@ private fun RecommendationSection(shows: List<Show>, onShowClick: (String) -> Un
     }
 }
 
-// ── Discount Section (resale items with discount, vertical list) ──
+// ── Discount Section (v0: vertical list, elevated-surface-soft cards) ──
 
 @Composable
 private fun ResaleDiscountSection(
@@ -616,19 +644,21 @@ private fun ResaleDiscountSection(
     if (discounted.isEmpty()) return
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "지금 할인중!", onMore = {})
-        Column(Modifier.padding(horizontal = 16.dp)) {
-            discounted.forEachIndexed { index, (item, pct) ->
-                if (index > 0) {
-                    HorizontalDivider(color = BorderColor)
-                }
+        HomeSectionHeader(title = "타임 세일", onMore = {})
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            discounted.forEach { (item, pct) ->
+                // elevated-surface-soft rounded-2xl card
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
                         .clickable { onItemClick(item.showId) }
-                        .padding(vertical = 16.dp),
+                        .padding(16.dp),
                 ) {
-                    // Poster with discount badge
+                    // Poster with discount badge: h-32 w-24 rounded-xl
                     Box {
                         AsyncImage(
                             item.poster,
@@ -637,13 +667,14 @@ private fun ResaleDiscountSection(
                             modifier = Modifier
                                 .size(width = 96.dp, height = 128.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Muted),
+                                .background(Color(0xFFF3F4F6)),
                         )
+                        // discount badge: bg-red-500 text-white
                         Box(
                             Modifier
                                 .padding(6.dp)
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Danger)
+                                .background(V0Red500)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                 .align(Alignment.TopStart),
                         ) {
@@ -656,13 +687,17 @@ private fun ResaleDiscountSection(
                         }
                     }
                     Spacer(Modifier.width(12.dp))
-                    // Info
-                    Column(Modifier.weight(1f).padding(vertical = 2.dp)) {
-                        // "2차 거래소" tag
+                    // Info column
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .padding(vertical = 2.dp),
+                    ) {
+                        // "2차 거래" tag with icon
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Muted)
+                                .background(Color(0xFFF3F4F6))
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -671,37 +706,40 @@ private fun ResaleDiscountSection(
                                 Icons.Default.LocalOffer,
                                 contentDescription = null,
                                 modifier = Modifier.size(10.dp),
-                                tint = MutedForeground,
+                                tint = V0TextMuted,
                             )
                             Text(
-                                "2차 거래소",
+                                "2차 거래",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = MutedForeground,
+                                color = V0TextMuted,
                             )
                         }
                         Spacer(Modifier.height(6.dp))
+                        // name: text-sm font-semibold text-gray-900
                         Text(
                             item.showName,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = OnBackground,
+                            color = V0Gray900,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             lineHeight = 18.sp,
                         )
+                        // venue: text-xs text-gray-500
                         Text(
                             item.venue.split(",").first().trim(),
                             fontSize = 12.sp,
-                            color = MutedForeground,
+                            color = V0Gray500,
                             modifier = Modifier.padding(top = 2.dp),
                         )
+                        // seat + grade
                         Text(
                             "${item.seatLabel} · ${item.grade}",
                             fontSize = 12.sp,
-                            color = MutedForeground,
+                            color = V0Gray500,
                         )
-                        // Prices
+                        // prices: original (strikethrough gray-400) + resale (bold red-500)
                         Row(
                             modifier = Modifier.padding(top = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -710,14 +748,14 @@ private fun ResaleDiscountSection(
                             Text(
                                 "%,d CTK".format(item.originalPrice),
                                 fontSize = 12.sp,
-                                color = MutedForeground,
+                                color = V0TextSub,
                                 textDecoration = TextDecoration.LineThrough,
                             )
                             Text(
                                 "%,d CTK".format(item.resalePrice),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Danger,
+                                color = V0Red500,
                             )
                         }
                     }
