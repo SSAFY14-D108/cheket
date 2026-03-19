@@ -44,7 +44,7 @@ data class Show(
     val date: String,
     val dates: List<ShowDate> = emptyList(),
     val venue: String,
-    val region: String,
+    val region: String = "",
     val poster: String,
     val status: ShowStatus,
     val maxPerUser: Int,

@@ -7,6 +7,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
+import com.ssafy.cheket.core.network.dto.EmailDuplicateRequest
+import com.ssafy.cheket.core.network.dto.SmsSendRequest
+import com.ssafy.cheket.core.network.dto.SmsVerifyRequest
+import com.ssafy.cheket.core.network.dto.SignupRequest
+import com.ssafy.cheket.core.network.service.AuthService
 import com.ssafy.cheket.core.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,9 +36,13 @@ data class SignupUiState(
     // State
     val errors: Map<String, String> = emptyMap(),
     val isSignupSuccess: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
-class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class SignupViewModel(
+    private val authRepository: AuthRepository,
+    private val authService: AuthService,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
     val uiState: StateFlow<SignupUiState> = _uiState.asStateFlow()
@@ -57,8 +66,21 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
             _uiState.update { it.copy(errors = it.errors + ("email" to "올바른 이메일을 입력해주세요.")) }
             return
         }
-        // Mock: always available
-        _uiState.update { it.copy(emailChecked = true, errors = it.errors - "email") }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val response = authService.checkEmailDuplicate(EmailDuplicateRequest(state.email))
+                Log.d(TAG, "checkEmailDuplicate() statusCode=${response.httpStatusCode}")
+                if (response.httpStatusCode in 200..299) {
+                    _uiState.update { it.copy(emailChecked = true, errors = it.errors - "email", isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(errors = it.errors + ("email" to (response.responseMessage ?: "이미 사용 중인 이메일입니다.")), isLoading = false) }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "checkEmailDuplicate() error", e)
+                _uiState.update { it.copy(errors = it.errors + ("email" to "이메일 확인에 실패했습니다."), isLoading = false) }
+            }
+        }
     }
 
     fun onPhoneChange(value: String) {
@@ -89,16 +111,44 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
             _uiState.update { it.copy(errors = it.errors + ("phone" to "올바른 전화번호를 입력해주세요.")) }
             return
         }
-        _uiState.update { it.copy(codeSent = true, errors = emptyMap()) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val response = authService.sendSms(SmsSendRequest(com.ssafy.cheket.core.ui.component.formatPhoneForApi(state.phone)))
+                Log.d(TAG, "sendSms() statusCode=${response.httpStatusCode}")
+                if (response.httpStatusCode in 200..299) {
+                    _uiState.update { it.copy(codeSent = true, errors = emptyMap(), isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(errors = it.errors + ("phone" to (response.responseMessage ?: "SMS 발송 실패")), isLoading = false) }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "sendSms() error", e)
+                _uiState.update { it.copy(errors = it.errors + ("phone" to "SMS 발송에 실패했습니다."), isLoading = false) }
+            }
+        }
     }
 
     fun verifyCode() {
         val state = _uiState.value
         Log.d(TAG, "verifyCode() codeLength=${state.code.length}")
-        if (state.code.length == 6) {
-            _uiState.update { it.copy(codeVerified = true, errors = emptyMap()) }
-        } else {
+        if (state.code.length != 6) {
             _uiState.update { it.copy(errors = it.errors + ("code" to "인증번호 6자리를 입력해주세요.")) }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val response = authService.verifySms(SmsVerifyRequest(com.ssafy.cheket.core.ui.component.formatPhoneForApi(state.phone), state.code))
+                Log.d(TAG, "verifyCode() statusCode=${response.httpStatusCode}")
+                if (response.httpStatusCode in 200..299 && response.data?.verified == true) {
+                    _uiState.update { it.copy(codeVerified = true, errors = emptyMap(), isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(errors = it.errors + ("code" to "인증번호가 올바르지 않습니다."), isLoading = false) }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "verifyCode() error", e)
+                _uiState.update { it.copy(errors = it.errors + ("code" to "인증 확인에 실패했습니다."), isLoading = false) }
+            }
         }
     }
 
@@ -130,14 +180,25 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
             return
         }
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val success = authRepository.signup(state.name, state.phone, state.password)
-                Log.d(TAG, "signup() result=$success")
-                if (success) {
-                    _uiState.update { it.copy(isSignupSuccess = true) }
+                val response = authService.signup(
+                    SignupRequest(
+                        username = state.name,
+                        phoneNumber = state.phone,
+                        email = state.email,
+                        password = state.password,
+                    )
+                )
+                Log.d(TAG, "signup() statusCode=${response.httpStatusCode}")
+                if (response.httpStatusCode in 200..299) {
+                    _uiState.update { it.copy(isSignupSuccess = true, isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(errors = mapOf("signup" to (response.responseMessage ?: "회원가입 실패")), isLoading = false) }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "signup() error", e)
+                _uiState.update { it.copy(errors = mapOf("signup" to "회원가입에 실패했습니다."), isLoading = false) }
             }
         }
     }
@@ -148,7 +209,7 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                SignupViewModel(app.appContainer.authRepository)
+                SignupViewModel(app.appContainer.authRepository, app.appContainer.authService)
             }
         }
     }

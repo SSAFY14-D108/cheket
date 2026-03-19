@@ -18,6 +18,6 @@ data class LikedShowDto(
     @SerializedName("title") val title: String,
     @SerializedName("posterUrl") val posterUrl: String,
     @SerializedName("venue") val venue: String,
-    @SerializedName("showDate") val showDate: String,
+    @SerializedName("showStartDate") val showDate: String,
     @SerializedName("status") val status: String,
 )

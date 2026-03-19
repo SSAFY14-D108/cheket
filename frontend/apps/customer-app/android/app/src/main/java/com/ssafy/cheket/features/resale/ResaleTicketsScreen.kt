@@ -22,16 +22,16 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.ResaleItem
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
 
-private enum class SortMode(val label: String) {
-    LATEST("최신순"),
-    PRICE("가격순"),
+private enum class SortMode(val label: String, val apiValue: String?) {
+    LATEST("최신순", null),
+    PRICE("가격순", "PRICE"),
 }
 
 @Composable
@@ -39,186 +39,203 @@ fun ResaleTicketsScreen(
     showId: String,
     onResaleItemClick: (resaleItemId: String) -> Unit,
     onBack: () -> Unit,
+    viewModel: ResaleTicketsViewModel = viewModel(
+        factory = ResaleTicketsViewModel.factory(showId),
+    ),
 ) {
-    val allItems = remember { MockDataSource.mockResaleItems.filter { it.showId == showId } }
-    val show = remember { MockDataSource.mockShows.find { it.id == showId } }
-
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var sortMode by remember { mutableStateOf(SortMode.LATEST) }
-
-    val sortedItems = remember(sortMode, allItems) {
-        when (sortMode) {
-            SortMode.LATEST -> allItems
-            SortMode.PRICE -> allItems.sortedBy { it.resalePrice }
-        }
-    }
-
-    if (show == null) {
-        Scaffold(topBar = { AppHeader(title = "2차 거래소", onBack = onBack) }) { innerPadding ->
-            EmptyState(
-                title = "공연 정보를 찾을 수 없습니다.",
-                description = "",
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-            )
-        }
-        return
-    }
 
     Scaffold(
         topBar = { AppHeader(title = "2차 거래소", onBack = onBack) },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(innerPadding),
-        ) {
-            // Show info card
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = CardBg,
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(BorderColor),
-                ),
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+        when (val state = uiState) {
+            is ResaleTicketsUiState.Loading -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    // Show poster
-                    AsyncImage(
-                        model = show.poster,
-                        contentDescription = show.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .width(80.dp)
-                            .height(80.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Muted),
-                    )
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
 
-                    Column(
-                        modifier = Modifier.weight(1f),
+            is ResaleTicketsUiState.Error -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(state.message, color = MutedForeground, fontSize = 14.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.load() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text("다시 시도")
+                        }
+                    }
+                }
+            }
+
+            is ResaleTicketsUiState.Success -> {
+                val sortedTickets = remember(sortMode, state.tickets) {
+                    when (sortMode) {
+                        SortMode.LATEST -> state.tickets
+                        SortMode.PRICE -> state.tickets.sortedBy { it.resalePrice }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Background)
+                        .padding(innerPadding),
+                ) {
+                    // Show info card
+                    ShowInfoCard(showInfo = state.showInfo, ticketCount = sortedTickets.size)
+
+                    // Sort toggle pills
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            text = show.name,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            lineHeight = 20.sp,
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        // Date
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.CalendarMonth,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(14.dp),
-                            )
+                        SortMode.entries.forEach { mode ->
+                            val selected = sortMode == mode
                             Text(
-                                text = show.date,
+                                text = mode.label,
                                 fontSize = 12.sp,
-                                color = MutedForeground,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        // Venue
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.LocationOn,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = show.venue,
-                                fontSize = 12.sp,
-                                color = MutedForeground,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        // Selling count badge
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(PrimaryLight)
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.ConfirmationNumber,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(12.dp),
-                            )
-                            Text(
-                                text = "판매 중 ${sortedItems.size}건",
-                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Primary,
+                                color = if (selected) White else MutedForeground,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .clickable {
+                                        sortMode = mode
+                                        viewModel.load(sort = mode.apiValue)
+                                    }
+                                    .background(if (selected) Primary else Muted)
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
                             )
+                        }
+                    }
+
+                    if (sortedTickets.isEmpty()) {
+                        EmptyState(
+                            title = "등록된 재판매 티켓이 없습니다.",
+                            description = "${state.showInfo.title} 재판매 티켓이 등록되면 여기에서 확인할 수 있습니다.",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(sortedTickets, key = { it.ticketId }) { item ->
+                                ResaleTicketCard(
+                                    item = item,
+                                    onClick = { onResaleItemClick(item.ticketId.toString()) },
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
 
-            // Sort toggle pills
-            Row(
+@Composable
+private fun ShowInfoCard(
+    showInfo: ResaleShowInfo,
+    ticketCount: Int,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = CardBg,
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = androidx.compose.ui.graphics.SolidColor(BorderColor),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Show poster
+            AsyncImage(
+                model = showInfo.posterUrl,
+                contentDescription = showInfo.title,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .width(80.dp)
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Muted),
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
             ) {
-                SortMode.entries.forEach { mode ->
-                    val selected = sortMode == mode
+                Text(
+                    text = showInfo.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OnBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 20.sp,
+                )
+                Spacer(Modifier.height(6.dp))
+                // Venue
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(14.dp),
+                    )
                     Text(
-                        text = mode.label,
+                        text = showInfo.venue,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (selected) White else MutedForeground,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable { sortMode = mode }
-                            .background(if (selected) Primary else Muted)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = MutedForeground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-
-            if (sortedItems.isEmpty()) {
-                EmptyState(
-                    title = "등록된 재판매 티켓이 없습니다.",
-                    description = "${show.name} 재판매 티켓이 등록되면 여기에서 확인할 수 있습니다.",
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                Spacer(Modifier.height(8.dp))
+                // Selling count badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(PrimaryLight)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
-                    items(sortedItems, key = { it.id }) { item ->
-                        ResaleTicketCard(
-                            item = item,
-                            onClick = { onResaleItemClick(item.id) },
-                        )
-                    }
+                    Icon(
+                        Icons.Outlined.ConfirmationNumber,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(12.dp),
+                    )
+                    Text(
+                        text = "판매 중 ${ticketCount}건",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Primary,
+                    )
                 }
             }
         }
@@ -227,13 +244,15 @@ fun ResaleTicketsScreen(
 
 @Composable
 private fun ResaleTicketCard(
-    item: ResaleItem,
+    item: ResaleTicketUiItem,
     onClick: () -> Unit,
 ) {
     val discount = item.originalPrice - item.resalePrice
     val hasDiscount = discount > 0
     val discountPct = remember(item) {
-        if (item.originalPrice > 0 && hasDiscount) {
+        if (item.discountRate > 0) {
+            item.discountRate.toInt()
+        } else if (item.originalPrice > 0 && hasDiscount) {
             (discount * 100) / item.originalPrice
         } else 0
     }
@@ -258,7 +277,7 @@ private fun ResaleTicketCard(
             Column(
                 modifier = Modifier.weight(1f),
             ) {
-                // Seat · Grade (primary info with ticket icon)
+                // Seat · Grade
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

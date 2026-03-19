@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.EventSeat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,50 +23,151 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
-import com.ssafy.cheket.core.model.ShowDate
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
+import java.text.NumberFormat
 import java.util.Calendar
+import java.util.Locale
 
 private val KR_WEEKDAYS = listOf("일", "월", "화", "수", "목", "금", "토")
-
-private fun parseDateFromLabel(label: String): Triple<Int, Int, Int>? {
-    val match = Regex("""(\d{4})\.(\d{2})\.(\d{2})""").find(label) ?: return null
-    return Triple(
-        match.groupValues[1].toInt(),
-        match.groupValues[2].toInt(),
-        match.groupValues[3].toInt(),
-    )
-}
 
 @Composable
 fun ShowDateSelectionScreen(
     showId: String,
-    onDateSelected: (showId: String, showDateId: String) -> Unit,
+    onDateSelected: (showId: String, sessionId: String) -> Unit,
     onBack: () -> Unit,
+    viewModel: ShowDateSelectionViewModel = viewModel(
+        factory = ShowDateSelectionViewModel.factory(showId)
+    ),
 ) {
-    val show = remember { MockDataSource.mockShows.find { it.id == showId } }
-    var selectedDayShows by remember { mutableStateOf<List<ShowDate>>(emptyList()) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (show == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("공연을 찾을 수 없습니다.", color = MutedForeground, fontSize = 16.sp)
+    Scaffold(
+        topBar = { AppHeader(title = "공연 날짜 선택", onBack = onBack) },
+    ) { innerPadding ->
+        when (val state = uiState) {
+            is DateSelectionUiState.Loading -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
+
+            is DateSelectionUiState.Error -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(state.message, color = MutedForeground, fontSize = 14.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.load() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text("다시 시도")
+                        }
+                    }
+                }
+            }
+
+            is DateSelectionUiState.Success -> {
+                DateSelectionContent(
+                    state = state,
+                    showId = showId,
+                    onSelectDate = { viewModel.selectDate(it) },
+                    onSessionClick = { session ->
+                        onDateSelected(showId, session.sessionId.toString())
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Background)
+                        .padding(innerPadding),
+                )
+            }
         }
-        return
     }
+}
 
-    val showDates = remember(show) {
-        if (show.dates.isNotEmpty()) show.dates
-        else listOf(ShowDate(id = "${show.id}_d1", label = show.date, day = "DAY 1"))
+@Composable
+private fun DateSelectionContent(
+    state: DateSelectionUiState.Success,
+    showId: String,
+    onSelectDate: (dateKey: String) -> Unit,
+    onSessionClick: (SessionUiItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
+
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            "원하는 날짜와 회차를 선택한 뒤 좌석을 고를 수 있어요.",
+            fontSize = 12.sp,
+            color = MutedForeground,
+        )
+
+        // ── Calendar Card ──
+        CalendarCard(
+            calYear = state.calYear,
+            calMonth = state.calMonth,
+            sessionsByDate = state.sessionsByDate,
+            onDayClick = onSelectDate,
+        )
+
+        // ── Selected day sessions ──
+        if (state.selectedDateSessions.isNotEmpty()) {
+            Text(
+                "선택 가능한 회차",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = OnBackground,
+            )
+
+            // DAY 넘버링: 전체 고유 날짜 순서 기준
+            val allDates = state.sessionsByDate.keys.sorted()
+
+            state.selectedDateSessions.forEach { session ->
+                val dayNumber = allDates.indexOf(session.dateKey) + 1
+
+                SessionCard(
+                    session = session,
+                    dayLabel = "DAY $dayNumber",
+                    grades = state.grades,
+                    numberFormat = numberFormat,
+                    onClick = { onSessionClick(session) },
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
     }
+}
 
-    val firstParsed = remember(showDates) {
-        parseDateFromLabel(showDates.first().label) ?: Triple(2026, 1, 1)
-    }
-    val calYear = firstParsed.first
-    val calMonth = firstParsed.second
+// ══════════════════════════════════════════
+//   Calendar Card
+// ══════════════════════════════════════════
 
+@Composable
+private fun CalendarCard(
+    calYear: Int,
+    calMonth: Int,
+    sessionsByDate: Map<String, List<SessionUiItem>>,
+    onDayClick: (dateKey: String) -> Unit,
+) {
     val calendar = remember(calYear, calMonth) {
         Calendar.getInstance().apply { set(calYear, calMonth - 1, 1) }
     }
@@ -80,256 +182,258 @@ fun ShowDateSelectionScreen(
         list
     }
 
-    val availableMap = remember(showDates) {
-        val map = mutableMapOf<String, MutableList<ShowDate>>()
-        showDates.forEach { d ->
-            val parsed = parseDateFromLabel(d.label) ?: return@forEach
-            val key = "${parsed.first}-${parsed.second.toString().padStart(2, '0')}-${parsed.third.toString().padStart(2, '0')}"
-            map.getOrPut(key) { mutableListOf() }.add(d)
-        }
-        map
-    }
-
-    Scaffold(
-        topBar = { AppHeader(title = "공연 날짜 선택", onBack = onBack) },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                "원하는 날짜와 회차를 선택한 뒤 좌석을 고를 수 있어요.",
-                fontSize = 12.sp,
-                color = MutedForeground,
-            )
-
-            // Calendar Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+    ) {
+        Column {
+            // Month header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
-                    // Month header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = null,
-                            tint = MutedForeground.copy(alpha = 0.3f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Text(
-                            "${calYear}.${calMonth.toString().padStart(2, '0')}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
-                        )
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MutedForeground.copy(alpha = 0.3f),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = null,
+                    tint = MutedForeground.copy(alpha = 0.3f),
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    "${calYear}.${calMonth.toString().padStart(2, '0')}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OnBackground,
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MutedForeground.copy(alpha = 0.3f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
 
-                    HorizontalDivider(color = BorderColor)
+            HorizontalDivider(color = BorderColor)
 
-                    // Weekday headers
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        KR_WEEKDAYS.forEachIndexed { i, wd ->
-                            Text(
-                                text = wd,
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = when (i) {
-                                    0 -> Color(0xFFEF5350)
-                                    6 -> Color(0xFF42A5F5)
-                                    else -> MutedForeground
-                                },
-                            )
-                        }
-                    }
+            // Weekday headers
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                KR_WEEKDAYS.forEachIndexed { i, wd ->
+                    Text(
+                        text = wd,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (i) {
+                            0 -> Color(0xFFEF5350)
+                            6 -> Color(0xFF42A5F5)
+                            else -> MutedForeground
+                        },
+                    )
+                }
+            }
 
-                    // Day grid
-                    Column(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    ) {
-                        cells.chunked(7).forEach { week ->
-                            Row(Modifier.fillMaxWidth()) {
-                                week.forEach { day ->
-                                    Box(
+            // Day grid
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            ) {
+                cells.chunked(7).forEach { week ->
+                    Row(Modifier.fillMaxWidth()) {
+                        week.forEach { day ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (day != null) {
+                                    val key = "${calYear}-${
+                                        calMonth.toString().padStart(2, '0')
+                                    }-${day.toString().padStart(2, '0')}"
+                                    val sessionsOnDay = sessionsByDate[key]
+                                    val hasShow = !sessionsOnDay.isNullOrEmpty()
+                                    val dow = (firstDayOfWeek + day - 1) % 7
+
+                                    Column(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f),
-                                        contentAlignment = Alignment.Center,
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .then(
+                                                if (hasShow) Modifier.clickable {
+                                                    onDayClick(key)
+                                                } else Modifier
+                                            ),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
                                     ) {
-                                        if (day != null) {
-                                            val key = "${calYear}-${calMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}"
-                                            val datesOnDay = availableMap[key] ?: emptyList()
-                                            val hasShow = datesOnDay.isNotEmpty()
-                                            val dow = (firstDayOfWeek + day - 1) % 7
-
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .then(
-                                                        if (hasShow) Modifier.clickable {
-                                                            selectedDayShows = datesOnDay
-                                                        } else Modifier
-                                                    ),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.Center,
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .clip(CircleShape)
-                                                        .then(
-                                                            if (hasShow) Modifier.background(Primary)
-                                                            else Modifier
-                                                        ),
-                                                    contentAlignment = Alignment.Center,
-                                                ) {
-                                                    Text(
-                                                        "$day",
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = if (hasShow) White
-                                                        else when (dow) {
-                                                            0 -> Color(0xFFEF5350).copy(alpha = 0.3f)
-                                                            6 -> Color(0xFF42A5F5).copy(alpha = 0.3f)
-                                                            else -> MutedForeground.copy(alpha = 0.3f)
-                                                        },
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(CircleShape)
+                                                .then(
+                                                    if (hasShow) Modifier.background(
+                                                        Color(0xFFEEF2F1)
                                                     )
-                                                }
-                                                if (hasShow) {
-                                                    Box(
-                                                        Modifier
-                                                            .padding(top = 2.dp)
-                                                            .size(4.dp)
-                                                            .clip(CircleShape)
-                                                            .background(Primary),
-                                                    )
-                                                }
-                                            }
+                                                    else Modifier
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                "$day",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (hasShow) OnBackground
+                                                else when (dow) {
+                                                    0 -> Color(0xFFEF5350).copy(alpha = 0.3f)
+                                                    6 -> Color(0xFF42A5F5).copy(alpha = 0.3f)
+                                                    else -> MutedForeground.copy(alpha = 0.3f)
+                                                },
+                                            )
+                                        }
+                                        if (hasShow) {
+                                            Box(
+                                                Modifier
+                                                    .padding(top = 2.dp)
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF9AA4B2)),
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
                     }
-
-                    Spacer(Modifier.height(8.dp))
                 }
             }
 
-            // Selected day's shows
-            if (selectedDayShows.isNotEmpty()) {
-                Text(
-                    "선택 가능한 회차",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OnBackground,
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+//   Session Card (회차 선택 카드)
+// ══════════════════════════════════════════
+
+@Composable
+private fun SessionCard(
+    session: SessionUiItem,
+    dayLabel: String,
+    grades: List<GradeUiItem>,
+    numberFormat: NumberFormat,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // 회차 + 날짜/시간
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        dayLabel,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        session.displayLabel,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OnBackground,
+                    )
+                }
+                Icon(
+                    Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    tint = MutedForeground,
+                    modifier = Modifier.size(16.dp),
                 )
-                selectedDayShows.forEach { d ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onDateSelected(show.id, d.id) },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardBg),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column {
-                                    Text(
-                                        d.day,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Primary,
-                                    )
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        d.label,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = OnBackground,
-                                    )
-                                }
-                                Icon(
-                                    Icons.Outlined.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = MutedForeground,
-                                    modifier = Modifier.size(16.dp),
+            }
+
+            // 잔여석 정보
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.EventSeat,
+                    contentDescription = null,
+                    tint = if (session.remainingSeats > 0) Primary else Danger,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    if (session.remainingSeats > 0)
+                        "잔여 ${session.remainingSeats}석 / ${session.totalSeats}석"
+                    else "매진",
+                    fontSize = 12.sp,
+                    fontWeight = if (session.remainingSeats == 0) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (session.remainingSeats > 0) MutedForeground else Danger,
+                )
+            }
+
+            // Grade pills
+            if (grades.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    grades.forEach { g ->
+                        val gradeColor = g.colorCode?.let {
+                            try {
+                                Color(android.graphics.Color.parseColor(it))
+                            } catch (_: Exception) {
+                                MutedForeground
+                            }
+                        } ?: MutedForeground
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(gradeColor.copy(alpha = 0.1f))
+                                .border(
+                                    1.dp,
+                                    gradeColor.copy(alpha = 0.3f),
+                                    RoundedCornerShape(50)
                                 )
-                            }
-
-                            // Grade pills
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                show.grades.forEach { g ->
-                                    val gradeColor = g.color?.let {
-                                        try { Color(android.graphics.Color.parseColor(it)) }
-                                        catch (_: Exception) { MutedForeground }
-                                    } ?: MutedForeground
-
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(50))
-                                            .background(gradeColor.copy(alpha = 0.1f))
-                                            .border(1.dp, gradeColor.copy(alpha = 0.3f), RoundedCornerShape(50))
-                                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            g.name,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = gradeColor,
-                                        )
-                                        Text(
-                                            if (g.remaining == 0) "매진"
-                                            else "${g.remaining}석",
-                                            fontSize = 11.sp,
-                                            fontWeight = if (g.remaining == 0) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = if (g.remaining == 0) Danger else gradeColor,
-                                        )
-                                    }
-                                }
-                            }
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                g.name,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = gradeColor,
+                            )
+                            Text(
+                                "${numberFormat.format(g.price)} CTK",
+                                fontSize = 11.sp,
+                                color = gradeColor,
+                            )
                         }
                     }
                 }
             }
-
-            Spacer(Modifier.height(16.dp))
         }
     }
 }

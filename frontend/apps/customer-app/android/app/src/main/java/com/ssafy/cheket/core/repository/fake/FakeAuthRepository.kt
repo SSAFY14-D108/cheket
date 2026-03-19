@@ -42,6 +42,11 @@ class FakeAuthRepository : AuthRepository {
         return true
     }
 
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
+        Log.d(TAG, "changePassword()")
+        return Result.success(Unit)
+    }
+
     override fun logout() {
         Log.d(TAG, "logout()")
         _currentUser.value = null

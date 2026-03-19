@@ -31,6 +31,11 @@ data class PasswordChangeRequest(
     val newPassword: String,
 )
 
+data class AuthChangePasswordRequest(
+    val oldPassword: String,
+    val newPassword: String,
+)
+
 data class EmailFindRequest(
     val username: String,
     val phoneNumber: String,
