@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.CheketApplication
+import com.ssafy.cheket.core.network.service.TicketService
 import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
@@ -50,16 +52,14 @@ private val FailedRed = Color(0xFFF87171)
 private enum class TxStatus { PENDING, SUBMITTED, CONFIRMED, FAILED }
 
 /**
- * Mock TX 상태 응답 (실제 API 연동 전까지 사용)
+ * TX 상태 응답 — GET /api/v1/tx/{txId}/status
+ * 백엔드 응답: { txId, status, txHash, amount }
  */
 private data class TxStatusResponse(
     val txId: Long,
     val status: String,
-    val type: String,
     val txHash: String?,
-    val blockNumber: Long?,
-    val createdAt: String,
-    val updatedAt: String,
+    val amount: Long?,
 )
 
 @Composable
@@ -84,21 +84,49 @@ fun TransactionProcessingScreen(
         }
     }
 
-    // Mock polling — 실제 API 연동 시 GET /api/v1/wallets/transactions/{txId}로 교체
+    // 실제 API 폴링 — GET /api/v1/tx/{txId}/status
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val ticketService = remember {
+        (context.applicationContext as CheketApplication).appContainer.ticketService
+    }
+
     LaunchedEffect(txId) {
+        if (txId <= 0L) {
+            Log.w(TAG, "Invalid txId=$txId, skipping polling")
+            return@LaunchedEffect
+        }
         Log.d(TAG, "Starting TX polling for txId=$txId, type=$txType")
 
-        // Phase 1: PENDING (1~2초)
-        delay(1500L)
-        currentStatus = TxStatus.SUBMITTED
-        txHash = "0x${(1..64).map { "0123456789abcdef".random() }.joinToString("")}"
-        Log.d(TAG, "TX status: SUBMITTED, txHash=$txHash")
+        while (currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED) {
+            delay(1500L)
+            try {
+                val response = ticketService.getTxStatus(txId)
+                val data = response.data ?: continue
 
-        // Phase 2: SUBMITTED → CONFIRMED (2~3초)
-        delay(2500L)
-        currentStatus = TxStatus.CONFIRMED
-        blockNumber = (12000L..15000L).random()
-        Log.d(TAG, "TX status: CONFIRMED, blockNumber=$blockNumber")
+                val statusStr = (data["status"] as? String) ?: continue
+                val hash = data["txHash"] as? String
+
+                Log.d(TAG, "TX poll: status=$statusStr, txHash=$hash")
+
+                when (statusStr) {
+                    "SUBMITTED" -> {
+                        currentStatus = TxStatus.SUBMITTED
+                        if (!hash.isNullOrBlank()) txHash = hash
+                    }
+                    "CONFIRMED" -> {
+                        currentStatus = TxStatus.CONFIRMED
+                        if (!hash.isNullOrBlank()) txHash = hash
+                    }
+                    "FAILED" -> {
+                        currentStatus = TxStatus.FAILED
+                        errorMessage = "블록체인 처리에 실패했습니다"
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "TX poll failed", e)
+                // 네트워크 오류는 무시하고 계속 폴링
+            }
+        }
     }
 
     // Auto-navigate on CONFIRMED

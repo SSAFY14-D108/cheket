@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 // ── Requests ──
 
 data class PurchaseRequest(
-    @SerializedName("sessionSeatId") val sessionSeatId: List<Long>,
+    @SerializedName("sessionSeatIds") val sessionSeatIds: List<Long>,
 )
 
 data class SeatLockRequest(

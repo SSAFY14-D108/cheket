@@ -36,4 +36,7 @@ interface TicketService {
 
     @POST("api/v1/tickets/{ticketId}/refund")
     suspend fun refundTicket(@Path("ticketId") ticketId: Long): ApiResponse<Unit>
+
+    @GET("api/v1/tx/{txId}/status")
+    suspend fun getTxStatus(@Path("txId") txId: Long): ApiResponse<Map<String, Any>>
 }

@@ -263,7 +263,8 @@ class SeatMapViewModel(
             )
         }
         NavParams.totalPrice = totalPrice
-        Log.d(TAG, "saveToNavParams() seats=${details.size}, totalPrice=$totalPrice, show=${state.show?.name}")
+        NavParams.sessionId = sessionId.toLongOrNull() ?: 0L
+        Log.d(TAG, "saveToNavParams() seats=${details.size}, totalPrice=$totalPrice, sessionId=$sessionId, show=${state.show?.name}")
     }
 
     companion object {
