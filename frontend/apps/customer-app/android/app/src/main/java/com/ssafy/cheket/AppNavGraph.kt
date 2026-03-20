@@ -295,6 +295,8 @@ fun AppNavGraph(
                 val showDateId = backStackEntry.arguments?.getString("showDateId") ?: ""
                 WaitingQueueScreen(
                     showId = showId,
+                    sessionId = showDateId,
+                    queueService = appContainer.queueService,
                     onComplete = { navController.navigate(Routes.seatSelection(it, showDateId)) {
                         popUpTo(Routes.waitingQueue(showId, showDateId)) { inclusive = true }
                     } },

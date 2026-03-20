@@ -26,11 +26,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
+import com.ssafy.cheket.core.network.service.QueueService
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+private const val TAG = "WaitingQueueScreen"
 
 // v0 exact colors
 private val ProgressStroke = Color(0xFF9AA4B2)
@@ -40,46 +45,187 @@ private val V0Fg = Color(0xFF111111)
 private val V0Muted = Color(0xFF6B7280)
 private val V0GradientBg = Color(0xFFF9FAFB)
 
-private const val TOTAL_WAIT_SECONDS = 5
-private const val MOCK_QUEUE_POSITION = 47
-private const val MOCK_ESTIMATED_WAIT = 3
+private const val FALLBACK_POLLING_INTERVAL = 3
+private const val FALLBACK_ESTIMATED_WAIT = 30L
 
 private enum class QueueState { WAITING, READY_TO_ENTER, EXPIRED }
 
 @Composable
 fun WaitingQueueScreen(
     showId: String,
+    sessionId: String = "",
     showName: String = "",
     showDate: String = "",
+    queueService: QueueService? = null,
     onComplete: (showId: String) -> Unit,
     onBack: () -> Unit,
 ) {
     var queueState by remember { mutableStateOf(QueueState.WAITING) }
-    var position by remember { mutableIntStateOf(MOCK_QUEUE_POSITION) }
-    var elapsed by remember { mutableIntStateOf(0) }
+    var position by remember { mutableStateOf(0L) }
+    var aheadCount by remember { mutableStateOf(0L) }
+    var estimatedWaitSeconds by remember { mutableStateOf(FALLBACK_ESTIMATED_WAIT) }
+    var pollingInterval by remember { mutableIntStateOf(FALLBACK_POLLING_INTERVAL) }
+    var queueToken by remember { mutableStateOf<String?>(null) }
     var readyCountdown by remember { mutableIntStateOf(60) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var totalEstimated by remember { mutableStateOf(FALLBACK_ESTIMATED_WAIT) } // 초기 총 대기시간 (프로그레스 바용)
+    var showLeaveDialog by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+
+    // 뒤로가기 확인 다이얼로그
+    if (showLeaveDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showLeaveDialog = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp),
+            title = {
+                Text("대기열 이탈", fontWeight = FontWeight.Bold, color = V0Fg)
+            },
+            text = {
+                Text(
+                    "대기열에서 나가면 현재 순번을 잃게 됩니다.\n정말 나가시겠어요?",
+                    fontSize = 14.sp,
+                    color = V0Muted,
+                    lineHeight = 20.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLeaveDialog = false
+                    onBack()
+                }) {
+                    Text("나가기", color = Color(0xFFF87171), fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveDialog = false }) {
+                    Text("계속 대기", color = V0Fg, fontWeight = FontWeight.SemiBold)
+                }
+            },
+        )
+    }
+
+    // 시스템 뒤로가기 인터셉트
+    androidx.activity.compose.BackHandler(enabled = queueState == QueueState.WAITING) {
+        showLeaveDialog = true
+    }
 
     val progress by animateFloatAsState(
-        targetValue = (elapsed.toFloat() / TOTAL_WAIT_SECONDS).coerceIn(0f, 1f),
+        targetValue = if (totalEstimated > 0)
+            (1f - estimatedWaitSeconds.toFloat() / totalEstimated).coerceIn(0f, 1f)
+        else 1f,
         animationSpec = tween(durationMillis = 1000),
         label = "progress",
     )
 
-    // WAITING countdown
-    LaunchedEffect(queueState) {
-        if (queueState != QueueState.WAITING) return@LaunchedEffect
-        for (sec in 1..TOTAL_WAIT_SECONDS) {
-            delay(1000L)
-            elapsed = sec
-            position = (position - (1..4).random()).coerceAtLeast(1)
+    // 대기열 진입 API 호출
+    LaunchedEffect(Unit) {
+        if (queueService == null || sessionId.isBlank()) {
+            Log.w(TAG, "No queueService or sessionId, using mock mode")
+            // Mock fallback
+            position = 47
+            estimatedWaitSeconds = 15
+            totalEstimated = 15
+            for (i in 1..5) {
+                delay(1000L)
+                position = (position - (1..4).random()).coerceAtLeast(1)
+                estimatedWaitSeconds = (estimatedWaitSeconds - 3).coerceAtLeast(0)
+            }
+            queueState = QueueState.READY_TO_ENTER
+            return@LaunchedEffect
         }
-        queueState = QueueState.READY_TO_ENTER
+
+        try {
+            val showIdLong = showId.toLong()
+            val sessionIdLong = sessionId.toLong()
+
+            // 1) POST 대기열 진입
+            val response = queueService.enterQueue(showIdLong, sessionIdLong)
+            Log.d(TAG, "enterQueue() statusCode=${response.httpStatusCode}")
+
+            if (response.httpStatusCode in 200..299 && response.data != null) {
+                val data = response.data
+                queueToken = data.queueToken
+                position = data.position
+                aheadCount = data.aheadCount
+                estimatedWaitSeconds = data.estimatedWaitSeconds
+                totalEstimated = data.estimatedWaitSeconds
+                pollingInterval = data.pollingIntervalSeconds
+
+                if (data.status == "ACTIVE") {
+                    queueState = QueueState.READY_TO_ENTER
+                } else {
+                    // 2) WAITING → GET /queue/status 폴링
+                    queueState = QueueState.WAITING
+                    val token = data.queueToken
+                    while (queueState == QueueState.WAITING) {
+                        delay(pollingInterval * 1000L)
+                        try {
+                            val pollResponse = queueService.getQueueStatus(showIdLong, sessionIdLong, token)
+                            Log.d(TAG, "pollStatus() status=${pollResponse.data?.status}, pos=${pollResponse.data?.position}")
+                            if (pollResponse.httpStatusCode in 200..299 && pollResponse.data != null) {
+                                val pollData = pollResponse.data
+                                pollData.position?.let { position = it }
+                                pollData.aheadCount?.let { aheadCount = it }
+                                pollData.estimatedWaitSeconds?.let { estimatedWaitSeconds = it }
+
+                                when (pollData.status) {
+                                    "ACTIVE" -> queueState = QueueState.READY_TO_ENTER
+                                    "EXPIRED", "LEFT" -> queueState = QueueState.EXPIRED
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "polling error", e)
+                        }
+                    }
+                }
+            } else {
+                errorMessage = response.responseMessage ?: "대기열 진입에 실패했습니다"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "enterQueue() error", e)
+            errorMessage = "대기열 진입에 실패했습니다: ${e.message}"
+        }
     }
 
-    // READY auto-navigate
+    // 뒤로가기 시 대기열 이탈 API 호출
+    DisposableEffect(Unit) {
+        onDispose {
+            val token = queueToken
+            if (token != null && queueService != null && sessionId.isNotBlank()) {
+                // Fire-and-forget leave queue
+                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        queueService.leaveQueue(showId.toLong(), sessionId.toLong(), token)
+                        Log.d(TAG, "leaveQueue() success")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "leaveQueue() error", e)
+                    }
+                }
+            }
+        }
+    }
+
+    // READY → POST /queue/enter → 좌석 선택 진입
     LaunchedEffect(queueState) {
         if (queueState != QueueState.READY_TO_ENTER) return@LaunchedEffect
         delay(1500L)
+        val token = queueToken
+        if (token != null && queueService != null && sessionId.isNotBlank()) {
+            try {
+                val enterResponse = queueService.enterSeatSelection(
+                    showId.toLong(), sessionId.toLong(), token,
+                )
+                Log.d(TAG, "enterSeatSelection() statusCode=${enterResponse.httpStatusCode}")
+                if (enterResponse.httpStatusCode in 200..299 && enterResponse.data != null) {
+                    Log.d(TAG, "seatAccessToken received, expires=${enterResponse.data.seatAccessExpiresAt}")
+                    // TODO: seatAccessToken을 NavParams에 저장하여 좌석 선택 화면에서 사용
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "enterSeatSelection() error", e)
+            }
+        }
         onComplete(showId)
     }
 
@@ -93,10 +239,18 @@ fun WaitingQueueScreen(
         queueState = QueueState.EXPIRED
     }
 
-    val estimatedWait = (MOCK_ESTIMATED_WAIT * (1f - progress)).toInt().coerceAtLeast(0)
+    val estimatedWait = (estimatedWaitSeconds / 60).toInt().coerceAtLeast(0)
 
     Scaffold(
-        topBar = { AppHeader(title = "대기열", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "대기열",
+                onBack = {
+                    if (queueState == QueueState.WAITING) showLeaveDialog = true
+                    else onBack()
+                },
+            )
+        },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -110,10 +264,25 @@ fun WaitingQueueScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(32.dp),
             ) {
-                when (queueState) {
+                if (errorMessage != null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(errorMessage ?: "", color = Color(0xFFF87171), fontSize = 14.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = "이전 화면으로",
+                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = V0Fg,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .elevatedSurface()
+                                .clickable { onBack() }
+                                .padding(vertical = 14.dp),
+                        )
+                    }
+                } else when (queueState) {
                     QueueState.WAITING -> WaitingContent(
                         progress = progress,
-                        remaining = (TOTAL_WAIT_SECONDS - elapsed).coerceAtLeast(0),
+                        remaining = estimatedWaitSeconds,
                         position = position,
                         estimatedWait = estimatedWait,
                         showName = showName,
@@ -127,9 +296,10 @@ fun WaitingQueueScreen(
                     QueueState.EXPIRED -> ExpiredContent(
                         onRetry = {
                             queueState = QueueState.WAITING
-                            elapsed = 0
-                            position = MOCK_QUEUE_POSITION
+                            position = 0
+                            estimatedWaitSeconds = FALLBACK_ESTIMATED_WAIT
                             readyCountdown = 60
+                            errorMessage = null
                         },
                         onBack = onBack,
                     )
@@ -142,8 +312,8 @@ fun WaitingQueueScreen(
 @Composable
 private fun WaitingContent(
     progress: Float,
-    remaining: Int,
-    position: Int,
+    remaining: Long,
+    position: Long,
     estimatedWait: Int,
     showName: String,
 ) {
