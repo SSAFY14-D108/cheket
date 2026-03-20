@@ -147,4 +147,31 @@ public class BlockchainService {
     public long getChainId() {
         return chainId;
     }
+
+    public String getPlatformWalletAddress() {
+        return platformAddress;
+    }
+
+    /**
+     * SSF 잔액 온체인 조회 — balanceOf(address)
+     */
+    public BigInteger getSsfBalance(String walletAddress) throws Exception {
+        org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
+            "balanceOf",
+            java.util.Arrays.asList(new org.web3j.abi.datatypes.Address(walletAddress)),
+            java.util.Arrays.asList(new org.web3j.abi.TypeReference<org.web3j.abi.datatypes.generated.Uint256>() {})
+        );
+        String encodedFunction = org.web3j.abi.FunctionEncoder.encode(function);
+        org.web3j.protocol.core.methods.response.EthCall response = web3j.ethCall(
+            org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
+                platformAddress, ssfContractAddress, encodedFunction),
+            org.web3j.protocol.core.DefaultBlockParameterName.LATEST
+        ).send();
+        java.util.List<org.web3j.abi.datatypes.Type> results = org.web3j.abi.FunctionReturnDecoder.decode(
+            response.getValue(), function.getOutputParameters());
+        if (results.isEmpty()) {
+            return BigInteger.ZERO;
+        }
+        return (BigInteger) results.get(0).getValue();
+    }
 }
