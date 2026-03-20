@@ -13,6 +13,7 @@ import com.ssafy.cheket.core.model.Seat
 import com.ssafy.cheket.core.model.User
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.network.service.ShowService
+import com.ssafy.cheket.core.network.service.WalletService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class PaymentStep { REVIEW, APPROVED, SUCCESS, FAILURE }
+enum class PaymentStep { REVIEW, PROCESSING, SUCCESS, FAILURE }
 
 data class PaymentUiState(
     val show: Show? = null,
@@ -40,6 +41,7 @@ data class PaymentUiState(
 class PaymentViewModel(
     private val showId: String,
     private val showService: ShowService,
+    private val walletService: WalletService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PaymentUiState())
@@ -81,7 +83,7 @@ class PaymentViewModel(
                                 com.ssafy.cheket.core.model.Grade(
                                     name = g.gradeName,
                                     price = g.price,
-                                    remaining = 0,
+                                    color = g.colorCode,
                                 )
                             },
                             description = detail.description,
@@ -95,10 +97,24 @@ class PaymentViewModel(
                 }
             }
 
+            // CTK 잔액 조회
+            var ctkBalance = 0
+            try {
+                val balanceResponse = walletService.getBalance()
+                ctkBalance = balanceResponse.data?.balance ?: 0
+                Log.d(TAG, "load() — CTK balance: $ctkBalance")
+            } catch (e: Exception) {
+                Log.e(TAG, "load() — failed to fetch balance", e)
+            }
+
             _uiState.value = PaymentUiState(
                 show = show,
                 selectedSeats = seats,
                 totalPrice = totalPrice,
+                user = User(
+                    id = "", name = "", email = "", phone = "",
+                    ctkBalance = ctkBalance, walletAddress = "",
+                ),
                 isLoading = false,
             )
         }
@@ -110,31 +126,18 @@ class PaymentViewModel(
         _uiState.update { it.copy(simulateFailure = newValue) }
     }
 
-    fun approve() {
-        Log.d(TAG, "approve() — starting blockchain approval")
+    fun purchase() {
+        Log.d(TAG, "purchase() — starting combined approve + purchase")
         viewModelScope.launch {
-            _uiState.update { it.copy(isProcessing = true) }
-            delay(1200) // Simulate blockchain approval
-            Log.d(TAG, "approve() — approval complete")
-            _uiState.update {
-                it.copy(
-                    step = PaymentStep.APPROVED,
-                    isProcessing = false,
-                )
-            }
-        }
-    }
+            _uiState.update { it.copy(step = PaymentStep.PROCESSING, isProcessing = true) }
 
-    fun confirmPurchase() {
-        Log.d(TAG, "confirmPurchase() — starting purchase confirmation")
-        viewModelScope.launch {
-            _uiState.update { it.copy(isProcessing = true) }
-            delay(1500) // Simulate purchase confirmation
+            // Simulate blockchain approval + purchase in one step
+            delay(2000)
 
             val state = _uiState.value
             if (state.simulateFailure) {
                 val reason = "INSUFFICIENT_BALANCE"
-                Log.w(TAG, "confirmPurchase() — simulated failure: $reason")
+                Log.w(TAG, "purchase() — simulated failure: $reason")
                 NavParams.failureReason = reason
                 _uiState.update {
                     it.copy(
@@ -144,7 +147,7 @@ class PaymentViewModel(
                     )
                 }
             } else {
-                Log.d(TAG, "confirmPurchase() — purchase success")
+                Log.d(TAG, "purchase() — purchase success")
                 _uiState.update {
                     it.copy(
                         step = PaymentStep.SUCCESS,
@@ -164,6 +167,7 @@ class PaymentViewModel(
                 PaymentViewModel(
                     showId = showId,
                     showService = app.appContainer.showService,
+                    walletService = app.appContainer.walletService,
                 )
             }
         }

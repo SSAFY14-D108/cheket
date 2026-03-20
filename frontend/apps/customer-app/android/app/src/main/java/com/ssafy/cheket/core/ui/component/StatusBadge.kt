@@ -49,7 +49,7 @@ fun TicketStatusBadge(status: TicketStatus) {
 @Composable
 fun ShowStatusBadge(status: ShowStatus) {
     val (textColor, shadowColor, label) = when (status) {
-        ShowStatus.ON_SALE -> Triple(StatusOnSale, StatusOnSale.copy(alpha = 0.12f), "판매중")
+        ShowStatus.ON_SALE -> Triple(StatusOnSale, StatusOnSale.copy(alpha = 0.12f), "예매중")
         ShowStatus.SOLD_OUT -> Triple(StatusSoldOut, StatusSoldOut.copy(alpha = 0.12f), "매진")
     }
     StatusLabel(textColor = textColor, shadowColor = shadowColor, label = label)

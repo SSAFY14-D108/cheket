@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -56,7 +57,14 @@ import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.launch
 import com.ssafy.cheket.core.datasource.mock.MockDataSource.VenueInfo
+import com.ssafy.cheket.core.navigation.NavParams
 import java.text.NumberFormat
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /* ── 논리 캔버스 상수 ── */
@@ -107,6 +115,28 @@ fun SeatMapScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // ── 좌석 선택 제한 시간 카운트다운 ──
+    val expiresAt = remember { NavParams.seatAccessExpiresAt }
+    var remainingSeconds by remember { mutableLongStateOf(-1L) }
+
+    LaunchedEffect(expiresAt) {
+        if (expiresAt.isNullOrBlank()) return@LaunchedEffect
+        try {
+            // 서버 응답이 KST(Asia/Seoul)라고 가정하고 파싱
+            val kst = ZoneId.of("Asia/Seoul")
+            val expireInstant = LocalDateTime.parse(expiresAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                .atZone(kst)
+                .toInstant()
+            while (true) {
+                val nowInstant = Instant.now()
+                val diff = ChronoUnit.SECONDS.between(nowInstant, expireInstant)
+                remainingSeconds = diff.coerceAtLeast(0)
+                if (diff <= 0) break
+                kotlinx.coroutines.delay(1000L)
+            }
+        } catch (_: Exception) { }
+    }
 
     val selectedDetails = remember(state.selectedSeatIds, state.sections) {
         viewModel.getSelectedSeatDetails()
@@ -185,6 +215,38 @@ fun SeatMapScreen(
                     { showDebugVenues = !showDebugVenues }
                 } else null,
             )
+
+            // ── 좌석 선택 제한 시간 배너 ──
+            if (remainingSeconds >= 0) {
+                val minutes = (remainingSeconds / 60).toInt()
+                val seconds = (remainingSeconds % 60).toInt()
+                val isUrgent = remainingSeconds <= 60
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isUrgent) Color(0xFFFEF2F2) else Color(0xFFF0F9FF))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = if (isUrgent) Color(0xFFF87171) else Color(0xFF3B82F6),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "좌석 선택 남은 시간  %02d:%02d".format(minutes, seconds),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isUrgent) Color(0xFFF87171) else Color(0xFF1E40AF),
+                        )
+                    }
+                }
+            }
 
             // ── 공연장 선택 칩 (테스트 모드 + 디버그 토글 시만 표시) ──
             if (state.isTestMode && showDebugVenues && !isExpanded) {
@@ -468,7 +530,7 @@ private fun FloatingSelectionChip(
                             color = Color.White,
                         )
                         Text(
-                            "${fmt.format(totalPrice)}원",
+                            "${fmt.format(totalPrice)} CTK",
                             fontSize = 13.sp,
                             color = Color.White.copy(alpha = 0.7f),
                         )
@@ -576,7 +638,7 @@ private fun BottomSheetContent(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "${fmt.format(totalPrice)}원",
+                    "${fmt.format(totalPrice)} CTK",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = OnBackground,
@@ -633,7 +695,7 @@ private fun SheetSeatRow(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "${info.gradeName} · ${fmt.format(info.price)}원",
+                        "${info.gradeName} · ${fmt.format(info.price)} CTK",
                         fontSize = 13.sp,
                         color = MutedForeground,
                     )
@@ -1185,7 +1247,7 @@ private fun BottomSelectionPanel(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "${fmt.format(totalPrice)}원",
+                        "${fmt.format(totalPrice)} CTK",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground,
@@ -1230,7 +1292,7 @@ private fun SurfaceChip(
                     color = OnBackground,
                 )
                 Text(
-                    "${fmt.format(info.price)}원",
+                    "${fmt.format(info.price)} CTK",
                     fontSize = 11.sp,
                     color = MutedForeground,
                 )

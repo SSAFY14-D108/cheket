@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
+import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.network.service.QueueService
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.elevatedSurface
@@ -207,26 +208,26 @@ fun WaitingQueueScreen(
         }
     }
 
-    // READY → POST /queue/enter → 좌석 선택 진입
-    LaunchedEffect(queueState) {
-        if (queueState != QueueState.READY_TO_ENTER) return@LaunchedEffect
-        delay(1500L)
-        val token = queueToken
-        if (token != null && queueService != null && sessionId.isNotBlank()) {
-            try {
-                val enterResponse = queueService.enterSeatSelection(
-                    showId.toLong(), sessionId.toLong(), token,
-                )
-                Log.d(TAG, "enterSeatSelection() statusCode=${enterResponse.httpStatusCode}")
-                if (enterResponse.httpStatusCode in 200..299 && enterResponse.data != null) {
-                    Log.d(TAG, "seatAccessToken received, expires=${enterResponse.data.seatAccessExpiresAt}")
-                    // TODO: seatAccessToken을 NavParams에 저장하여 좌석 선택 화면에서 사용
+    // "바로 입장하기" 버튼에서 호출 — POST /queue/enter → 좌석 선택 진입
+    val enterSeatSelection: () -> Unit = {
+        scope.launch {
+            val token = queueToken
+            if (token != null && queueService != null && sessionId.isNotBlank()) {
+                try {
+                    val enterResponse = queueService.enterSeatSelection(
+                        showId.toLong(), sessionId.toLong(), token,
+                    )
+                    Log.d(TAG, "enterSeatSelection() statusCode=${enterResponse.httpStatusCode}")
+                    if (enterResponse.httpStatusCode in 200..299 && enterResponse.data != null) {
+                        Log.d(TAG, "seatAccessToken received, expires=${enterResponse.data.seatAccessExpiresAt}")
+                        NavParams.seatAccessExpiresAt = enterResponse.data.seatAccessExpiresAt
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "enterSeatSelection() error", e)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "enterSeatSelection() error", e)
             }
+            onComplete(showId)
         }
-        onComplete(showId)
     }
 
     // READY countdown
@@ -291,7 +292,7 @@ fun WaitingQueueScreen(
                         readyCountdown = readyCountdown,
                         showName = showName,
                         showDate = showDate,
-                        onEnter = { onComplete(showId) },
+                        onEnter = enterSeatSelection,
                     )
                     QueueState.EXPIRED -> ExpiredContent(
                         onRetry = {
@@ -530,6 +531,7 @@ private fun ReadyContent(
             .gradientBorder(shape = RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White)
+            .clickable(onClick = onEnter)
             .padding(vertical = 16.dp),
     )
 }

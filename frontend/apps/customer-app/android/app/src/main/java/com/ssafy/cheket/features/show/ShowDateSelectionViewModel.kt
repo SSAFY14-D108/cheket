@@ -111,7 +111,7 @@ class ShowDateSelectionViewModel(
                     GradeUiItem(
                         name = it.gradeName,
                         price = it.price,
-                        colorCode = null, // ShowDetailDto doesn't have colorCode for grades
+                        colorCode = it.colorCode,
                     )
                 } ?: emptyList()
 

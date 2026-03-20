@@ -134,9 +134,16 @@ class ShowRepositoryImpl(
                     region = dto.region,
                     poster = dto.posterUrl,
                     status = if (dto.status == "SOLD_OUT") ShowStatus.SOLD_OUT else ShowStatus.ON_SALE,
-                    maxPerUser = 4,
+                    maxPerUser = dto.purchaseLimit ?: 4,
+                    openDate = dto.reservation?.startDate,
+                    reservationEndDate = dto.reservation?.endDate,
                     grades = dto.grade.map { g ->
-                        Grade(name = g.gradeName, price = g.price, remaining = 0)
+                        Grade(
+                            name = g.gradeName,
+                            price = g.price,
+                            remaining = null,  // 상세 API에서 잔여석 정보 없음
+                            color = g.colorCode,
+                        )
                     },
                     description = dto.description,
                     isLiked = dto.isLiked,
@@ -149,6 +156,7 @@ class ShowRepositoryImpl(
                             label = "${r.daysRemaining}일 전: ${r.refundRate}% 환불",
                         )
                     } ?: emptyList(),
+                    descriptionImages = dto.descriptionImages ?: emptyList(),
                 )
             }
         } catch (e: Exception) {

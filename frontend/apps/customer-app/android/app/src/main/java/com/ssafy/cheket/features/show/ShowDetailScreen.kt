@@ -1,6 +1,7 @@
 package com.ssafy.cheket.features.show
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -35,12 +36,13 @@ import com.ssafy.cheket.core.model.RefundRule
 import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.ShowStatusBadge
 import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 import java.text.NumberFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 // ── v0 Design Tokens ──
@@ -110,7 +112,42 @@ private fun ShowDetailContent(
     onBack: () -> Unit,
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
-    val canBuy = show.status == ShowStatus.ON_SALE
+
+    // 예매 가능 여부: ON_SALE 상태 + 현재 시각이 예매 기간 내
+    val now = remember { LocalDateTime.now() }
+    val isInReservationPeriod = remember(show.openDate, show.reservationEndDate) {
+        try {
+            val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            val start = show.openDate?.let { LocalDateTime.parse(it, formatter) }
+            val end = show.reservationEndDate?.let { LocalDateTime.parse(it, formatter) }
+            val afterStart = start == null || !now.isBefore(start)
+            val beforeEnd = end == null || !now.isAfter(end)
+            afterStart && beforeEnd
+        } catch (_: Exception) {
+            true // 파싱 실패 시 제한하지 않음
+        }
+    }
+    val canBuy = show.status == ShowStatus.ON_SALE && isInReservationPeriod
+
+    // 버튼 텍스트 결정
+    val buttonText = when {
+        show.status == ShowStatus.SOLD_OUT -> "매진"
+        !isInReservationPeriod -> {
+            val start = try {
+                show.openDate?.let { LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME) }
+            } catch (_: Exception) { null }
+            if (start != null && now.isBefore(start)) {
+                val month = start.monthValue
+                val day = start.dayOfMonth
+                val hour = start.hour
+                val min = start.minute
+                "${month}/${day} ${hour}:${String.format("%02d", min)} 오픈"
+            } else {
+                "예매 마감"
+            }
+        }
+        else -> "예매하기"
+    }
 
     Scaffold(
         topBar = {
@@ -148,10 +185,7 @@ private fun ShowDetailContent(
                     ),
                 ) {
                     Text(
-                        text = when (show.status) {
-                            ShowStatus.ON_SALE -> "예매하기"
-                            ShowStatus.SOLD_OUT -> "매진"
-                        },
+                        text = buttonText,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -210,39 +244,45 @@ private fun ShowDetailContent(
                 )
 
                 // Small poster card: h-56 w-36 rounded-2xl, floating bottom-left
-                // Offset so it extends below the background area
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 16.dp)
-                        .offset(y = 42.dp),
+                        .offset(y = 42.dp)
+                        .width(144.dp)
+                        .height(224.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(16.dp),
+                        ),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        // poster card: h-56 w-36 rounded-2xl border border-white/20 shadow-lg
-                        Box(
-                            modifier = Modifier
-                                .width(144.dp)
-                                .height(224.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color.Transparent),
-                        ) {
-                            AsyncImage(
-                                model = show.poster,
-                                contentDescription = show.name,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(16.dp)),
-                            )
-                        }
-                        // status badge next to poster
-                        Box(Modifier.padding(bottom = 20.dp)) {
-                            ShowStatusBadge(status = show.status)
-                        }
-                    }
+                    AsyncImage(
+                        model = show.poster,
+                        contentDescription = show.name,
+                        contentScale = ContentScale.Fit,
+                        alignment = Alignment.TopCenter,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp)),
+                    )
+                    // 하단 그라데이션: 이미지 아래 빈 공간을 배경색으로 자연스럽게 채움
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.4f)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        V0Background,
+                                    ),
+                                ),
+                            ),
+                    )
                 }
 
                 // Wishlist button: h-11 w-11 rounded-full bg-black/45 (top-right)
@@ -378,6 +418,45 @@ private fun ShowDetailContent(
                     }
                 }
 
+                // ── Description Images (v0: 공연 소개 이미지) ──
+                if (show.descriptionImages.isNotEmpty()) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.Info,
+                                contentDescription = null,
+                                tint = V0IconGray,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                "공연 소개 이미지",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = V0TextPrimary,
+                            )
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .elevatedSurface(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(12.dp)),
+                        ) {
+                            show.descriptionImages.forEach { imageUrl ->
+                                AsyncImage(
+                                    model = imageUrl,
+                                    contentDescription = "공연 소개 이미지",
+                                    contentScale = ContentScale.FillWidth,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // ── Refund Rules (v0: elevated-surface-soft rounded-xl p-4) ──
                 if (show.refundRules.isNotEmpty()) {
                     RefundRulesSection(refundRules = show.refundRules)
@@ -415,11 +494,13 @@ private fun GradeRow(
                 color = V0TextPrimary,
             )
             // remaining: text-xs text-muted or text-red-400
-            Text(
-                text = if (grade.remaining == 0) "매진" else "잔여 ${grade.remaining}석",
-                fontSize = 12.sp,
-                color = if (grade.remaining == 0) V0Red400 else V0TextMuted,
-            )
+            if (grade.remaining != null) {
+                Text(
+                    text = if (grade.remaining == 0) "매진" else "잔여 ${grade.remaining}석",
+                    fontSize = 12.sp,
+                    color = if (grade.remaining == 0) V0Red400 else V0TextMuted,
+                )
+            }
         }
         // price: text-sm font-bold text-[#111111]
         Text(

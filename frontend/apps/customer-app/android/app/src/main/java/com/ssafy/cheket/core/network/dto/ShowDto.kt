@@ -51,12 +51,15 @@ data class ShowDetailDto(
     @SerializedName("likeCount") val likeCount: Int,
     @SerializedName("grade") val grade: List<GradeDto>,
     @SerializedName("refundPolicy") val refundPolicy: List<RefundPolicyDto>?,
+    @SerializedName("purchaseLimit") val purchaseLimit: Int? = null,
+    @SerializedName("descriptionImages") val descriptionImages: List<String>? = null,
 )
 
 data class GradeDto(
-    @SerializedName("gradeId") val gradeId: Long,
+    @SerializedName("sectionId") val sectionId: Long,
     @SerializedName("gradeName") val gradeName: String,
     @SerializedName("price") val price: Int,
+    @SerializedName("colorCode") val colorCode: String? = null,
 )
 
 data class RefundPolicyDto(

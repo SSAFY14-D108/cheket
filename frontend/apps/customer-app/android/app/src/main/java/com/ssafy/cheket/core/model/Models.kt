@@ -20,7 +20,7 @@ enum class WaitingQueueState { WAITING, READY_TO_ENTER, EXPIRED }
 data class Grade(
     val name: String,
     val price: Int,
-    val remaining: Int,
+    val remaining: Int? = null,   // null = 정보 없음 (상세 API에서는 잔여석 안 줌)
     val color: String? = null,
 )
 
@@ -49,11 +49,13 @@ data class Show(
     val status: ShowStatus,
     val maxPerUser: Int,
     val grades: List<Grade>,
-    val openDate: String? = null,
+    val openDate: String? = null,           // 예매 시작일
+    val reservationEndDate: String? = null, // 예매 종료일
     val description: String? = null,
     val isLiked: Boolean = false,
     val likeCount: Int = 0,
     val refundRules: List<RefundRule> = emptyList(),
+    val descriptionImages: List<String> = emptyList(),
 )
 
 data class Ticket(
