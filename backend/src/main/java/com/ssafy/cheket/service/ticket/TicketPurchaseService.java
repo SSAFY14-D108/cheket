@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -52,25 +54,28 @@ public class TicketPurchaseService {
             sessionSeatIds.size());
 
         // ========== ① 유효성 검증 ==========
+        // 회차가 DB에 있나
         Session session = sessionRepository.findById(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("회차를 찾을 수 없습니다: " + sessionId));
-
-        if (session.getOnChainSessionId() == null) {
+        // 민팅 완료됐나 (onChainSessionId가 있어야 온체인 티켓이 존재)
+        if (session.getOnChainSessionId() == null) { // → onChainSessionId=0 → 민팅 완료 ✅
             throw new IllegalStateException("아직 민팅되지 않은 회차입니다");
         }
-
+        // sessionSeatIds [1646, 1647, 1648]이 DB에 있나
         List<SessionSeat> seats = sessionSeatRepository.findAllById(sessionSeatIds);
         if (seats.size() != sessionSeatIds.size()) {
             throw new IllegalArgumentException("존재하지 않는 좌석이 포함되어 있습니다");
         }
-
+        // 각 좌석이 구매 가능한 상태인가
         for (SessionSeat seat : seats) {
             if (seat.getStatus() != SeatStatus.AVAILABLE) {
                 throw new IllegalStateException("이미 판매된 좌석입니다: sessionSeatId=" + seat.getId());
             }
+            // → 1646: AVAILABLE, 1647: AVAILABLE, 1648: AVAILABLE
             if (seat.getOnChainTicketNftId() == null) {
                 throw new IllegalStateException("온체인 티켓이 없는 좌석입니다: sessionSeatId=" + seat.getId());
             }
+            // → 1646: nftId=0, 1647: nftId=1, 1648: nftId=2
         }
 
         // ========== ② 좌석 → PENDING_TX ==========
@@ -79,22 +84,51 @@ public class TicketPurchaseService {
             seat.setStatus(SeatStatus.PENDING_TX);
         }
         sessionSeatRepository.saveAll(seats);
+        // DB 변화:
+        // session_seats 테이블:
+        // id=1646: AVAILABLE → PENDING_TX
+        // id=1647: AVAILABLE → PENDING_TX
+        // id=1648: AVAILABLE → PENDING_TX
+        //
+        // 이 상태면 다른 사용자가 같은 좌석으로 purchase 호출해도
+        // ①번 검증에서 "이미 판매된 좌석" 에러 발생 → 중복 구매 방지
 
         // ========== ③ Transaction 레코드 생성 ==========
         // transaction 테이블에 1행 INSERT
         // status = PENDING → 아직 블록체인에 아무것도 안 보냄
         // amount = 0 → 온체인 가격 조회 후 @Async에서 업데이트
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE).amount(0L)
-            .description("티켓 구매 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
-        transactionRepository.save(transaction);
+        Transaction transaction = Transaction.builder()
+            .type(Transaction.TransactionType.PURCHASE)  // 거래 유형: 구매
+            .amount(0L)               // 아직 온체인 가격 모름 → 나중에 업데이트
+            .description("티켓 구매 대기")  // 초기 상태 메시지
+            .txStatus(Transaction.TxStatus.PENDING)  // 아직 블록체인에 안 보냄
+            .buyerId(userId)          // 구매자 ID
+            .build();
+        transactionRepository.save(transaction);  // DB INSERT
 
         log.info("[티켓 구매] PENDING 생성 — txId={}", transaction.getId());
 
         // ========== ④ @Async Worker에게 블록체인 처리 위임 ==========
-        // 별도 클래스(TicketPurchaseAsyncWorker)를 호출해야 @Async가 동작
-        // 같은 클래스 내부 호출이면 Spring 프록시가 @Async를 무시함
-        asyncWorker.processOnChainPurchase(transaction.getId(), userId, showId, sessionId, sessionSeatIds,
-            session.getOnChainSessionId());
+        // 문제: @Transactional 안에서 @Async를 호출하면
+        //       트랜잭션이 아직 커밋 안 된 상태에서 @Async 스레드가 실행됨
+        //       → @Async 스레드가 Transaction을 못 찾음 (NoSuchElementException)
+        // 해결: TransactionSynchronization.afterCommit()으로
+        //       트랜잭션 커밋 완료 후에 @Async를 호출
+        Long txId = transaction.getId();
+        Long onChainSessionId = session.getOnChainSessionId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                asyncWorker.processOnChainPurchase(
+                    txId,                  // txId  → Transaction DB를 업데이트하려고 (PENDING → SUBMITTED → CONFIRMED)
+                    userId,                // 구매자 ID → 사용자 지갑 Keystore를 찾으려고 (userId → User → Wallet → 개인키)
+                    showId,                // 공연 ID
+                    sessionId,             // 회차 ID
+                    sessionSeatIds,        // 좌석 ID 목록 → DB에서 좌석 조회 → onChainTicketNftId 꺼내려고
+                    onChainSessionId       // 온체인 회차 ID → purchaseTicket(buyer, ticketNftId, onChainSessionId) 호출하려고
+                );
+            }
+        });
 
         // ========== ⑤ txId 즉시 반환 ==========
         // @Async 덕분에 여기까지 0.05초만에 도달

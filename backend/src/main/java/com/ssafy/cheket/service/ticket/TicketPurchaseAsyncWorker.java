@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.TypeReference;
@@ -75,10 +76,9 @@ public class TicketPurchaseAsyncWorker {
      * 인식 → 새 스레드에서 실행, 호출한 쪽은 즉시 반환
      */
     @Async
-    @Transactional
     public void processOnChainPurchase(Long txId, Long userId, Long showId, Long sessionId, List<Long> sessionSeatIds,
         Long onChainSessionIdValue) {
-        log.info("[티켓 구매 비동기] 시작 — txId={}", txId);
+        log.info("[티켓 구매 비동기] 시작 — txId={}, Async processOnChainPurchase 함수 시작", txId);
 
         // 좌석 다시 조회 (별도 트랜잭션이므로)
         List<SessionSeat> seats = sessionSeatRepository.findAllById(sessionSeatIds);
@@ -91,10 +91,16 @@ public class TicketPurchaseAsyncWorker {
 
             Wallet wallet = walletRepository.findById(user.getWalletId())
                 .orElseThrow(() -> new BlockchainException("지갑을 찾을 수 없습니다"));
+            // userId=2 → User → walletId=3 → Wallet → keystoreFilename="UTC--2025-abc..."
 
+            log.info("[티켓 구매 비동기] 사용자 지갑 로드 (userId로 wallet 조회)");
             Credentials buyerCredentials = WalletUtils.loadCredentials(keystorePassword,
                 new File(keystoreDirectory + "/" + wallet.getKeystoreFilename()));
+            // 서버 디스크에서 Keystore 파일 열기 → 비밀번호로 복호화 → 개인키 꺼냄
+            // 이 키로 approve TX에 서명할 예정 (Custodial 대리 서명)
+
             String buyerAddress = wallet.getAddress();
+            log.info("[티켓 구매 비동기] 사용자 지갑 주소: {}", buyerAddress);
 
             // ========== ② 온체인에서 총 가격 조회 ==========
             // DB가 아닌 온체인이 진실 → 가격 조작 불가
@@ -102,7 +108,11 @@ public class TicketPurchaseAsyncWorker {
             for (SessionSeat seat : seats) {
                 BigInteger price = blockchainService.getTicketNFT()
                     .getPrice(BigInteger.valueOf(seat.getOnChainTicketNftId())).send();
+                // seat 1646 → nftId=0 → getPrice(0) → 150 SSF
+                // seat 1647 → nftId=1 → getPrice(1) → 150 SSF
+                // seat 1648 → nftId=2 → getPrice(2) → 100 SSF
                 totalPrice = totalPrice.add(price);
+                log.info("[티켓 구매 비동기] 티켓 가격: {}", price);
             }
             log.info("[티켓 구매 비동기] 총 가격: {} SSF", totalPrice);
 
@@ -110,7 +120,11 @@ public class TicketPurchaseAsyncWorker {
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
             tx.setAmount(totalPrice.longValue());
             tx.setDescription("SSF 승인 중");
-            transactionRepository.save(tx);
+            transactionRepository.save(tx); // @Transactional 없으니 즉시 커밋
+            log.info("[티켓 구매 비동기] SSF 승인 중");
+
+            // 앱 폴링: { status: "PENDING", description: "SSF 승인 중", amount: 400 }
+
 
             // ========== ③ SSF.approve() — 사용자 키로 대리 서명 ==========
             // "PurchaseRouter가 내 SSF를 totalPrice만큼 써도 돼"
@@ -118,30 +132,40 @@ public class TicketPurchaseAsyncWorker {
             RawTransactionManager buyerTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
                 buyerCredentials, blockchainService.getChainId());
 
+            // approve(PurchaseRouter주소, 400) 함수 인코딩
+            log.info("[티켓 구매 비동기] PurchaseRouter가 대신 SSF 송금 허락");
             Function approveFunction = new Function("approve",
-                Arrays.asList(new Address(blockchainService.getPurchaseRouter().getContractAddress()),
-                    new Uint256(totalPrice)),
+                Arrays.asList(new Address(blockchainService.getPurchaseRouter().getContractAddress()), // 누구에게 허락
+                    new Uint256(totalPrice)), // 얼마까지 (400)
                 Collections.singletonList(new TypeReference<Bool>() {
                 }));
             String encodedApprove = FunctionEncoder.encode(approveFunction);
 
+            // 사용자 키로 서명 → 블록체인에 TX 전송
+            log.info("[티켓 구매 비동기] 사용자 키로 서명 → 블록체인에 TX 전송");
             EthSendTransaction approveTx = buyerTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
                 blockchainService.getSsfContractAddress(), encodedApprove, BigInteger.ZERO);
 
-            if (approveTx.hasError()) {
+            if (approveTx.hasError()) { // → txHash = "0xapprove123..."
                 throw new BlockchainException("SSF approve 실패: " + approveTx.getError().getMessage());
             }
 
             log.info("[티켓 구매 비동기] approve 전송 완료 — txHash={}", approveTx.getTransactionHash());
 
-            // approve TX 블록 확정 대기
+            // 블록 확정 대기 (1초마다 확인, 최대 30초)
             waitForTransaction(approveTx.getTransactionHash());
+            // 1초: "블록에 들어갔나?" → 아직
+            // 2초: "블록에 들어갔나?" → 아직
+            // ...
+            // 8초: "블록에 들어갔나?" → 들어갔다! → 통과
 
             // Transaction 상태 업데이트: approve 확정
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
             tx.setDescription("SSF 승인 완료, 티켓 구매 진행 중");
-            transactionRepository.save(tx);
+            transactionRepository.save(tx); // 즉시 커밋
+            // 앱 폴링: { status: "SUBMITTED", description: "SSF 승인 완료, 티켓 구매 진행 중" }
+            log.info("[티켓 구매 비동기] SSF 승인 완료, 티켓 구매 진행 중");
 
             log.info("[티켓 구매 비동기] approve 블록 확정 완료");
 
@@ -158,6 +182,8 @@ public class TicketPurchaseAsyncWorker {
                 SessionSeat seat = seats.get(i);
                 BigInteger ticketNftId = BigInteger.valueOf(seat.getOnChainTicketNftId());
 
+                log.info("[티켓 구매 비동기] 티켓 구매 중: {}번째 , seats.size(): {}", i + 1, seats.size());
+
                 // 진행 상태 업데이트
                 tx.setDescription("티켓 구매 중 (" + (i + 1) + "/" + seats.size() + ")");
                 transactionRepository.save(tx);
@@ -166,7 +192,7 @@ public class TicketPurchaseAsyncWorker {
                     .purchaseTicket(buyerAddress, ticketNftId, onChainSessionId).send();
 
                 lastTxHash = receipt.getTransactionHash();
-                log.info("[티켓 구매 비동기] purchaseTicket 완료 — ticketNftId={}, txHash={}", ticketNftId, lastTxHash);
+                log.info("[티켓 구매 비동기] 티켓 구매 완료 — ticketNftId={}, txHash={}", ticketNftId, lastTxHash);
 
                 // SessionSeat → SOLD
                 seat.setStatus(SeatStatus.SOLD);
@@ -189,24 +215,33 @@ public class TicketPurchaseAsyncWorker {
 
         } catch (Exception e) {
             // ========== ⑥ 실패: 좌석 복원 + Transaction FAILED ==========
+            // @Transactional 없이 실행 중이므로 save()가 즉시 커밋됨
+            // → 롤백으로 FAILED 업데이트가 사라지는 문제 해결
             log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
 
             // 좌석 PENDING_TX → AVAILABLE 복원
-            for (SessionSeat seat : seats) {
-                if (seat.getStatus() == SeatStatus.PENDING_TX) {
-                    seat.setStatus(SeatStatus.AVAILABLE);
+            try {
+                List<SessionSeat> freshSeats = sessionSeatRepository.findAllById(sessionSeatIds);
+                for (SessionSeat seat : freshSeats) {
+                    if (seat.getStatus() == SeatStatus.PENDING_TX) {
+                        seat.setStatus(SeatStatus.AVAILABLE);
+                    }
                 }
+                sessionSeatRepository.saveAll(freshSeats);
+                log.info("[티켓 구매 비동기] 좌석 AVAILABLE 복원 완료 — txId={}", txId);
+            } catch (Exception seatErr) {
+                log.error("[티켓 구매 비동기] 좌석 복원 실패 — txId={}", txId, seatErr);
             }
-            sessionSeatRepository.saveAll(seats);
 
             // Transaction → FAILED
             try {
-                Transaction tx = transactionRepository.findById(txId).orElseThrow();
-                tx.setTxStatus(Transaction.TxStatus.FAILED);
-                tx.setDescription("구매 실패: " + e.getMessage());
-                transactionRepository.save(tx);
+                Transaction failedTx = transactionRepository.findById(txId).orElseThrow();
+                failedTx.setTxStatus(Transaction.TxStatus.FAILED);
+                failedTx.setDescription("구매 실패: " + e.getMessage());
+                transactionRepository.save(failedTx);
+                log.info("[티켓 구매 비동기] Transaction FAILED 업데이트 완료 — txId={}", txId);
             } catch (Exception dbErr) {
-                log.error("[티켓 구매 비동기] Transaction FAILED 업데이트 실패", dbErr);
+                log.error("[티켓 구매 비동기] Transaction FAILED 업데이트 실패 — txId={}", txId, dbErr);
             }
         }
     }
