@@ -32,4 +32,8 @@ public interface UpcomingTicketProjection {
 
     ResaleStatus getStatus();
 
+    String getMetadataIpfsCid();
+
+    int getResalePrice();
+
 }

@@ -81,7 +81,7 @@ public class TicketServiceImpl implements TicketService {
                 new GetUpcomingTicketResponse.ShowInfo(ticket.getShowId(), ticket.getShowName(),
                     ticket.getSessionDate(), ticket.getVenueName()),
                 ticket.getPrice(), ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade(),
-                ticket.getStatus()))
+                ticket.getStatus(), ticket.getMetadataIpfsCid(), ticket.getResalePrice()))
             .toList();
     }
 
