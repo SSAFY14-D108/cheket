@@ -22,9 +22,9 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         where (:regionCount = 0 or v.region.code in :regions)
           and (
                 :keyword is null
-                or s.title like concat('%', :keyword, '%')
-                or s.artist like concat('%', :keyword, '%')
-                or v.name like concat('%', :keyword, '%')
+                or lower(s.title) like lower(concat('%', :keyword, '%'))
+                or lower(s.artist) like lower(concat('%', :keyword, '%'))
+                or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
         """)
     Page<Show> search(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
@@ -40,6 +40,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         """)
     List<Show> findUpcomingTop5ByLikeCount(Pageable pageable);
 
+    // 인기순(예매수)
     @EntityGraph(attributePaths = {"venue"})
     @Query(value = """
         select s
@@ -71,6 +72,42 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         """)
     Page<Show> searchOrderByPopular(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, Pageable pageable);
+
+    // 마감 임박순
+    @EntityGraph(attributePaths = {"venue"})
+    @Query("""
+        select s
+        from Show s
+        join s.venue v
+        where (:regionCount = 0 or v.region.code in :regions)
+          and (
+                :keyword is null
+                or lower(s.title) like lower(concat('%', :keyword, '%'))
+                or lower(s.artist) like lower(concat('%', :keyword, '%'))
+                or lower(v.name) like lower(concat('%', :keyword, '%'))
+          )
+          and s.reservationEndDate > :now
+        """)
+    Page<Show> searchOrderByDeadline(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
+        @Param("keyword") String keyword, @Param("now") LocalDateTime now, Pageable pageable);
+
+    // 오픈 임박순
+    @EntityGraph(attributePaths = {"venue"})
+    @Query("""
+        select s
+        from Show s
+        join s.venue v
+        where (:regionCount = 0 or v.region.code in :regions)
+          and (
+                :keyword is null
+                or lower(s.title) like lower(concat('%', :keyword, '%'))
+                or lower(s.artist) like lower(concat('%', :keyword, '%'))
+                or lower(v.name) like lower(concat('%', :keyword, '%'))
+          )
+          and s.reservationStartDate > :now
+        """)
+    Page<Show> searchOrderByOpenSoon(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
+        @Param("keyword") String keyword, @Param("now") LocalDateTime now, Pageable pageable);
 
     boolean existsByHost_IdAndStatusNotAndShowEndDateAfter(Long hostId, ShowStatus status, LocalDateTime now);
 
