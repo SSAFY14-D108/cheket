@@ -139,7 +139,7 @@ private fun GradeSelectionContent(
             GradeCard(
                 grade = grade,
                 numberFormat = numberFormat,
-                onClick = { if (grade.remaining > 0) onSelectGrade(grade) },
+                onClick = { if (grade.remaining == null || grade.remaining > 0) onSelectGrade(grade) },
             )
         }
     }
@@ -151,7 +151,7 @@ private fun GradeCard(
     numberFormat: NumberFormat,
     onClick: () -> Unit,
 ) {
-    val isSoldOut = grade.remaining == 0
+    val isSoldOut = grade.remaining != null && grade.remaining == 0
     val gradeColor = gradeToColor(grade.name)
 
     Surface(
@@ -197,9 +197,16 @@ private fun GradeCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = if (isSoldOut) "매진" else "잔여 ${grade.remaining}석",
+                    text = when {
+                        isSoldOut -> "매진"
+                        grade.remaining != null -> "잔여 ${grade.remaining}석"
+                        else -> "선택 가능"
+                    },
                     fontSize = 12.sp,
-                    color = if (isSoldOut) Danger else Primary,
+                    color = when {
+                        isSoldOut -> Danger
+                        else -> MutedForeground
+                    },
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -208,7 +215,7 @@ private fun GradeCard(
                 horizontalAlignment = Alignment.End,
             ) {
                 Text(
-                    text = "${numberFormat.format(grade.price)}원",
+                    text = "${numberFormat.format(grade.price)} CTK",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isSoldOut) MutedForeground else OnBackground,
@@ -422,7 +429,7 @@ private fun SeatSelectionContent(
                                 color = SubText,
                             )
                             Text(
-                                text = "${numberFormat.format(selectedSeats.sumOf { it.price })}원",
+                                text = "${numberFormat.format(selectedSeats.sumOf { it.price })} CTK",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OnBackground,

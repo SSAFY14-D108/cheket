@@ -58,6 +58,7 @@ import com.ssafy.cheket.features.auth.PasswordResetScreen
 import com.ssafy.cheket.features.resale.ResaleListScreen
 import com.ssafy.cheket.features.resale.ResaleTicketsScreen
 import com.ssafy.cheket.features.purchase.SeatMapScreen
+import com.ssafy.cheket.features.purchase.TransactionProcessingScreen
 import com.ssafy.cheket.features.show.ShowDateSelectionScreen
 
 object Routes {
@@ -101,6 +102,7 @@ object Routes {
     const val RESALE_LIST = "resale_list"
     const val RESALE_TICKETS = "resale_tickets/{showId}"
     const val SEAT_MAP = "seat_map/{showId}/{sessionId}"
+    const val TX_PROCESSING = "tx_processing/{txId}/{txType}"
 
     // Helper functions for building routes with args
     fun showDetail(showId: String) = "show_detail/$showId"
@@ -120,6 +122,7 @@ object Routes {
     fun collectibleDetail(ticketId: String) = "collectible_detail/$ticketId"
     fun resaleTickets(showId: String) = "resale_tickets/$showId"
     fun seatMap(showId: String, sessionId: String = "") = "seat_map/$showId/$sessionId"
+    fun txProcessing(txId: Long = 0, txType: String = "TICKET_PURCHASE") = "tx_processing/$txId/$txType"
 }
 
 val bottomTabRoutes = listOf(
@@ -327,7 +330,33 @@ fun AppNavGraph(
                 PaymentScreen(
                     showId = showId,
                     onSuccess = {
-                        // 구매 플로우 전체를 백스택에서 제거 후 MY_TICKETS로 이동
+                        // 결제 성공 → 블록체인 TX 처리 화면으로 이동
+                        navController.navigate(Routes.txProcessing()) {
+                            popUpTo(Routes.payment(showId)) { inclusive = true }
+                        }
+                    },
+                    onFailure = { sId, reason ->
+                        navController.navigate(Routes.purchaseFailed(sId, reason)) {
+                            popUpTo(Routes.showDetail(sId)) { inclusive = false }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // ── TX Processing ──
+            slideComposable(
+                route = Routes.TX_PROCESSING,
+                arguments = listOf(
+                    navArgument("txId") { type = NavType.StringType; defaultValue = "0" },
+                    navArgument("txType") { type = NavType.StringType; defaultValue = "TICKET_PURCHASE" },
+                ),
+            ) { backStackEntry ->
+                val txId = backStackEntry.arguments?.getString("txId")?.toLongOrNull() ?: 0L
+                val txType = backStackEntry.arguments?.getString("txType") ?: "TICKET_PURCHASE"
+                TransactionProcessingScreen(
+                    txId = txId,
+                    txType = txType,
+                    onComplete = {
                         navController.navigate(Routes.MY_TICKETS) {
                             popUpTo(Routes.HOME) {
                                 inclusive = false
@@ -337,9 +366,9 @@ fun AppNavGraph(
                             restoreState = false
                         }
                     },
-                    onFailure = { sId, reason ->
-                        navController.navigate(Routes.purchaseFailed(sId, reason)) {
-                            popUpTo(Routes.showDetail(sId)) { inclusive = false }
+                    onFailure = { reason ->
+                        navController.navigate(Routes.purchaseFailed("0", reason)) {
+                            popUpTo(Routes.HOME)
                         }
                     },
                     onBack = { navController.popBackStack() },

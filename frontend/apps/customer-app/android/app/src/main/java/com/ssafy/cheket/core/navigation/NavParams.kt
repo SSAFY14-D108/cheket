@@ -17,12 +17,14 @@ object NavParams {
     var transferFailureReason: String = ""
     var selectedTicket: Ticket? = null
     var showInfo: Show? = null
+    var seatAccessExpiresAt: String? = null
 
     fun clearPurchase() {
         selectedSeats = emptyList()
         totalPrice = 0
         failureReason = ""
         showInfo = null
+        seatAccessExpiresAt = null
     }
 
     fun clearTransfer() {

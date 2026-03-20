@@ -26,10 +26,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.elevatedSurface
+import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale
+
+// v0 design tokens
+private val V0Bg = Color(0xFFF8F8F8)
+private val V0TextPrimary = Color(0xFF111111)
+private val V0TextMuted = Color(0xFF6B7280)
+private val V0DayLabel = Color(0xFF6B7280)  // v0: text-[#6b7280] (NOT primary green)
 
 private val KR_WEEKDAYS = listOf("일", "월", "화", "수", "목", "금", "토")
 
@@ -52,10 +60,11 @@ fun ShowDateSelectionScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
+                        .background(V0Bg)
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(color = Primary)
+                    CircularProgressIndicator(color = V0TextMuted)
                 }
             }
 
@@ -63,18 +72,22 @@ fun ShowDateSelectionScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
+                        .background(V0Bg)
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MutedForeground, fontSize = 14.sp)
+                        Text(state.message, color = V0TextMuted, fontSize = 14.sp)
                         Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.load() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                            shape = RoundedCornerShape(12.dp),
+                        Box(
+                            modifier = Modifier
+                                .gradientBorder(RoundedCornerShape(12.dp))
+                                .background(Color.White, RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(12.dp)),
                         ) {
-                            Text("다시 시도")
+                            TextButton(onClick = { viewModel.load() }) {
+                                Text("다시 시도", color = V0TextPrimary, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }
@@ -90,7 +103,7 @@ fun ShowDateSelectionScreen(
                     },
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Background)
+                        .background(V0Bg)
                         .padding(innerPadding),
                 )
             }
@@ -134,7 +147,7 @@ private fun DateSelectionContent(
                 "선택 가능한 회차",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = OnBackground,
+                color = V0TextPrimary,
             )
 
             // DAY 넘버링: 전체 고유 날짜 순서 기준
@@ -331,15 +344,21 @@ private fun SessionCard(
     numberFormat: NumberFormat,
     onClick: () -> Unit,
 ) {
+    val isSoldOut = session.remainingSeats == 0
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .then(if (!isSoldOut) Modifier.clickable(onClick = onClick) else Modifier),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSoldOut) Color(0xFFF5F5F5) else CardBg,
+        ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .then(if (isSoldOut) Modifier.fillMaxWidth() else Modifier),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 회차 + 날짜/시간
@@ -353,22 +372,36 @@ private fun SessionCard(
                         dayLabel,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Primary,
+                        color = if (isSoldOut) MutedForeground else V0DayLabel,
+                        letterSpacing = 0.5.sp,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         session.displayLabel,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = OnBackground,
+                        color = if (isSoldOut) MutedForeground else V0TextPrimary,
                     )
                 }
-                Icon(
-                    Icons.Outlined.CalendarMonth,
-                    contentDescription = null,
-                    tint = MutedForeground,
-                    modifier = Modifier.size(16.dp),
-                )
+                if (isSoldOut) {
+                    Text(
+                        "매진",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Danger)
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                } else {
+                    Icon(
+                        Icons.Outlined.CalendarMonth,
+                        contentDescription = null,
+                        tint = MutedForeground,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
 
             // 잔여석 정보
@@ -379,7 +412,7 @@ private fun SessionCard(
                 Icon(
                     Icons.Outlined.EventSeat,
                     contentDescription = null,
-                    tint = if (session.remainingSeats > 0) Primary else Danger,
+                    tint = if (session.remainingSeats > 0) V0DayLabel else Danger,
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
@@ -388,7 +421,7 @@ private fun SessionCard(
                     else "매진",
                     fontSize = 12.sp,
                     fontWeight = if (session.remainingSeats == 0) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (session.remainingSeats > 0) MutedForeground else Danger,
+                    color = if (session.remainingSeats > 0) V0TextMuted else Danger,
                 )
             }
 

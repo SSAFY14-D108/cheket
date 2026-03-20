@@ -119,7 +119,7 @@ class SeatMapViewModel(
                             com.ssafy.cheket.core.model.Grade(
                                 name = g.gradeName,
                                 price = g.price,
-                                remaining = 0,
+                                color = g.colorCode,
                             )
                         },
                         description = d.description,
