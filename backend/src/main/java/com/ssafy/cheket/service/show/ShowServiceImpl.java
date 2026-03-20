@@ -13,6 +13,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
@@ -43,29 +44,41 @@ public class ShowServiceImpl implements ShowService {
         List<Integer> normalizedRegions = (regions == null) ? List.of() : regions;
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         ShowSort normalizedSort = (sort == null) ? ShowSort.POPULAR : sort;
-
+        Pageable pageable;
         Page<Show> result;
-        if (normalizedSort == ShowSort.POPULAR) {
-            Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100));
-            result = showRepository.searchOrderByPopular(normalizedRegions, (long) normalizedRegions.size(), normalized,
-                pageable);
-        } else {
-            Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100), toSort(normalizedSort));
-            result = showRepository.search(normalizedRegions, (long) normalizedRegions.size(), normalized, pageable);
+        LocalDateTime now = LocalDateTime.now();
+
+        switch (normalizedSort) {
+            case POPULAR -> {
+                pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100));
+                result = showRepository.searchOrderByPopular(normalizedRegions, (long) normalizedRegions.size(),
+                    normalized, pageable);
+            }
+            case LATEST -> {
+                pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
+                    Sort.by(Sort.Direction.DESC, "createdAt"));
+                result = showRepository.search(normalizedRegions, (long) normalizedRegions.size(), normalized,
+                    pageable);
+            }
+            case OPEN_SOON -> {
+                pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
+                    Sort.by(Sort.Direction.ASC, "reservationStartDate"));
+                result = showRepository.searchOrderByOpenSoon(normalizedRegions, (long) normalizedRegions.size(),
+                    normalized, now, pageable);
+            }
+            case DEADLINE -> {
+                pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
+                    Sort.by(Sort.Direction.ASC, "reservationEndDate"));
+                result = showRepository.searchOrderByDeadline(normalizedRegions, (long) normalizedRegions.size(),
+                    normalized, now, pageable);
+            }
+            default -> throw new BadRequestException("지원하지 않는 정렬입니다.");
         }
 
         List<ShowItem> items = result.getContent().stream().map(this::toShowItem).toList();
 
         return new GetShowListResponse<>(items, result.getNumber(), result.getSize(), result.getTotalElements(),
             result.getTotalPages());
-    }
-
-    private Sort toSort(ShowSort sort) {
-        return switch (sort) {
-            case LATEST -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case DEADLINE -> Sort.by(Sort.Direction.ASC, "reservationEndDate");
-            default -> throw new BadRequestException("지원하지 않는 정렬입니다.");
-        };
     }
 
     // 공연 상세 조회
