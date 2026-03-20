@@ -2,6 +2,7 @@ package com.ssafy.cheket.repository.queue;
 
 import com.ssafy.cheket.config.queue.QueueRedisKeys;
 import com.ssafy.cheket.dto.queue.QueueTokenMeta;
+import com.ssafy.cheket.dto.queue.SeatAccessMeta;
 import com.ssafy.cheket.enums.QueueStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,9 +19,8 @@ public class QueueRepository {
     private final StringRedisTemplate redisTemplate;
 
     // queueToken 조회
-    public String getQueueToken(Long userid, Long sessionId) {
-        String key = QueueRedisKeys.USER_TOKEN_PREFIX + sessionId + ":" + userid;
-        return redisTemplate.opsForValue().get(key);
+    public String getQueueToken(Long userId, Long sessionId) {
+        return redisTemplate.opsForValue().get(QueueRedisKeys.userTokenKey(sessionId, userId));
     }
 
     // 동일 유저가 동일 회차에 대해 기존 queueToken 을 가지고 있는지 확인
@@ -97,7 +97,7 @@ public class QueueRepository {
         return (admitExpiresAt == null) ? null : parseLong(admitExpiresAt.toString());
     }
 
-    // 활성 최차 목록에 sessionId 추가
+    // 활성 회차 목록에 sessionId 추가
     public void addActiveSession(Long sessionId) {
         redisTemplate.opsForSet().add(QueueRedisKeys.ACTIVE_SESSIONS_KEY, String.valueOf(sessionId));
     }
@@ -224,4 +224,22 @@ public class QueueRepository {
         return QueueStatus.valueOf(String.valueOf(value));
     }
 
+    // seatAccessToken 삭제
+    public void deleteSeatAccessToken(String seatAccessToken) {
+        redisTemplate.delete(QueueRedisKeys.seatAccessKey(seatAccessToken));
+    }
+
+    // seatAccessToken 조회
+    public SeatAccessMeta findSeatAccessTokenMeta(String seatAccessToken) {
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(QueueRedisKeys.seatAccessKey(seatAccessToken));
+
+        if (entries.isEmpty())
+            return null;
+
+        if (entries.get("userId") == null || entries.get("showId") == null || entries.get("sessionId") == null)
+            return null;
+
+        return SeatAccessMeta.builder().userId(parseLong(entries.get("userId")))
+            .showId(parseLong(entries.get("showId"))).sessionId(parseLong(entries.get("sessionId"))).build();
+    }
 }

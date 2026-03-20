@@ -39,8 +39,10 @@ public class TicketController {
     @Operation(summary = "티켓 구매", description = "선택한 좌석에 대해 SSF 결제 + NFT 소유권 이전")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<PurchaseTicketResponse>> purchaseTickets(@AuthenticationPrincipal Long userId,
-        @PathVariable Long showId, @PathVariable Long sessionId, @RequestBody PurchaseTicketRequest request) {
-        Long txId = ticketPurchaseService.purchaseTickets(userId, showId, sessionId, request.sessionSeatIds());
+        @RequestHeader("Seat-Access-Token") String seatAccessToken, @PathVariable Long showId,
+        @PathVariable Long sessionId, @RequestBody PurchaseTicketRequest request) {
+        Long txId = ticketPurchaseService.purchaseTickets(userId, showId, sessionId, seatAccessToken,
+            request.sessionSeatIds());
         return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.ok(200, "티켓 구매가 완료되었습니다.", new PurchaseTicketResponse(txId)));
     }
