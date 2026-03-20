@@ -74,5 +74,9 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
 
     boolean existsByHost_IdAndStatusNotAndShowEndDateAfter(Long hostId, ShowStatus status, LocalDateTime now);
 
+    // 예매 오픈 D-1 스케줄러: 내일 예매 시작이고 아직 DRAFT인 공연 조회
+    List<Show> findByStatusAndReservationStartDateBetween(
+        ShowStatus status, LocalDateTime from, LocalDateTime to);
+
     Page<Show> findByHost_id(Long hostId, Pageable pageable);
 }

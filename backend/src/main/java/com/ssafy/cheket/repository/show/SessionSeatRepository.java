@@ -65,4 +65,7 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
     @Modifying
     @Query("DELETE FROM SessionSeat ss WHERE ss.sessionId IN :sessionIds")
     void deleteBySessionIdIn(@Param("sessionIds") List<Long> sessionIds);
+
+    // 특정 회차의 모든 좌석 조회 (배치 민팅 시 사용)
+    List<SessionSeat> findBySessionId(Long sessionId);
 }
