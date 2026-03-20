@@ -18,12 +18,16 @@ import com.ssafy.cheket.enums.StakeholderRole;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.*;
 import com.ssafy.cheket.repository.ticket.TicketEffectRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
+import com.ssafy.cheket.repository.wallet.WalletRepository;
+import com.ssafy.cheket.service.blockchain.BlockchainService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,12 +36,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.web3j.crypto.Credentials;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -55,7 +61,9 @@ public class HostShowServiceImpl implements HostShowService {
     private final ShowImageRepository showImageRepository;
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final S3Uploader s3Uploader;
+    private final BlockchainService blockchainService;
     // 클래스 상단에 필드 추가
     @Value("${blockchain.platform-private-key}")
     private String platformPrivateKey;
@@ -246,19 +254,19 @@ public class HostShowServiceImpl implements HostShowService {
             refundPolicyRepository.save(refundPolicy);
         }
 
-        // 7. ⑥ stakeholders 저장 (수익 배분)
+        // 7. ⑥ stakeholders 저장 + StakeholderNFT 온체인 발행
+        List<Stakeholder> savedStakeholders = new ArrayList<>();
+
         for (AddShowRequest.StakeholderInfo info : request.stakeholders()) {
             StakeholderRole role = StakeholderRole.valueOf(info.role().toUpperCase());
             Long userId = null;
             Long stakeholderHostId = null;
 
             if (role == StakeholderRole.ORGANIZER) {
-                // ORGANIZER = 주최측 -> 사업자 등록번호로 조회
                 Host stakeholderHost = hostRepository.findByBusinessNoAndDeletedAtIsNull(info.businessNo())
                     .orElseThrow(() -> new NotFoundException("해당 사업자등록 번호로 가입된 주최측이 없습니다: " + info.businessNo()));
                 stakeholderHostId = stakeholderHost.getId();
             } else {
-                // ARTIST = 일반 사용자 -> phoneNumber로 조회
                 User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(info.phoneNumber())
                     .orElseThrow(() -> new NotFoundException("이해 관계자를 찾을 수 없습니다: " + info.phoneNumber()));
                 userId = user.getId();
@@ -267,8 +275,19 @@ public class HostShowServiceImpl implements HostShowService {
             Stakeholder stakeholder = Stakeholder.builder().showId(showId).userId(userId).hostId(stakeholderHostId)
                 .role(role).shareBps(info.shareBps()).build();
 
-            stakeholderRepository.save(stakeholder);
+            stakeholder = stakeholderRepository.save(stakeholder);
+            savedStakeholders.add(stakeholder);
         }
+
+        // 플랫폼도 Stakeholder로 추가 (800 bps = 8%)
+        Stakeholder platformStakeholder = Stakeholder.builder().showId(showId).role(StakeholderRole.ORGANIZER)
+            .shareBps(800).build();
+        platformStakeholder = stakeholderRepository.save(platformStakeholder);
+        savedStakeholders.add(platformStakeholder);
+
+        // StakeholderNFT 온체인 발행
+        // 민팅 실패 시 BlockchainException → @Transactional 롤백
+        mintStakeholderNfts(savedStakeholders, platformWallet);
 
         // 8. ⑦ show_images 저장 (설명 이미지)
         if (descriptionImages != null && !descriptionImages.isEmpty()) {
@@ -489,5 +508,66 @@ public class HostShowServiceImpl implements HostShowService {
 
     private int clamp(int v, int min, int max) {
         return Math.max(min, Math.min(max, v));
+    }
+
+    /**
+     * 각 Stakeholder에 대해 StakeholderNFT를 온체인 발행하고, 반환된 tokenId를 DB
+     * stakeholder.stakeholderNftId에 저장.
+     *
+     * [흐름] 1. Stakeholder의 hostId 또는 userId로 walletId 조회 2. walletId로 지갑 주소 조회 3.
+     * StakeholderNFT.mint(지갑주소, 역할, shareBps, 0) 호출 - eventNftId = 0 (EventNFT는 예매
+     * 오픈 D-1에 발행) 4. TransactionReceipt에서 tokenId 추출 → DB 저장
+     *
+     * 민팅 실패 시 BlockchainException → createShow()의 @Transactional이 전체 롤백
+     */
+    private void mintStakeholderNfts(List<Stakeholder> stakeholders, String platformWallet) {
+        for (Stakeholder stakeholder : stakeholders) {
+            try {
+                // 이해관계자 지갑 주소 조회
+                String walletAddress;
+                if (stakeholder.getHostId() != null) {
+                    // ORGANIZER → Host의 walletId로 조회
+                    Host stakeholderHost = hostRepository.findById(stakeholder.getHostId())
+                        .orElseThrow(() -> new NotFoundException("호스트를 찾을 수 없습니다."));
+                    walletAddress = walletRepository.findById(stakeholderHost.getWalletId())
+                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다.")).getAddress();
+                } else if (stakeholder.getUserId() != null) {
+                    // ARTIST → User의 walletId로 조회
+                    User user = userRepository.findByIdAndDeletedAtIsNull(stakeholder.getUserId())
+                        .orElseThrow(() -> new NotFoundException("유저를 찾을 수 없습니다."));
+                    walletAddress = walletRepository.findById(user.getWalletId())
+                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다.")).getAddress();
+                } else {
+                    // 플랫폼 Stakeholder (hostId, userId 모두 null)
+                    walletAddress = platformWallet;
+                }
+
+                String role = stakeholder.getRole().name().toLowerCase();
+                java.math.BigInteger shareBps = java.math.BigInteger.valueOf(stakeholder.getShareBps());
+                java.math.BigInteger eventNftId = java.math.BigInteger.ZERO; // EventNFT 미발행 → 0
+
+                // 온체인 StakeholderNFT.mint() 호출
+                TransactionReceipt receipt = blockchainService.getStakeholderNFT()
+                    .mint(walletAddress, role, shareBps, eventNftId).send();
+
+                // TransactionReceipt에서 StakeholderMinted 이벤트의 tokenId 추출
+                List<?> events = blockchainService.getStakeholderNFT().getStakeholderMintedEvents(receipt);
+
+                if (!events.isEmpty()) {
+                    Object event = events.get(0);
+                    java.math.BigInteger tokenId = ((com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse) event).tokenId;
+
+                    stakeholder.setStakeholderNftId(tokenId.longValue());
+                    stakeholderRepository.save(stakeholder);
+
+                    log.info("StakeholderNFT 발행: tokenId={}, wallet={}, role={}, shareBps={}", tokenId, walletAddress,
+                        role, shareBps);
+                }
+
+            } catch (Exception e) {
+                log.error("StakeholderNFT 민팅 실패: stakeholderId={}", stakeholder.getId(), e);
+                throw new BlockchainException("StakeholderNFT 발행 실패: " + e.getMessage());
+            }
+        }
     }
 }
