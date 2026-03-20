@@ -1,29 +1,44 @@
 package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.config.s3.S3Uploader;
+import com.ssafy.cheket.dto.show.request.PurchaseSessionSeatRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.*;
+import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.show.*;
+import com.ssafy.cheket.repository.show.projection.HeldSeatLockProjection;
+import com.ssafy.cheket.repository.show.projection.PurchaseSessionSeatProjection;
 import com.ssafy.cheket.repository.show.projection.SessionListProjection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ShowServiceImpl implements ShowService {
+
+    private static final Duration SEAT_LOCK_TTL = Duration.ofMinutes(5L);
+    private static final String SEAT_LOCK_PREFIX = "seat-lock";
+    private static final long HELD_CLEANUP_DELAY_MS = 30_000L;
 
     private final ShowRepository showRepository;
     private final LikeRepository likeRepository;
@@ -36,6 +51,7 @@ public class ShowServiceImpl implements ShowService {
     private final SeatRepository seatRepository;
     private final ShowImageRepository showImageRepository;
     private final S3Uploader s3Uploader;
+    private final StringRedisTemplate redisTemplate;
 
     // 공연 검색 및 목록 조회
     @Override
@@ -211,6 +227,159 @@ public class ShowServiceImpl implements ShowService {
     public void deleteShowImages(Long showId) {
         s3Uploader.deleteAllByShowId(showId);
         showImageRepository.deleteAllByShowId(showId);
+    }
+
+    // 좌석 선점(결제하기 버튼)
+    @Override
+    @Transactional
+    public PurchaseSessionSeatResponse purchaseSessionSeats(Long showId, Long sessionId,
+        PurchaseSessionSeatRequest request) {
+        if (!sessionRepository.existsByIdAndShowId(sessionId, showId)) {
+            throw new NotFoundException("존재하지 않는 공연 또는 회차입니다.");
+        }
+
+        if (request == null || request.sessionSeatIds() == null || request.sessionSeatIds().isEmpty()) {
+            throw new BadRequestException("좌석 선택은 필수입니다.");
+        }
+
+        List<Long> requestedSeatIds = request.sessionSeatIds();
+        List<Long> distinctSeatIds = requestedSeatIds.stream().distinct().toList();
+        if (requestedSeatIds.size() != distinctSeatIds.size()) {
+            throw new BadRequestException("중복된 자리 선택입니다.");
+        }
+
+        List<PurchaseSessionSeatProjection> rows = showRepository.findPurchaseSessionSeats(showId, sessionId,
+            distinctSeatIds);
+        if (rows.size() != distinctSeatIds.size()) {
+            throw new NotFoundException("존재하지 않는 좌석입니다.");
+        }
+
+        List<SessionSeat> seats = sessionSeatRepository.findAllById(distinctSeatIds);
+        if (seats.size() != distinctSeatIds.size()) {
+            throw new NotFoundException("존재하지 않는 좌석입니다.");
+        }
+
+        Map<Long, SessionSeat> seatBySeatId = seats.stream()
+            .collect(Collectors.toMap(SessionSeat::getId, seat -> seat));
+
+        // Redis 락이 만료된 HELD 좌석은 다시 AVAILABLE 로 상태 변경
+        List<SessionSeat> staleHeldSeats = new ArrayList<>();
+        for (SessionSeat seat : seats) {
+            if (seat.getStatus() != SeatStatus.HELD) {
+                continue;
+            }
+            if (!Boolean.TRUE.equals(redisTemplate.hasKey(seatLockKey(showId, sessionId, seat.getId())))) {
+                seat.setStatus(SeatStatus.AVAILABLE);
+                staleHeldSeats.add(seat);
+            }
+        }
+        if (!staleHeldSeats.isEmpty()) {
+            sessionSeatRepository.saveAll(staleHeldSeats);
+        }
+
+        Set<Long> unavailableSeatIds = seats.stream().filter(seat -> seat.getStatus() != SeatStatus.AVAILABLE)
+            .map(SessionSeat::getId).collect(Collectors.toSet());
+
+        Map<Long, PurchaseSessionSeatProjection> rowBySeatId = new HashMap<>();
+        for (PurchaseSessionSeatProjection row : rows) {
+            rowBySeatId.put(row.getSessionSeatId(), row);
+        }
+
+        List<PurchaseSessionSeatResponse.SessionSeatInfo> failure = new ArrayList<>();
+        List<Long> acquiredSeatIds = new ArrayList<>();
+        List<String> acquiredLockKeys = new ArrayList<>();
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        for (Long seatId : distinctSeatIds) {
+            PurchaseSessionSeatProjection row = rowBySeatId.get(seatId);
+            PurchaseSessionSeatResponse.SessionSeatInfo info = toSeatInfo(row);
+
+            if (unavailableSeatIds.contains(seatId)) {
+                failure.add(info);
+                continue;
+            }
+
+            String lockKey = seatLockKey(showId, sessionId, seatId);
+            Boolean locked = ops.setIfAbsent(lockKey, "1", SEAT_LOCK_TTL);
+            if (Boolean.TRUE.equals(locked)) {
+                acquiredSeatIds.add(seatId);
+                acquiredLockKeys.add(lockKey);
+            } else {
+                failure.add(info);
+            }
+        }
+
+        PurchaseSessionSeatProjection first = rows.get(0);
+        int totalPrice = first.getTotalPrice() == null ? 0 : first.getTotalPrice();
+
+        if (!failure.isEmpty() || acquiredSeatIds.size() != distinctSeatIds.size()) {
+            acquiredLockKeys.forEach(redisTemplate::delete);
+            return new PurchaseSessionSeatResponse(LocalDateTime.now().plus(SEAT_LOCK_TTL), first.getShowTitle(),
+                first.getSessionDate(), first.getVenueName(), new PurchaseSessionSeatResponse.Seats(List.of(), failure),
+                totalPrice);
+        }
+
+        List<SessionSeat> heldSeats = new ArrayList<>(distinctSeatIds.size());
+        for (Long seatId : distinctSeatIds) {
+            SessionSeat seat = seatBySeatId.get(seatId);
+            seat.setStatus(SeatStatus.HELD);
+            heldSeats.add(seat);
+        }
+        try {
+            sessionSeatRepository.saveAll(heldSeats);
+        } catch (RuntimeException e) {
+            acquiredLockKeys.forEach(redisTemplate::delete);
+            throw e;
+        }
+
+        List<PurchaseSessionSeatResponse.SessionSeatInfo> success = distinctSeatIds.stream().map(rowBySeatId::get)
+            .map(this::toSeatInfo).toList();
+        return new PurchaseSessionSeatResponse(LocalDateTime.now().plus(SEAT_LOCK_TTL), first.getShowTitle(),
+            first.getSessionDate(), first.getVenueName(), new PurchaseSessionSeatResponse.Seats(success, failure),
+            totalPrice);
+    }
+
+    private PurchaseSessionSeatResponse.SessionSeatInfo toSeatInfo(PurchaseSessionSeatProjection row) {
+        return new PurchaseSessionSeatResponse.SessionSeatInfo(row.getSessionSeatId(), row.getSectionName(),
+            row.getSeatNo(), row.getGrade(), row.getPrice());
+    }
+
+    private String seatLockKey(Long showId, Long sessionId, Long sessionSeatId) {
+        return "%s:%d:%d:%d".formatted(SEAT_LOCK_PREFIX, showId, sessionId, sessionSeatId);
+    }
+
+    // Held 로 변경된 좌석이 TTL(5분) 이내에 구매되지 않으면 AVAILABLE 로 변경하도록 스케줄링
+    @Scheduled(fixedDelay = HELD_CLEANUP_DELAY_MS)
+    @Transactional
+    public void releaseExpiredHeldSeats() {
+        List<HeldSeatLockProjection> heldSeats = sessionSeatRepository.findHeldSeatLockTargets();
+        if (heldSeats.isEmpty()) {
+            return;
+        }
+
+        List<Long> expiredSeatIds = new ArrayList<>();
+        for (HeldSeatLockProjection heldSeat : heldSeats) {
+            String lockKey = seatLockKey(heldSeat.getShowId(), heldSeat.getSessionId(), heldSeat.getSessionSeatId());
+            if (!Boolean.TRUE.equals(redisTemplate.hasKey(lockKey))) {
+                expiredSeatIds.add(heldSeat.getSessionSeatId());
+            }
+        }
+
+        if (expiredSeatIds.isEmpty()) {
+            return;
+        }
+
+        List<SessionSeat> seatsToRelease = sessionSeatRepository.findAllById(expiredSeatIds);
+        List<SessionSeat> changedSeats = new ArrayList<>();
+        for (SessionSeat seat : seatsToRelease) {
+            if (seat.getStatus() == SeatStatus.HELD) {
+                seat.setStatus(SeatStatus.AVAILABLE);
+                changedSeats.add(seat);
+            }
+        }
+        if (!changedSeats.isEmpty()) {
+            sessionSeatRepository.saveAll(changedSeats);
+        }
     }
 
     private ShowItem toShowItem(Show s) {

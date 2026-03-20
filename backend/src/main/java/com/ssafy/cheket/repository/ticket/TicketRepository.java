@@ -38,7 +38,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             join Seat seat on seat.id = ss.seatId
             join Section sec on sec.id = seat.sectionId
             join SeatGrade sg on sg.showId = sh.id and sg.sectionId = sec.id
-            join Resale rs on rs.ticketId = t.id
+            left join Resale rs on rs.ticketId = t.id
             where t.userId = :userId
               and t.resaleStatus in (
                   com.ssafy.cheket.enums.ResaleStatus.AVAILABLE,

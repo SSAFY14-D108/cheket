@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.show;
 
+import com.ssafy.cheket.dto.show.request.PurchaseSessionSeatRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.ShowImage;
 import com.ssafy.cheket.enums.ShowSort;
@@ -29,5 +30,8 @@ public interface ShowService {
 
     // 공연 이미지 삭제
     void deleteShowImages(Long showId);
+
+    // 좌석 선점(결제하기 버튼)
+    PurchaseSessionSeatResponse purchaseSessionSeats(Long showId, Long sessionId, PurchaseSessionSeatRequest request);
 
 }

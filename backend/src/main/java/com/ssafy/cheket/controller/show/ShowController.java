@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.show.request.PurchaseSessionSeatRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.service.show.ShowService;
@@ -77,4 +78,15 @@ public class ShowController {
         GetUpcomingResponse response = showService.getUpcoming();
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "오픈 예정 공연 5개 조회 완료", response));
     }
+
+    @PostMapping("/{showId}/sessions/{sessionId}/seats")
+    @Operation(summary = "좌석 선점(결제하기 버튼)")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<PurchaseSessionSeatResponse>> purchaseSessionSeat(@PathVariable Long showId,
+        @PathVariable Long sessionId, @RequestBody PurchaseSessionSeatRequest request) {
+        PurchaseSessionSeatResponse response = showService.purchaseSessionSeats(showId, sessionId, request);
+        String message = response.seats().failure().isEmpty() ? "좌석 선점 완료" : "이미 선택된 좌석입니다.";
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, message, response));
+    }
+
 }

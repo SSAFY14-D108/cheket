@@ -2,6 +2,7 @@ package com.ssafy.cheket.repository.show;
 
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.ShowStatus;
+import com.ssafy.cheket.repository.show.projection.PurchaseSessionSeatProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -115,4 +116,31 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
     List<Show> findByStatusAndReservationStartDateBetween(ShowStatus status, LocalDateTime from, LocalDateTime to);
 
     Page<Show> findByHost_id(Long hostId, Pageable pageable);
+
+    @Query(value = """
+        select
+            sh.title as showTitle,
+            sess.session_start_time as sessionDate,
+            v.name as venueName,
+            ss.id as sessionSeatId,
+            sec.section_name as sectionName,
+            seat.seat_no as seatNo,
+            sg.grade_name as grade,
+            sg.price as price,
+            sum(sg.price) over () as totalPrice
+        from session_seats ss
+        join sessions sess on sess.id = ss.session_id
+        join shows sh on sh.id = sess.show_id
+        join venues v on v.id = sh.venue_id
+        join seats seat on seat.id = ss.seat_id
+        join sections sec on sec.id = seat.section_id
+        join seat_grades sg on sg.show_id = sh.id and sg.section_id = sec.id
+        where sh.id = :showId
+          and sess.id = :sessionId
+          and ss.id in :sessionSeatIds
+        order by sec.id, seat.row_num, seat.col_num
+        """, nativeQuery = true)
+    List<PurchaseSessionSeatProjection> findPurchaseSessionSeats(@Param("showId") Long showId,
+        @Param("sessionId") Long sessionId, @Param("sessionSeatIds") List<Long> sessionSeatIds);
+
 }
