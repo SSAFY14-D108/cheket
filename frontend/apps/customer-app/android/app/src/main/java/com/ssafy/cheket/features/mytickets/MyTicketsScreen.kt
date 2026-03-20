@@ -14,7 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.Ticket
@@ -70,7 +74,18 @@ fun MyTicketsScreen(
 
     Scaffold(
         topBar = {
-            AppHeader(title = "내 티켓")
+            AppHeader(
+                title = "내 티켓",
+                actions = {
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = "알림",
+                            tint = Color(0xFF24332F),
+                        )
+                    }
+                },
+            )
         },
     ) { innerPadding ->
         Column(
@@ -79,7 +94,6 @@ fun MyTicketsScreen(
                 .background(V0Background)
                 .padding(innerPadding),
         ) {
-            // Filter tabs + Collection button row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,7 +101,6 @@ fun MyTicketsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Filter pills (scrollable)
                 LazyRow(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -108,7 +121,6 @@ fun MyTicketsScreen(
                     }
                 }
 
-                // Collection button — gradient-border-button rounded-full
                 Text(
                     text = "컬렉션",
                     fontSize = 12.sp,
@@ -123,7 +135,6 @@ fun MyTicketsScreen(
                 )
             }
 
-            // Content area
             when {
                 uiState.isLoading -> {
                     Box(
@@ -140,7 +151,7 @@ fun MyTicketsScreen(
 
                 uiState.errorMessage != null -> {
                     EmptyState(
-                        title = "티켓을 불러오지 못했습니다",
+                        title = "티켓을 불러오지 못했어요",
                         description = uiState.errorMessage ?: "잠시 후 다시 시도해주세요.",
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -148,9 +159,9 @@ fun MyTicketsScreen(
 
                 uiState.filteredTickets.isEmpty() -> {
                     val (emptyTitle, emptyDesc) = when (uiState.selectedFilter) {
-                        TicketFilter.ALL -> "티켓이 없어요" to "예매하거나 양도받은 티켓이 여기에 표시됩니다."
-                        TicketFilter.AVAILABLE -> "보유 중인 티켓이 없어요" to "아직 보유 중인 티켓이 없습니다."
-                        TicketFilter.LISTED -> "판매 중인 티켓이 없어요" to "현재 판매 중인 티켓이 없습니다."
+                        TicketFilter.ALL -> "보유 중인 티켓이 없어요" to "예매한 티켓이 생기면 이곳에서 확인할 수 있어요."
+                        TicketFilter.AVAILABLE -> "사용 가능한 티켓이 없어요" to "현재 입장 가능한 티켓이 없습니다."
+                        TicketFilter.LISTED -> "판매 중인 티켓이 없어요" to "현재 리세일 등록된 티켓이 없습니다."
                     }
                     EmptyState(
                         title = emptyTitle,
@@ -169,7 +180,7 @@ fun MyTicketsScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .elevatedSurfaceSoft(shape = RoundedCornerShape(12.dp)),
+                                    .elevatedSurfaceSoft(shape = RoundedCornerShape(18.dp)),
                             ) {
                                 TicketCardItem(
                                     ticket = ticket,

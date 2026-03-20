@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 private const val TAG = "ResaleRepositoryImpl"
+private const val RESALE_PRICE_FETCH_SIZE = 100
 
 class ResaleRepositoryImpl(
     private val resaleService: ResaleService,
@@ -16,7 +17,6 @@ class ResaleRepositoryImpl(
 
     override fun getResaleItems(): Flow<List<ResaleItem>> = flow {
         Log.d(TAG, "getResaleItems()")
-        // TODO: 개별 ResaleItem을 얻으려면 각 show 별로 getResaleTickets 호출 필요
         try {
             val response = resaleService.getResaleShows()
             Log.d(TAG, "getResaleItems() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
@@ -49,14 +49,16 @@ class ResaleRepositoryImpl(
             val response = resaleService.getResaleShows()
             Log.d(TAG, "getResaleGrouped() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
             val groups = response.data?.shows?.map { dto ->
+                val minPrice = fetchMinResalePrice(dto.showId)
                 ResaleGroupItem(
                     showId = dto.showId.toString(),
                     showName = dto.title,
                     poster = dto.posterUrl,
                     venue = dto.venue,
+                    region = dto.region,
                     showDate = dto.showStartDate,
                     count = dto.ticketCount,
-                    minPrice = 0, // TODO: 최소 가격은 getResaleTickets 에서 조회 필요
+                    minPrice = minPrice,
                     items = emptyList(),
                 )
             } ?: emptyList()
@@ -64,6 +66,16 @@ class ResaleRepositoryImpl(
         } catch (e: Exception) {
             Log.e(TAG, "getResaleGrouped() error", e)
             emit(emptyList())
+        }
+    }
+
+    private suspend fun fetchMinResalePrice(showId: Long): Int {
+        return try {
+            val response = resaleService.getResaleTickets(showId = showId, size = RESALE_PRICE_FETCH_SIZE)
+            response.data?.tickets?.minOfOrNull { it.discountedPrice } ?: 0
+        } catch (e: Exception) {
+            Log.w(TAG, "fetchMinResalePrice() failed for showId=$showId", e)
+            0
         }
     }
 }

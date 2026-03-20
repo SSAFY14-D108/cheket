@@ -54,6 +54,8 @@ import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.BorderColor
 import com.ssafy.cheket.ui.theme.CardBg
@@ -82,7 +84,15 @@ fun TransferScreen(
     }
 
     Scaffold(
-        topBar = { AppHeader(title = "티켓 양도", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "티켓 양도",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.TRANSFER)
+                },
+            )
+        },
         containerColor = Background,
     ) { innerPadding ->
         Column(

@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.shows
+﻿package com.ssafy.cheket.features.shows
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -22,7 +22,7 @@ enum class SortOption(val label: String, val apiValue: String) {
     CLOSING("오픈임박순", "DEADLINE"),
 }
 
-/** 백엔드 Region 코드 (Int)에 대응하는 지역 필터 */
+/** 백엔드 Region 값을 지역 필터에 매핑 */
 enum class RegionOption(val label: String, val apiValue: Int) {
     SEOUL("서울", 11),
     GYEONGGI("경기", 41),
@@ -49,7 +49,9 @@ data class ShowsUiState(
     val sortBy: SortOption = SortOption.POPULAR,
     val selectedRegions: List<RegionOption> = emptyList(),
     val isLoading: Boolean = true,
+    val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
+    val hasMore: Boolean = true,
     val currentPage: Int = 0,
     val totalPages: Int = 0,
     val totalElements: Int = 0,
@@ -59,15 +61,15 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ShowsUiState())
     val uiState: StateFlow<ShowsUiState> = _uiState.asStateFlow()
 
-    // 검색 디바운싱용
+    // 寃???붾컮?댁떛??
     private var searchJob: Job? = null
 
     init {
-        Log.d(TAG, "init — loading shows")
+        Log.d(TAG, "init ??loading shows")
         loadShows()
     }
 
-    // ── 검색: 텍스트 업데이트 + 디바운싱 API 호출 ──
+    // ?? 寃?? ?띿뒪???낅뜲?댄듃 + ?붾컮?댁떛 API ?몄텧 ??
     fun onSearchChange(query: String) {
         Log.d(TAG, "onSearchChange() query=$query")
         _uiState.value = _uiState.value.copy(searchQuery = query)
@@ -78,21 +80,21 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
         }
     }
 
-    // ── 검색: 키보드 Search 버튼 / 검색 아이콘 클릭 시 즉시 API 호출 ──
+    // ?? 寃?? ?ㅻ낫??Search 踰꾪듉 / 寃???꾩씠肄??대┃ ??利됱떆 API ?몄텧 ??
     fun onSearchSubmit() {
         Log.d(TAG, "onSearchSubmit() query=${_uiState.value.searchQuery}")
         searchJob?.cancel()
         loadShows(page = 0)
     }
 
-    // ── 정렬 변경 → 즉시 API 호출 ──
+    // ?? ?뺣젹 蹂寃???利됱떆 API ?몄텧 ??
     fun onSortChange(sort: SortOption) {
         Log.d(TAG, "onSortChange() sort=$sort")
         _uiState.value = _uiState.value.copy(sortBy = sort)
         loadShows(page = 0)
     }
 
-    // ── 지역 필터 토글 → 즉시 API 호출 ──
+    // ?? 吏???꾪꽣 ?좉? ??利됱떆 API ?몄텧 ??
     fun onRegionToggle(region: RegionOption?) {
         Log.d(TAG, "onRegionToggle() region=$region")
         if (region == null) {
@@ -112,10 +114,18 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
         }
     }
 
+    fun loadNextPage() {
+        val state = _uiState.value
+        if (state.isLoading || state.isLoadingMore || state.isRefreshing) return
+        if (!state.hasMore) return
+
+        loadShows(page = state.currentPage + 1, append = true)
+    }
+
     fun refresh() {
         Log.d(TAG, "refresh()")
         _uiState.value = _uiState.value.copy(isRefreshing = true)
-        loadShows(page = _uiState.value.currentPage)
+        loadShows(page = 0)
     }
 
     fun resetFilters() {
@@ -127,11 +137,14 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
     fun hasActiveFilters(): Boolean = _uiState.value.selectedRegions.isNotEmpty()
     fun activeFilterCount(): Int = _uiState.value.selectedRegions.size
 
-    private fun loadShows(page: Int = 0) {
+    private fun loadShows(page: Int = 0, append: Boolean = false) {
         viewModelScope.launch {
             val s = _uiState.value
             if (!s.isRefreshing) {
-                _uiState.value = s.copy(isLoading = true)
+                _uiState.value = s.copy(
+                    isLoading = !append,
+                    isLoadingMore = append,
+                )
             }
 
             val keyword = s.searchQuery.trim().ifBlank { null }
@@ -145,13 +158,21 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
                 size = PAGE_SIZE,
             )
 
+            val mergedShows = if (append) s.shows + result.shows else result.shows
+            val hasMore = when {
+                result.totalElements > 0 -> mergedShows.size < result.totalElements
+                else -> result.shows.size >= PAGE_SIZE
+            }
+
             _uiState.value = _uiState.value.copy(
-                shows = result.shows,
+                shows = mergedShows,
                 currentPage = result.page,
                 totalPages = result.totalPages,
                 totalElements = result.totalElements,
                 isLoading = false,
+                isLoadingMore = false,
                 isRefreshing = false,
+                hasMore = hasMore,
             )
             Log.d(TAG, "loadShows() page=${result.page}/${result.totalPages}, total=${result.totalElements}, count=${result.shows.size}")
         }
@@ -159,7 +180,7 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
 
     companion object {
         private const val TAG = "ShowsViewModel"
-        private const val PAGE_SIZE = 20
+        private const val PAGE_SIZE = 10
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

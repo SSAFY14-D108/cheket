@@ -257,7 +257,10 @@ fun AppNavGraph(
                 )
             }
             composable(Routes.COLLECTION) {
-                CollectionScreen(appContainer = appContainer)
+                CollectionScreen(
+                    appContainer = appContainer,
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             // ── Show Detail ──
@@ -539,6 +542,13 @@ fun AppNavGraph(
                 MyPageScreen(
                     userService = appContainer.userService,
                     onWallet = { navController.navigate(Routes.WALLET) },
+                    onMyTickets = {
+                        navController.navigate(Routes.MY_TICKETS) {
+                            popUpTo(Routes.MY_TICKETS) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                    onCollection = { navController.navigate(Routes.COLLECTION) },
                     onWishlist = { navController.navigate(Routes.WISHLIST) },
                     onWalletHistory = { navController.navigate(Routes.WALLET_HISTORY) },
                     onTxHistory = { navController.navigate(Routes.TX_HISTORY) },

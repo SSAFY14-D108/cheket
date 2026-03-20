@@ -27,6 +27,8 @@ import com.ssafy.cheket.core.model.TxStatus
 import com.ssafy.cheket.core.model.TxType
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,7 +41,15 @@ fun TxHistoryScreen(
     val txRecords = remember { MockDataSource.mockTxRecords.sortedByDescending { it.createdAt } }
 
     Scaffold(
-        topBar = { AppHeader(title = "티켓 거래 내역", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "티켓 거래 내역",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.TX_HISTORY)
+                },
+            )
+        },
     ) { innerPadding ->
         if (txRecords.isEmpty()) {
             EmptyState(

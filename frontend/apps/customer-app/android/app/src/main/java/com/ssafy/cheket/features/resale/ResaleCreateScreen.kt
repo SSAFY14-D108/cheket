@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 
 @Composable
@@ -42,7 +44,17 @@ fun ResaleCreateScreen(
     var isSubmitted by remember { mutableStateOf(false) }
 
     if (ticket == null) {
-        Scaffold(topBar = { AppHeader(title = "양도 등록", onBack = onBack) }) { innerPadding ->
+        Scaffold(
+            topBar = {
+                AppHeader(
+                    title = "양도 등록",
+                    onBack = onBack,
+                    actions = {
+                        TutorialHelpButton(tutorialId = TutorialId.RESALE_CREATE)
+                    },
+                )
+            },
+        ) { innerPadding ->
             Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text("티켓을 찾을 수 없습니다.", color = MutedForeground, fontSize = 14.sp)
             }
@@ -59,7 +71,16 @@ fun ResaleCreateScreen(
 
     // Success State
     if (isSubmitted) {
-        Scaffold(topBar = { AppHeader(title = "양도 등록 완료") }) { innerPadding ->
+        Scaffold(
+            topBar = {
+                AppHeader(
+                    title = "양도 등록 완료",
+                    actions = {
+                        TutorialHelpButton(tutorialId = TutorialId.RESALE_CREATE)
+                    },
+                )
+            },
+        ) { innerPadding ->
             Column(
                 Modifier
                     .fillMaxSize()
@@ -121,7 +142,15 @@ fun ResaleCreateScreen(
 
     // Create Form
     Scaffold(
-        topBar = { AppHeader(title = "양도 등록", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "양도 등록",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.RESALE_CREATE)
+                },
+            )
+        },
         bottomBar = {
             Surface(tonalElevation = 4.dp, shadowElevation = 8.dp, color = Surface) {
                 Column(Modifier.padding(16.dp)) {

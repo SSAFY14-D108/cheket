@@ -31,9 +31,9 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -44,7 +44,7 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(80.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(14.dp))
                 .background(Muted),
         )
 

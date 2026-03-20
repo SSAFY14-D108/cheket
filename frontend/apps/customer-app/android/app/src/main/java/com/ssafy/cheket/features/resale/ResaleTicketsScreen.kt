@@ -28,6 +28,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.ui.theme.*
 
@@ -56,7 +58,15 @@ fun ResaleTicketsScreen(
     var sortMode by remember { mutableStateOf(SortMode.LATEST) }
 
     Scaffold(
-        topBar = { AppHeader(title = "2차 거래소", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "2차 거래소",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.RESALE_DETAIL)
+                },
+            )
+        },
     ) { innerPadding ->
         when (val state = uiState) {
             is ResaleTicketsUiState.Loading -> {

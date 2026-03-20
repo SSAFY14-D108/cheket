@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -56,7 +58,15 @@ fun QrCheckinScreen(
     }
 
     Scaffold(
-        topBar = { AppHeader(title = "QR 체크인", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "QR 체크인",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.QR_CHECKIN)
+                },
+            )
+        },
         containerColor = Background,
     ) { innerPadding ->
         Column(

@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
@@ -35,7 +37,15 @@ fun WalletHistoryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { AppHeader(title = "거래 내역", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "거래 내역",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.WALLET_HISTORY)
+                },
+            )
+        },
     ) { innerPadding ->
         when (val state = uiState) {
             is WalletHistoryUiState.Loading -> {

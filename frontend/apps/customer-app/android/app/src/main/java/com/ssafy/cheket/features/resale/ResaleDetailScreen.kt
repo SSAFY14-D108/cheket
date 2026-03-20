@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 
 @Composable
@@ -38,7 +40,17 @@ fun ResaleDetailScreen(
     val user = remember { MockDataSource.mockUser }
 
     if (resaleItem == null) {
-        Scaffold(topBar = { AppHeader(title = "재판매 티켓", onBack = onBack) }) { innerPadding ->
+        Scaffold(
+            topBar = {
+                AppHeader(
+                    title = "재판매 티켓",
+                    onBack = onBack,
+                    actions = {
+                        TutorialHelpButton(tutorialId = TutorialId.RESALE_DETAIL)
+                    },
+                )
+            },
+        ) { innerPadding ->
             Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text("해당 리세일 항목을 찾을 수 없습니다.", color = MutedForeground, fontSize = 14.sp)
             }
@@ -55,7 +67,15 @@ fun ResaleDetailScreen(
     val hasInsufficientBalance = user.ctkBalance < resaleItem.resalePrice
 
     Scaffold(
-        topBar = { AppHeader(title = "재판매 티켓", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "재판매 티켓",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.RESALE_DETAIL)
+                },
+            )
+        },
         bottomBar = {
             Surface(
                 tonalElevation = 4.dp,

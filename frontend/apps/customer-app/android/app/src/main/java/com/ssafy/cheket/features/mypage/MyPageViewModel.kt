@@ -41,15 +41,12 @@ class MyPageViewModel(
         viewModelScope.launch {
             _uiState.value = MyPageUiState(isLoading = true)
             try {
-                // 유저 프로필
                 val userResponse = userService.getUserInfo()
                 val user = userResponse.data
 
-                // 지갑 잔액 + 주소
                 val walletResponse = walletService.getBalance()
                 val wallet = walletResponse.data
 
-                // 찜 목록 수
                 val likesResponse = userService.getLikedShows()
                 val likesCount = likesResponse.data?.size ?: 0
 
@@ -68,7 +65,7 @@ class MyPageViewModel(
                 Log.e(TAG, "load() error", e)
                 _uiState.value = MyPageUiState(
                     isLoading = false,
-                    error = "정보를 불러오지 못했습니다",
+                    error = "마이페이지 정보를 불러오지 못했습니다.",
                 )
             }
         }

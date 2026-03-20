@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,10 +25,22 @@ import com.ssafy.cheket.ui.theme.*
 
 @Composable
 fun ShowCardItem(show: Show, onClick: () -> Unit = {}) {
+    val locationText = buildString {
+        append(show.venue)
+        if (show.region.isNotBlank() && !show.venue.contains(show.region)) {
+            append(", ")
+            append(show.region)
+        }
+    }
+
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-            .background(CardBg).clickable(onClick = onClick).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .elevatedSurfaceSoft(RoundedCornerShape(24.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.Top,
     ) {
         AsyncImage(
             model = show.poster, contentDescription = show.name,
@@ -32,32 +48,75 @@ fun ShowCardItem(show: Show, onClick: () -> Unit = {}) {
             modifier = Modifier
                 .width(84.dp)
                 .height(112.dp)
-                .clip(RoundedCornerShape(8.dp)).background(Muted),
+                .clip(RoundedCornerShape(16.dp))
+                .background(Muted),
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 4.dp, bottom = 4.dp),
+            verticalArrangement = Arrangement.Top,
         ) {
-            // Title + badge inline (badge only for SOLD_OUT)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    show.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                    color = OnBackground, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    text = show.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OnBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 21.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
                 )
                 if (show.status == ShowStatus.SOLD_OUT) {
                     ShowStatusBadge(show.status)
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(show.date, fontSize = 12.sp, color = MutedForeground)
-            Text(show.venue, fontSize = 12.sp, color = MutedForeground,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.DateRange,
+                    contentDescription = null,
+                    tint = MutedForeground,
+                    modifier = Modifier.size(17.dp),
+                )
+                Text(
+                    text = show.date,
+                    fontSize = 14.sp,
+                    color = MutedForeground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Place,
+                    contentDescription = null,
+                    tint = MutedForeground,
+                    modifier = Modifier.size(17.dp),
+                )
+                Text(
+                    text = locationText,
+                    fontSize = 14.sp,
+                    color = MutedForeground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

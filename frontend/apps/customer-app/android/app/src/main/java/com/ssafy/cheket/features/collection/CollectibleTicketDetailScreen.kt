@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.TutorialHelpButton
+import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 
 // ─────────────────────────────────────────────────────────────────────
@@ -45,7 +47,17 @@ fun CollectibleTicketDetailScreen(
     val user = remember { MockDataSource.mockUser }
 
     if (ticket == null) {
-        Scaffold(topBar = { AppHeader(title = "소장 티켓", onBack = onBack) }) { innerPadding ->
+        Scaffold(
+            topBar = {
+                AppHeader(
+                    title = "소장 티켓",
+                    onBack = onBack,
+                    actions = {
+                        TutorialHelpButton(tutorialId = TutorialId.COLLECTIBLE_TICKET_DETAIL)
+                    },
+                )
+            },
+        ) { innerPadding ->
             Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text("티켓을 찾을 수 없습니다.", color = MutedForeground, fontSize = 14.sp)
             }
@@ -60,7 +72,15 @@ fun CollectibleTicketDetailScreen(
     val contractAddress = "0xCheket${ticket.showId.hashCode().toUInt().toString(16).padStart(8, '0')}...NFT"
 
     Scaffold(
-        topBar = { AppHeader(title = "소장 티켓", onBack = onBack) },
+        topBar = {
+            AppHeader(
+                title = "소장 티켓",
+                onBack = onBack,
+                actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.COLLECTIBLE_TICKET_DETAIL)
+                },
+            )
+        },
         bottomBar = {
             Surface(tonalElevation = 4.dp, shadowElevation = 8.dp, color = Surface) {
                 Column(Modifier.padding(16.dp)) {
