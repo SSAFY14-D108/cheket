@@ -39,7 +39,7 @@ private val V0SwitchTrack = Color(0xFF9AA4B2)
 @Composable
 fun PaymentScreen(
     showId: String,
-    onSuccess: () -> Unit,
+    onSuccess: (txId: Long) -> Unit,
     onFailure: (showId: String, reason: String) -> Unit,
     onBack: () -> Unit,
     viewModel: PaymentViewModel = viewModel(factory = PaymentViewModel.factory(showId)),
@@ -49,7 +49,7 @@ fun PaymentScreen(
 
     when (uiState.step) {
         PaymentStep.SUCCESS -> {
-            LaunchedEffect(Unit) { onSuccess() }
+            LaunchedEffect(Unit) { onSuccess(uiState.txId ?: 0L) }
         }
         PaymentStep.FAILURE -> {
             LaunchedEffect(Unit) { onFailure(showId, uiState.failureReason) }

@@ -332,9 +332,9 @@ fun AppNavGraph(
                 val showId = backStackEntry.arguments?.getString("showId") ?: ""
                 PaymentScreen(
                     showId = showId,
-                    onSuccess = {
+                    onSuccess = { txId ->
                         // 결제 성공 → 블록체인 TX 처리 화면으로 이동
-                        navController.navigate(Routes.txProcessing()) {
+                        navController.navigate(Routes.txProcessing(txId = txId)) {
                             popUpTo(Routes.payment(showId)) { inclusive = true }
                         }
                     },

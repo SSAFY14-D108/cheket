@@ -138,11 +138,14 @@ class PaymentViewModel(
             try {
                 val showIdLong = showId.toLong()
                 val sessionId = NavParams.sessionId
+                val seatAccessToken = NavParams.seatAccessToken
+                    ?: throw IllegalStateException("Seat-Access-Token이 없습니다. 대기열을 통해 진입해주세요.")
                 val seatIds = NavParams.selectedSeats.map { it.id.toLong() }
 
-                Log.d(TAG, "purchase() — showId=$showIdLong, sessionId=$sessionId, seatIds=$seatIds")
+                Log.d(TAG, "purchase() — showId=$showIdLong, sessionId=$sessionId, seatIds=$seatIds, token=${seatAccessToken.take(10)}...")
 
                 val response = ticketService.purchaseTicket(
+                    seatAccessToken = seatAccessToken,
                     showId = showIdLong,
                     sessionId = sessionId,
                     request = PurchaseRequest(sessionSeatIds = seatIds),

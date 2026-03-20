@@ -7,6 +7,7 @@ interface TicketService {
 
     @POST("api/v1/shows/{showId}/sessions/{sessionId}/purchase")
     suspend fun purchaseTicket(
+        @Header("Seat-Access-Token") seatAccessToken: String,
         @Path("showId") showId: Long,
         @Path("sessionId") sessionId: Long,
         @Body request: PurchaseRequest,
