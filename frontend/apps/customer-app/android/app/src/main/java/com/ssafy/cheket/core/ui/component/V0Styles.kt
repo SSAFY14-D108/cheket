@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
  * v0 `.elevated-surface` — box-shadow: 0 10px 30px rgba(15,23,42,0.045)
  */
 fun Modifier.elevatedSurface(
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
 ): Modifier = this
     .shadow(
         elevation = 6.dp,
@@ -29,7 +29,7 @@ fun Modifier.elevatedSurface(
  * v0 `.elevated-surface-soft` — box-shadow: 0 6px 20px rgba(15,23,42,0.03)
  */
 fun Modifier.elevatedSurfaceSoft(
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
 ): Modifier = this
     .shadow(
         elevation = 3.dp,
@@ -44,7 +44,7 @@ fun Modifier.elevatedSurfaceSoft(
  * 버튼, 카드 등에 사용
  */
 fun Modifier.gradientBorder(
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
     borderWidth: Dp = 1.5.dp,
 ): Modifier = this
     .border(

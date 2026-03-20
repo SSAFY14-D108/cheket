@@ -2,6 +2,7 @@ package com.ssafy.cheket.features.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.ssafy.cheket.R
 import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.*
 import com.ssafy.cheket.core.ui.component.elevatedSurface
@@ -79,12 +82,11 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        "CHEKET",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Black,
-                        color = V0TextPrimary,
-                        letterSpacing = (-1).sp,
+                    Image(
+                        painter = painterResource(id = R.drawable.cheket_logo2),
+                        contentDescription = "CHEKET 로고",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.height(32.dp),
                     )
                     Row {
                         IconButton(onClick = {}) {

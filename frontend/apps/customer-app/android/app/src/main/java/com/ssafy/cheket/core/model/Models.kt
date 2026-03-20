@@ -113,6 +113,7 @@ data class ResaleGroupItem(
     val showName: String,
     val poster: String,
     val venue: String,
+    val region: String = "",
     val showDate: String,
     val count: Int,
     val minPrice: Int,
