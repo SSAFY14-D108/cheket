@@ -21,8 +21,7 @@ import java.math.BigInteger;
 /**
  * 블록체인 서비스 — 7개 컨트랙트 통합 관리
  *
- * 플랫폼 지갑 키, nonce, 가스비 등 공통 설정을 한 곳에서 관리하고,
- * 각 컨트랙트 wrapper 인스턴스를 제공한다.
+ * 플랫폼 지갑 키, nonce, 가스비 등 공통 설정을 한 곳에서 관리하고, 각 컨트랙트 wrapper 인스턴스를 제공한다.
  */
 @Slf4j
 @Service
@@ -74,8 +73,8 @@ public class BlockchainService {
     private String platformAddress;
 
     // SSAFY 네트워크: gasPrice = 0
-    private static final StaticGasProvider GAS_PROVIDER =
-        new StaticGasProvider(BigInteger.ZERO, BigInteger.valueOf(3000000));
+    private static final StaticGasProvider GAS_PROVIDER = new StaticGasProvider(BigInteger.ZERO,
+        BigInteger.valueOf(3000000));
 
     public BlockchainService(Web3j web3j) {
         this.web3j = web3j;
@@ -86,8 +85,7 @@ public class BlockchainService {
         platformCredentials = Credentials.create(platformPrivateKey);
         platformAddress = platformCredentials.getAddress();
 
-        RawTransactionManager txManager =
-            new RawTransactionManager(web3j, platformCredentials, chainId);
+        RawTransactionManager txManager = new RawTransactionManager(web3j, platformCredentials, chainId);
 
         stakeholderNFT = StakeholderNFT.load(stakeholderNftAddress, web3j, txManager, GAS_PROVIDER);
         eventNFT = EventNFT.load(eventNftAddress, web3j, txManager, GAS_PROVIDER);

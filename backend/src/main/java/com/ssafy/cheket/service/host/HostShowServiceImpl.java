@@ -280,8 +280,8 @@ public class HostShowServiceImpl implements HostShowService {
         }
 
         // 플랫폼도 Stakeholder로 추가 (800 bps = 8%)
-        Stakeholder platformStakeholder = Stakeholder.builder()
-            .showId(showId).role(StakeholderRole.ORGANIZER).shareBps(800).build();
+        Stakeholder platformStakeholder = Stakeholder.builder().showId(showId).role(StakeholderRole.ORGANIZER)
+            .shareBps(800).build();
         platformStakeholder = stakeholderRepository.save(platformStakeholder);
         savedStakeholders.add(platformStakeholder);
 
@@ -511,15 +511,12 @@ public class HostShowServiceImpl implements HostShowService {
     }
 
     /**
-     * 각 Stakeholder에 대해 StakeholderNFT를 온체인 발행하고,
-     * 반환된 tokenId를 DB stakeholder.stakeholderNftId에 저장.
+     * 각 Stakeholder에 대해 StakeholderNFT를 온체인 발행하고, 반환된 tokenId를 DB
+     * stakeholder.stakeholderNftId에 저장.
      *
-     * [흐름]
-     * 1. Stakeholder의 hostId 또는 userId로 walletId 조회
-     * 2. walletId로 지갑 주소 조회
-     * 3. StakeholderNFT.mint(지갑주소, 역할, shareBps, 0) 호출
-     *    - eventNftId = 0 (EventNFT는 예매 오픈 D-1에 발행)
-     * 4. TransactionReceipt에서 tokenId 추출 → DB 저장
+     * [흐름] 1. Stakeholder의 hostId 또는 userId로 walletId 조회 2. walletId로 지갑 주소 조회 3.
+     * StakeholderNFT.mint(지갑주소, 역할, shareBps, 0) 호출 - eventNftId = 0 (EventNFT는 예매
+     * 오픈 D-1에 발행) 4. TransactionReceipt에서 tokenId 추출 → DB 저장
      *
      * 민팅 실패 시 BlockchainException → createShow()의 @Transactional이 전체 롤백
      */
@@ -533,15 +530,13 @@ public class HostShowServiceImpl implements HostShowService {
                     Host stakeholderHost = hostRepository.findById(stakeholder.getHostId())
                         .orElseThrow(() -> new NotFoundException("호스트를 찾을 수 없습니다."));
                     walletAddress = walletRepository.findById(stakeholderHost.getWalletId())
-                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다."))
-                        .getAddress();
+                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다.")).getAddress();
                 } else if (stakeholder.getUserId() != null) {
                     // ARTIST → User의 walletId로 조회
                     User user = userRepository.findByIdAndDeletedAtIsNull(stakeholder.getUserId())
                         .orElseThrow(() -> new NotFoundException("유저를 찾을 수 없습니다."));
                     walletAddress = walletRepository.findById(user.getWalletId())
-                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다."))
-                        .getAddress();
+                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다.")).getAddress();
                 } else {
                     // 플랫폼 Stakeholder (hostId, userId 모두 null)
                     walletAddress = platformWallet;
@@ -556,19 +551,17 @@ public class HostShowServiceImpl implements HostShowService {
                     .mint(walletAddress, role, shareBps, eventNftId).send();
 
                 // TransactionReceipt에서 StakeholderMinted 이벤트의 tokenId 추출
-                List<?> events = blockchainService.getStakeholderNFT()
-                    .getStakeholderMintedEvents(receipt);
+                List<?> events = blockchainService.getStakeholderNFT().getStakeholderMintedEvents(receipt);
 
                 if (!events.isEmpty()) {
                     Object event = events.get(0);
-                    java.math.BigInteger tokenId = ((com.ssafy.cheket.blockchain.contract.StakeholderNFT
-                        .StakeholderMintedEventResponse) event).tokenId;
+                    java.math.BigInteger tokenId = ((com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse) event).tokenId;
 
                     stakeholder.setStakeholderNftId(tokenId.longValue());
                     stakeholderRepository.save(stakeholder);
 
-                    log.info("StakeholderNFT 발행: tokenId={}, wallet={}, role={}, shareBps={}",
-                        tokenId, walletAddress, role, shareBps);
+                    log.info("StakeholderNFT 발행: tokenId={}, wallet={}, role={}, shareBps={}", tokenId, walletAddress,
+                        role, shareBps);
                 }
 
             } catch (Exception e) {

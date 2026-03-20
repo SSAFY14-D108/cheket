@@ -89,16 +89,13 @@ public class MintingController {
     // ========== showId 기반 온체인 통합 조회 ==========
 
     /**
-     * showId로 온체인 상태 전체 조회
-     * DB에서 eventNftId, stakeholderNftId, onChainSessionId, onChainTicketNftId를 찾아서
-     * 온체인 데이터를 한번에 반환
+     * showId로 온체인 상태 전체 조회 DB에서 eventNftId, stakeholderNftId, onChainSessionId,
+     * onChainTicketNftId를 찾아서 온체인 데이터를 한번에 반환
      */
     @GetMapping("/onchain/show/{showId}")
-    @Operation(summary = "공연 온체인 상태 통합 조회",
-        description = "showId로 StakeholderNFT + EventNFT + 회차 + TicketNFT 온체인 상태를 한번에 조회")
+    @Operation(summary = "공연 온체인 상태 통합 조회", description = "showId로 StakeholderNFT + EventNFT + 회차 + TicketNFT 온체인 상태를 한번에 조회")
     public ResponseEntity<Map<String, Object>> getShowOnChainStatus(@PathVariable Long showId) throws Exception {
-        Show show = showRepository.findById(showId)
-            .orElseThrow(() -> new RuntimeException("공연을 찾을 수 없습니다: " + showId));
+        Show show = showRepository.findById(showId).orElseThrow(() -> new RuntimeException("공연을 찾을 수 없습니다: " + showId));
 
         Map<String, Object> result = new HashMap<>();
         result.put("showId", showId);

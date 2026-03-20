@@ -16,19 +16,13 @@ import java.util.List;
 /**
  * ShowMintingScheduler — 예매 오픈 D-1 자동 발행 스케줄러
  *
- * [기획서 7.1 — 2단계]
- * "백엔드 스케줄러 (예매 오픈 전날 자동 실행)
- *  → EventNFT 발행 + TicketNFT 배치 발행
- *  → ShowStatus: DRAFT → MINTING → MINTED"
+ * [기획서 7.1 — 2단계] "백엔드 스케줄러 (예매 오픈 전날 자동 실행) → EventNFT 발행 + TicketNFT 배치 발행 →
+ * ShowStatus: DRAFT → MINTING → MINTED"
  *
- * [실행 주기]
- * 매일 새벽 3시에 실행 (cron = "0 0 3 * * *")
- * → "내일 예매 시작인 공연" 검색
- * → 각 공연에 대해 EventNFT + TicketNFT 발행
+ * [실행 주기] 매일 새벽 3시에 실행 (cron = "0 0 3 * * *") → "내일 예매 시작인 공연" 검색 → 각 공연에 대해
+ * EventNFT + TicketNFT 발행
  *
- * [왜 새벽 3시?]
- * 사용자 트래픽이 가장 적은 시간
- * 블록체인 TX 처리가 다른 작업과 충돌하지 않도록
+ * [왜 새벽 3시?] 사용자 트래픽이 가장 적은 시간 블록체인 TX 처리가 다른 작업과 충돌하지 않도록
  */
 @Slf4j
 @Component
@@ -44,11 +38,9 @@ public class ShowMintingScheduler {
     private static final int MAX_RETRY = 5;
 
     /**
-     * 매일 새벽 3시에 실행
-     * "내일 예매 시작인 DRAFT 상태의 공연"을 찾아서 민팅
+     * 매일 새벽 3시에 실행 "내일 예매 시작인 DRAFT 상태의 공연"을 찾아서 민팅
      *
-     * cron = "초 분 시 일 월 요일"
-     * "0 0 3 * * *" = 매일 03:00:00
+     * cron = "초 분 시 일 월 요일" "0 0 3 * * *" = 매일 03:00:00
      */
     @Scheduled(cron = "0 0 3 * * *")
     public void scheduleMinting() {
@@ -58,8 +50,7 @@ public class ShowMintingScheduler {
         LocalDateTime to = tomorrow.atTime(LocalTime.MAX);
 
         // 예매 시작일이 내일이고, 아직 DRAFT인 공연 조회
-        List<Show> showsToMint = showRepository
-            .findByStatusAndReservationStartDateBetween(ShowStatus.DRAFT, from, to);
+        List<Show> showsToMint = showRepository.findByStatusAndReservationStartDateBetween(ShowStatus.DRAFT, from, to);
 
         if (showsToMint.isEmpty()) {
             log.info("[민팅 스케줄러] 내일 예매 시작인 공연 없음");
@@ -78,29 +69,24 @@ public class ShowMintingScheduler {
     /**
      * 공연 1건 민팅 + 실패 시 즉시 재시도 (최대 MAX_RETRY회)
      *
-     * [재시도 안전성]
-     * 실패 시 @Transactional이 DB를 롤백하고 DRAFT로 복원
-     * → 재시도 시 깨끗한 상태에서 새로 발행
-     * → 1차 시도의 온체인 NFT는 고아로 남지만 DB 매핑이 없어 무해
-     * → SSAFY 네트워크 gasPrice=0이라 비용 부담 없음
+     * [재시도 안전성] 실패 시 @Transactional이 DB를 롤백하고 DRAFT로 복원 → 재시도 시 깨끗한 상태에서 새로 발행 → 1차
+     * 시도의 온체인 NFT는 고아로 남지만 DB 매핑이 없어 무해 → SSAFY 네트워크 gasPrice=0이라 비용 부담 없음
      */
     private void mintWithRetry(Show show) {
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
             try {
-                log.info("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 시도 {}/{}",
-                    show.getTitle(), show.getId(), attempt, MAX_RETRY);
+                log.info("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 시도 {}/{}", show.getTitle(), show.getId(), attempt, MAX_RETRY);
                 showMintingService.mintShowNfts(show.getId());
                 log.info("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 완료", show.getTitle(), show.getId());
                 return; // 성공하면 즉시 종료
             } catch (Exception e) {
                 if (attempt == MAX_RETRY) {
                     // 5회 모두 실패 → 관리자 확인 필요
-                    log.error("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 {}회 모두 실패 — 관리자 확인 필요",
-                        show.getTitle(), show.getId(), MAX_RETRY, e);
+                    log.error("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 {}회 모두 실패 — 관리자 확인 필요", show.getTitle(), show.getId(),
+                        MAX_RETRY, e);
                     // TODO: 관리자 알림 (Push/Slack 등)
                 } else {
-                    log.warn("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 {}회차 실패, 즉시 재시도",
-                        show.getTitle(), show.getId(), attempt, e);
+                    log.warn("[민팅 스케줄러] 공연 '{}' (ID:{}) 민팅 {}회차 실패, 즉시 재시도", show.getTitle(), show.getId(), attempt, e);
                 }
             }
         }
