@@ -1,9 +1,15 @@
 package com.ssafy.cheket.service.ticket;
 
+import com.ssafy.cheket.dto.queue.SeatAccessMeta;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.enums.SeatStatus;
+import com.ssafy.cheket.exception.common.ConflictException;
+import com.ssafy.cheket.exception.common.ForbiddenException;
+import com.ssafy.cheket.exception.common.GoneException;
+import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.queue.QueueRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
@@ -32,6 +38,7 @@ public class TicketPurchaseService {
     private final SessionSeatRepository sessionSeatRepository;
     private final TransactionRepository transactionRepository;
     private final TicketPurchaseAsyncWorker asyncWorker;
+    private final QueueRepository queueRepository;
 
     /**
      * 티켓 구매 요청 — 검증 + PENDING 생성 + 즉시 응답
@@ -47,29 +54,37 @@ public class TicketPurchaseService {
      * @return txId (클라이언트가 이 ID로 상태 폴링)
      */
     @Transactional
-    public Long purchaseTickets(Long userId, Long showId, Long sessionId, List<Long> sessionSeatIds) {
+    public Long purchaseTickets(Long userId, Long showId, Long sessionId, String seatAccessToken,
+        List<Long> sessionSeatIds) {
         log.info("[티켓 구매] 요청 — userId={}, showId={}, sessionId={}, 좌석수={}", userId, showId, sessionId,
             sessionSeatIds.size());
 
+        // 대기열 정상적으로 통과해서 권한 있는지 검증
+        validateSeatAccessToken(userId, showId, sessionId, seatAccessToken);
+
         // ========== ① 유효성 검증 ==========
         Session session = sessionRepository.findById(sessionId)
-            .orElseThrow(() -> new IllegalArgumentException("회차를 찾을 수 없습니다: " + sessionId));
+            .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다: " + sessionId));
+
+        if (!session.getShowId().equals(showId)) {
+            throw new NotFoundException("공연 정보와 회차 정보가 일치하지 않습니다.");
+        }
 
         if (session.getOnChainSessionId() == null) {
-            throw new IllegalStateException("아직 민팅되지 않은 회차입니다");
+            throw new ConflictException("아직 민팅되지 않은 회차입니다");
         }
 
         List<SessionSeat> seats = sessionSeatRepository.findAllById(sessionSeatIds);
         if (seats.size() != sessionSeatIds.size()) {
-            throw new IllegalArgumentException("존재하지 않는 좌석이 포함되어 있습니다");
+            throw new NotFoundException("존재하지 않는 좌석이 포함되어 있습니다");
         }
 
         for (SessionSeat seat : seats) {
             if (seat.getStatus() != SeatStatus.AVAILABLE) {
-                throw new IllegalStateException("이미 판매된 좌석입니다: sessionSeatId=" + seat.getId());
+                throw new ConflictException("이미 판매된 좌석입니다: sessionSeatId=" + seat.getId());
             }
             if (seat.getOnChainTicketNftId() == null) {
-                throw new IllegalStateException("온체인 티켓이 없는 좌석입니다: sessionSeatId=" + seat.getId());
+                throw new NotFoundException("온체인 티켓이 없는 좌석입니다: sessionSeatId=" + seat.getId());
             }
         }
 
@@ -79,6 +94,9 @@ public class TicketPurchaseService {
             seat.setStatus(SeatStatus.PENDING_TX);
         }
         sessionSeatRepository.saveAll(seats);
+
+        // 구매 시작 후에는 seatAccessToken 재사용 못 하도록 제거
+        queueRepository.deleteSeatAccessToken(seatAccessToken);
 
         // ========== ③ Transaction 레코드 생성 ==========
         // transaction 테이블에 1행 INSERT
@@ -100,5 +118,18 @@ public class TicketPurchaseService {
         // @Async 덕분에 여기까지 0.05초만에 도달
         // 클라이언트는 이 txId로 GET /api/v1/wallets/transactions/{txId} 폴링
         return transaction.getId();
+    }
+
+    private void validateSeatAccessToken(Long userId, Long showId, Long sessionId, String seatAccessToken) {
+        SeatAccessMeta meta = queueRepository.findSeatAccessTokenMeta(seatAccessToken);
+
+        if (meta == null)
+            throw new GoneException("좌석 선택 가능 시간이 만료되었습니다.");
+
+        if (!meta.getUserId().equals(userId))
+            throw new ForbiddenException("seatAccessToken 소유자와 요청 사용자가 일치하지 않습니다.");
+
+        if (!meta.getShowId().equals(showId) || !meta.getSessionId().equals(sessionId))
+            throw new ConflictException("요청 정보와 seatAccessToken 정보가 일치하지 않습니다.");
     }
 }
