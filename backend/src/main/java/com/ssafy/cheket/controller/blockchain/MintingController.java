@@ -1,7 +1,13 @@
 package com.ssafy.cheket.controller.blockchain;
 
+import com.ssafy.cheket.entity.settlement.Stakeholder;
+import com.ssafy.cheket.entity.show.Session;
+import com.ssafy.cheket.entity.show.SessionSeat;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.ShowStatus;
+import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.show.SessionRepository;
+import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.service.blockchain.BlockchainService;
 import com.ssafy.cheket.service.blockchain.ShowMintingService;
@@ -17,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +43,9 @@ public class MintingController {
     private final ShowMintingService showMintingService;
     private final ShowRepository showRepository;
     private final BlockchainService blockchainService;
+    private final StakeholderRepository stakeholderRepository;
+    private final SessionRepository sessionRepository;
+    private final SessionSeatRepository sessionSeatRepository;
 
     /**
      * DRAFT 상태인 공연 단건 민팅 (EventNFT + TicketNFT)
@@ -76,7 +86,139 @@ public class MintingController {
             .ok(Map.of("message", "전체 민팅 완료", "total", draftShows.size(), "success", success, "failed", failed));
     }
 
-    // ========== 온체인 상태 조회 API ==========
+    // ========== showId 기반 온체인 통합 조회 ==========
+
+    /**
+     * showId로 온체인 상태 전체 조회
+     * DB에서 eventNftId, stakeholderNftId, onChainSessionId, onChainTicketNftId를 찾아서
+     * 온체인 데이터를 한번에 반환
+     */
+    @GetMapping("/onchain/show/{showId}")
+    @Operation(summary = "공연 온체인 상태 통합 조회",
+        description = "showId로 StakeholderNFT + EventNFT + 회차 + TicketNFT 온체인 상태를 한번에 조회")
+    public ResponseEntity<Map<String, Object>> getShowOnChainStatus(@PathVariable Long showId) throws Exception {
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new RuntimeException("공연을 찾을 수 없습니다: " + showId));
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("showId", showId);
+        result.put("title", show.getTitle());
+        result.put("dbStatus", show.getStatus());
+        result.put("dbEventNftId", show.getEventNftId());
+
+        // ① StakeholderNFT 온체인 조회
+        List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(showId);
+        List<Map<String, Object>> stakeholderList = new ArrayList<>();
+        for (Stakeholder s : stakeholders) {
+            Map<String, Object> sData = new HashMap<>();
+            sData.put("dbId", s.getId());
+            sData.put("dbRole", s.getRole());
+            sData.put("dbShareBps", s.getShareBps());
+            sData.put("dbStakeholderNftId", s.getStakeholderNftId());
+            if (s.getStakeholderNftId() != null) {
+                try {
+                    var onChain = blockchainService.getStakeholderNFT()
+                        .getStakeholder(BigInteger.valueOf(s.getStakeholderNftId())).send();
+                    sData.put("onChainWallet", onChain.component1());
+                    sData.put("onChainRole", onChain.component2());
+                    sData.put("onChainShareBps", onChain.component3());
+                } catch (Exception e) {
+                    sData.put("onChainError", e.getMessage());
+                }
+            }
+            stakeholderList.add(sData);
+        }
+        result.put("stakeholders", stakeholderList);
+
+        // ② EventNFT 온체인 조회
+        if (show.getEventNftId() != null) {
+            try {
+                BigInteger eventId = BigInteger.valueOf(show.getEventNftId());
+                var info = blockchainService.getEventNFT().getEventInfo(eventId).send();
+                var stkIds = blockchainService.getEventNFT().getStakeholderTokenIds(eventId).send();
+
+                Map<String, Object> eventData = new HashMap<>();
+                eventData.put("totalSupply", info.component2());
+                eventData.put("maxPerWallet", info.component3());
+                eventData.put("resaleCapBps", info.component4());
+                eventData.put("bookingStartTime", info.component5());
+                eventData.put("bookingEndTime", info.component6());
+                eventData.put("isActive", info.component7());
+                eventData.put("stakeholderTokenIds", stkIds);
+                result.put("eventNft", eventData);
+
+                // 환불 정책
+                var refund = blockchainService.getEventNFT().getRefundPolicies(eventId).send();
+                Map<String, Object> refundData = new HashMap<>();
+                refundData.put("daysArray", refund.component1());
+                refundData.put("rateBpsArray", refund.component2());
+                result.put("refundPolicy", refundData);
+            } catch (Exception e) {
+                result.put("eventNftError", e.getMessage());
+            }
+        }
+
+        // ③ 회차 + TicketNFT 온체인 조회
+        List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+        List<Map<String, Object>> sessionList = new ArrayList<>();
+        for (Session session : sessions) {
+            Map<String, Object> sessData = new HashMap<>();
+            sessData.put("dbSessionId", session.getId());
+            sessData.put("dbOnChainSessionId", session.getOnChainSessionId());
+            sessData.put("sessionDate", session.getSessionDate());
+
+            // 회차 온체인 조회
+            if (session.getOnChainSessionId() != null) {
+                try {
+                    var onChain = blockchainService.getEventNFT()
+                        .getSession(BigInteger.valueOf(session.getOnChainSessionId())).send();
+                    sessData.put("onChainTicketSupply", onChain.component3());
+                    sessData.put("onChainIsFinalized", onChain.component4());
+                } catch (Exception e) {
+                    sessData.put("onChainError", e.getMessage());
+                }
+            }
+
+            // 이 회차의 TicketNFT 샘플 조회 (처음 3개만)
+            List<SessionSeat> seats = sessionSeatRepository.findBySessionId(session.getId());
+            List<Map<String, Object>> ticketSamples = new ArrayList<>();
+            int sampleCount = Math.min(3, seats.size());
+            for (int i = 0; i < sampleCount; i++) {
+                SessionSeat ss = seats.get(i);
+                if (ss.getOnChainTicketNftId() != null) {
+                    try {
+                        var ticket = blockchainService.getTicketNFT()
+                            .getTicket(BigInteger.valueOf(ss.getOnChainTicketNftId())).send();
+                        String owner = blockchainService.getTicketNFT()
+                            .ownerOf(BigInteger.valueOf(ss.getOnChainTicketNftId())).send();
+
+                        Map<String, Object> tData = new HashMap<>();
+                        tData.put("tokenId", ss.getOnChainTicketNftId());
+                        tData.put("owner", owner);
+                        tData.put("section", ticket.section);
+                        tData.put("row", ticket.row);
+                        tData.put("seat", ticket.seat);
+                        tData.put("grade", ticket.grade);
+                        tData.put("price", ticket.price);
+                        tData.put("status", ticket.status);
+                        ticketSamples.add(tData);
+                    } catch (Exception e) {
+                        ticketSamples.add(Map.of("tokenId", ss.getOnChainTicketNftId(), "error", e.getMessage()));
+                    }
+                }
+            }
+            sessData.put("ticketSamples", ticketSamples);
+            sessData.put("totalSeats", seats.size());
+            sessData.put("mintedSeats", seats.stream().filter(s -> s.getOnChainTicketNftId() != null).count());
+
+            sessionList.add(sessData);
+        }
+        result.put("sessions", sessionList);
+
+        return ResponseEntity.ok(result);
+    }
+
+    // ========== 온체인 상태 개별 조회 API ==========
 
     /**
      * StakeholderNFT 온체인 조회
