@@ -9,6 +9,94 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 // → onlyOwner modifier 제공 (배포한 사람만 특정 함수 호출 가능)
 
+// ========== 다른 컨트랙트 인터페이스 ==========
+/**
+ * [interface란?]
+ * 다른 컨트랙트의 함수를 호출하기 위한 "함수 시그니처 목록"
+ * 실제 구현(코드)은 없고, "이 함수가 있다"는 것만 선언
+ *
+ * [왜 필요한가?]
+ * Settlement가 EventNFT/StakeholderNFT/TicketNFT의 함수를 호출하려면
+ * "그 컨트랙트에 어떤 함수가 있는지" 알아야 함
+ * → 인터페이스로 함수 시그니처를 선언
+ * → 그 주소로 호출하면 실제 컨트랙트의 함수가 실행됨
+ *
+ * [왜 contract 바깥에 선언?]
+ * Solidity에서 interface는 contract 내부에 선언 불가 → 컴파일 에러
+ *
+ * [왜 ISettlement~ 접두사?]
+ * PurchaseRouter.sol에도 같은 이름의 interface가 있으면 충돌
+ * → Settlement용은 ISettlement~ 접두사로 구분
+ */
+
+// EventNFT에서 필요한 함수들
+interface ISettlementEventNFT {
+    // eventId → 해당 공연의 StakeholderNFT ID 배열 반환
+    // 예: getStakeholderTokenIds(0) → [0, 1, 2]
+    function getStakeholderTokenIds(uint256 eventId) external view returns (uint256[] memory);
+
+    // 회차 정산 완료 표시 (isFinalized = true → 이중 정산 방지)
+    function finalizeSession(uint256 sessionId) external;
+
+    // 현재 시점에서의 환불 비율 조회 (on-chain 환불 정책)
+    // → Settlement가 환불액을 직접 계산 (백엔드 조작 불가)
+    function getRefundRate(uint256 eventId, uint256 sessionTimestamp) external view returns (uint256);
+
+    // 회차 정보 조회 (공연 시각 가져오기 위해)
+    function getSession(uint256 sessionId) external view returns (
+        uint256 eventId,
+        uint256 sessionTimestamp,
+        uint256 ticketSupply,
+        bool isFinalized
+    );
+}
+
+// StakeholderNFT에서 필요한 함수
+interface ISettlementStakeholderNFT {
+    // tokenId → (지갑주소, 역할, 비율, 이벤트ID) 반환
+    // 예: getStakeholder(0) → (0xAAA, "organizer", 7200, 0)
+    function getStakeholder(uint256 tokenId) external view returns (
+        address wallet,         // 이해관계자 지갑 주소
+        string memory role,     // "organizer" / "artist"
+        uint256 shareBps,       // 수익 비율 (10000 = 100%)
+        uint256 eventNftId      // 연결된 EventNFT ID
+    );
+}
+
+// TicketNFT에서 필요한 함수 (원자적 환불용)
+interface ISettlementTicketNFT {
+    // 가격 조회 (on-chain에서 직접)
+    function getPrice(uint256 tokenId) external view returns (uint256);
+
+    // 티켓 정보 조회 (eventId 가져오기 위해)
+    function getTicket(uint256 tokenId) external view returns (
+        uint256 eventId,
+        uint256 sessionId,
+        string memory section,
+        uint256 row,
+        uint256 seat,
+        string memory grade,
+        uint256 price,
+        uint8 status,
+        uint256 mintedAt
+    );
+
+    // 티켓 상태를 REFUNDED로 변경
+    // 3 = TicketStatus.REFUNDED
+    function reclaimTicket(uint256 tokenId, uint8 newStatus) external;
+
+    // NFT 소유권 이전 (구매자 → 플랫폼)
+    function transferFrom(address from, address to, uint256 tokenId) external;
+
+    // 보유 수 업데이트 (구매자 -1, 플랫폼 +1)
+    function updateWalletTicketCount(
+        uint256 eventId,
+        uint256 sessionId,
+        address from,
+        address to
+    ) external;
+}
+
 /**
  * @title Settlement (1차 구매 정산 — 기획안 5.5)
  * @notice 1차 구매 SSF를 직접 받아 보관, 공연 후 stakeholder에게 자동 분배
@@ -65,87 +153,6 @@ contract Settlement is Ownable {
     // IERC20 = ERC-20 인터페이스 → transfer(), balanceOf() 등 호출 가능
     IERC20 public ssfToken;
 
-    // ========== 다른 컨트랙트 인터페이스 ==========
-    /**
-     * [interface란?]
-     * 다른 컨트랙트의 함수를 호출하기 위한 "함수 시그니처 목록"
-     * 실제 구현(코드)은 없고, "이 함수가 있다"는 것만 선언
-     *
-     * [왜 필요한가?]
-     * Settlement가 EventNFT/StakeholderNFT/TicketNFT의 함수를 호출하려면
-     * "그 컨트랙트에 어떤 함수가 있는지" 알아야 함
-     * → 인터페이스로 함수 시그니처를 선언
-     * → 그 주소로 호출하면 실제 컨트랙트의 함수가 실행됨
-     */
-
-    // EventNFT에서 필요한 함수들
-    interface IEventNFT {
-        // eventId → 해당 공연의 StakeholderNFT ID 배열 반환
-        // 예: getStakeholderTokenIds(0) → [0, 1, 2]
-        function getStakeholderTokenIds(uint256 eventId) external view returns (uint256[] memory);
-
-        // 회차 정산 완료 표시 (isFinalized = true → 이중 정산 방지)
-        function finalizeSession(uint256 sessionId) external;
-
-        // 현재 시점에서의 환불 비율 조회 (on-chain 환불 정책)
-        // → Settlement가 환불액을 직접 계산 (백엔드 조작 불가)
-        function getRefundRate(uint256 eventId, uint256 sessionTimestamp) external view returns (uint256);
-
-        // 회차 정보 조회 (공연 시각 가져오기 위해)
-        function getSession(uint256 sessionId) external view returns (
-            uint256 eventId,
-            uint256 sessionTimestamp,
-            uint256 ticketSupply,
-            bool isFinalized
-        );
-    }
-
-    // StakeholderNFT에서 필요한 함수
-    interface IStakeholderNFT {
-        // tokenId → (지갑주소, 역할, 비율, 이벤트ID) 반환
-        // 예: getStakeholder(0) → (0xAAA, "organizer", 7200, 0)
-        function getStakeholder(uint256 tokenId) external view returns (
-            address wallet,         // 이해관계자 지갑 주소
-            string memory role,     // "organizer" / "artist"
-            uint256 shareBps,       // 수익 비율 (10000 = 100%)
-            uint256 eventNftId      // 연결된 EventNFT ID
-        );
-    }
-
-    // TicketNFT에서 필요한 함수 (원자적 환불용)
-    interface ITicketNFT {
-        // 가격 조회 (on-chain에서 직접)
-        function getPrice(uint256 tokenId) external view returns (uint256);
-
-        // 티켓 정보 조회 (eventId 가져오기 위해)
-        function getTicket(uint256 tokenId) external view returns (
-            uint256 eventId,
-            uint256 sessionId,
-            string memory section,
-            uint256 row,
-            uint256 seat,
-            string memory grade,
-            uint256 price,
-            uint8 status,
-            uint256 mintedAt
-        );
-
-        // 티켓 상태를 REFUNDED로 변경
-        // 3 = TicketStatus.REFUNDED
-        function reclaimTicket(uint256 tokenId, uint8 newStatus) external;
-
-        // NFT 소유권 이전 (구매자 → 플랫폼)
-        function transferFrom(address from, address to, uint256 tokenId) external;
-
-        // 보유 수 업데이트 (구매자 -1, 플랫폼 +1)
-        function updateWalletTicketCount(
-            uint256 eventId,
-            uint256 sessionId,
-            address from,
-            address to
-        ) external;
-    }
-
     // ========== 컨트랙트 주소 ==========
 
     // 배포 후 setContracts()로 설정
@@ -161,7 +168,6 @@ contract Settlement is Ownable {
     // PurchaseRouter만 입금 기록을 남길 수 있음
     // 아무나 recordDeposit을 호출하면 가짜 입금 기록이 생김
     address public purchaseRouter;
-
 
     // ========== 회차별 입금 관리 ==========
 
@@ -280,7 +286,8 @@ contract Settlement is Ownable {
      *
      * 배포 후에는 constructor 다시 호출 불가 (1회성)
      */
-    constructor(address _ssfToken) Ownable(msg.sender) {
+    constructor(address _ssfToken) {
+        // v4: Ownable() 자동으로 msg.sender가 owner
         require(_ssfToken != address(0), "Invalid SSF address");
         // address(0) = 0x0000...0000 (존재하지 않는 주소)
         // 실수로 빈 주소를 넣는 것 방지
@@ -338,7 +345,6 @@ contract Settlement is Ownable {
         require(_purchaseRouter != address(0), "Invalid address");
         purchaseRouter = _purchaseRouter;
     }
-
 
     // ========== 입금 기록 (구매 시 — PurchaseRouter만 호출) ==========
 
@@ -439,12 +445,11 @@ contract Settlement is Ownable {
         require(eventNFTAddress != address(0), "EventNFT not set");
         require(ticketNFTAddress != address(0), "TicketNFT not set");
 
-        IEventNFT eventNFT = IEventNFT(eventNFTAddress);
-        // "eventNFTAddress에 있는 컨트랙트를 IEventNFT 인터페이스로 사용하겠다"
-        ITicketNFT ticketNFT = ITicketNFT(ticketNFTAddress);
+        ISettlementEventNFT eventNFT = ISettlementEventNFT(eventNFTAddress);
+        // "eventNFTAddress에 있는 컨트랙트를 ISettlementEventNFT 인터페이스로 사용하겠다"
+        ISettlementTicketNFT ticketNFT = ISettlementTicketNFT(ticketNFTAddress);
 
         // ========== ❶ on-chain에서 티켓 가격 조회 ==========
-
         uint256 ticketPrice = ticketNFT.getPrice(tokenId);
         // TicketNFT.tickets[tokenId].price를 직접 읽음
         // 백엔드가 가격을 파라미터로 넘기지 않음 → 조작 불가
@@ -454,13 +459,11 @@ contract Settlement is Ownable {
         // 나머지 값은 필요 없으므로 , 로 생략 (Solidity 구문)
 
         // ========== ❷ on-chain에서 회차 정보 조회 ==========
-
         (, uint256 sessionTimestamp, , ) = eventNFT.getSession(sessionId);
         // sessionTimestamp = 공연 일시 (unix timestamp)
         // 환불률 계산에 사용 (공연까지 며칠 남았는지)
 
         // ========== ❸ on-chain에서 환불률 계산 ==========
-
         uint256 refundRateBps = eventNFT.getRefundRate(eventId, sessionTimestamp);
         // 현재 시각 기준으로 환불 비율 조회
         //
@@ -480,7 +483,6 @@ contract Settlement is Ownable {
         // 환불률이 0이면 환불 불가 (공연 임박 또는 공연 종료)
 
         // ========== ❹ 환불액 계산 ==========
-
         uint256 refundAmount = (ticketPrice * refundRateBps) / 10000;
         // 예: 50,000 × 7000 / 10000 = 35,000 SSF (70% 환불)
         // 백엔드가 이 금액을 조작할 수 없음 (on-chain 계산)
@@ -489,7 +491,6 @@ contract Settlement is Ownable {
         // 환불액이 누적 입금액보다 클 수 없음
 
         // ========== ❺ SSF 환불 ==========
-
         sessionDeposits[sessionId] -= refundAmount;
         // storage 직접 수정: 누적액에서 환불액 차감
 
@@ -509,7 +510,6 @@ contract Settlement is Ownable {
         require(success, "SSF transfer failed");
 
         // ========== ❻ 티켓 상태 변경 (VALID → REFUNDED) ==========
-
         ticketNFT.reclaimTicket(tokenId, 3);
         // 3 = TicketStatus.REFUNDED
         // VALID에서만 변경 가능
@@ -517,7 +517,6 @@ contract Settlement is Ownable {
         // → 입장한 티켓은 환불 불가 (원자적으로 보장)
 
         // ========== ❼ NFT 회수 (구매자 → 플랫폼) ==========
-
         ticketNFT.transferFrom(buyer, platformWallet, tokenId);
         // 구매자가 가지고 있던 NFT를 플랫폼 지갑으로 회수
         // ERC721 내부:
@@ -529,7 +528,6 @@ contract Settlement is Ownable {
         // → Custodial 구조에서 백엔드가 구매자 Keystore로 대리 서명
 
         // ========== ❽ 보유 수 업데이트 ==========
-
         ticketNFT.updateWalletTicketCount(eventId, sessionId, buyer, platformWallet);
         // walletTicketCount[e][s][구매자]-- (-1)
         // walletTicketCount[e][s][플랫폼]++ (+1)
@@ -583,7 +581,6 @@ contract Settlement is Ownable {
     ) external onlyOwner returns (uint256) {
 
         // ========== 검증 ==========
-
         require(!sessionFinalized[sessionId], "Already finalized");
         // 이미 정산된 회차 → 다시 정산 불가 (이중 정산 방지)
 
@@ -605,7 +602,7 @@ contract Settlement is Ownable {
         // ========== on-chain에서 stakeholder 정보 읽기 ==========
 
         // EventNFT 컨트랙트 연결
-        IEventNFT eventNFT = IEventNFT(eventNFTAddress);
+        ISettlementEventNFT eventNFT = ISettlementEventNFT(eventNFTAddress);
 
         // 이 공연의 stakeholder 토큰 ID 목록 조회 (on-chain)
         uint256[] memory stakeholderIds = eventNFT.getStakeholderTokenIds(eventId);
@@ -615,7 +612,7 @@ contract Settlement is Ownable {
         require(stakeholderIds.length > 0, "No stakeholders");
 
         // StakeholderNFT 컨트랙트 연결
-        IStakeholderNFT stakeholderNFT = IStakeholderNFT(stakeholderNFTAddress);
+        ISettlementStakeholderNFT stakeholderNFT = ISettlementStakeholderNFT(stakeholderNFTAddress);
 
         // bps 합계 검증 (10000 = 100%)
         // 공연 등록 시 이미 검증되었지만, 방어적으로 한번 더 확인
@@ -631,14 +628,12 @@ contract Settlement is Ownable {
         // 합계가 100%가 아니면 뭔가 잘못된 것 → revert
 
         // ========== 정산 완료 표시 ==========
-
         sessionFinalized[sessionId] = true;
         // storage 쓰기: true로 변경
         // 이 이후 다시 finalizeSession() 호출하면 첫 번째 require에서 revert
         // → 이중 정산 불가
 
         // ========== 정산 기록 생성 (on-chain 영구 기록) ==========
-
         uint256 settlementId = _nextSettlementId++;
         // 현재 값 사용 후 +1 (0, 1, 2, 3...)
 
@@ -652,12 +647,10 @@ contract Settlement is Ownable {
         // 누구나 getSettlement(0)으로 "이 회차에서 얼마가 정산되었는지" 확인 가능
 
         // ========== SSF 분배 실행 ==========
-
         uint256 distributed = 0;
         // 지금까지 분배한 SSF 누적 (반올림 오차 처리용)
 
         for (uint256 i = 0; i < stakeholderIds.length; i++) {
-
             // StakeholderNFT에서 지갑 주소와 비율을 on-chain에서 직접 읽기
             (address wallet, , uint256 shareBps, ) =
                 stakeholderNFT.getStakeholder(stakeholderIds[i]);
@@ -693,7 +686,6 @@ contract Settlement is Ownable {
         }
 
         // ========== EventNFT 정산 완료 표시 ==========
-
         eventNFT.finalizeSession(sessionId);
         // EventNFT.sessions[sessionId].isFinalized = true
         // → on-chain에 정산 완료 기록 (이중 정산 추가 방어)

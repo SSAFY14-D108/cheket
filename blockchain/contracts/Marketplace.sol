@@ -8,6 +8,39 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 // → ERC-721 NFT(TicketNFT)의 인터페이스
 // → transferFrom(), ownerOf() 등 호출 가능
 
+// TicketNFT에서 양도 시 필요한 함수들
+interface IMarketplaceTicketNFT {
+    // 티켓 정보 조회 (eventId, sessionId 가져오기 위해)
+    function getTicket(uint256 tokenId) external view returns (
+        uint256 eventId,
+        uint256 sessionId,
+        string memory section,
+        uint256 row,
+        uint256 seat,
+        string memory grade,
+        uint256 price,
+        uint8 status,
+        uint256 mintedAt
+    );
+
+    // 1인당 보유 수 업데이트 (양도 시 from -1, to +1)
+    function updateWalletTicketCount(
+        uint256 eventId,
+        uint256 sessionId,
+        address from,
+        address to
+    ) external;
+
+    // NFT 소유권 이전
+    function transferFrom(address from, address to, uint256 tokenId) external;
+
+    // NFT 소유자 조회
+    function ownerOf(uint256 tokenId) external view returns (address);
+
+    // 티켓 상태 조회 (VALID인 티켓만 양도 허용)
+    function getTicketStatus(uint256 tokenId) external view returns (uint8);
+}
+
 /**
  * @title Marketplace (지정 양도 — 기획안 7.7)
  * @notice 1:1 무료 직접 양도 처리
@@ -55,8 +88,10 @@ contract Marketplace is Ownable {
 
     // ========== 상태 변수 (storage = 블록체인 영구 저장) ==========
 
-    // TicketNFT 컨트랙트
+    // TicketNFT 컨트랙트 (IERC721 기본 인터페이스)
     IERC721 public ticketNFT;
+    // TicketNFT 컨트랙트 주소 (커스텀 인터페이스용)
+    address public ticketNFTAddress;
 
     // ========== 이벤트 (블록체인 로그) ==========
 
@@ -83,12 +118,13 @@ contract Marketplace is Ownable {
      * 무료 양도 → SSF 이동 없음 → SSF 컨트랙트 불필요
      * 유료 거래(리세일)는 Escrow가 담당
      */
-    constructor(address _ticketNFT) Ownable(msg.sender) {
-        // Ownable(msg.sender) → 배포한 사람(플랫폼 지갑)이 owner
+    constructor(address _ticketNFT) {
+        // v4: Ownable() 자동으로 msg.sender가 owner
         require(_ticketNFT != address(0), "Invalid TicketNFT");
         ticketNFT = IERC721(_ticketNFT);
-        // "이 주소의 컨트랙트를 ERC-721로 취급"
-        // → ticketNFT.transferFrom(), ticketNFT.ownerOf() 호출 가능
+        ticketNFTAddress = _ticketNFT;
+        // ticketNFT: ERC-721 표준 인터페이스 (transferFrom, ownerOf)
+        // ticketNFTAddress: 커스텀 함수 호출용 (updateWalletTicketCount, getTicket)
     }
 
     // ========== 지정 양도 (무료 1:1 전송) ==========
@@ -135,42 +171,28 @@ contract Marketplace is Ownable {
         // onlyOwner = 플랫폼(백엔드)만 호출 가능
         // 사용자가 직접 호출 불가 (Custodial 구조)
 
-        require(ticketNFT.ownerOf(ticketId) == from, "Not ticket owner");
+        IMarketplaceTicketNFT ticket = IMarketplaceTicketNFT(ticketNFTAddress);
+
+        require(ticket.ownerOf(ticketId) == from, "Not ticket owner");
         // on-chain 소유권 검증
-        // ownerOf = ERC721 표준 함수: tokenId의 실제 소유자 조회
-        //
-        // [왜 on-chain에서 확인?]
-        // DB가 해킹되어 from이 실제 소유자가 아닌 주소로 올 수 있음
-        // → on-chain ownerOf()로 실제 소유자 확인
-        // → 실제 소유자가 아니면 revert → 양도 불가
-        //
-        // 비유: 택배 발송 시 신분증 확인
-        // → "이 사람이 진짜 물건 주인인지" 블록체인에서 직접 확인
 
         require(to != address(0), "Invalid address");
-        // 빈 주소(0x0)로 양도하면 NFT가 사라짐 → 방지
-
         require(to != from, "Cannot transfer to self");
-        // 자기 자신에게 양도는 의미 없음 → 방지
+
+        // ========== 티켓 상태 on-chain 검증 ==========
+        // VALID(0)인 티켓만 양도 허용
+        // USED/REFUNDED/EXPIRED 티켓 양도 차단 (컨트랙트 레벨 강제)
+        require(ticket.getTicketStatus(ticketId) == 0, "Ticket not valid");
 
         // ========== NFT 전송: 보내는 사람 → 받는 사람 ==========
 
-        ticketNFT.transferFrom(from, to, ticketId);
-        // ERC721 내부:
-        //   _owners[ticketId] = to     (소유자: from → to)
-        //   _balances[from] -= 1       (보내는 사람 보유 수 -1)
-        //   _balances[to] += 1         (받는 사람 보유 수 +1)
-        //
-        // SSF 이동 없음 (무료 양도)
-        //
-        // 사전 조건: from이 approve(Marketplace, ticketId) 해놔야 함
-        // → Custodial: 백엔드가 from의 Keystore로 대리 서명
-        //
-        // [티켓 상태는?]
-        // status는 변경 없음 (계속 VALID)
-        // 리세일/양도 시 소유자만 바뀌고 상태는 그대로
-        // → VALID인 티켓만 양도 가능 (USED/REFUNDED/EXPIRED는 못 양도)
-        //   → 이건 백엔드에서 사전 검증
+        ticket.transferFrom(from, to, ticketId);
+
+        // ========== walletTicketCount 갱신 ==========
+        // ERC-721 transferFrom()은 커스텀 매핑(walletTicketCount)을 갱신하지 않음
+        // → 수동으로 from -1, to +1 처리해야 maxPerWallet이 정확하게 작동
+        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.getTicket(ticketId);
+        ticket.updateWalletTicketCount(eventId, sessionId, from, to);
 
         // ========== 이벤트 로그 ==========
 

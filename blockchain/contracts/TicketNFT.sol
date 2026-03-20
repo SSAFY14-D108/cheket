@@ -160,9 +160,17 @@ contract TicketNFT is ERC721, Ownable {
         TicketStatus newStatus      
     );
 
+    // 배치 발행 완료 시 발생
+    // 백엔드: startTokenId ~ (startTokenId + count - 1) 로 개별 tokenId 도출
+    event BatchTicketMinted(
+        uint256 indexed startTokenId,
+        uint256 count,
+        address indexed to,
+        uint256 eventId,
+        uint256 sessionId
+    );
+
     // 배치 입장 처리 시 발생
-    // 배열(uint256[])은 topics에 넣을 수 없음 (고정 크기만 가능)
-    // → indexed 없이 data에 저장
     event BatchCheckedIn(uint256[] tokenIds);
 
     // ========== modifier (함수 실행 전 검문소) ==========
@@ -199,7 +207,7 @@ contract TicketNFT is ERC721, Ownable {
     //   → 심볼(티커): "CTKT"
     // Ownable(msg.sender)
     //   → 배포한 사람(플랫폼 지갑)이 owner
-    constructor() ERC721("CHEKET Ticket", "CTKT") Ownable(msg.sender) {}
+    constructor() ERC721("CHEKET Ticket", "CTKT") {}
 
 
     // ========== 권한 관리 ==========
@@ -363,17 +371,13 @@ contract TicketNFT is ERC721, Ownable {
         // count만큼 반복하여 민팅
         for (uint256 i = 0; i < count; i++) {
             _safeMint(to, startTokenId + i);
-            // i=0: tokenId = startTokenId + 0
-            // i=1: tokenId = startTokenId + 1
-            // ...
 
             tickets[startTokenId + i] = TicketInfo({
                 eventId: eventId,
                 sessionId: sessionId,
                 section: section,
                 row: row,
-                seat: startSeat + i, // 좌석 번호 자동 증가
-                // startSeat=1이면: 1, 2, 3, 4, 5...
+                seat: startSeat + i,
                 grade: grade,
                 price: price,
                 status: TicketStatus.VALID,
@@ -382,11 +386,11 @@ contract TicketNFT is ERC721, Ownable {
         }
 
         _nextTokenId = startTokenId + count;
-        // 루프 안에서 _nextTokenId++를 안 하고 마지막에 한번에 더함
-        // → storage 쓰기 1번으로 줄임 (가스비 절약)
-        // 루프 안에서 매번 쓰면 count번 storage 쓰기 발생
-
         walletTicketCount[eventId][sessionId][to] += count;
+
+        // 배치 이벤트 1번 발행 (루프 밖) → 스택 깊이 문제 해결 + 가스 절약
+        // 백엔드: startTokenId ~ (startTokenId + count - 1) 로 개별 tokenId 도출
+        emit BatchTicketMinted(startTokenId, count, to, eventId, sessionId);
         // 보유 수를 count만큼 한번에 증가
         // 루프 안에서 1씩 안 더함 → storage 쓰기 1번 (가스비 절약)
 
