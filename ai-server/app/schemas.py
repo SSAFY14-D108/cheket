@@ -23,13 +23,16 @@ class CandidateShow(CamelModel):
     title: str
     venue: str | None = None
     tags: list[TagWeight]
+    embedding: list[float] = Field(default_factory=list)
     ticketing_state: str | None = Field(default=None, alias="ticketingState")
     show_state: str | None = Field(default=None, alias="showState")
+    show_start_date: str | None = Field(default=None, alias="showStartDate")
 
 
 class RecommendationRequest(CamelModel):
     user_id: int = Field(..., alias="userId")
     user_profile: list[TagWeight] = Field(..., alias="userProfile")
+    user_embedding: list[float] = Field(default_factory=list, alias="userEmbedding")
     artist_preferences: list[ArtistPreference] = Field(default_factory=list, alias="artistPreferences")
     recent_keywords: list[str] = Field(default_factory=list, alias="recentKeywords")
     candidates: list[CandidateShow]

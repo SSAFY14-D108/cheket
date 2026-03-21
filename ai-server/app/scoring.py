@@ -4,9 +4,11 @@ from math import sqrt
 
 from app.schemas import ArtistPreference, CandidateShow, TagWeight
 
-TAG_SCORE_WEIGHT = 0.75
-ARTIST_BONUS_MAX = 0.15
+EMBEDDING_SCORE_WEIGHT = 0.30
+TAG_SCORE_WEIGHT = 0.30
+ARTIST_SCORE_WEIGHT = 0.20
 SEARCH_BONUS_MAX = 0.10
+FRESHNESS_BONUS_MAX = 0.10
 
 
 def normalize_text(value: str | None) -> str:
@@ -34,6 +36,24 @@ def cosine_similarity(left: dict[int, float], right: dict[int, float]) -> float:
     return dot_product / (left_norm * right_norm)
 
 
+def cosine_similarity_dense(left: list[float], right: list[float]) -> float:
+    if not left or not right or len(left) != len(right):
+        return 0.0
+
+    dot_product = sum(l * r for l, r in zip(left, right, strict=False))
+    left_norm = sqrt(sum(value * value for value in left))
+    right_norm = sqrt(sum(value * value for value in right))
+
+    if left_norm == 0.0 or right_norm == 0.0:
+        return 0.0
+
+    return dot_product / (left_norm * right_norm)
+
+
+def compute_embedding_similarity(user_embedding: list[float], candidate_embedding: list[float]) -> float:
+    return cosine_similarity_dense(user_embedding, candidate_embedding)
+
+
 def compute_tag_similarity(user_profile: list[TagWeight], candidate_tags: list[TagWeight]) -> float:
     return cosine_similarity(to_weight_map(user_profile), to_weight_map(candidate_tags))
 
@@ -46,7 +66,7 @@ def compute_artist_bonus(candidate_artist: str, artist_preferences: list[ArtistP
     for preference in artist_preferences:
         if normalize_text(preference.artist) == normalized_candidate:
             normalized_weight = min(preference.weight / 2.0, 1.0)
-            return ARTIST_BONUS_MAX * normalized_weight
+            return ARTIST_SCORE_WEIGHT * normalized_weight
     return 0.0
 
 
@@ -78,8 +98,30 @@ def compute_search_bonus(candidate: CandidateShow, recent_keywords: list[str]) -
     return min(best_bonus, SEARCH_BONUS_MAX)
 
 
-def build_reason(tag_similarity: float, artist_bonus: float, search_bonus: float) -> str:
+def compute_freshness_bonus(ticketing_state: str | None, show_state: str | None) -> float:
+    normalized_ticketing_state = normalize_text(ticketing_state)
+    normalized_show_state = normalize_text(show_state)
+
+    if normalized_show_state == "upcoming" and normalized_ticketing_state == "in_progress":
+        return FRESHNESS_BONUS_MAX
+    if normalized_show_state == "upcoming" and normalized_ticketing_state == "before_open":
+        return 0.07
+    if normalized_show_state == "ongoing":
+        return 0.06
+    return 0.0
+
+
+def build_reason(
+    embedding_similarity: float,
+    tag_similarity: float,
+    artist_bonus: float,
+    search_bonus: float,
+    freshness_bonus: float,
+) -> str:
     reasons: list[str] = []
+
+    if embedding_similarity >= 0.45:
+        reasons.append("임베딩 유사도가 높음")
 
     if tag_similarity >= 0.55:
         reasons.append("선호 태그가 유사함")
@@ -91,6 +133,9 @@ def build_reason(tag_similarity: float, artist_bonus: float, search_bonus: float
 
     if search_bonus > 0.0:
         reasons.append("최근 검색어와 관련됨")
+
+    if freshness_bonus >= 0.07:
+        reasons.append("현재 예매 시점과도 잘 맞음")
 
     if not reasons:
         return "기본 추천 로직으로 선정된 공연"
