@@ -16,4 +16,7 @@ public interface TicketService {
     // 관람 완료 / 만료 티켓 조회
     List<GetUsedAndExpiredTicketResponse> getUsedAndExpiredTickets(Long id);
 
+    // 기존 인터페이스에 추가
+    Long transferTicket(Long senderUserId, Long ticketId, String receiverPhoneNumber);
+
 }

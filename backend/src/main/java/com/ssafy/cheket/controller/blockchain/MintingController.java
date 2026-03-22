@@ -336,14 +336,12 @@ public class MintingController {
     // ========== 추가 유틸 API ==========
 
     /**
-     * ① sessionSeatId → 온체인 티켓 매핑 조회
-     * "이 좌석의 온체인 티켓 정보가 뭐야?"
+     * ① sessionSeatId → 온체인 티켓 매핑 조회 "이 좌석의 온체인 티켓 정보가 뭐야?"
      */
     @GetMapping("/onchain/seat/{sessionSeatId}")
-    @Operation(summary = "좌석 → 온체인 티켓 매핑 조회",
-        description = "sessionSeatId로 DB 좌석 정보 + 온체인 TicketNFT 정보를 한번에 조회")
-    public ResponseEntity<Map<String, Object>> getSeatOnChainMapping(
-        @PathVariable Long sessionSeatId) throws Exception {
+    @Operation(summary = "좌석 → 온체인 티켓 매핑 조회", description = "sessionSeatId로 DB 좌석 정보 + 온체인 TicketNFT 정보를 한번에 조회")
+    public ResponseEntity<Map<String, Object>> getSeatOnChainMapping(@PathVariable Long sessionSeatId)
+        throws Exception {
         SessionSeat seat = sessionSeatRepository.findById(sessionSeatId)
             .orElseThrow(() -> new RuntimeException("좌석을 찾을 수 없습니다: " + sessionSeatId));
 
@@ -374,15 +372,12 @@ public class MintingController {
     }
 
     /**
-     * ② showId → 전체 좌석 + 온체인 매핑 + 판매 현황 조회
-     * "이 공연의 좌석별 판매 현황이 어때?"
+     * ② showId → 전체 좌석 + 온체인 매핑 + 판매 현황 조회 "이 공연의 좌석별 판매 현황이 어때?"
      */
     @GetMapping("/onchain/show/{showId}/seats")
-    @Operation(summary = "공연 전체 좌석 + 온체인 매핑 조회",
-        description = "showId로 전체 좌석의 DB 상태 + 온체인 owner를 조회 (판매 현황 파악)")
+    @Operation(summary = "공연 전체 좌석 + 온체인 매핑 조회", description = "showId로 전체 좌석의 DB 상태 + 온체인 owner를 조회 (판매 현황 파악)")
     public ResponseEntity<Map<String, Object>> getShowSeatsMapping(@PathVariable Long showId) throws Exception {
-        Show show = showRepository.findById(showId)
-            .orElseThrow(() -> new RuntimeException("공연을 찾을 수 없습니다: " + showId));
+        Show show = showRepository.findById(showId).orElseThrow(() -> new RuntimeException("공연을 찾을 수 없습니다: " + showId));
 
         List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
 
@@ -426,7 +421,8 @@ public class MintingController {
                     case AVAILABLE -> available++;
                     case PENDING_TX -> pendingTx++;
                     case SOLD -> sold++;
-                    default -> { }
+                    default -> {
+                    }
                 }
                 seatList.add(seatData);
             }
@@ -443,12 +439,10 @@ public class MintingController {
     }
 
     /**
-     * ③ 사용자 지갑 온체인 잔액 조회
-     * "DB 잔액이랑 온체인 잔액이 맞나?"
+     * ③ 사용자 지갑 온체인 잔액 조회 "DB 잔액이랑 온체인 잔액이 맞나?"
      */
     @GetMapping("/onchain/wallet/{userId}/balance")
-    @Operation(summary = "사용자 온체인 잔액 조회",
-        description = "userId로 DB 잔액과 온체인 SSF 잔액을 비교 조회")
+    @Operation(summary = "사용자 온체인 잔액 조회", description = "userId로 DB 잔액과 온체인 SSF 잔액을 비교 조회")
     public ResponseEntity<Map<String, Object>> getUserOnChainBalance(@PathVariable Long userId) throws Exception {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
@@ -462,17 +456,16 @@ public class MintingController {
         data.put("walletAddress", wallet.getAddress());
         data.put("dbBalance", wallet.getCtkBalance());
         data.put("onChainBalance", onChainBalance);
-        data.put("isMatch", onChainBalance.longValue() == (wallet.getCtkBalance() != null ? wallet.getCtkBalance() : 0));
+        data.put("isMatch",
+            onChainBalance.longValue() == (wallet.getCtkBalance() != null ? wallet.getCtkBalance() : 0));
         return ResponseEntity.ok(data);
     }
 
     /**
-     * ④ 사용자 보유 NFT 목록 조회
-     * "이 사용자가 온체인에서 진짜 갖고 있는 티켓이 뭐야?"
+     * ④ 사용자 보유 NFT 목록 조회 "이 사용자가 온체인에서 진짜 갖고 있는 티켓이 뭐야?"
      */
     @GetMapping("/onchain/wallet/{userId}/tickets")
-    @Operation(summary = "사용자 보유 TicketNFT 조회",
-        description = "userId의 지갑이 온체인에서 소유한 TicketNFT 목록 조회")
+    @Operation(summary = "사용자 보유 TicketNFT 조회", description = "userId의 지갑이 온체인에서 소유한 TicketNFT 목록 조회")
     public ResponseEntity<Map<String, Object>> getUserOwnedTickets(@PathVariable Long userId) throws Exception {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
@@ -512,20 +505,68 @@ public class MintingController {
     }
 
     /**
-     * ⑤ Settlement 예치 현황 조회
-     * "이 회차에 SSF 얼마나 예치됐어?"
+     * ⑤ Settlement 예치 현황 조회 "이 회차에 SSF 얼마나 예치됐어?"
      */
     @GetMapping("/onchain/settlement/{onChainSessionId}")
-    @Operation(summary = "Settlement 예치 현황 조회",
-        description = "온체인 회차 ID로 Settlement 컨트랙트에 예치된 SSF 금액 조회")
-    public ResponseEntity<Map<String, Object>> getSettlementDeposit(
-        @PathVariable Long onChainSessionId) throws Exception {
-        BigInteger deposited = blockchainService.getSettlement()
-            .sessionDeposits(BigInteger.valueOf(onChainSessionId)).send();
+    @Operation(summary = "Settlement 예치 현황 조회", description = "온체인 회차 ID로 Settlement 컨트랙트에 예치된 SSF 금액 조회")
+    public ResponseEntity<Map<String, Object>> getSettlementDeposit(@PathVariable Long onChainSessionId)
+        throws Exception {
+        BigInteger deposited = blockchainService.getSettlement().sessionDeposits(BigInteger.valueOf(onChainSessionId))
+            .send();
 
         Map<String, Object> data = new HashMap<>();
         data.put("onChainSessionId", onChainSessionId);
         data.put("depositedAmount", deposited);
         return ResponseEntity.ok(data);
+    }
+
+    /**
+     * 테스트용 — MINTED 공연의 AVAILABLE 좌석 랜덤 조회
+     *
+     * 구매 테스트 시 sessionSeatId를 직접 DB에서 찾지 않아도 됨 count 파라미터로 원하는 수량만큼 랜덤으로 반환
+     */
+    @GetMapping("/test/available-seats/{showId}")
+    @Operation(summary = "AVAILABLE 좌석 랜덤 조회 (테스트용)", description = "구매 테스트용 — MINTED 공연의 AVAILABLE 좌석을 랜덤으로 반환")
+    public ResponseEntity<Map<String, Object>> getAvailableSeats(@PathVariable Long showId,
+        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "3") int count) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new RuntimeException("공연을 찾을 수 없습니다: " + showId));
+
+        List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("showId", showId);
+        result.put("showTitle", show.getTitle());
+        result.put("showStatus", show.getStatus().name());
+
+        List<Map<String, Object>> sessionList = new ArrayList<>();
+        for (Session session : sessions) {
+            List<SessionSeat> allSeats = sessionSeatRepository.findBySessionId(session.getId());
+            List<SessionSeat> availableSeats = allSeats.stream()
+                .filter(s -> s.getStatus() == com.ssafy.cheket.enums.SeatStatus.AVAILABLE)
+                .collect(java.util.stream.Collectors.toList());
+
+            // 랜덤 셔플 후 count만큼 자르기
+            java.util.Collections.shuffle(availableSeats);
+            List<SessionSeat> selected = availableSeats.subList(0, Math.min(count, availableSeats.size()));
+
+            Map<String, Object> sessionData = new HashMap<>();
+            sessionData.put("sessionId", session.getId());
+            sessionData.put("totalAvailable", availableSeats.size());
+            sessionData.put("selectedCount", selected.size());
+            sessionData.put("selectedSeatIds", selected.stream().map(SessionSeat::getId).toList());
+            sessionData.put("seats", selected.stream().map(seat -> {
+                Map<String, Object> seatData = new HashMap<>();
+                seatData.put("sessionSeatId", seat.getId());
+                seatData.put("seatId", seat.getSeatId());
+                seatData.put("onChainTicketNftId", seat.getOnChainTicketNftId());
+                seatData.put("status", seat.getStatus().name());
+                return seatData;
+            }).toList());
+
+            sessionList.add(sessionData);
+        }
+
+        result.put("sessions", sessionList);
+        return ResponseEntity.ok(result);
     }
 }

@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.ticket;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.ticket.request.PurchaseTicketRequest;
+import com.ssafy.cheket.dto.ticket.request.TransferTicketRequest;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.PurchaseTicketResponse;
@@ -54,7 +55,7 @@ public class TicketController {
      * "블록체인에 전송됨" CONFIRMED → "구매 완료!" → 폴링 중단 FAILED → "구매 실패" → 폴링 중단
      */
     @GetMapping("/tx/{txId}/status")
-    @Operation(summary = "TX 상태 조회", description = "구매 트랜잭션 상태 폴링 (PENDING → SUBMITTED → CONFIRMED / FAILED)")
+    @Operation(summary = "TX 상태 조회", description = "블록체인 트랜잭션 상태 폴링 — 구매, 양도, 리세일, 환불 공통 (PENDING → SUBMITTED → CONFIRMED / FAILED)")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getTxStatus(@PathVariable Long txId) {
         Transaction tx = transactionRepository.findById(txId)
@@ -90,6 +91,27 @@ public class TicketController {
         @AuthenticationPrincipal Long userId) {
         List<GetUsedAndExpiredTicketResponse> response = ticketService.getUsedAndExpiredTickets(userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "티켓 컬렉션 목록 조회에 성공했습니다.", response));
+    }
+
+    // TicketController.java에 추가
+
+    /**
+     * 지정 양도 — 전화번호로 1:1 무료 양도
+     *
+     * 티켓 구매와 동일한 비동기 패턴: 즉시 txId 반환 → 백그라운드에서 온체인 처리 → 앱이 폴링
+     */
+    @PostMapping("/tickets/{ticketId}/transfer")
+    @Operation(summary = "티켓 양도", description = "전화번호를 입력하여 티켓을 무료 양도")
+    public ResponseEntity<ApiResponse<PurchaseTicketResponse>> transferTicket(@AuthenticationPrincipal Long userId, // JWT에서
+                                                                                                                    // 추출
+                                                                                                                    // (보내는
+                                                                                                                    // 사람)
+        @PathVariable Long ticketId, // 양도할 티켓 ID
+        @RequestBody TransferTicketRequest request // { "phoneNumber": "010-1234-5678" }
+    ) {
+        Long txId = ticketService.transferTicket(userId, ticketId, request.phoneNumber());
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "양도 요청이 접수되었습니다.", new PurchaseTicketResponse(txId)));
     }
 
 }

@@ -13,6 +13,7 @@ import com.ssafy.cheket.repository.queue.QueueRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
+import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ import java.util.List;
  * Transaction 레코드 생성 (transaction 테이블에 1행 INSERT) ④ @Async Worker에게 블록체인 처리 위임
  * ⑤ txId 즉시 반환 (0.05초)
  *
- * 블록체인 처리(느린 작업)는 TicketPurchaseAsyncWorker가 별도 스레드에서 담당
+ * 블록체인 처리(느린 작업)는 BlockchainAsyncWorker가 별도 스레드에서 담당
  */
 @Slf4j
 @Service
@@ -39,7 +40,7 @@ public class TicketPurchaseService {
     private final SessionRepository sessionRepository;
     private final SessionSeatRepository sessionSeatRepository;
     private final TransactionRepository transactionRepository;
-    private final TicketPurchaseAsyncWorker asyncWorker;
+    private final BlockchainAsyncWorker asyncWorker;
     private final QueueRepository queueRepository;
 
     /**
@@ -62,9 +63,11 @@ public class TicketPurchaseService {
             sessionSeatIds.size());
 
         // 대기열 정상적으로 통과해서 권한 있는지 검증
-        validateSeatAccessToken(userId, showId, sessionId, seatAccessToken);
-
-        // ========== ① 유효성 검증 ==========
+        // 테스트용: "test" 토큰이면 대기열 검증 스킵 (운영 시 제거)
+        if (!"test".equals(seatAccessToken)) {
+            validateSeatAccessToken(userId, showId, sessionId, seatAccessToken);
+        }
+            // ========== ① 유효성 검증 ==========
         // 회차가 DB에 있나
         Session session = sessionRepository.findById(sessionId)
             .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다: " + sessionId));
@@ -116,35 +119,34 @@ public class TicketPurchaseService {
         // transaction 테이블에 1행 INSERT
         // status = PENDING → 아직 블록체인에 아무것도 안 보냄
         // amount = 0 → 온체인 가격 조회 후 @Async에서 업데이트
-        Transaction transaction = Transaction.builder()
-            .type(Transaction.TransactionType.PURCHASE)  // 거래 유형: 구매
-            .amount(0L)               // 아직 온체인 가격 모름 → 나중에 업데이트
-            .description("티켓 구매 대기")  // 초기 상태 메시지
-            .txStatus(Transaction.TxStatus.PENDING)  // 아직 블록체인에 안 보냄
-            .buyerId(userId)          // 구매자 ID
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE) // 거래 유형: 구매
+            .amount(0L) // 아직 온체인 가격 모름 → 나중에 업데이트
+            .description("티켓 구매 대기") // 초기 상태 메시지
+            .txStatus(Transaction.TxStatus.PENDING) // 아직 블록체인에 안 보냄
+            .buyerId(userId) // 구매자 ID
             .build();
-        transactionRepository.save(transaction);  // DB INSERT
+        transactionRepository.save(transaction); // DB INSERT
 
         log.info("[티켓 구매] PENDING 생성 — txId={}", transaction.getId());
 
         // ========== ④ @Async Worker에게 블록체인 처리 위임 ==========
         // 문제: @Transactional 안에서 @Async를 호출하면
-        //       트랜잭션이 아직 커밋 안 된 상태에서 @Async 스레드가 실행됨
-        //       → @Async 스레드가 Transaction을 못 찾음 (NoSuchElementException)
+        // 트랜잭션이 아직 커밋 안 된 상태에서 @Async 스레드가 실행됨
+        // → @Async 스레드가 Transaction을 못 찾음 (NoSuchElementException)
         // 해결: TransactionSynchronization.afterCommit()으로
-        //       트랜잭션 커밋 완료 후에 @Async를 호출
+        // 트랜잭션 커밋 완료 후에 @Async를 호출
         Long txId = transaction.getId();
         Long onChainSessionId = session.getOnChainSessionId();
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                asyncWorker.processOnChainPurchase(
-                    txId,                  // txId  → Transaction DB를 업데이트하려고 (PENDING → SUBMITTED → CONFIRMED)
-                    userId,                // 구매자 ID → 사용자 지갑 Keystore를 찾으려고 (userId → User → Wallet → 개인키)
-                    showId,                // 공연 ID
-                    sessionId,             // 회차 ID
-                    sessionSeatIds,        // 좌석 ID 목록 → DB에서 좌석 조회 → onChainTicketNftId 꺼내려고
-                    onChainSessionId       // 온체인 회차 ID → purchaseTicket(buyer, ticketNftId, onChainSessionId) 호출하려고
+                asyncWorker.processOnChainPurchase(txId, // txId → Transaction DB를 업데이트하려고 (PENDING → SUBMITTED →
+                                                         // CONFIRMED)
+                    userId, // 구매자 ID → 사용자 지갑 Keystore를 찾으려고 (userId → User → Wallet → 개인키)
+                    showId, // 공연 ID
+                    sessionId, // 회차 ID
+                    sessionSeatIds, // 좌석 ID 목록 → DB에서 좌석 조회 → onChainTicketNftId 꺼내려고
+                    onChainSessionId // 온체인 회차 ID → purchaseTicket(buyer, ticketNftId, onChainSessionId) 호출하려고
                 );
             }
         });

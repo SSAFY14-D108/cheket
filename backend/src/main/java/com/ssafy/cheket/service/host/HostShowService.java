@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.host;
 
+import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
@@ -17,7 +18,7 @@ public interface HostShowService {
 
     GetHostShowDetailResponse getHostShowDetail(Long hostId, Long showId);
 
-    Long createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
+    CreateShowResponse createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages);
 
     void deleteShow(Long hostId, Long showId);
