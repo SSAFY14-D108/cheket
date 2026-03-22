@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Label } from "@/components/ui/label"
+import { ArrowLeft, ImagePlus, Upload } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { type HostShowDetail } from "@/lib/show-manage-api"
-import { ArrowLeft, Upload, ImagePlus, User, Music } from "lucide-react"
 import { DescriptionEditor } from "./DescriptionEditor"
 import { SettingsCardBasic } from "./SettingsCardBasic"
-import { SettingsCardTickets } from "./SettingsCardTickets"
 import { SettingsCardPolicies } from "./SettingsCardPolicies"
+import { SettingsCardTickets } from "./SettingsCardTickets"
 import { PLATFORM_FEE_BPS, PLATFORM_TOTAL_BPS } from "./showFormUtils"
 import { useShowForm } from "./useShowForm"
 
@@ -38,7 +40,15 @@ function formatSharePercent(shareBps: string) {
   }).format(percent)}%`
 }
 
+function parseSectionCount(sectionId: string) {
+  return sectionId
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean).length
+}
+
 export function ShowForm({ mode, initialData }: ShowFormProps) {
+  const { toast } = useToast()
   const {
     isEdit,
     title,
@@ -89,6 +99,12 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     getValidationMessage,
     handleSubmit,
   } = useShowForm({ mode, initialData })
+
+  const [step, setStep] = useState(1)
+  const [showStep1Errors, setShowStep1Errors] = useState(false)
+  const [showStep2Errors, setShowStep2Errors] = useState(false)
+  const [showStep3Errors, setShowStep3Errors] = useState(false)
+  const [showStep4Errors, setShowStep4Errors] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [confirmText, setConfirmText] = useState("")
 
@@ -97,6 +113,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   const isRemotePosterPreview =
     typeof posterPreview === "string" &&
     (posterPreview.startsWith("http://") || posterPreview.startsWith("https://"))
+
   const stakeholderShareBps = useMemo(
     () =>
       stakeholders
@@ -104,28 +121,86 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         .reduce((sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0), 0),
     [stakeholders]
   )
+
   const settlementSummaryItems = useMemo(
     () =>
-      stakeholders.map((stakeholder, index) => {
-        const displayName = stakeholder.isFixed
-          ? "플랫폼"
-          : stakeholder.name.trim() || `이해관계자 ${index}`
-
-        return {
-          name: displayName,
-          shareText: formatSharePercent(stakeholder.shareBps),
-          isFixed: Boolean(stakeholder.isFixed),
-        }
-      }),
+      stakeholders.map((stakeholder, index) => ({
+        name: stakeholder.isFixed ? "플랫폼" : stakeholder.name.trim() || `이해관계자 ${index}`,
+        shareText: formatSharePercent(stakeholder.shareBps),
+        isFixed: Boolean(stakeholder.isFixed),
+      })),
     [stakeholders]
   )
+
   const canConfirmCreate = confirmText.trim() === SETTLEMENT_CONFIRM_TEXT
+
+  const validateStep1 = () =>
+    Boolean(
+      title.trim() &&
+        artistName.trim() &&
+        posterPreview &&
+        description.trim() &&
+        Number.isInteger(Number(playtime)) &&
+        Number(playtime) > 0
+    )
+
+  const validateStep2 = () => Boolean(venueId && showStartAt && showEndAt && openAt && closeAt)
+
+  const validateStep3 = () => {
+    const hasPurchaseLimit = Number.isInteger(Number(purchaseLimit)) && Number(purchaseLimit) > 0
+    const hasValidGrades =
+      grades.length > 0 &&
+      grades.every(
+        (grade) =>
+          grade.gradeName.trim() &&
+          Number.isFinite(Number(grade.price)) &&
+          Number(grade.price) > 0 &&
+          parseSectionCount(grade.sectionId) > 0
+      )
+    const hasValidSessions =
+      sessionInfo.length > 0 &&
+      sessionInfo.every((session) => session.sessionDate && session.sessionStartTime)
+
+    return hasPurchaseLimit && hasValidGrades && hasValidSessions
+  }
+
+  const goNextStep = () => {
+    if (step === 1 && !validateStep1()) {
+      setShowStep1Errors(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    if (step === 2 && !validateStep2()) {
+      setShowStep2Errors(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    if (step === 3 && !validateStep3()) {
+      setShowStep3Errors(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" })
+    setStep((current) => Math.min(4, current + 1))
+  }
 
   const handlePrimarySubmit = () => {
     const validationMessage = getValidationMessage()
 
     if (validationMessage) {
-      window.alert(validationMessage)
+      setShowStep1Errors(true)
+      setShowStep2Errors(true)
+      setShowStep3Errors(true)
+      setShowStep4Errors(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      toast({
+        title: "입력 정보 확인",
+        description: validationMessage,
+        variant: "destructive",
+      })
       return
     }
 
@@ -149,244 +224,319 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
 
   return (
     <>
-      <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
-      <div className="mb-6 mt-2 flex flex-col gap-6 border-b pb-8">
-        <div className="flex items-center gap-3">
-          <Link
-            href={isEdit && initialData?.showId ? `/shows/${initialData.showId}` : "/mypage"}
-            className="flex size-9 items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground"
-            aria-label="뒤로가기"
-          >
-            <ArrowLeft className="size-4" />
-          </Link>
-          <span className="text-sm font-medium text-muted-foreground">{headerTitle}</span>
-        </div>
+      <main className="mx-auto max-w-6xl px-6 py-10 mb-16">
+        <div className="sticky top-0 z-40 -mx-6 -mt-10 mb-8 border-b bg-background/95 px-6 pb-4 pt-10 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="mx-auto flex max-w-[900px] flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex shrink-0 items-center gap-3">
+              <Link
+                href={isEdit && initialData?.showId ? `/shows/${initialData.showId}` : "/mypage"}
+                className="flex size-9 items-center justify-center rounded-md border bg-background transition-colors hover:bg-accent hover:text-accent-foreground"
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft className="size-4" />
+              </Link>
+              <h1 className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">{headerTitle}</h1>
+            </div>
 
-        <div className="flex flex-col gap-6 rounded-xl border border-border/50 bg-muted/20 p-6">
-          <div className="flex items-start gap-4">
-            <div className="mt-2 hidden rounded-full bg-primary/10 p-2 text-primary/80 sm:block">
-              <Music className="size-6" />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label className="ml-1 text-xs font-bold uppercase tracking-wider text-primary">
-                공연 제목 (Title)
-              </Label>
-              <input
-                type="text"
-                placeholder="멋진 공연 제목을 입력하세요"
-                className="w-full border-none bg-transparent px-1 text-3xl font-bold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 md:text-4xl lg:text-5xl"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </div>
-          </div>
+            <div className="flex w-full items-center gap-2 md:max-w-md">
+              {["기본 정보", "일시/장소", "티켓/회차", "정책/정산"].map((label, idx) => {
+                const current = idx + 1
+                const isActive = step === current
+                const isPast = step > current
 
-          <div className="flex items-start gap-4">
-            <div className="mt-1 hidden rounded-full bg-primary/10 p-2 text-primary/80 sm:block">
-              <User className="size-5" />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label className="ml-1 text-xs font-bold uppercase tracking-wider text-primary">
-                아티스트 / 그룹명 (Artist)
-              </Label>
-              <input
-                type="text"
-                placeholder="참여하는 아티스트 또는 그룹명을 입력하세요"
-                className="w-full border-none bg-transparent px-1 text-xl font-semibold text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 md:text-2xl"
-                value={artistName}
-                onChange={(event) => setArtistName(event.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-        <div className="flex flex-col gap-8 lg:col-span-8">
-          <div className="rounded-lg border bg-card p-6 shadow-sm">
-            <Label className="mb-4 block text-base font-semibold">대표 포스터</Label>
-            <label
-              htmlFor="poster-upload"
-              className="group flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed bg-muted/30 transition-colors hover:bg-muted/60"
-            >
-              {posterPreview ? (
-                <div className="flex w-full flex-col items-center gap-3 p-4">
-                  <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-md border bg-muted/20">
-                    {/* API and local upload previews can be data URLs or external URLs. */}
-                    <Image
-                      src={posterPreview}
-                      alt="포스터 미리보기"
-                      fill
-                      unoptimized={posterPreview.startsWith("data:") || isRemotePosterPreview}
-                      className="object-contain"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={(event) => {
-                      event.preventDefault()
-                      document.getElementById("poster-upload")?.click()
-                    }}
+                return (
+                  <div
+                    key={current}
+                    className={`flex flex-1 flex-col gap-1.5 transition-all ${isPast ? "cursor-pointer hover:opacity-80" : ""}`}
+                    onClick={() => isPast && setStep(current)}
                   >
-                    <ImagePlus className="size-4" />
-                    포스터 변경
-                  </Button>
-                </div>
-              ) : (
-                <div className="mx-auto flex aspect-[3/4] w-full max-w-sm flex-col items-center justify-center gap-4 p-6 text-muted-foreground">
-                  <div className="rounded-full bg-secondary p-4 group-hover:bg-background">
-                    <Upload className="size-8" />
+                    <span
+                      className={`text-[10px] sm:text-[11px] font-bold transition-colors ${
+                        isActive ? "text-primary" : isPast ? "text-primary/70" : "text-muted-foreground/40"
+                      }`}
+                    >
+                      {current}. {label}
+                    </span>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full transition-all duration-500 ease-out ${
+                          isPast ? "bg-primary/50 w-full" : isActive ? "bg-primary w-full" : "w-0 bg-transparent"
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">클릭하여 포스터 업로드</p>
-                    <p className="mt-1 text-sm text-muted-foreground">세로형 이미지 (권장 3:4)</p>
-                    <p className="mt-1 text-xs font-medium text-destructive">최대 5MB</p>
-                  </div>
-                </div>
-              )}
-            </label>
-            <input
-              id="poster-upload"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              onChange={handlePosterChange}
-            />
-          </div>
+                )
+              })}
+            </div>
 
-          <div className="rounded-lg border bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <Label className="block text-base font-semibold">상세 포스터</Label>
-              <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-2 md:w-[150px]">
+              {step > 1 && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => document.getElementById("description-image-upload")?.click()}
+                  className="h-9 w-16 font-bold"
+                  onClick={() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                    setStep((current) => Math.max(1, current - 1))
+                  }}
+                  disabled={isSubmitting}
                 >
-                  <ImagePlus className="mr-2 size-4" />
-                  이미지 추가
+                  이전
                 </Button>
-                <span className="text-xs text-muted-foreground">(장당 5MB, 요청당 총 50MB 제한)</span>
-              </div>
+              )}
+
+              {step < 4 ? (
+                <Button size="sm" className="h-9 w-16 font-bold shadow-sm" onClick={goNextStep}>
+                  다음
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-9 w-24 font-bold shadow-sm"
+                  onClick={handlePrimarySubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "처리 중..." : submitLabel}
+                </Button>
+              )}
             </div>
+          </div>
+        </div>
 
-            <input
-              id="description-image-upload"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="sr-only"
-              onChange={handleDescriptionImagesChange}
-            />
-
-            {descriptionImagePreviews.length === 0 ? (
-              <div
-                className="flex min-h-[140px] cursor-pointer flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/60"
-                onClick={() => document.getElementById("description-image-upload")?.click()}
-              >
-                <Upload className="size-6" />
-                <div className="text-center">
-                  <p className="text-sm">상세 이미지를 업로드하세요 (여러 장 선택 가능)</p>
-                  <p className="mt-1 text-xs">(JPEG, PNG, WEBP / 장당 5MB / 요청당 총 50MB)</p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                {descriptionImagePreviews.map((preview, index) => (
-                  <div key={preview + index} className="group relative overflow-hidden rounded-md border bg-muted/30">
-                    <Image
-                      src={preview}
-                      alt={`상세 이미지 ${index + 1}`}
-                      width={320}
-                      height={200}
-                      className="h-full w-full object-cover"
-                      unoptimized={preview.startsWith("data:") || preview.startsWith("http")}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => handleRemoveDescriptionImage(index)}
+        <div className="flex flex-col gap-8">
+          {step === 1 && (
+            <div className="mx-auto flex w-full max-w-[900px] animate-in flex-col gap-5 fade-in slide-in-from-bottom-4 duration-500">
+              <Card className="p-5 sm:p-6">
+                <div className="flex flex-col gap-6 md:flex-row md:items-start">
+                  <div className="flex w-full shrink-0 flex-col gap-3 sm:w-[260px]">
+                    <Label className={`text-[15px] font-bold ${!posterPreview && showStep1Errors ? "text-destructive" : "text-foreground"}`}>
+                      대표 포스터 <span className="text-destructive">*</span>
+                    </Label>
+                    <label
+                      htmlFor="poster-upload"
+                      className={`group relative flex aspect-[3/4] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors ${
+                        !posterPreview && showStep1Errors
+                          ? "border-destructive bg-destructive/5 hover:bg-destructive/10"
+                          : "border-muted-foreground/20 bg-muted/30 hover:bg-muted/60"
+                      }`}
                     >
-                      제거
-                    </button>
+                      {posterPreview ? (
+                        <>
+                          <Image
+                            src={posterPreview}
+                            alt="포스터 미리보기"
+                            fill
+                            unoptimized={posterPreview.startsWith("data:") || isRemotePosterPreview}
+                            className="object-cover transition-opacity group-hover:opacity-40"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={(event) => {
+                                event.preventDefault()
+                                document.getElementById("poster-upload")?.click()
+                              }}
+                              className="font-semibold shadow-md"
+                            >
+                              <ImagePlus className="mr-2 size-4" />
+                              포스터 변경
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-3 p-4 text-muted-foreground">
+                          <div className="rounded-full bg-secondary p-3.5 transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                            <Upload className="size-6" />
+                          </div>
+                          <div className="text-center">
+                            <p className="font-bold text-foreground">포스터 업로드</p>
+                            <p className="mt-1 text-[11px] font-medium text-muted-foreground">권장 3:4 / 5MB</p>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                    <input
+                      id="poster-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={handlePosterChange}
+                    />
+                    {!posterPreview && showStep1Errors && (
+                      <p className="text-[12px] font-medium text-destructive">대표 포스터를 등록해주세요.</p>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <DescriptionEditor value={description} onChange={setDescription} />
-        </div>
+                  <div className="flex w-full flex-1 flex-col justify-center gap-8">
+                    <div className="flex flex-col gap-3">
+                      <Label className={`text-[15px] font-bold ${!title.trim() && showStep1Errors ? "text-destructive" : "text-foreground"}`}>
+                        공연 제목 <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        placeholder="공연 제목을 입력하세요"
+                        className={`h-14 px-4 text-lg font-bold ${!title.trim() && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-muted/20"}`}
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                      />
+                    </div>
 
-        <div className="select-none lg:col-span-4">
-          <div className="flex flex-col gap-6">
-            <SettingsCardBasic
-              venueId={venueId}
-              venues={venues}
-              isLoadingVenues={isLoadingVenues}
-              venueLoadError={venueLoadError}
-              playtime={playtime}
-              showStartAt={showStartAt}
-              showEndAt={showEndAt}
-              openAt={openAt}
-              closeAt={closeAt}
-              onChangeVenueId={handleVenueChange}
-              onChangePlaytime={setPlaytime}
-              onChangeShowRange={(startAt, endAt) => {
-                setShowStartAt(startAt)
-                setShowEndAt(endAt)
-              }}
-              onChangeReservationRange={(startAt, endAt) => {
-                setOpenAt(startAt)
-                setCloseAt(endAt)
-              }}
-            />
+                    <div className="flex flex-col gap-3">
+                      <Label className={`text-[15px] font-bold ${!artistName.trim() && showStep1Errors ? "text-destructive" : "text-foreground"}`}>
+                        아티스트 / 그룹명 <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        placeholder="참여 아티스트를 입력하세요"
+                        className={`h-14 px-4 text-lg font-bold ${!artistName.trim() && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-muted/20"}`}
+                        value={artistName}
+                        onChange={(event) => setArtistName(event.target.value)}
+                      />
+                    </div>
 
-            <SettingsCardTickets
-              venueId={venueId}
-              showStartAt={showStartAt}
-              showEndAt={showEndAt}
-              posterPreview={posterPreview}
-              purchaseLimit={purchaseLimit}
-              grades={grades}
-              onChangePurchaseLimit={setPurchaseLimit}
-              onAddGrade={addGrade}
-              onRemoveGrade={removeGrade}
-              onUpdateGrade={updateGrade}
-              sessionInfo={sessionInfo}
-              onAddSession={addSession}
-              onRemoveSession={removeSession}
-              onUpdateSession={updateSession}
-            />
+                    <div className="flex flex-col gap-3">
+                      <Label className={`text-[15px] font-bold ${(!playtime.trim() || Number(playtime) <= 0) && showStep1Errors ? "text-destructive" : "text-foreground"}`}>
+                        공연 시간(분) <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        placeholder="예: 120"
+                        className={`h-14 px-4 text-lg font-bold ${(!playtime.trim() || Number(playtime) <= 0) && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-muted/20"}`}
+                        value={playtime}
+                        onChange={(event) => setPlaytime(event.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
 
-            <SettingsCardPolicies
-              isEdit={isEdit}
-              stakeholders={stakeholders}
-              refundPolicy={refundPolicy}
-              onAddStakeholder={addStakeholder}
-              onRemoveStakeholder={removeStakeholder}
-              onUpdateStakeholder={updateStakeholder}
-              onAddRefund={addRefund}
-              onRemoveRefund={removeRefund}
-              onUpdateRefund={updateRefund}
-            />
+              <Card className="p-5 sm:p-6">
+                <div className="flex flex-col gap-6 md:flex-row md:items-start">
+                  <div className="flex w-full shrink-0 flex-col gap-3 sm:w-[260px]">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[15px] font-bold text-foreground">상세 이미지</Label>
+                      <span className="text-[11px] font-medium text-muted-foreground">최대 50MB</span>
+                    </div>
 
-            <div className="sticky bottom-6 mt-4">
-              <Button
-                className="h-14 w-full text-lg font-bold shadow-lg transition-all hover:shadow-xl"
-                size="lg"
-                onClick={handlePrimarySubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "처리 중..." : submitLabel}
-              </Button>
+                    <input
+                      id="description-image-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      className="sr-only"
+                      onChange={handleDescriptionImagesChange}
+                    />
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div
+                        className="group flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/60"
+                        onClick={() => document.getElementById("description-image-upload")?.click()}
+                      >
+                        <div className="rounded-full bg-secondary p-2.5 transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                          <ImagePlus className="size-5" />
+                        </div>
+                        <span className="text-[11px] font-bold text-foreground">추가하기</span>
+                      </div>
+
+                      {descriptionImagePreviews.map((preview, index) => (
+                        <div key={preview + index} className="group relative aspect-square overflow-hidden rounded-xl border bg-muted/30 shadow-sm">
+                          <Image
+                            src={preview}
+                            alt={`상세 이미지 ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            unoptimized={preview.startsWith("data:") || preview.startsWith("http")}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                              type="button"
+                              className="flex size-7 items-center justify-center rounded-full bg-destructive/90 text-white shadow-sm transition-colors hover:bg-destructive"
+                              onClick={() => handleRemoveDescriptionImage(index)}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex w-full flex-1 flex-col gap-3">
+                    <Label className={`text-[15px] font-bold ${!description.trim() && showStep1Errors ? "text-destructive" : "text-foreground"}`}>
+                      공연 요약 설명 <span className="text-destructive">*</span>
+                    </Label>
+                    <div className={`rounded-xl border shadow-sm [&_.tiptap]:h-[360px] [&_.tiptap]:p-6 [&_.tiptap]:text-[15px] [&_.tiptap]:leading-relaxed [&_.tiptap]:overflow-y-auto ${!description.trim() && showStep1Errors ? "border-destructive bg-destructive/5" : ""}`}>
+                      <DescriptionEditor value={description} onChange={setDescription} />
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
-          </div>
+          )}
+
+          {step === 2 && (
+            <div className="mx-auto flex w-full max-w-[800px] animate-in fade-in slide-in-from-bottom-4 flex-col gap-8 duration-500">
+              <SettingsCardBasic
+                venueId={venueId}
+                venues={venues}
+                isLoadingVenues={isLoadingVenues}
+                venueLoadError={venueLoadError}
+                showStartAt={showStartAt}
+                showEndAt={showEndAt}
+                openAt={openAt}
+                closeAt={closeAt}
+                showErrors={showStep2Errors}
+                onChangeVenueId={handleVenueChange}
+                onChangeShowRange={(startAt, endAt) => {
+                  setShowStartAt(startAt)
+                  setShowEndAt(endAt)
+                }}
+                onChangeReservationRange={(startAt, endAt) => {
+                  setOpenAt(startAt)
+                  setCloseAt(endAt)
+                }}
+              />
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 flex flex-col gap-8 duration-500">
+              <SettingsCardTickets
+                venueId={venueId}
+                showStartAt={showStartAt}
+                showEndAt={showEndAt}
+                posterPreview={posterPreview}
+                purchaseLimit={purchaseLimit}
+                grades={grades}
+                onChangePurchaseLimit={setPurchaseLimit}
+                onAddGrade={addGrade}
+                onRemoveGrade={removeGrade}
+                onUpdateGrade={updateGrade}
+                sessionInfo={sessionInfo}
+                onAddSession={addSession}
+                onRemoveSession={removeSession}
+                onUpdateSession={updateSession}
+                showErrors={showStep3Errors}
+              />
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 flex flex-col gap-8 duration-500">
+              <SettingsCardPolicies
+                isEdit={isEdit}
+                stakeholders={stakeholders}
+                refundPolicy={refundPolicy}
+                onAddStakeholder={addStakeholder}
+                onRemoveStakeholder={removeStakeholder}
+                onUpdateStakeholder={updateStakeholder}
+                onAddRefund={addRefund}
+                onRemoveRefund={removeRefund}
+                onUpdateRefund={updateRefund}
+                showErrors={showStep4Errors}
+              />
+            </div>
+          )}
         </div>
-      </div>
       </main>
 
       <Dialog
@@ -446,9 +596,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                   key={`${item.name}-${item.shareText}`}
                   className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm"
                 >
-                  <span className={item.isFixed ? "font-semibold text-foreground" : "text-foreground"}>
-                    {item.name}
-                  </span>
+                  <span className={item.isFixed ? "font-semibold text-foreground" : "text-foreground"}>{item.name}</span>
                   <span className="font-semibold text-foreground">{item.shareText}</span>
                 </div>
               ))}

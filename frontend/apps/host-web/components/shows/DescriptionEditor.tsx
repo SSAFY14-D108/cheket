@@ -25,7 +25,7 @@ export function DescriptionEditor({ value, onChange, id = "description" }: Descr
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
                     placeholder="관람객들에게 보여질 공연의 상세한 설명을 작성해주세요."
-                    className="min-h-[480px] w-full resize-y rounded-md border border-input bg-background px-4 py-3 text-sm leading-7 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                    className="min-h-[160px] w-full resize-y rounded-md border border-input bg-background px-4 py-3 text-sm leading-7 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                 />
             </div>
 

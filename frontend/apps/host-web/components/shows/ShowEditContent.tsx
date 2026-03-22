@@ -49,7 +49,7 @@ export function ShowEditContent({ showId }: ShowEditContentProps) {
 
   if (isLoading) {
     return (
-      <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
+      <main className="mx-auto max-w-6xl px-6 py-10">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">공연 정보를 불러오는 중입니다.</CardTitle>
@@ -64,7 +64,7 @@ export function ShowEditContent({ showId }: ShowEditContentProps) {
 
   if (!showDetail) {
     return (
-      <main className="mx-auto max-w-screen-xl px-4 py-8 md:px-6">
+      <main className="mx-auto max-w-6xl px-6 py-10">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">공연 정보를 불러오지 못했습니다.</CardTitle>

@@ -1,23 +1,25 @@
-"use client"
+﻿"use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Search } from "lucide-react"
+import { Plus, Search, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
 import { searchStakeholder } from "@/lib/stakeholder-api"
-import type { Stakeholder, RefundItem } from "./showFormTypes"
+import type { RefundItem, Stakeholder } from "./showFormTypes"
 import {
   FIXED_PLATFORM_STAKEHOLDER,
   PLATFORM_FEE_BPS,
   PLATFORM_TOTAL_BPS,
 } from "./showFormUtils"
 
-/** 전화번호 자동 포매팅: 01012345678 → 010-1234-5678 */
+const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"]
+
 function formatPhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11)
   if (digits.length <= 3) return digits
@@ -25,7 +27,6 @@ function formatPhoneNumber(value: string): string {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
 }
 
-/** 사업자번호 자동 포매팅: 1234567890 → 123-45-67890 */
 function formatBusinessNo(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 10)
   if (digits.length <= 3) return digits
@@ -47,6 +48,7 @@ interface SettingsCardPoliciesProps {
   onAddRefund: () => void
   onRemoveRefund: (idx: number) => void
   onUpdateRefund: (idx: number, field: keyof RefundItem, val: string) => void
+  showErrors?: boolean
 }
 
 export function SettingsCardPolicies({
@@ -59,15 +61,69 @@ export function SettingsCardPolicies({
   onAddRefund,
   onRemoveRefund,
   onUpdateRefund,
+  showErrors = false,
 }: SettingsCardPoliciesProps) {
   const { toast } = useToast()
   const [searchingIndexes, setSearchingIndexes] = useState<Record<number, boolean>>({})
+
+  const fixedStakeholder = stakeholders.find((stakeholder) => stakeholder.isFixed)
+  const editableStakeholders = stakeholders
+    .map((stakeholder, index) => ({ stakeholder, index }))
+    .filter(({ stakeholder }) => !stakeholder.isFixed)
+  // UI 전용 상태 모델: { id, type, identifier, name, percentage }
+  const stakeholderRows = useMemo(
+    () =>
+      editableStakeholders.map(({ stakeholder, index }) => ({
+        id: `stakeholder-${index}`,
+        sourceIndex: index,
+        type: stakeholder.role === "ORGANIZER" ? "사업자" : "개인",
+        identifier: stakeholder.role === "ORGANIZER" ? stakeholder.businessNo ?? "" : stakeholder.phone ?? "",
+        name: stakeholder.name ?? "",
+        percentage: stakeholder.shareBps ? String(Number(stakeholder.shareBps) / 100) : "",
+        stakeholder,
+      })),
+    [editableStakeholders]
+  )
+  // UI 전용 상태 모델: { id, daysBefore, refundRate }
+  const refundPolicies = useMemo(
+    () =>
+      refundPolicy.map((policy, index) => ({
+        id: `refund-${index}`,
+        sourceIndex: index,
+        daysBefore: policy.daysRemaining,
+        refundRate: policy.refundRate,
+      })),
+    [refundPolicy]
+  )
+
   const totalShareBps = stakeholders.reduce(
     (sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0),
     0
   )
+  const editableShareBps = editableStakeholders.reduce(
+    (sum, { stakeholder }) => sum + (Number(stakeholder.shareBps) || 0),
+    0
+  )
   const remainingShareBps = PLATFORM_TOTAL_BPS - totalShareBps
   const isStakeholderShareValid = totalShareBps === PLATFORM_TOTAL_BPS
+
+  const chartData = useMemo(() => {
+    const base = stakeholders.map((stakeholder, index) => ({
+      name: stakeholder.isFixed ? "플랫폼" : stakeholder.name.trim() || `이해관계자 ${index + 1}`,
+      value: Number(stakeholder.shareBps) || 0,
+      color: stakeholder.isFixed ? "#64748b" : CHART_COLORS[index % CHART_COLORS.length],
+    }))
+
+    if (remainingShareBps > 0) {
+      base.push({
+        name: "미할당",
+        value: remainingShareBps,
+        color: "#e2e8f0",
+      })
+    }
+
+    return base
+  }, [stakeholders, remainingShareBps])
 
   const handleVerify = async (idx: number) => {
     const stakeholder = stakeholders[idx]
@@ -80,14 +136,14 @@ export function SettingsCardPolicies({
         title: "조회값 확인",
         description:
           stakeholder.role === "ORGANIZER"
-            ? "사업자번호를 입력해주세요."
-            : "전화번호를 입력해주세요.",
+            ? "사업자등록번호를 입력해주세요."
+            : "연락처를 입력해주세요.",
         variant: "destructive",
       })
       return
     }
 
-    setSearchingIndexes((previous) => ({ ...previous, [idx]: true }))
+    setSearchingIndexes((prev) => ({ ...prev, [idx]: true }))
 
     try {
       const result = await searchStakeholder(
@@ -104,8 +160,8 @@ export function SettingsCardPolicies({
       )
 
       toast({
-        title: "조회 성공",
-        description: `${result.name}님이 확인되었습니다.`,
+        title: "조회 완료",
+        description: `${result.name} 정보를 확인했습니다.`,
       })
     } catch (error) {
       onUpdateStakeholder(idx, "verified", false)
@@ -120,7 +176,7 @@ export function SettingsCardPolicies({
         variant: "destructive",
       })
     } finally {
-      setSearchingIndexes((previous) => ({ ...previous, [idx]: false }))
+      setSearchingIndexes((prev) => ({ ...prev, [idx]: false }))
     }
   }
 
@@ -129,208 +185,339 @@ export function SettingsCardPolicies({
       <CardHeader className="py-4">
         <CardTitle className="text-lg">정산 및 정책</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5 pb-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">수익 분배 (BPS)</Label>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={onAddStakeholder}
-              disabled={isEdit}
-            >
-              <Plus className="size-3" />
-            </Button>
-          </div>
-          <div className="text-[10px] leading-tight text-muted-foreground">
-            총 정산 비율은 {PLATFORM_TOTAL_BPS.toLocaleString()}bps이며, 플랫폼 수수료{" "}
-            {PLATFORM_FEE_BPS.toLocaleString()}bps는 자동 고정됩니다.
-          </div>
-          {isEdit ? (
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
-              정산 비율과 이해관계자 정보는 공연 등록 후 수정할 수 없습니다.
-            </div>
-          ) : null}
-          <div
-            className={`rounded-md border px-3 py-2 text-[11px] ${
-              isStakeholderShareValid
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-amber-300 bg-amber-50 text-amber-700"
-            }`}
-          >
-            현재 합계 {totalShareBps.toLocaleString()} / {PLATFORM_TOTAL_BPS.toLocaleString()}bps
-            {!isStakeholderShareValid &&
-              `, ${
-                remainingShareBps > 0
-                  ? `${remainingShareBps.toLocaleString()}bps 더 입력`
-                  : `${Math.abs(remainingShareBps).toLocaleString()}bps 초과`
-              }`}
-          </div>
 
-          {stakeholders.map((sh, idx) => (
-            <div key={`sh${idx}`} className="mb-1 flex flex-col gap-1 border-b pb-2 last:border-0">
-              {sh.isFixed && (
-                <div className="text-[10px] font-medium text-muted-foreground">
-                  플랫폼 수수료 {PLATFORM_FEE_BPS.toLocaleString()}bps (자동 고정)
+      <CardContent className="space-y-5 pb-4">
+        <section className="space-y-2">
+          <Label className={`text-sm ${!isStakeholderShareValid && showErrors ? "text-destructive" : ""}`}>
+            수익 분배(BPS) <span className="text-destructive">*</span>
+          </Label>
+
+          <div className="rounded-lg border bg-muted/10 p-4">
+            <div className="grid items-start gap-3 lg:grid-cols-[360px_minmax(0,1fr)]">
+              <div className="h-[270px] rounded-md border bg-background p-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="value"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={72}
+                      outerRadius={114}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`distribution-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number | string, _name, props) => [
+                        `${(Number(value) / 100).toLocaleString()}% (${Number(value).toLocaleString()} bps)`,
+                        props?.payload?.name ?? "구성 비율",
+                      ]}
+                      contentStyle={{
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        padding: "8px",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="flex h-full flex-col justify-center gap-2">
+                <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5">
+                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                    <p className="text-[11px] leading-tight text-muted-foreground">총합</p>
+                    <p className="text-2xl font-semibold leading-none">
+                      {PLATFORM_TOTAL_BPS.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
+                    </p>
+                  </div>
+                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                    <p className="text-[11px] leading-tight text-muted-foreground">플랫폼 수수료</p>
+                    <p className="text-2xl font-semibold leading-none">
+                      {PLATFORM_FEE_BPS.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
+                    </p>
+                  </div>
+                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                    <p className="text-[11px] leading-tight text-muted-foreground">이해관계자 입력 합계</p>
+                    <p className="text-2xl font-semibold leading-none">
+                      {editableShareBps.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
+                    </p>
+                  </div>
+                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                    <p className="text-[11px] leading-tight text-muted-foreground">남은 비율</p>
+                    <p
+                      className={`text-2xl font-semibold leading-none ${
+                        remainingShareBps === 0 ? "text-emerald-600" : "text-amber-600"
+                      }`}
+                    >
+                      {remainingShareBps >= 0
+                        ? `${remainingShareBps.toLocaleString()}`
+                        : `-${Math.abs(remainingShareBps).toLocaleString()}`}{" "}
+                      <span className="text-xs font-medium text-muted-foreground">bps</span>
+                    </p>
+                  </div>
                 </div>
-              )}
 
-              <div className="flex w-full items-center gap-1">
-                <select
-                  className="h-8 shrink-0 rounded-md border border-input bg-background px-2 py-1 text-xs disabled:opacity-70"
-                  value={sh.role}
-                  onChange={(event) => {
-                    const nextRole = event.target.value as Stakeholder["role"]
-                    onUpdateStakeholder(idx, "role", nextRole)
-                    onUpdateStakeholder(idx, "verified", false)
-                    onUpdateStakeholder(idx, "name", "")
-                    onUpdateStakeholder(idx, "phone", "")
-                    onUpdateStakeholder(idx, "businessNo", "")
-                  }}
-                  disabled={sh.isFixed || isEdit}
-                >
-                  <option value="ORGANIZER">사업자</option>
-                  <option value="ARTIST">개인</option>
-                </select>
+                <div className="rounded-md border bg-background px-3 py-1.5 text-[11px] text-muted-foreground">
+                  총 정산 비율은 {(PLATFORM_TOTAL_BPS / 100).toLocaleString()}%이며 플랫폼 수수료{" "}
+                  {(PLATFORM_FEE_BPS / 100).toLocaleString()}%는 자동 고정됩니다.
+                </div>
 
-                {sh.role === "ORGANIZER" ? (
-                  <Input
-                    placeholder="사업자번호 (예: 123-45-67890)"
-                    value={sh.businessNo ?? ""}
-                    onChange={(event) => {
-                      onUpdateStakeholder(idx, "businessNo", formatBusinessNo(event.target.value))
-                      onUpdateStakeholder(idx, "verified", false)
-                      onUpdateStakeholder(idx, "name", "")
-                    }}
-                    className={`h-8 min-w-0 flex-1 text-xs ${sh.isFixed || isEdit ? "bg-muted/50" : ""}`}
-                    readOnly={sh.isFixed || isEdit}
-                  />
-                ) : (
-                  <Input
-                    placeholder="연락처 (예: 010-1234-5678)"
-                    value={sh.phone ?? ""}
-                    onChange={(event) => {
-                      onUpdateStakeholder(idx, "phone", formatPhoneNumber(event.target.value))
-                      onUpdateStakeholder(idx, "verified", false)
-                      onUpdateStakeholder(idx, "name", "")
-                    }}
-                    className={`h-8 min-w-0 flex-1 text-xs ${sh.isFixed || isEdit ? "bg-muted/50" : ""}`}
-                    readOnly={sh.isFixed || isEdit}
-                  />
+                {isEdit && (
+                  <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-600">
+                    정산 비율과 이해관계자 정보는 등록 후 수정할 수 없습니다.
+                  </div>
                 )}
 
-                {!sh.isFixed && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 shrink-0 px-2 text-xs"
-                    onClick={() => void handleVerify(idx)}
-                    disabled={Boolean(searchingIndexes[idx]) || isEdit}
+                {!isStakeholderShareValid && (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+                    현재 합계 {totalShareBps.toLocaleString()} / 10,000 bps ({Math.max(0, remainingShareBps).toLocaleString()} bps 추가 필요)
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">이해관계자 설정</Label>
+            {!isEdit && (
+              <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onAddStakeholder}>
+                <Plus className="mr-1 size-3.5" />
+                추가
+              </Button>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-muted/10 p-3">
+            <div className="hidden lg:grid lg:grid-cols-[150px_520px_190px_40px] items-center gap-x-4 border-b border-border px-3 pb-2 text-[11px] text-muted-foreground">
+              <div>유형</div>
+              <div>입력/조회</div>
+              <div>비율(%)</div>
+              <div className="text-center">삭제</div>
+            </div>
+
+            {fixedStakeholder && (
+              <div className="grid grid-cols-1 gap-2 px-3 py-2 text-xs lg:grid-cols-[150px_520px_190px_40px] lg:items-center lg:gap-x-4">
+                <div>
+                  <span className="rounded bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700">
+                    플랫폼
+                  </span>
+                </div>
+                <div className="text-muted-foreground">
+                  {fixedStakeholder.name || FIXED_PLATFORM_STAKEHOLDER.name}
+                  {fixedStakeholder.businessNo ? ` (${fixedStakeholder.businessNo})` : ""}
+                </div>
+                <div className="font-semibold">
+                  {(Number(fixedStakeholder.shareBps || PLATFORM_FEE_BPS) / 100).toLocaleString()}
+                </div>
+                <div className="text-center text-muted-foreground">-</div>
+              </div>
+            )}
+
+            <div className="divide-y divide-border/70">
+            {stakeholderRows.map((row, displayIndex) => {
+              const sh = row.stakeholder
+              const idx = row.sourceIndex
+              return (
+              <div
+                key={row.id}
+                className="grid grid-cols-1 gap-2 px-3 py-3 lg:grid-cols-[150px_520px_190px_40px] lg:items-center lg:gap-x-4"
+              >
+                <div>
+                  <select
+                    className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+                    value={sh.role}
+                    onChange={(event) => {
+                      const nextRole = event.target.value as Stakeholder["role"]
+                      onUpdateStakeholder(idx, "role", nextRole)
+                      onUpdateStakeholder(idx, "verified", false)
+                      onUpdateStakeholder(idx, "name", "")
+                      onUpdateStakeholder(idx, "phone", "")
+                      onUpdateStakeholder(idx, "businessNo", "")
+                    }}
+                    disabled={isEdit}
                   >
-                    <Search className="mr-1 size-3" />
-                    {searchingIndexes[idx] ? "조회 중..." : "조회"}
-                  </Button>
-                )}
+                    <option value="ORGANIZER">사업자</option>
+                    <option value="ARTIST">개인</option>
+                  </select>
+                </div>
 
-                {!sh.isFixed && (
+                <div className="min-w-0">
+                  <div className="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] items-center gap-2 min-w-0">
+                    {sh.role === "ORGANIZER" ? (
+                      <Input
+                        placeholder="사업자등록번호(- 제외)"
+                        value={row.identifier}
+                        onChange={(event) => {
+                          onUpdateStakeholder(idx, "businessNo", formatBusinessNo(event.target.value))
+                          onUpdateStakeholder(idx, "verified", false)
+                          onUpdateStakeholder(idx, "name", "")
+                        }}
+                        className={`h-8 min-w-0 text-xs ${isEdit ? "bg-muted/50" : ""}`}
+                        readOnly={isEdit}
+                      />
+                    ) : (
+                      <Input
+                        placeholder="연락처(- 제외)"
+                        value={row.identifier}
+                        onChange={(event) => {
+                          onUpdateStakeholder(idx, "phone", formatPhoneNumber(event.target.value))
+                          onUpdateStakeholder(idx, "verified", false)
+                          onUpdateStakeholder(idx, "name", "")
+                        }}
+                        className={`h-8 min-w-0 text-xs ${isEdit ? "bg-muted/50" : ""}`}
+                        readOnly={isEdit}
+                      />
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-[72px] px-0 text-xs"
+                      onClick={() => void handleVerify(idx)}
+                      disabled={Boolean(searchingIndexes[idx]) || isEdit}
+                    >
+                      <Search className="mr-1 size-3.5" />
+                      {searchingIndexes[idx] ? "조회중" : "조회"}
+                    </Button>
+                    <Input
+                      placeholder="조회 시 이름 자동 표시"
+                      value={row.name}
+                      readOnly
+                      className="h-8 min-w-0 border-0 bg-muted/60 px-2 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
+                    />
+                  </div>
+                </div>
+
+                <div className="lg:self-center">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="0"
+                      value={row.percentage}
+                      onChange={(event) => {
+                        const value = event.target.value
+                        if (value === "") {
+                          onUpdateStakeholder(idx, "shareBps", "")
+                          return
+                        }
+
+                        const parsed = parseFloat(value)
+                        if (!Number.isNaN(parsed)) {
+                          onUpdateStakeholder(idx, "shareBps", String(Math.round(parsed * 100)))
+                        }
+                      }}
+                      className={`h-8 w-[78px] text-right text-xs ${isEdit ? "bg-muted/50" : ""}`}
+                      readOnly={isEdit}
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      ({(Number(row.percentage || 0) * 100).toLocaleString()} bps)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end lg:self-center lg:justify-center">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 text-muted-foreground"
+                    className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => onRemoveStakeholder(idx)}
                     disabled={isEdit}
+                    aria-label={`이해관계자 ${displayIndex + 1} 삭제`}
                   >
-                    <Trash2 className="size-3" />
+                    <Trash2 className="size-3.5" />
                   </Button>
-                )}
+                </div>
               </div>
-
-              <div className="mt-0.5 flex items-center gap-1.5">
-                <Input
-                  placeholder="이름/법인명 (조회 시 자동입력)"
-                  value={sh.name}
-                  onChange={(event) => onUpdateStakeholder(idx, "name", event.target.value)}
-                  className="h-8 flex-1 bg-muted/30 text-xs"
-                  readOnly
-                />
-                <span
-                  className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-                    sh.verified
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {sh.verified ? "인증됨" : "미인증"}
-                </span>
-                <Input
-                  type="number"
-                  placeholder="비율(BPS)"
-                  value={sh.shareBps}
-                  onChange={(event) => onUpdateStakeholder(idx, "shareBps", event.target.value)}
-                  className={`h-8 w-[100px] text-xs ${sh.isFixed || isEdit ? "bg-muted/50" : ""}`}
-                  readOnly={sh.isFixed || isEdit}
-                />
-                <span className="shrink-0 whitespace-nowrap text-[9px] text-muted-foreground">
-                  {sh.isFixed
-                    ? `${FIXED_PLATFORM_STAKEHOLDER.name} 고정`
-                    : "예: 70%→7000"}
-                </span>
-              </div>
+            )})}
             </div>
-          ))}
-        </div>
+          </div>
+        </section>
 
         <Separator />
 
-        <div className="flex flex-col gap-2">
+        <section className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-sm">환불 정책</Label>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddRefund}>
-              <Plus className="size-3" />
+            <Label className={`text-sm ${refundPolicy.length === 0 && showErrors ? "text-destructive" : ""}`}>
+              환불 정책 <span className="text-destructive">*</span>
+            </Label>
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onAddRefund}>
+              <Plus className="mr-1 size-3.5" />
+              추가
             </Button>
           </div>
-          {refundPolicy.map((ref, idx) => (
-            <div
-              key={`ref${idx}`}
-              className="flex flex-col gap-1 rounded border bg-muted/20 p-2 text-xs"
-            >
-              <div className="flex justify-between">
-                <span>정책 #{idx + 1}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 text-muted-foreground"
-                  onClick={() => onRemoveRefund(idx)}
-                >
-                  <Trash2 className="size-2.5" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="whitespace-nowrap text-muted-foreground">공연</span>
-                <Input
-                  type="number"
-                  placeholder="예: 7"
-                  value={ref.daysRemaining}
-                  onChange={(event) => onUpdateRefund(idx, "daysRemaining", event.target.value)}
-                  className="h-7 w-20 px-2 text-center text-[11px]"
-                />
-                <span className="whitespace-nowrap text-muted-foreground">일 전, </span>
-                <Input
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="100"
-                  placeholder="예: 70"
-                  value={ref.refundRate}
-                  onChange={(event) => onUpdateRefund(idx, "refundRate", event.target.value)}
-                  className="h-7 w-20 px-2 text-center text-[11px]"
-                />
-                <span className="whitespace-nowrap text-muted-foreground">% 환불</span>
-              </div>
+
+          {refundPolicy.length === 0 && showErrors && (
+            <p className="text-[10px] font-medium text-destructive">
+              환불 정책을 최소 1개 이상 추가해 주세요.
+            </p>
+          )}
+
+          <div className="rounded-lg border bg-muted/10 p-3">
+            <div className="grid grid-cols-[120px_170px_170px_40px] items-center gap-x-3 border-b border-border px-3 pb-2 text-[11px] text-muted-foreground">
+              <div>기준</div>
+              <div>기간</div>
+              <div>환불율</div>
+              <div className="text-center">삭제</div>
             </div>
-          ))}
-        </div>
+
+            <div className="divide-y divide-border/70">
+            {refundPolicies.map((policy) => (
+              <div
+                key={policy.id}
+                className="grid grid-cols-[120px_170px_170px_40px] items-center gap-x-3 px-3 py-2 text-xs"
+              >
+                <div className="text-muted-foreground">공연일</div>
+
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    placeholder="14"
+                    value={policy.daysBefore}
+                    onChange={(event) => onUpdateRefund(policy.sourceIndex, "daysRemaining", event.target.value)}
+                    className="h-7 w-[72px] px-2 text-center text-[11px]"
+                  />
+                  <span className="text-muted-foreground">일</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    placeholder="100"
+                    value={policy.refundRate}
+                    onChange={(event) => onUpdateRefund(policy.sourceIndex, "refundRate", event.target.value)}
+                    className="h-7 w-[72px] px-2 text-center text-[11px]"
+                  />
+                  <span className="text-muted-foreground">%</span>
+                </div>
+
+                <div className="flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onRemoveRefund(policy.sourceIndex)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            </div>
+          </div>
+        </section>
       </CardContent>
     </Card>
   )

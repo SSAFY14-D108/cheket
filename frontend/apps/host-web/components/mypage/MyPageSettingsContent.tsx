@@ -219,7 +219,7 @@ export function MyPageSettingsContent() {
           href="/mypage"
           className="rounded-sm border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          마이페이지로 돌아가기
+                운영 홈으로 돌아가기
         </Link>
       </div>
 

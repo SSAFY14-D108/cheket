@@ -1,37 +1,14 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { MockServiceWorkerProvider } from '@/components/providers/MockServiceWorkerProvider'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
-const geist = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin']
-})
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin']
-})
-
 export const metadata: Metadata = {
   title: 'CHEKET HOST',
   description: 'NFT 티켓 판매 관리자 시스템',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/favicon.png',
     apple: '/apple-icon.png',
   },
 }
@@ -43,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${geist.className} ${geistMono.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <MockServiceWorkerProvider>
           {children}
           <Toaster />

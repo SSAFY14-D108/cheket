@@ -64,13 +64,13 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
     }
 
     return (
-        <main className="mx-auto max-w-5xl px-6 py-10">
+        <main className="mx-auto max-w-6xl px-6 py-10">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Link
                         href="/mypage"
                         className="flex size-9 items-center justify-center rounded-sm bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80"
-                        aria-label="마이페이지로 돌아가기"
+                aria-label="운영 홈으로 돌아가기"
                     >
                             <ArrowLeft className="size-4" />
                     </Link>
