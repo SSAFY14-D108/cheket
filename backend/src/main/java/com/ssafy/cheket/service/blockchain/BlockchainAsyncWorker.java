@@ -583,6 +583,64 @@ public class BlockchainAsyncWorker {
         }
     }
 
+    /**
+     * 리세일 취소 — Escrow.cancelDeal()로 NFT 반환
+     *
+     * [등록과의 차이] 등록: approve(1 TX) + createDeal(1 TX) = 2 TX 취소: cancelDeal(1 TX) =
+     * 1 TX만 → Escrow가 이미 NFT를 갖고 있으니 approve 없이 반환만
+     *
+     * [Escrow.cancelDeal() 컨트랙트 내부 동작] ① deal.status → CANCELLED ②
+     * ticketNFT.transferFrom(Escrow → 판매자) — NFT 반환 ③ walletTicketCount 복원 (판매자 +1)
+     * → 하나라도 실패하면 전부 revert (원자적)
+     */
+    @Async
+    public void processOnChainResaleCancel(Long txId, Long ticketId, Long resaleId, int onChainDealId) {
+        log.info("[리세일 취소 비동기] 시작 — txId={}, dealId={}", txId, onChainDealId);
+
+        try {
+            // ① Transaction 상태 업데이트
+            Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("리세일 취소 중");
+            tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            transactionRepository.save(tx);
+            log.info("[리세일 취소 비동기] Transaction → SUBMITTED");
+
+            // ② Escrow.cancelDeal() — 플랫폼 키로 서명
+            log.info("[리세일 취소 비동기] cancelDeal 호출 — dealId={}", onChainDealId);
+
+            TransactionReceipt receipt = blockchainService.getEscrow().cancelDeal(BigInteger.valueOf(onChainDealId))
+                .send();
+
+            String txHash = receipt.getTransactionHash();
+            log.info("[리세일 취소 비동기] cancelDeal 블록 확정 — txHash={}", txHash);
+
+            // ③ DB 업데이트: Resale → CANCELLED
+            Resale resale = resaleEntityRepository.findById(resaleId).orElseThrow();
+            resale.setStatus(Resale.ResaleListingStatus.CANCELLED);
+            resale.setUpdatedAt(java.time.LocalDateTime.now());
+            resaleEntityRepository.save(resale);
+            log.info("[리세일 취소 비동기] Resale → CANCELLED — resaleId={}", resaleId);
+
+            // ④ DB 업데이트: Ticket → AVAILABLE
+            Ticket ticket = ticketRepository.findById(ticketId).orElseThrow();
+            ticket.setResaleStatus(ResaleStatus.AVAILABLE);
+            ticketRepository.save(ticket);
+            log.info("[리세일 취소 비동기] Ticket → AVAILABLE — ticketId={}", ticketId);
+
+            // ⑤ Transaction → CONFIRMED
+            tx.setTxHash(txHash);
+            tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
+            tx.setDescription("리세일 취소 완료");
+            transactionRepository.save(tx);
+
+            log.info("[리세일 취소 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
+
+        } catch (Exception e) {
+            log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "리세일 취소 실패: " + e.getMessage());
+        }
+    }
+
     // ==================== 공통 유틸 ====================
 
     /**
