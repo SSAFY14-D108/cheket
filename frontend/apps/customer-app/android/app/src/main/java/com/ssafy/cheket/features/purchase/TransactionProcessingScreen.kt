@@ -22,15 +22,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 import kotlinx.coroutines.delay
+import java.text.NumberFormat
+import java.util.Locale
 
 private const val TAG = "TxProcessingScreen"
 
@@ -49,19 +53,6 @@ private val FailedRed = Color(0xFFF87171)
  */
 private enum class TxStatus { PENDING, SUBMITTED, CONFIRMED, FAILED }
 
-/**
- * Mock TX 상태 응답 (실제 API 연동 전까지 사용)
- */
-private data class TxStatusResponse(
-    val txId: Long,
-    val status: String,
-    val type: String,
-    val txHash: String?,
-    val blockNumber: Long?,
-    val createdAt: String,
-    val updatedAt: String,
-)
-
 @Composable
 fun TransactionProcessingScreen(
     txId: Long = 0,
@@ -72,7 +63,8 @@ fun TransactionProcessingScreen(
 ) {
     var currentStatus by remember { mutableStateOf(TxStatus.PENDING) }
     var txHash by remember { mutableStateOf<String?>(null) }
-    var blockNumber by remember { mutableStateOf<Long?>(null) }
+    var txAmount by remember { mutableStateOf<Long?>(null) }
+    var description by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var elapsedSeconds by remember { mutableIntStateOf(0) }
 
@@ -84,31 +76,68 @@ fun TransactionProcessingScreen(
         }
     }
 
-    // Mock polling — 실제 API 연동 시 GET /api/v1/wallets/transactions/{txId}로 교체
+    // 실제 API 폴링 — GET /api/v1/tx/{txId}/status
+    val context = LocalContext.current
+    val ticketService = remember {
+        (context.applicationContext as CheketApplication).appContainer.ticketService
+    }
+
     LaunchedEffect(txId) {
+        if (txId <= 0L) {
+            Log.w(TAG, "Invalid txId=$txId, skipping polling")
+            return@LaunchedEffect
+        }
         Log.d(TAG, "Starting TX polling for txId=$txId, type=$txType")
 
-        // Phase 1: PENDING (1~2초)
-        delay(1500L)
-        currentStatus = TxStatus.SUBMITTED
-        txHash = "0x${(1..64).map { "0123456789abcdef".random() }.joinToString("")}"
-        Log.d(TAG, "TX status: SUBMITTED, txHash=$txHash")
+        while (currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED) {
+            delay(1500L)
+            try {
+                val response = ticketService.getTxStatus(txId)
+                val data = response.data ?: continue
 
-        // Phase 2: SUBMITTED → CONFIRMED (2~3초)
-        delay(2500L)
-        currentStatus = TxStatus.CONFIRMED
-        blockNumber = (12000L..15000L).random()
-        Log.d(TAG, "TX status: CONFIRMED, blockNumber=$blockNumber")
+                val statusStr = (data["status"] as? String) ?: continue
+                val hash = data["txHash"] as? String
+                val amount = (data["amount"] as? Number)?.toLong()
+                val desc = data["description"] as? String
+
+                Log.d(TAG, "TX poll: status=$statusStr, txHash=$hash, amount=$amount, desc=$desc")
+
+                // amount/description은 항상 최신값으로 갱신
+                if (amount != null && amount > 0) txAmount = amount
+                if (!desc.isNullOrBlank()) description = desc
+
+                when (statusStr) {
+                    "PENDING" -> {
+                        currentStatus = TxStatus.PENDING
+                    }
+                    "SUBMITTED" -> {
+                        currentStatus = TxStatus.SUBMITTED
+                        if (!hash.isNullOrBlank()) txHash = hash
+                    }
+                    "CONFIRMED" -> {
+                        currentStatus = TxStatus.CONFIRMED
+                        if (!hash.isNullOrBlank()) txHash = hash
+                    }
+                    "FAILED" -> {
+                        currentStatus = TxStatus.FAILED
+                        errorMessage = if (!desc.isNullOrBlank()) desc
+                        else "블록체인 처리에 실패했습니다"
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "TX poll failed", e)
+                // 네트워크 오류는 무시하고 계속 폴링
+            }
+        }
     }
 
     // Auto-navigate on CONFIRMED
     LaunchedEffect(currentStatus) {
         if (currentStatus == TxStatus.CONFIRMED) {
-            delay(1500L)
+            delay(2000L)
             onComplete()
         } else if (currentStatus == TxStatus.FAILED) {
-            delay(1000L)
-            onFailure(errorMessage ?: "트랜잭션 처리에 실패했습니다")
+            // FAILED는 자동 이동하지 않음 — 사용자가 직접 선택
         }
     }
 
@@ -138,27 +167,32 @@ fun TransactionProcessingScreen(
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 when (currentStatus) {
                     TxStatus.PENDING, TxStatus.SUBMITTED -> ProcessingContent(
                         status = currentStatus,
                         txHash = txHash,
+                        txAmount = txAmount,
+                        description = description,
                         elapsedSeconds = elapsedSeconds,
                         txType = txType,
                     )
                     TxStatus.CONFIRMED -> ConfirmedContent(
                         txHash = txHash,
-                        blockNumber = blockNumber,
+                        txAmount = txAmount,
+                        description = description,
                         txType = txType,
                     )
                     TxStatus.FAILED -> FailedContent(
                         errorMessage = errorMessage ?: "트랜잭션 처리에 실패했습니다",
+                        txHash = txHash,
                         onRetry = {
                             currentStatus = TxStatus.PENDING
                             elapsedSeconds = 0
                             txHash = null
-                            blockNumber = null
+                            txAmount = null
+                            description = null
                             errorMessage = null
                         },
                         onBack = onBack,
@@ -169,10 +203,14 @@ fun TransactionProcessingScreen(
     }
 }
 
+// ─── Processing (PENDING / SUBMITTED) ─────────────────────────────
+
 @Composable
 private fun ProcessingContent(
     status: TxStatus,
     txHash: String?,
+    txAmount: Long?,
+    description: String?,
     elapsedSeconds: Int,
     txType: String,
 ) {
@@ -202,7 +240,7 @@ private fun ProcessingContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Spinning progress ring
+        // Spinning progress ring with elapsed time
         Box(
             modifier = Modifier.size(112.dp),
             contentAlignment = Alignment.Center,
@@ -213,7 +251,6 @@ private fun ProcessingContent(
                 val topLeft = Offset(stroke / 2f, stroke / 2f)
                 val arcSize = Size(radius * 2f, radius * 2f)
 
-                // Track
                 drawArc(
                     color = ProgressTrack,
                     startAngle = 0f,
@@ -223,7 +260,6 @@ private fun ProcessingContent(
                     size = arcSize,
                     style = Stroke(width = stroke, cap = StrokeCap.Round),
                 )
-                // Progress arc
                 drawArc(
                     color = ProgressBlue,
                     startAngle = -90f,
@@ -250,16 +286,17 @@ private fun ProcessingContent(
             }
         }
 
-        // Status text
+        // 메인 상태 텍스트 — description 우선, 없으면 status 기반 매핑
         Text(
-            text = when (status) {
-                TxStatus.PENDING -> "트랜잭션 준비 중..."
+            text = description ?: when (status) {
+                TxStatus.PENDING -> "SSF 승인 처리 중..."
                 TxStatus.SUBMITTED -> "블록체인에 기록 중..."
                 else -> ""
             },
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = V0Fg,
+            textAlign = TextAlign.Center,
         )
 
         Text(
@@ -271,7 +308,7 @@ private fun ProcessingContent(
         )
     }
 
-    // Status steps card
+    // 진행 단계 카드
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -280,100 +317,59 @@ private fun ProcessingContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         StatusStepItem(
-            label = "트랜잭션 생성",
-            description = "서명 및 전송 준비",
+            stepNumber = 1,
+            label = "SSF 승인",
+            description = "토큰 사용 승인 서명",
             isCompleted = status != TxStatus.PENDING,
             isActive = status == TxStatus.PENDING,
         )
         StatusStepItem(
+            stepNumber = 2,
             label = "블록체인 전송",
-            description = if (txHash != null) "TX: ${txHash!!.take(10)}...${txHash!!.takeLast(6)}" else "노드에 전송 대기",
+            description = if (txHash != null) "TX: ${txHash.take(10)}...${txHash.takeLast(6)}"
+            else "스마트 컨트랙트 호출 대기",
             isCompleted = false,
             isActive = status == TxStatus.SUBMITTED,
         )
         StatusStepItem(
+            stepNumber = 3,
             label = "블록 확정",
-            description = "블록에 포함 대기 중",
+            description = "블록에 포함 및 NFT 발행",
             isCompleted = false,
             isActive = false,
         )
     }
 
-    Text(
-        text = "화면을 닫지 마세요. 처리가 완료되면 자동으로 이동합니다.",
-        fontSize = 12.sp,
-        color = V0Muted,
-        textAlign = TextAlign.Center,
-    )
-}
-
-@Composable
-private fun StatusStepItem(
-    label: String,
-    description: String,
-    isCompleted: Boolean,
-    isActive: Boolean,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    // 하단 정보
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // Step indicator
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(
-                    when {
-                        isCompleted -> ConfirmedGreen
-                        isActive -> ProgressBlue
-                        else -> ProgressTrack
-                    }
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (isCompleted) {
-                Icon(
-                    Icons.Filled.CheckCircle,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp),
-                )
-            } else if (isActive) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                )
-            }
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
+        if (txAmount != null && txAmount > 0) {
             Text(
-                text = label,
-                fontSize = 14.sp,
-                fontWeight = if (isActive || isCompleted) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isActive || isCompleted) V0Fg else V0Muted,
-            )
-            Text(
-                text = description,
-                fontSize = 12.sp,
-                color = V0Muted,
+                text = "결제 금액: ${formatAmount(txAmount)} CTK",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = V0Fg,
             )
         }
-
-        if (isCompleted) {
-            Text("완료", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ConfirmedGreen)
-        } else if (isActive) {
-            Text("처리 중", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ProgressBlue)
-        }
+        Text(
+            text = "화면을 닫지 마세요. 처리가 완료되면 자동으로 이동합니다.",
+            fontSize = 12.sp,
+            color = V0Muted,
+            textAlign = TextAlign.Center,
+        )
     }
 }
+
+// ─── Confirmed ────────────────────────────────────────────────────
 
 @Composable
 private fun ConfirmedContent(
     txHash: String?,
-    blockNumber: Long?,
+    txAmount: Long?,
+    description: String?,
     txType: String,
 ) {
     Column(
@@ -397,21 +393,22 @@ private fun ConfirmedContent(
         }
 
         Text(
-            text = "처리 완료!",
+            text = "${txTypeLabel(txType)} 완료!",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = V0Fg,
         )
 
+        // description 있으면 표시 (예: "구매 완료 (2매, 200 SSF)")
         Text(
-            text = "${txTypeLabel(txType)}이(가) 성공적으로 처리되었습니다.",
+            text = description ?: "${txTypeLabel(txType)}이(가) 블록체인에 기록되었습니다.",
             fontSize = 14.sp,
             color = V0Muted,
             textAlign = TextAlign.Center,
         )
     }
 
-    // TX Info card
+    // TX 상세 정보 카드
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -419,45 +416,14 @@ private fun ConfirmedContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        TxInfoRow("상태", "CONFIRMED", ConfirmedGreen)
+
         if (txHash != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("TX Hash", fontSize = 13.sp, color = V0Muted)
-                Text(
-                    text = "${txHash.take(10)}...${txHash.takeLast(6)}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = V0Fg,
-                )
-            }
+            TxInfoRow("TX Hash", "${txHash.take(10)}...${txHash.takeLast(6)}")
         }
-        if (blockNumber != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("Block", fontSize = 13.sp, color = V0Muted)
-                Text(
-                    text = "#$blockNumber",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = V0Fg,
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("상태", fontSize = 13.sp, color = V0Muted)
-            Text(
-                text = "CONFIRMED",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = ConfirmedGreen,
-            )
+
+        if (txAmount != null && txAmount > 0) {
+            TxInfoRow("결제 금액", "${formatAmount(txAmount)} CTK")
         }
     }
 
@@ -469,9 +435,12 @@ private fun ConfirmedContent(
     )
 }
 
+// ─── Failed ───────────────────────────────────────────────────────
+
 @Composable
 private fun FailedContent(
     errorMessage: String,
+    txHash: String?,
     onRetry: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -509,6 +478,20 @@ private fun FailedContent(
         )
     }
 
+    // 실패 시에도 txHash가 있으면 표시
+    if (txHash != null) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .elevatedSurface()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            TxInfoRow("상태", "FAILED", FailedRed)
+            TxInfoRow("TX Hash", "${txHash.take(10)}...${txHash.takeLast(6)}")
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -542,10 +525,109 @@ private fun FailedContent(
     }
 }
 
+// ─── Shared Components ────────────────────────────────────────────
+
+@Composable
+private fun StatusStepItem(
+    stepNumber: Int,
+    label: String,
+    description: String,
+    isCompleted: Boolean,
+    isActive: Boolean,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Step indicator circle
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        isCompleted -> ConfirmedGreen
+                        isActive -> ProgressBlue
+                        else -> ProgressTrack
+                    }
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isCompleted) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            } else if (isActive) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Text(
+                    text = "$stepNumber",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = if (isActive || isCompleted) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isActive || isCompleted) V0Fg else V0Muted,
+            )
+            Text(
+                text = description,
+                fontSize = 12.sp,
+                color = V0Muted,
+            )
+        }
+
+        if (isCompleted) {
+            Text("완료", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ConfirmedGreen)
+        } else if (isActive) {
+            Text("처리 중", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ProgressBlue)
+        }
+    }
+}
+
+@Composable
+private fun TxInfoRow(
+    label: String,
+    value: String,
+    valueColor: Color = V0Fg,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, fontSize = 13.sp, color = V0Muted)
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = valueColor,
+        )
+    }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────
+
 private fun txTypeLabel(type: String): String = when (type) {
     "TICKET_PURCHASE" -> "티켓 구매"
     "RESALE_LIST" -> "리세일 등록"
     "RESALE_PURCHASE" -> "리세일 구매"
     "TRANSFER" -> "티켓 양도"
+    "REFUND" -> "환불"
     else -> "트랜잭션"
 }
+
+private fun formatAmount(amount: Long): String =
+    NumberFormat.getNumberInstance(Locale.KOREA).format(amount)

@@ -12,7 +12,9 @@ import com.ssafy.cheket.core.model.ShowStatus
 import com.ssafy.cheket.core.model.Seat
 import com.ssafy.cheket.core.model.User
 import com.ssafy.cheket.core.navigation.NavParams
+import com.ssafy.cheket.core.network.dto.PurchaseRequest
 import com.ssafy.cheket.core.network.service.ShowService
+import com.ssafy.cheket.core.network.service.TicketService
 import com.ssafy.cheket.core.network.service.WalletService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,11 +38,13 @@ data class PaymentUiState(
     val simulateFailure: Boolean = false,
     val failureReason: String = "",
     val isLoading: Boolean = true,
+    val txId: Long? = null,
 )
 
 class PaymentViewModel(
     private val showId: String,
     private val showService: ShowService,
+    private val ticketService: TicketService,
     private val walletService: WalletService,
 ) : ViewModel() {
 
@@ -127,31 +131,45 @@ class PaymentViewModel(
     }
 
     fun purchase() {
-        Log.d(TAG, "purchase() — starting combined approve + purchase")
+        Log.d(TAG, "purchase() — calling purchase API")
         viewModelScope.launch {
             _uiState.update { it.copy(step = PaymentStep.PROCESSING, isProcessing = true) }
 
-            // Simulate blockchain approval + purchase in one step
-            delay(2000)
+            try {
+                val showIdLong = showId.toLong()
+                val sessionId = NavParams.sessionId
+                val seatAccessToken = NavParams.seatAccessToken
+                    ?: throw IllegalStateException("Seat-Access-Token이 없습니다. 대기열을 통해 진입해주세요.")
+                val seatIds = NavParams.selectedSeats.map { it.id.toLong() }
 
-            val state = _uiState.value
-            if (state.simulateFailure) {
-                val reason = "INSUFFICIENT_BALANCE"
-                Log.w(TAG, "purchase() — simulated failure: $reason")
+                Log.d(TAG, "purchase() — showId=$showIdLong, sessionId=$sessionId, seatIds=$seatIds, token=${seatAccessToken.take(10)}...")
+
+                val response = ticketService.purchaseTicket(
+                    seatAccessToken = seatAccessToken,
+                    showId = showIdLong,
+                    sessionId = sessionId,
+                    request = PurchaseRequest(sessionSeatIds = seatIds),
+                )
+
+                val txId = response.data?.txId
+                Log.d(TAG, "purchase() — API success, txId=$txId")
+
+                _uiState.update {
+                    it.copy(
+                        step = PaymentStep.SUCCESS,
+                        isProcessing = false,
+                        txId = txId,
+                    )
+                }
+            } catch (e: Exception) {
+                val reason = e.message ?: "구매 처리 중 오류가 발생했습니다"
+                Log.e(TAG, "purchase() — API failed", e)
                 NavParams.failureReason = reason
                 _uiState.update {
                     it.copy(
                         step = PaymentStep.FAILURE,
                         isProcessing = false,
                         failureReason = reason,
-                    )
-                }
-            } else {
-                Log.d(TAG, "purchase() — purchase success")
-                _uiState.update {
-                    it.copy(
-                        step = PaymentStep.SUCCESS,
-                        isProcessing = false,
                     )
                 }
             }
@@ -167,6 +185,7 @@ class PaymentViewModel(
                 PaymentViewModel(
                     showId = showId,
                     showService = app.appContainer.showService,
+                    ticketService = app.appContainer.ticketService,
                     walletService = app.appContainer.walletService,
                 )
             }

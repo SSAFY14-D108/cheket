@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
 enum class SortOption(val label: String, val apiValue: String) {
     POPULAR("인기순", "POPULAR"),
     LATEST("최신순", "LATEST"),
-    CLOSING("오픈임박순", "DEADLINE"),
+    CLOSING("마감임박순", "DEADLINE"),
+    OPEN_SOON("오픈임박순", "OPEN_SOON"),
 }
 
 /** 백엔드 Region 값을 지역 필터에 매핑 */
@@ -158,7 +159,10 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
                 size = PAGE_SIZE,
             )
 
-            val mergedShows = if (append) s.shows + result.shows else result.shows
+            val mergedShows = if (append) {
+                val existingIds = s.shows.map { it.id }.toSet()
+                s.shows + result.shows.filter { it.id !in existingIds }
+            } else result.shows
             val hasMore = when {
                 result.totalElements > 0 -> mergedShows.size < result.totalElements
                 else -> result.shows.size >= PAGE_SIZE

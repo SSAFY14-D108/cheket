@@ -17,6 +17,8 @@ object NavParams {
     var transferFailureReason: String = ""
     var selectedTicket: Ticket? = null
     var showInfo: Show? = null
+    var sessionId: Long = 0L
+    var seatAccessToken: String? = null
     var seatAccessExpiresAt: String? = null
 
     fun clearPurchase() {
@@ -24,6 +26,8 @@ object NavParams {
         totalPrice = 0
         failureReason = ""
         showInfo = null
+        sessionId = 0L
+        seatAccessToken = null
         seatAccessExpiresAt = null
     }
 

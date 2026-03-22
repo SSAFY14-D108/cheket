@@ -7,6 +7,7 @@ interface TicketService {
 
     @POST("api/v1/shows/{showId}/sessions/{sessionId}/purchase")
     suspend fun purchaseTicket(
+        @Header("Seat-Access-Token") seatAccessToken: String,
         @Path("showId") showId: Long,
         @Path("sessionId") sessionId: Long,
         @Body request: PurchaseRequest,
@@ -36,4 +37,7 @@ interface TicketService {
 
     @POST("api/v1/tickets/{ticketId}/refund")
     suspend fun refundTicket(@Path("ticketId") ticketId: Long): ApiResponse<Unit>
+
+    @GET("api/v1/tx/{txId}/status")
+    suspend fun getTxStatus(@Path("txId") txId: Long): ApiResponse<Map<String, Any>>
 }

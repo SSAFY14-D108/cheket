@@ -219,7 +219,8 @@ fun WaitingQueueScreen(
                     )
                     Log.d(TAG, "enterSeatSelection() statusCode=${enterResponse.httpStatusCode}")
                     if (enterResponse.httpStatusCode in 200..299 && enterResponse.data != null) {
-                        Log.d(TAG, "seatAccessToken received, expires=${enterResponse.data.seatAccessExpiresAt}")
+                        Log.d(TAG, "seatAccessToken received, token=${enterResponse.data.seatAccessToken}, expires=${enterResponse.data.seatAccessExpiresAt}")
+                        NavParams.seatAccessToken = enterResponse.data.seatAccessToken
                         NavParams.seatAccessExpiresAt = enterResponse.data.seatAccessExpiresAt
                     }
                 } catch (e: Exception) {
