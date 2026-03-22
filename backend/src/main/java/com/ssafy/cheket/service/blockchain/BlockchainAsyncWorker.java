@@ -242,23 +242,59 @@ public class BlockchainAsyncWorker {
             String receiverAddress = receiverWallet.getAddress();
             log.info("[양도 비동기] 받는 사람 지갑 조회 — userId={}, address={}", receiverUserId, receiverAddress);
 
-            // ========== ② Transaction 상태 업데이트 ==========
+            // ========== ② 보내는 사람 NFT approve ==========
+            // 구매자(보내는 사람)가 소유한 NFT를 Marketplace가 대신 옮길 수 있도록 허락
+            // 구매 때 SSF.approve()를 구매자 키로 서명한 것과 동일한 패턴
+            //
+            // [구매 vs 양도 차이]
+            // 구매: SSF.approve(PurchaseRouter, 금액) → ERC-20 돈 허락
+            // → 플랫폼 소유 NFT를 구매자에게 → 플랫폼 approval로 충분
+            // 양도: TicketNFT.setApprovalForAll(Marketplace, true) → ERC-721 NFT 허락
+            // → 구매자 소유 NFT를 받는사람에게 → 구매자 approval 필요
+            Credentials senderCredentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + senderWallet.getKeystoreFilename()));
+
+            RawTransactionManager senderTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
+                senderCredentials, blockchainService.getChainId());
+
+            // setApprovalForAll(Marketplace주소, true) 인코딩
+            Function approveFunction = new Function("setApprovalForAll",
+                Arrays.asList(new Address(blockchainService.getMarketplace().getContractAddress()), new Bool(true)),
+                Collections.emptyList());
+            String encodedApprove = FunctionEncoder.encode(approveFunction);
+
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("NFT 전송 승인 중");
+            transactionRepository.save(tx);
+            log.info("[양도 비동기] NFT approve 전송 중 — sender={}, Marketplace={}", senderAddress,
+                blockchainService.getMarketplace().getContractAddress());
+
+            EthSendTransaction approveTx = senderTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
+                blockchainService.getTicketNFT().getContractAddress(), encodedApprove, BigInteger.ZERO);
+
+            if (approveTx.hasError()) {
+                throw new BlockchainException("NFT approve 실패: " + approveTx.getError().getMessage());
+            }
+
+            // approve TX 블록 확정 대기
+            waitForTransaction(approveTx.getTransactionHash());
+            log.info("[양도 비동기] NFT approve 블록 확정 완료");
+
+            // ========== ③ Transaction 상태 업데이트 ==========
             tx.setDescription("블록체인에 전송 중");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            tx.setTxHash(approveTx.getTransactionHash());
             transactionRepository.save(tx);
             log.info("[양도 비동기] Transaction → SUBMITTED");
 
-            // ========== ③ Marketplace.directTransfer() 호출 ==========
+            // ========== ④ Marketplace.directTransfer() 호출 ==========
             // 플랫폼 키로 서명 (onlyOwner)
+            // 구매자가 approve 했으므로 Marketplace가 transferFrom 가능
             log.info("[양도 비동기] directTransfer 호출 — from={}, to={}, nftId={}", senderAddress, receiverAddress,
                 onChainTicketNftId);
 
             TransactionReceipt receipt = blockchainService.getMarketplace()
-                .directTransfer(senderAddress, receiverAddress, BigInteger.valueOf(onChainTicketNftId)).send(); // 블록
-                                                                                                                // 확정까지
-                                                                                                                // 대기
-                                                                                                                // (~10초)
+                .directTransfer(senderAddress, receiverAddress, BigInteger.valueOf(onChainTicketNftId)).send();
 
             String txHash = receipt.getTransactionHash();
             log.info("[양도 비동기] directTransfer 블록 확정 완료 — txHash={}", txHash);

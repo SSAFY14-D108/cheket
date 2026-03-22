@@ -76,6 +76,7 @@ public class TicketController {
      */
     @PostMapping("/tickets/{ticketId}/transfer")
     @Operation(summary = "티켓 양도", description = "전화번호를 입력하여 티켓을 무료 양도")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<PurchaseTicketResponse>> transferTicket(@AuthenticationPrincipal Long userId,
         @PathVariable Long ticketId, // 양도할 티켓 ID
         @RequestBody TransferTicketRequest request // { "phoneNumber": "010-1234-5678" }
