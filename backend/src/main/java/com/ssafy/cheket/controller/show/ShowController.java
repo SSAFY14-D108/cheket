@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.show.request.SaveSearchKeywordRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.service.show.ShowService;
@@ -76,5 +77,14 @@ public class ShowController {
     public ResponseEntity<ApiResponse<GetUpcomingResponse>> getUpcoming() {
         GetUpcomingResponse response = showService.getUpcoming();
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "오픈 예정 공연 5개 조회 완료", response));
+    }
+
+    @PostMapping("/search")
+    @Operation(summary = "공연 검색 기록 저장")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> saveSearchKeyword(@RequestBody SaveSearchKeywordRequest request,
+        @AuthenticationPrincipal Long userId) {
+        showService.saveSearchKeyword(request, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "검색 키워드가 저장되었습니다.", null));
     }
 }
