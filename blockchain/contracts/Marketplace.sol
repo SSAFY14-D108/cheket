@@ -11,7 +11,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 // TicketNFT에서 양도 시 필요한 함수들
 interface IMarketplaceTicketNFT {
     // 티켓 정보 조회 (eventId, sessionId 가져오기 위해)
-    function getTicket(uint256 tokenId) external view returns (
+    // → TicketNFT의 tickets public mapping 자동 getter 사용
+    function tickets(uint256 tokenId) external view returns (
         uint256 eventId,
         uint256 sessionId,
         string memory section,
@@ -191,7 +192,7 @@ contract Marketplace is Ownable {
         // ========== walletTicketCount 갱신 ==========
         // ERC-721 transferFrom()은 커스텀 매핑(walletTicketCount)을 갱신하지 않음
         // → 수동으로 from -1, to +1 처리해야 maxPerWallet이 정확하게 작동
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.getTicket(ticketId);
+        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(ticketId);
         ticket.updateWalletTicketCount(eventId, sessionId, from, to);
 
         // ========== 이벤트 로그 ==========

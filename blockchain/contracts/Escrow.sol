@@ -18,7 +18,8 @@ interface IEscrowTicketNFT {
     function getPrice(uint256 tokenId) external view returns (uint256);
 
     // 티켓 정보 조회 (eventId, sessionId 가져오기 위해)
-    function getTicket(uint256 tokenId) external view returns (
+    // → TicketNFT의 tickets public mapping 자동 getter 사용
+    function tickets(uint256 tokenId) external view returns (
         uint256 eventId,
         uint256 sessionId,
         string memory section,
@@ -325,7 +326,7 @@ contract Escrow is Ownable {
         uint256 originalPrice = ticket.getPrice(ticketId);
         // TicketNFT.price: MINTED 이후 변경 불가한 on-chain 값
 
-        (uint256 eventId, , , , , , , , ) = ticket.getTicket(ticketId);
+        (uint256 eventId, , , , , , , , ) = ticket.tickets(ticketId);
         // eventId를 가져와서 EventNFT에서 resaleCapBps 조회
 
         (, , , uint256 resaleCapBps, , , ) = IEscrowEventNFT(eventNFTAddress).getEventInfo(eventId);
@@ -345,7 +346,7 @@ contract Escrow is Ownable {
         // NFT가 Escrow에 보관되므로 판매자 카운트를 감소
         // Escrow(address(0) 아님)로 이동하지만, Escrow는 "사용자"가 아니므로
         // from=seller, to=address(0)으로 처리 (seller만 -1, Escrow는 카운트 불필요)
-        (, uint256 sessionId, , , , , , , ) = ticket.getTicket(ticketId);
+        (, uint256 sessionId, , , , , , , ) = ticket.tickets(ticketId);
         ticket.updateWalletTicketCount(eventId, sessionId, seller, address(0));
 
         // ========== Deal 생성 ==========
@@ -446,7 +447,7 @@ contract Escrow is Ownable {
         // ========== ❸ walletTicketCount 갱신 (구매자 +1) ==========
         // createDeal에서 판매자 -1 처리함
         // 여기서는 구매자 +1만 처리 (from=address(0), to=buyer)
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.getTicket(deal.ticketId);
+        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(deal.ticketId);
         ticket.updateWalletTicketCount(eventId, sessionId, address(0), buyer);
 
         emit DealSettled(dealId, buyer, deal.seller, deal.ticketId, deal.ssfAmount);
@@ -487,7 +488,7 @@ contract Escrow is Ownable {
 
         // walletTicketCount 복원 (판매자 +1)
         // createDeal에서 판매자 -1 했으므로 취소 시 +1 복원
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.getTicket(deal.ticketId);
+        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(deal.ticketId);
         ticket.updateWalletTicketCount(eventId, sessionId, address(0), deal.seller);
 
         emit DealCancelled(dealId, deal.ticketId);
@@ -539,7 +540,7 @@ contract Escrow is Ownable {
 
         // walletTicketCount 복원 (판매자 +1)
         // createDeal에서 판매자 -1 했으므로 만료 시 +1 복원
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.getTicket(deal.ticketId);
+        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(deal.ticketId);
         ticket.updateWalletTicketCount(eventId, sessionId, address(0), deal.seller);
 
         emit DealExpiredRefund(dealId, deal.buyer, deal.seller, deal.ticketId);
