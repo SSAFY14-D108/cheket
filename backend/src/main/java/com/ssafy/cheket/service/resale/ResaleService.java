@@ -16,4 +16,7 @@ public interface ResaleService {
 
     // 리세일 취소
     Long cancelResale(Long userId, Long ticketId);
+
+    // 리세일 구매
+    Long purchaseResale(Long userId, Long ticketId);
 }

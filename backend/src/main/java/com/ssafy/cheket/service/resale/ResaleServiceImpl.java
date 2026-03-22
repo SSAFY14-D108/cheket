@@ -144,4 +144,54 @@ public class ResaleServiceImpl implements ResaleService {
 
         return txId;
     }
+
+    // ========== 리세일 구매 ==========
+
+    @Override
+    @Transactional
+    public Long purchaseResale(Long buyerUserId, Long ticketId) {
+        log.info("[리세일 구매] 요청 — buyerUserId={}, ticketId={}", buyerUserId, ticketId);
+
+        // ① ACTIVE Resale 조회
+        Resale resale = resaleEntityRepository.findByTicketIdAndStatus(ticketId, Resale.ResaleListingStatus.ACTIVE)
+            .orElseThrow(() -> new NotFoundException("활성 리세일 등록을 찾을 수 없습니다."));
+
+        if (resale.getOnChainListingId() == null) {
+            throw new ConflictException("온체인 등록이 완료되지 않은 리세일입니다.");
+        }
+
+        // ② 본인 티켓 구매 방지
+        if (resale.getUserId().equals(buyerUserId)) {
+            throw new ConflictException("본인 티켓은 구매할 수 없습니다.");
+        }
+
+        // ③ deadline 초과 확인
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
+
+        // ④ Transaction PENDING 생성
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE)
+            .amount((long) resale.getResalePrice()).description("리세일 구매 대기").txStatus(Transaction.TxStatus.PENDING)
+            .buyerId(buyerUserId).sellerId(resale.getUserId()).build();
+        transactionRepository.save(transaction);
+
+        log.info("[리세일 구매] PENDING 생성 — txId={}, dealId={}, price={}", transaction.getId(),
+            resale.getOnChainListingId(), resale.getResalePrice());
+
+        // ⑤ afterCommit → @Async
+        Long txId = transaction.getId();
+        Long resaleId = resale.getId();
+        int onChainDealId = resale.getOnChainListingId();
+        int resalePrice = resale.getResalePrice();
+        Long sellerUserId = resale.getUserId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainResalePurchase(txId, buyerUserId, sellerUserId, ticketId, resaleId,
+                    onChainDealId, resalePrice);
+            }
+        });
+
+        return txId;
+    }
 }

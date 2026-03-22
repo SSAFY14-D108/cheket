@@ -54,4 +54,18 @@ public class ResaleController {
         return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.ok(200, "리세일 취소 요청이 접수되었습니다.", new TxIdResponse(txId)));
     }
+
+    /**
+     * 리세일 구매 — SSF로 리세일 티켓 구매 SSF: 구매자 → 판매자 직접 전송 (Escrow에 SSF 체류 없음) NFT: Escrow
+     * → 구매자
+     */
+    @PostMapping("/{ticketId}")
+    @Operation(summary = "리세일 구매", description = "거래소에서 티켓을 구매. SSF가 구매자에서 판매자로 직접 전송")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<TxIdResponse>> purchaseResale(@AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId) {
+        Long txId = resaleService.purchaseResale(userId, ticketId);
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "리세일 구매 요청이 접수되었습니다.", new TxIdResponse(txId)));
+    }
 }
