@@ -11,6 +11,8 @@ public interface SeatGradeRepository extends JpaRepository<SeatGrade, Long> {
 
     List<SeatGrade> findByShowId(Long showId);
 
+    java.util.Optional<SeatGrade> findByShowIdAndSectionId(Long showId, Long sectionId);
+
     @Modifying
     @Query("DELETE FROM SeatGrade sg WHERE sg.showId = :showId")
     void deleteAllByShowId(Long showId);
