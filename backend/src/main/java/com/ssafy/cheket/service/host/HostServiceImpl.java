@@ -10,6 +10,7 @@ import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.enums.ShowStatus;
 import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
@@ -55,7 +56,7 @@ public class HostServiceImpl implements HostService {
     // 주최측 회원가입
     @Override
     @Transactional
-    public void hostSignup(HostSignupRequest request) throws Exception {
+    public void hostSignup(HostSignupRequest request) {
         // 1단계: 사업자등록번호 형식 검증
         if (!REGEX.matcher(request.businessNo()).matches()) {
             throw new BadRequestException("사업자 등록번호의 형식이 올바르지 않습니다. 예) 123-45-67890");
@@ -70,25 +71,26 @@ public class HostServiceImpl implements HostService {
         }
 
         // 4단계: 지갑 생성
-        String filename = WalletUtils.generateNewWalletFile(keystorePassword, new File(keystoreDirectory));
-        Credentials credentials = WalletUtils.loadCredentials(keystorePassword,
-            new File(keystoreDirectory + "/" + filename));
-        String address = credentials.getAddress();
+        try {
+            String filename = WalletUtils.generateNewWalletFile(keystorePassword, new File(keystoreDirectory));
+            Credentials credentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + filename));
+            String address = credentials.getAddress();
 
-        Wallet wallet = Wallet.builder().address(address).keystoreFilename(filename).build();
-        walletRepository.save(wallet);
+            Wallet wallet = Wallet.builder().address(address).keystoreFilename(filename).build();
+            walletRepository.save(wallet);
 
-        Host host = Host.builder().walletId(wallet.getId()).companyName(request.companyName())
-            .businessNo(request.businessNo()).email(request.email())
-            .password(passwordEncoder.encode(request.password())).build();
+            Host host = Host.builder().walletId(wallet.getId()).companyName(request.companyName())
+                .businessNo(request.businessNo()).email(request.email())
+                .password(passwordEncoder.encode(request.password())).build();
 
-        hostRepository.save(host);
+            hostRepository.save(host);
 
-        // 5단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
-        // null 전달 → WalletServiceImpl에서 "호스트구나" 판단 → Transaction 기록 안 함
-        // 호스트는 공연 주최자로, 티켓을 사고파는 주체가 아님
-        // 블록체인 전송은 동일하게 수행되고, 이벤트 리스너가 잔액도 업데이트해줌
-        walletService.transferInitialFunds(address, null);
+            // 5단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
+            walletService.transferInitialFunds(address, null);
+        } catch (Exception e) {
+            throw new BlockchainException("지갑 생성 실패: " + e.getMessage());
+        }
     }
 
     // 사업자 등록번호 중복 확인

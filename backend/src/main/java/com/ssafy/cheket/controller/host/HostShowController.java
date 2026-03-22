@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.host;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
@@ -29,11 +30,11 @@ public class HostShowController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "공연 등록")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<Long>> createShow(@AuthenticationPrincipal Long hostId,
+    public ResponseEntity<ApiResponse<CreateShowResponse>> createShow(@AuthenticationPrincipal Long hostId,
         @RequestPart("show") AddShowRequest request, @RequestPart("posterImage") MultipartFile posterImage,
         @RequestPart(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
-        Long showId = hostShowService.createShow(hostId, request, posterImage, descriptionImages);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 등록 완료", showId));
+        CreateShowResponse response = hostShowService.createShow(hostId, request, posterImage, descriptionImages);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 등록 완료", response));
     }
 
     @PatchMapping(value = "/{showId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

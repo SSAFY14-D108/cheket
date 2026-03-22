@@ -104,4 +104,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         where s.showId = :showId
         """)
     int countReservedSeatsByShowId(Long showId);
+
+    /**
+     * 특정 사용자가 특정 공연의 티켓을 몇 장 갖고 있는지 양도 시 받는 사람의 maxPerWallet 초과 여부 확인용
+     */
+    @Query("SELECT COUNT(t) FROM Ticket t " + "JOIN SessionSeat ss ON t.sessionSeatId = ss.id "
+        + "JOIN Session s ON ss.sessionId = s.id " + "WHERE t.userId = :userId AND s.showId = :showId")
+    long countByUserIdAndShowId(@Param("userId") Long userId, @Param("showId") Long showId);
 }

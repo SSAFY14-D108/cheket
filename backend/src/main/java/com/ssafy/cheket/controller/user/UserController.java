@@ -24,7 +24,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "회원가입") // Swagger 문서 자동 생성
-    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody UserSignupRequest request) throws Exception {
+    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody UserSignupRequest request) {
         userService.userSignup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "회원가입 완료", null));
     }

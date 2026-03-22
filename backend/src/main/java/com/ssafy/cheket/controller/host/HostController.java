@@ -30,7 +30,7 @@ public class HostController {
 
     @PostMapping
     @Operation(summary = "주최측 회원가입")
-    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody HostSignupRequest request) throws Exception {
+    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody HostSignupRequest request) {
         hostService.hostSignup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "회원 가입이 완료되었습니다.", null));
     }

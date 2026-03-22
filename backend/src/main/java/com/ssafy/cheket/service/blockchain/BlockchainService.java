@@ -7,16 +7,29 @@ import com.ssafy.cheket.blockchain.contract.PurchaseRouter;
 import com.ssafy.cheket.blockchain.contract.Settlement;
 import com.ssafy.cheket.blockchain.contract.StakeholderNFT;
 import com.ssafy.cheket.blockchain.contract.TicketNFT;
+import com.ssafy.cheket.exception.common.BlockchainException;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Address;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.tx.RawTransactionManager;
 import org.web3j.tx.gas.StaticGasProvider;
 
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 블록체인 서비스 — 7개 컨트랙트 통합 관리
@@ -35,6 +48,7 @@ public class BlockchainService {
     @Value("${blockchain.chain-id}")
     private long chainId;
 
+    @Getter
     @Value("${blockchain.ssf-contract-address}")
     private String ssfContractAddress;
 
@@ -136,10 +150,6 @@ public class BlockchainService {
         return platformAddress;
     }
 
-    public String getSsfContractAddress() {
-        return ssfContractAddress;
-    }
-
     public Web3j getWeb3j() {
         return web3j;
     }
@@ -155,23 +165,23 @@ public class BlockchainService {
     /**
      * SSF 잔액 온체인 조회 — balanceOf(address)
      */
-    public BigInteger getSsfBalance(String walletAddress) throws Exception {
-        org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-            "balanceOf",
-            java.util.Arrays.asList(new org.web3j.abi.datatypes.Address(walletAddress)),
-            java.util.Arrays.asList(new org.web3j.abi.TypeReference<org.web3j.abi.datatypes.generated.Uint256>() {})
-        );
-        String encodedFunction = org.web3j.abi.FunctionEncoder.encode(function);
-        org.web3j.protocol.core.methods.response.EthCall response = web3j.ethCall(
-            org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
-                platformAddress, ssfContractAddress, encodedFunction),
-            org.web3j.protocol.core.DefaultBlockParameterName.LATEST
-        ).send();
-        java.util.List<org.web3j.abi.datatypes.Type> results = org.web3j.abi.FunctionReturnDecoder.decode(
-            response.getValue(), function.getOutputParameters());
-        if (results.isEmpty()) {
-            return BigInteger.ZERO;
+    public BigInteger getSsfBalance(String walletAddress) {
+        try {
+            Function function = new Function("balanceOf", Arrays.asList(new Address(walletAddress)),
+                Arrays.asList(new TypeReference<Uint256>() {
+                }));
+            String encodedFunction = FunctionEncoder.encode(function);
+            EthCall response = web3j
+                .ethCall(org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(platformAddress,
+                    ssfContractAddress, encodedFunction), DefaultBlockParameterName.LATEST)
+                .send();
+            List<Type> results = FunctionReturnDecoder.decode(response.getValue(), function.getOutputParameters());
+            if (results.isEmpty()) {
+                return BigInteger.ZERO;
+            }
+            return (BigInteger) results.get(0).getValue();
+        } catch (Exception e) {
+            throw new BlockchainException("SSF 잔액 조회 실패: " + walletAddress + " — " + e.getMessage());
         }
-        return (BigInteger) results.get(0).getValue();
     }
 }

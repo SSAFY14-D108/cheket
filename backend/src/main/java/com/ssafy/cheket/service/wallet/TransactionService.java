@@ -4,6 +4,7 @@ import com.ssafy.cheket.dto.wallet.response.TransactionResponse;
 import com.ssafy.cheket.entity.transaction.Transaction;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 블록체인 트랜잭션 상태 관리 서비스
@@ -52,4 +53,6 @@ public interface TransactionService {
 
     List<TransactionResponse> getTransactions(Long userId, String type);
 
+    // TX 상태 조회 — 클라이언트 폴링용 (구매/양도/공연등록/환불/리세일 공통)
+    Map<String, Object> getTxStatus(Long txId);
 }
