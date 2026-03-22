@@ -9,6 +9,7 @@ import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.enums.SeatStatus;
+import com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
@@ -292,11 +293,9 @@ public class BlockchainAsyncWorker {
     // ==================== StakeholderNFT 발행 ====================
 
     /**
-     * StakeholderNFT 온체인 발행 — @Async로 별도 스레드에서 실행
-     *
-     * [흐름] ① Stakeholder별 지갑 주소 조회 ② 지갑 주소 유효성 검증 ③ StakeholderNFT.mint(지갑주소, 역할,
-     * shareBps, 0) 호출 ④ TransactionReceipt에서 tokenId 추출 → DB 저장 ⑤ Transaction →
-     * CONFIRMED / FAILED
+     * StakeholderNFT 온체인 발행 — @Async로 별도 스레드에서 실행 [흐름] ① Stakeholder별 지갑 주소 조회 ② 지갑
+     * 주소 유효성 검증 ③ StakeholderNFT.mint(지갑주소, 역할, shareBps, 0) 호출 ④
+     * TransactionReceipt에서 tokenId 추출 → DB 저장 ⑤ Transaction → CONFIRMED / FAILED
      */
     @Async
     public void processOnChainStakeholderMint(Long txId, List<Long> stakeholderIds, String platformWallet) {
@@ -358,7 +357,7 @@ public class BlockchainAsyncWorker {
 
                 if (!events.isEmpty()) {
                     Object event = events.get(0);
-                    BigInteger tokenId = ((com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse) event).tokenId;
+                    BigInteger tokenId = ((StakeholderMintedEventResponse) event).tokenId;
 
                     stakeholder.setStakeholderNftId(tokenId.longValue());
                     stakeholderRepository.save(stakeholder);
@@ -386,16 +385,23 @@ public class BlockchainAsyncWorker {
     /**
      * TX가 블록에 포함될 때까지 대기 (최대 30초) 1초마다 블록체인에 "이 TX 블록에 들어갔나?" 확인
      */
-    private void waitForTransaction(String txHash) throws Exception {
-        int maxAttempts = 30;
-        for (int i = 0; i < maxAttempts; i++) {
-            var receipt = blockchainService.getWeb3j().ethGetTransactionReceipt(txHash).send().getTransactionReceipt();
-            if (receipt.isPresent()) {
-                return;
+    private void waitForTransaction(String txHash) {
+        try {
+            int maxAttempts = 30;
+            for (int i = 0; i < maxAttempts; i++) {
+                var receipt = blockchainService.getWeb3j().ethGetTransactionReceipt(txHash).send()
+                    .getTransactionReceipt();
+                if (receipt.isPresent()) {
+                    return;
+                }
+                Thread.sleep(1000);
             }
-            Thread.sleep(1000);
+            throw new BlockchainException("TX 확정 대기 타임아웃: " + txHash);
+        } catch (BlockchainException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BlockchainException("TX 확정 대기 실패: " + txHash + " — " + e.getMessage());
         }
-        throw new BlockchainException("TX 확정 대기 타임아웃: " + txHash);
     }
 
     /**

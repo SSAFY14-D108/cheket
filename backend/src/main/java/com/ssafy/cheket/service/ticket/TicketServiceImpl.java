@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.ticket;
 
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
+import com.ssafy.cheket.dto.queue.SeatAccessMeta;
 import com.ssafy.cheket.entity.show.RefundPolicy;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
@@ -10,9 +11,12 @@ import com.ssafy.cheket.entity.ticket.Ticket;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.enums.ResaleStatus;
+import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
+import com.ssafy.cheket.exception.common.GoneException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.queue.QueueRepository;
 import com.ssafy.cheket.repository.show.RefundPolicyRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
@@ -48,10 +52,100 @@ public class TicketServiceImpl implements TicketService {
     private final SessionRepository sessionRepository;
     private final RefundPolicyRepository refundPolicyRepository;
     private final ShowRepository showRepository;
+    private final QueueRepository queueRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
+
+    // ========== 티켓 구매 ==========
+
+    /**
+     * 티켓 구매 — 검증 + PENDING 생성 + 즉시 응답 블록체인 처리는 BlockchainAsyncWorker가 별도 스레드에서 담당
+     */
+    @Override
+    @Transactional
+    public Long purchaseTickets(Long userId, Long showId, Long sessionId, String seatAccessToken,
+        List<Long> sessionSeatIds) {
+        log.info("[티켓 구매] 요청 — userId={}, showId={}, sessionId={}, 좌석수={}", userId, showId, sessionId,
+            sessionSeatIds.size());
+
+        // 대기열 검증 (테스트용: "test" 토큰이면 스킵)
+        if (!"test".equals(seatAccessToken)) {
+            validateSeatAccessToken(userId, showId, sessionId, seatAccessToken);
+        }
+
+        // ① 유효성 검증
+        Session session = sessionRepository.findById(sessionId)
+            .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다: " + sessionId));
+
+        if (!session.getShowId().equals(showId)) {
+            throw new NotFoundException("공연 정보와 회차 정보가 일치하지 않습니다.");
+        }
+
+        if (session.getOnChainSessionId() == null) {
+            throw new ConflictException("아직 민팅되지 않은 회차입니다");
+        }
+
+        List<SessionSeat> seats = sessionSeatRepository.findAllById(sessionSeatIds);
+        if (seats.size() != sessionSeatIds.size()) {
+            throw new NotFoundException("존재하지 않는 좌석이 포함되어 있습니다");
+        }
+
+        for (SessionSeat seat : seats) {
+            if (seat.getStatus() != SeatStatus.AVAILABLE) {
+                throw new ConflictException("이미 판매된 좌석입니다: sessionSeatId=" + seat.getId());
+            }
+            if (seat.getOnChainTicketNftId() == null) {
+                throw new NotFoundException("온체인 티켓이 없는 좌석입니다: sessionSeatId=" + seat.getId());
+            }
+        }
+
+        // ② 좌석 → PENDING_TX
+        for (SessionSeat seat : seats) {
+            seat.setStatus(SeatStatus.PENDING_TX);
+        }
+        sessionSeatRepository.saveAll(seats);
+
+        // 구매 시작 후 seatAccessToken 재사용 방지
+        queueRepository.deleteSeatAccessToken(seatAccessToken);
+
+        // ③ Transaction PENDING 생성
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE).amount(0L)
+            .description("티켓 구매 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
+        transactionRepository.save(transaction);
+
+        log.info("[티켓 구매] PENDING 생성 — txId={}", transaction.getId());
+
+        // ④ afterCommit에서 @Async 시작
+        Long txId = transaction.getId();
+        Long onChainSessionId = session.getOnChainSessionId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainPurchase(txId, userId, showId, sessionId, sessionSeatIds,
+                    onChainSessionId);
+            }
+        });
+
+        return transaction.getId();
+    }
+
+    private void validateSeatAccessToken(Long userId, Long showId, Long sessionId, String seatAccessToken) {
+        SeatAccessMeta meta = queueRepository.findSeatAccessTokenMeta(seatAccessToken);
+
+        if (meta == null) {
+            throw new GoneException("좌석 선택 가능 시간이 만료되었습니다.");
+        }
+        if (!meta.getUserId().equals(userId)) {
+            throw new ForbiddenException("seatAccessToken 소유자와 요청 사용자가 일치하지 않습니다.");
+        }
+        if (!meta.getShowId().equals(showId) || !meta.getSessionId().equals(sessionId)) {
+            throw new ConflictException("요청 정보와 seatAccessToken 정보가 일치하지 않습니다.");
+        }
+    }
+
+    // ========== 티켓 환불 ==========
 
     // 티켓 환불
     @Override

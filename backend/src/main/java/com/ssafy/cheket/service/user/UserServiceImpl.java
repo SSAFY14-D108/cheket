@@ -9,6 +9,7 @@ import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.user.UserRepository;
@@ -49,7 +50,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void userSignup(UserSignupRequest request) throws Exception {
+    public void userSignup(UserSignupRequest request) {
         // 1단계: 이메일 중복 체크
         if (userRepository.existsByEmail(request.email())) {
             throw new ConflictException("이미 존재하는 이메일 입니다.");
@@ -61,25 +62,27 @@ public class UserServiceImpl implements UserService {
         }
 
         // 2단계: 지갑 생성
-        String filename = WalletUtils.generateNewWalletFile(keystorePassword, new File(keystoreDirectory));
-        Credentials credentials = WalletUtils.loadCredentials(keystorePassword,
-            new File(keystoreDirectory + "/" + filename));
+        try {
+            String filename = WalletUtils.generateNewWalletFile(keystorePassword, new File(keystoreDirectory));
+            Credentials credentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + filename));
 
-        String address = credentials.getAddress();
+            String address = credentials.getAddress();
 
-        Wallet wallet = Wallet.builder().address(address).keystoreFilename(filename).build();
-        walletRepository.save(wallet);
+            Wallet wallet = Wallet.builder().address(address).keystoreFilename(filename).build();
+            walletRepository.save(wallet);
 
-        User user = User.builder().walletId(wallet.getId()).username(request.username())
-            .phoneNumber(request.phoneNumber()).email(request.email())
-            .password(passwordEncoder.encode(request.password())).notificationEnable(true).build(); // 최종 객체 생성
+            User user = User.builder().walletId(wallet.getId()).username(request.username())
+                .phoneNumber(request.phoneNumber()).email(request.email())
+                .password(passwordEncoder.encode(request.password())).notificationEnable(true).build();
 
-        userRepository.save(user);
+            userRepository.save(user);
 
-        // 3단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
-        // user.getId()를 전달 → Transaction 레코드의 buyerId에 들어감
-        // 유저는 거래 주체이므로 Transaction DB에 기록해야 함
-        walletService.transferInitialFunds(address, user.getId());
+            // 3단계: 플랫폼 지갑 → 신규 유저 지갑으로 초기 SSF 전송 (비동기)
+            walletService.transferInitialFunds(address, user.getId());
+        } catch (Exception e) {
+            throw new BlockchainException("지갑 생성 실패: " + e.getMessage());
+        }
     }
 
     // 이메일 찾기

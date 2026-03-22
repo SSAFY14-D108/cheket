@@ -11,7 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ssafy.cheket.exception.common.NotFoundException;
+
 import java.util.List;
+import java.util.Map;
 
 /**
  * 트랜잭션 상태 관리 구현체
@@ -128,5 +131,16 @@ public class TransactionServiceImpl implements TransactionService {
         // entity를 dto로 변환해서 사용
         return transactions.stream().map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(),
             tx.getDescription(), tx.getSellerId(), tx.getBuyerId(), tx.getCreatedAt())).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTxStatus(Long txId) {
+        Transaction tx = transactionRepository.findById(txId)
+            .orElseThrow(() -> new NotFoundException("트랜잭션을 찾을 수 없습니다: " + txId));
+
+        return Map.of("txId", tx.getId(), "status", tx.getTxStatus().name(), "txHash",
+            tx.getTxHash() != null ? tx.getTxHash() : "", "amount", tx.getAmount(), "description",
+            tx.getDescription() != null ? tx.getDescription() : "");
     }
 }
