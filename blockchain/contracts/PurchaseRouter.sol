@@ -26,9 +26,10 @@ interface IPurchaseTicketNFT {
     // → 컨트랙트가 직접 읽어서 SSF 전송액 결정
     function getPrice(uint256 tokenId) external view returns (uint256);
 
-    // 티켓 정보 조회 (eventId, sessionId 가져오기 위해)
-    // → eventId로 EventNFT에서 예매 규칙 조회
-    function getTicket(uint256 tokenId) external view returns (
+    // 티켓 정보 조회 (eventId 가져오기 위해)
+    // → TicketNFT의 tickets public mapping 자동 getter 사용
+    // → public mapping은 struct를 개별 값으로 반환 (getTicket()은 struct 반환이라 불일치)
+    function tickets(uint256 tokenId) external view returns (
         uint256 eventId,        // 이벤트 ID
         uint256 sessionId,      // 회차 ID
         string memory section,  // 구역
@@ -286,7 +287,9 @@ contract PurchaseRouter is Ownable {
         require(price > 0, "Invalid ticket price");
 
         // ========== ❷ 티켓 정보에서 eventId 조회 ==========
-        (uint256 eventId, , , , , , , , ) = ticketNFT.getTicket(ticketId);
+        // tickets() = TicketNFT의 public mapping 자동 getter
+        // struct를 개별 값으로 반환하므로 ABI 불일치 없음
+        (uint256 eventId, , , , , , , , ) = ticketNFT.tickets(ticketId);
 
         // ========== ❸ 예매 가능 여부 on-chain 검증 ==========
         require(eventNFT.isBookingOpen(eventId), "Booking not open");

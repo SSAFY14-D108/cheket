@@ -69,7 +69,9 @@ interface ISettlementTicketNFT {
     function getPrice(uint256 tokenId) external view returns (uint256);
 
     // 티켓 정보 조회 (eventId 가져오기 위해)
-    function getTicket(uint256 tokenId) external view returns (
+    // → TicketNFT의 tickets public mapping 자동 getter 사용
+    // → getTicket()은 struct 반환이라 ABI 불일치 발생하므로 tickets() 사용
+    function tickets(uint256 tokenId) external view returns (
         uint256 eventId,
         uint256 sessionId,
         string memory section,
@@ -454,7 +456,7 @@ contract Settlement is Ownable {
         // TicketNFT.tickets[tokenId].price를 직접 읽음
         // 백엔드가 가격을 파라미터로 넘기지 않음 → 조작 불가
 
-        (uint256 eventId, , , , , , , , ) = ticketNFT.getTicket(tokenId);
+        (uint256 eventId, , , , , , , , ) = ticketNFT.tickets(tokenId);
         // eventId를 가져와서 환불 정책 조회에 사용
         // 나머지 값은 필요 없으므로 , 로 생략 (Solidity 구문)
 
