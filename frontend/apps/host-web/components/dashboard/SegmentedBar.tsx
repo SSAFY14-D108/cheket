@@ -11,6 +11,8 @@ interface SegmentedBarProps {
 
 export function SegmentedBar({ segments, title }: SegmentedBarProps) {
   const total = segments.reduce((sum, s) => sum + s.value, 0)
+  const getSegmentKey = (segment: Segment, index: number) =>
+    `${segment.label}-${segment.value}-${index}`
 
   if (!segments.length) {
     return (
@@ -28,11 +30,11 @@ export function SegmentedBar({ segments, title }: SegmentedBarProps) {
       <h4 className="text-sm font-medium text-foreground">{title}</h4>
       {/* Bar */}
       <div className="flex h-6 w-full overflow-hidden rounded-sm">
-        {segments.map((segment) => {
+        {segments.map((segment, index) => {
           const percentage = total > 0 ? (segment.value / total) * 100 : 0
           return (
             <div
-              key={segment.label}
+              key={getSegmentKey(segment, index)}
               className="flex items-center justify-center text-xs font-medium transition-all"
               style={{
                 width: `${percentage}%`,
@@ -48,10 +50,10 @@ export function SegmentedBar({ segments, title }: SegmentedBarProps) {
       </div>
       {/* Legend */}
       <div className="flex flex-wrap gap-4">
-        {segments.map((segment) => {
+        {segments.map((segment, index) => {
           const percentage = total > 0 ? (segment.value / total) * 100 : 0
           return (
-            <div key={segment.label} className="flex items-center gap-1.5">
+            <div key={getSegmentKey(segment, index)} className="flex items-center gap-1.5">
               <span
                 className="size-3 rounded-sm"
                 style={{ backgroundColor: segment.color }}

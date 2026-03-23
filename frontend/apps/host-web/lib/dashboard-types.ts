@@ -21,6 +21,7 @@ export interface DashboardBookingRate {
 // GET /api/v1/hosts/shows/{showId}/dashboard/revenue-split
 export interface RevenueSplitItem {
     role: string
+    displayName?: string
     rateBps: number // 예: 5000 = 50%
     amount: number  // ETH
 }
