@@ -344,6 +344,9 @@ public class BlockchainAsyncWorker {
             List<Stakeholder> stakeholders = stakeholderRepository.findAllById(stakeholderIds);
 
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("블록체인 준비 중 — 수익 분배 계약 등록 대기");
+            transactionRepository.save(tx);
+
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setDescription("블록체인 기록 중 — 수익 분배 계약 등록");
             transactionRepository.save(tx);
@@ -600,6 +603,9 @@ public class BlockchainAsyncWorker {
         try {
             // ① Transaction 상태 업데이트
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("블록체인 준비 중 — NFT 반환 대기");
+            transactionRepository.save(tx);
+
             tx.setDescription("블록 생성 대기 중 — NFT 반환 트랜잭션 전파");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             transactionRepository.save(tx);
