@@ -90,7 +90,6 @@ public class ShowController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, message, response));
     }
 
-
     @PostMapping("/search")
     @Operation(summary = "공연 검색 기록 저장")
     @SecurityRequirement(name = "bearerAuth")

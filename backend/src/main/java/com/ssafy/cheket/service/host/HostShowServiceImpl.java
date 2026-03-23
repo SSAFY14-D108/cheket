@@ -1,6 +1,7 @@
 package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.config.s3.S3Uploader;
+import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
@@ -11,6 +12,7 @@ import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.entity.ticket.TicketEffect;
+import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.enums.ShowStatus;
@@ -18,14 +20,13 @@ import com.ssafy.cheket.enums.StakeholderRole;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
-import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.*;
 import com.ssafy.cheket.repository.ticket.TicketEffectRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
-import com.ssafy.cheket.repository.wallet.WalletRepository;
-import com.ssafy.cheket.service.blockchain.BlockchainService;
+import com.ssafy.cheket.repository.wallet.TransactionRepository;
+import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,9 +35,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import org.web3j.crypto.Credentials;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -61,9 +63,9 @@ public class HostShowServiceImpl implements HostShowService {
     private final ShowImageRepository showImageRepository;
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
-    private final WalletRepository walletRepository;
+    private final TransactionRepository transactionRepository;
     private final S3Uploader s3Uploader;
-    private final BlockchainService blockchainService;
+    private final BlockchainAsyncWorker blockchainAsyncWorker;
     // 클래스 상단에 필드 추가
     @Value("${blockchain.platform-private-key}")
     private String platformPrivateKey;
@@ -193,7 +195,7 @@ public class HostShowServiceImpl implements HostShowService {
 
     @Override
     @Transactional
-    public Long createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
+    public CreateShowResponse createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages) {
         // 요청 데이터 검증
         int totalBps = request.stakeholders().stream().mapToInt(AddShowRequest.StakeholderInfo::shareBps).sum();
@@ -285,9 +287,21 @@ public class HostShowServiceImpl implements HostShowService {
         platformStakeholder = stakeholderRepository.save(platformStakeholder);
         savedStakeholders.add(platformStakeholder);
 
-        // StakeholderNFT 온체인 발행
-        // 민팅 실패 시 BlockchainException → @Transactional 롤백
-        mintStakeholderNfts(savedStakeholders, platformWallet);
+        // StakeholderNFT 온체인 발행 — 비동기 처리
+        // Transaction PENDING 생성 후, 커밋 완료 시 afterCommit에서 비동기 민팅 시작
+        List<Long> stakeholderIds = savedStakeholders.stream().map(Stakeholder::getId).toList();
+
+        Transaction tx = Transaction.builder().type(Transaction.TransactionType.TRANSFER).amount(0L)
+            .description("StakeholderNFT 발행 대기 중").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
+        tx = transactionRepository.save(tx);
+        Long txId = tx.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainStakeholderMint(txId, stakeholderIds, platformWallet);
+            }
+        });
 
         // 8. ⑦ show_images 저장 (설명 이미지)
         if (descriptionImages != null && !descriptionImages.isEmpty()) {
@@ -311,7 +325,7 @@ public class HostShowServiceImpl implements HostShowService {
         }
         sessionSeatRepository.saveAll(sessionSeats);
 
-        return showId;
+        return new CreateShowResponse(showId, txId);
     }
 
     @Override
@@ -510,64 +524,4 @@ public class HostShowServiceImpl implements HostShowService {
         return Math.max(min, Math.min(max, v));
     }
 
-    /**
-     * 각 Stakeholder에 대해 StakeholderNFT를 온체인 발행하고, 반환된 tokenId를 DB
-     * stakeholder.stakeholderNftId에 저장.
-     *
-     * [흐름] 1. Stakeholder의 hostId 또는 userId로 walletId 조회 2. walletId로 지갑 주소 조회 3.
-     * StakeholderNFT.mint(지갑주소, 역할, shareBps, 0) 호출 - eventNftId = 0 (EventNFT는 예매
-     * 오픈 D-1에 발행) 4. TransactionReceipt에서 tokenId 추출 → DB 저장
-     *
-     * 민팅 실패 시 BlockchainException → createShow()의 @Transactional이 전체 롤백
-     */
-    private void mintStakeholderNfts(List<Stakeholder> stakeholders, String platformWallet) {
-        for (Stakeholder stakeholder : stakeholders) {
-            try {
-                // 이해관계자 지갑 주소 조회
-                String walletAddress;
-                if (stakeholder.getHostId() != null) {
-                    // ORGANIZER → Host의 walletId로 조회
-                    Host stakeholderHost = hostRepository.findById(stakeholder.getHostId())
-                        .orElseThrow(() -> new NotFoundException("호스트를 찾을 수 없습니다."));
-                    walletAddress = walletRepository.findById(stakeholderHost.getWalletId())
-                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다.")).getAddress();
-                } else if (stakeholder.getUserId() != null) {
-                    // ARTIST → User의 walletId로 조회
-                    User user = userRepository.findByIdAndDeletedAtIsNull(stakeholder.getUserId())
-                        .orElseThrow(() -> new NotFoundException("유저를 찾을 수 없습니다."));
-                    walletAddress = walletRepository.findById(user.getWalletId())
-                        .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다.")).getAddress();
-                } else {
-                    // 플랫폼 Stakeholder (hostId, userId 모두 null)
-                    walletAddress = platformWallet;
-                }
-
-                String role = stakeholder.getRole().name().toLowerCase();
-                java.math.BigInteger shareBps = java.math.BigInteger.valueOf(stakeholder.getShareBps());
-                java.math.BigInteger eventNftId = java.math.BigInteger.ZERO; // EventNFT 미발행 → 0
-
-                // 온체인 StakeholderNFT.mint() 호출
-                TransactionReceipt receipt = blockchainService.getStakeholderNFT()
-                    .mint(walletAddress, role, shareBps, eventNftId).send();
-
-                // TransactionReceipt에서 StakeholderMinted 이벤트의 tokenId 추출
-                List<?> events = blockchainService.getStakeholderNFT().getStakeholderMintedEvents(receipt);
-
-                if (!events.isEmpty()) {
-                    Object event = events.get(0);
-                    java.math.BigInteger tokenId = ((com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse) event).tokenId;
-
-                    stakeholder.setStakeholderNftId(tokenId.longValue());
-                    stakeholderRepository.save(stakeholder);
-
-                    log.info("StakeholderNFT 발행: tokenId={}, wallet={}, role={}, shareBps={}", tokenId, walletAddress,
-                        role, shareBps);
-                }
-
-            } catch (Exception e) {
-                log.error("StakeholderNFT 민팅 실패: stakeholderId={}", stakeholder.getId(), e);
-                throw new BlockchainException("StakeholderNFT 발행 실패: " + e.getMessage());
-            }
-        }
-    }
 }

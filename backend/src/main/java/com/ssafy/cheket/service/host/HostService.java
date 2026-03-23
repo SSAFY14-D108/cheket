@@ -9,7 +9,7 @@ import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
 public interface HostService {
 
     // 주최측 회원가입
-    void hostSignup(HostSignupRequest request) throws Exception;
+    void hostSignup(HostSignupRequest request);
 
     // 사업자 등록번호 중복 확인
     CheckBusinessNoDuplicateResponse checkBusinessNoDuplicate(BusinessNoDuplicateRequest request);
