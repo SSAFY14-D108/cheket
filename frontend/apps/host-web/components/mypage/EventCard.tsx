@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, BarChart3, Ticket } from "lucide-react"
@@ -23,14 +24,17 @@ function formatShowPeriod(event: MyShowSummary) {
 }
 
 export function EventCard({ event }: EventCardProps) {
+  const router = useRouter()
   const posterSrc = event.posterUrl || POSTER_PLACEHOLDER
   const shouldBypassOptimization =
     posterSrc.startsWith("http://") || posterSrc.startsWith("https://")
   const displayMeta = getShowDisplayMeta(event)
 
   return (
-    <Link href={`/shows/${event.showId}`}>
-      <Card className="overflow-hidden transition-shadow hover:shadow-md cursor-pointer gap-0 py-0">
+    <Card 
+      className="overflow-hidden transition-shadow hover:shadow-md cursor-pointer gap-0 py-0"
+      onClick={() => router.push(`/shows/${event.showId}`)}
+    >
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
           <Image
             src={posterSrc}
@@ -76,7 +80,6 @@ export function EventCard({ event }: EventCardProps) {
           </Link>
         </CardContent>
       </Card>
-    </Link>
   )
 }
 

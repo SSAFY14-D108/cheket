@@ -49,7 +49,7 @@ export function ShowDetailContent({ showId }: ShowDetailContentProps) {
 
   if (isLoading) {
     return (
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-6 py-10">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">공연 정보를 불러오는 중입니다.</CardTitle>
@@ -64,7 +64,7 @@ export function ShowDetailContent({ showId }: ShowDetailContentProps) {
 
   if (!showDetail) {
     return (
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-6 py-10">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">공연 정보를 불러오지 못했습니다.</CardTitle>

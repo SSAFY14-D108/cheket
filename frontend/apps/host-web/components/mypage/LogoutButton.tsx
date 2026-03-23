@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { LogOut } from "lucide-react"
 import { logoutHost } from "@/lib/auth-api"
 import { clearAuthTokens } from "@/lib/auth-storage"
 
@@ -29,9 +30,10 @@ export function LogoutButton() {
     <button
       type="button"
       onClick={handleLogout}
-      className="rounded-sm bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-all hover:brightness-90"
+      className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground shadow-sm transition-all hover:bg-secondary/80"
     >
-      로그아웃
+      <LogOut className="size-4" />
+      <span>로그아웃</span>
     </button>
   )
 }

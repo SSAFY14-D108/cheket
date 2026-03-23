@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { Plus, Settings } from "lucide-react"
 import { CompanyInfoCard } from "@/components/mypage/CompanyInfoCard"
 import { EventCard } from "@/components/mypage/EventCard"
 import { LogoutButton } from "@/components/mypage/LogoutButton"
@@ -32,6 +33,7 @@ export function MyPageContent() {
   const [hasSummaryLoadError, setHasSummaryLoadError] = useState(false)
   const [hasShowsLoadError, setHasShowsLoadError] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
+  const [activeTab, setActiveTab] = useState<"info" | "shows">("shows")
 
   useEffect(() => {
     let isCancelled = false
@@ -83,11 +85,11 @@ export function MyPageContent() {
           setHasSummaryLoadError(true)
 
           toast({
-            title: "마이페이지 조회 실패",
+            title: "운영 홈 조회 실패",
             description:
               error instanceof ApiError
                 ? error.message
-                : "마이페이지 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+                : "운영 홈 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
             variant: "destructive",
           })
         }
@@ -172,47 +174,75 @@ export function MyPageContent() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">마이페이지</h1>
-        <div className="flex gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">운영 홈</h1>
+        <div className="flex items-center gap-3">
           <Link
             href="/shows/create"
-            className="rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
           >
-            공연 등록
+            <Plus className="size-4" />
+            <span>공연 등록</span>
+          </Link>
+          <Link
+            href="/mypage/settings"
+            className="flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-semibold shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Settings className="size-4" />
+            <span>계정 설정</span>
           </Link>
           <LogoutButton />
         </div>
       </div>
 
-      <section className="mt-8">
-        <div className="mb-3 flex items-center justify-end">
-          <Link
-            href="/mypage/settings"
-            className="rounded-sm border border-input bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            계정 설정
-          </Link>
-        </div>
-        {company ? (
-          <CompanyInfoCard company={company} />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">회사 정보</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              {isSummaryLoading
-                ? "회사 정보를 불러오는 중입니다."
-                : hasSummaryLoadError
-                  ? "회사 정보를 불러오지 못했습니다."
-                  : "회사 정보가 없습니다."}
-            </CardContent>
-          </Card>
-        )}
-      </section>
+      <div className="mt-6 flex gap-6 border-b border-border px-1">
+        <button
+          onClick={() => setActiveTab("shows")}
+          className={`border-b-2 pb-3 pt-1 text-sm font-bold transition-all ${
+            activeTab === "shows" ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
+          }`}
+        >
+          등록한 공연
+        </button>
+        <button
+          onClick={() => setActiveTab("info")}
+          className={`border-b-2 pb-3 pt-1 text-sm font-bold transition-all ${
+            activeTab === "info" ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
+          }`}
+        >
+          내 정보
+        </button>
+      </div>
 
-      <section className="mt-10">
+      {activeTab === "info" && (
+      <section className="mt-8 flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="w-full max-w-2xl">
+          <div className="flex flex-col">
+            {company ? (
+              <div className="flex flex-col">
+                <CompanyInfoCard company={company} />
+              </div>
+            ) : (
+              <Card className="flex flex-col justify-center text-center">
+                <CardHeader>
+                  <CardTitle className="text-lg">회사 정보</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  {isSummaryLoading
+                    ? "회사 정보를 불러오는 중입니다."
+                    : hasSummaryLoadError
+                      ? "회사 정보를 불러오지 못했습니다."
+                      : "회사 정보가 없습니다."}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </section>
+      )}
+
+      {activeTab === "shows" && (
+      <section className="mt-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">등록한 공연</h2>
@@ -264,6 +294,7 @@ export function MyPageContent() {
           </Card>
         )}
       </section>
+      )}
     </main>
   )
 }

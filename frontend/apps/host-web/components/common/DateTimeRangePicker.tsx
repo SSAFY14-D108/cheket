@@ -28,9 +28,10 @@ interface DateTimeRangePickerProps {
     endAt?: string
     onChange: (startAt: string, endAt: string) => void
     placeholder?: string
+    className?: string
 }
 
-export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "기간 선택" }: DateTimeRangePickerProps) {
+export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "기간 선택", className }: DateTimeRangePickerProps) {
     const [isOpen, setIsOpen] = React.useState(false)
     const [date, setDate] = React.useState<DateRange | undefined>({
         from: startAt ? new Date(startAt) : undefined,
@@ -108,6 +109,7 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
                     variant={"outline"}
                     className={cn(
                         "w-full justify-start text-left font-normal h-9 px-3",
+                        className,
                         !date?.from && "text-muted-foreground"
                     )}
                 >
