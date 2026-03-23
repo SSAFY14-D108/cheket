@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.model.Show
+import com.ssafy.cheket.core.network.dto.SaveSearchKeywordRequest
+import com.ssafy.cheket.core.network.service.ShowService
 import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,7 +60,10 @@ data class ShowsUiState(
     val totalElements: Int = 0,
 )
 
-class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
+class ShowsViewModel(
+    private val showRepository: ShowRepository,
+    private val showService: ShowService,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(ShowsUiState())
     val uiState: StateFlow<ShowsUiState> = _uiState.asStateFlow()
 
@@ -83,9 +88,22 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
 
     // ?? 寃?? ?ㅻ낫??Search 踰꾪듉 / 寃???꾩씠肄??대┃ ??利됱떆 API ?몄텧 ??
     fun onSearchSubmit() {
-        Log.d(TAG, "onSearchSubmit() query=${_uiState.value.searchQuery}")
+        val query = _uiState.value.searchQuery.trim()
+        Log.d(TAG, "onSearchSubmit() query=$query")
         searchJob?.cancel()
         loadShows(page = 0)
+
+        // 검색 키워드 저장 (AI 추천용, fire-and-forget)
+        if (query.isNotBlank()) {
+            viewModelScope.launch {
+                try {
+                    showService.saveSearchKeyword(SaveSearchKeywordRequest(keyword = query))
+                    Log.d(TAG, "saveSearchKeyword() saved: $query")
+                } catch (e: Exception) {
+                    Log.w(TAG, "saveSearchKeyword() failed (non-critical)", e)
+                }
+            }
+        }
     }
 
     // ?? ?뺣젹 蹂寃???利됱떆 API ?몄텧 ??
@@ -189,7 +207,7 @@ class ShowsViewModel(private val showRepository: ShowRepository) : ViewModel() {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                ShowsViewModel(app.appContainer.showRepository)
+                ShowsViewModel(app.appContainer.showRepository, app.appContainer.showService)
             }
         }
     }

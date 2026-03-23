@@ -76,10 +76,10 @@ fun TransactionProcessingScreen(
         }
     }
 
-    // 실제 API 폴링 — GET /api/v1/tx/{txId}/status
+    // 실제 API 폴링 — GET /api/v1/wallets/transactions/{txId}
     val context = LocalContext.current
-    val ticketService = remember {
-        (context.applicationContext as CheketApplication).appContainer.ticketService
+    val walletService = remember {
+        (context.applicationContext as CheketApplication).appContainer.walletService
     }
 
     LaunchedEffect(txId) {
@@ -92,13 +92,13 @@ fun TransactionProcessingScreen(
         while (currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED) {
             delay(1500L)
             try {
-                val response = ticketService.getTxStatus(txId)
+                val response = walletService.getTransactionStatus(txId)
                 val data = response.data ?: continue
 
-                val statusStr = (data["status"] as? String) ?: continue
-                val hash = data["txHash"] as? String
-                val amount = (data["amount"] as? Number)?.toLong()
-                val desc = data["description"] as? String
+                val statusStr = data.resolvedStatus
+                val hash = data.txHash
+                val amount = data.amount
+                val desc = data.description
 
                 Log.d(TAG, "TX poll: status=$statusStr, txHash=$hash, amount=$amount, desc=$desc")
 

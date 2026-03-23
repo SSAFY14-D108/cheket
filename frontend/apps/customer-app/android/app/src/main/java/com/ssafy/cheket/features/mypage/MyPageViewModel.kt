@@ -44,7 +44,7 @@ class MyPageViewModel(
                 val userResponse = userService.getUserInfo()
                 val user = userResponse.data
 
-                val walletResponse = walletService.getBalance()
+                val walletResponse = walletService.refreshBalance()
                 val wallet = walletResponse.data
 
                 val likesResponse = userService.getLikedShows()
