@@ -37,4 +37,15 @@ interface ShowService {
 
     @GET("api/v1/shows/upcoming")
     suspend fun getUpcomingShows(): ApiResponse<UpcomingShowsResponse>
+
+    /** AI 추천 공연 목록 (미구현 — 추후 연동) */
+    @GET("api/v1/shows/recommendations")
+    suspend fun getRecommendations(
+        @Query("size") size: Int = 10,
+        @Query("excludeLiked") excludeLiked: Boolean = false,
+    ): ApiResponse<RecommendationsResponse>
+
+    /** 찜한 공연 목록 */
+    @GET("api/v1/users/likes")
+    suspend fun getLikedShows(): ApiResponse<List<LikedShowDto>>
 }

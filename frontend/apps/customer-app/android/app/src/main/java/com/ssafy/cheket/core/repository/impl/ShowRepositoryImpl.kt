@@ -7,6 +7,9 @@ import com.ssafy.cheket.core.repository.ShowPage
 import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private const val TAG = "ShowRepositoryImpl"
 
@@ -85,8 +88,24 @@ class ShowRepositoryImpl(
 
     override fun getRankingItems(): Flow<List<RankingItem>> = flow {
         Log.d(TAG, "getRankingItems()")
-        // TODO: 랭킹 전용 API 없음 (sort=popular 로 대체 가능)
-        emit(emptyList())
+        try {
+            val response = showService.getShows(sort = "POPULAR", page = 0, size = 5)
+            Log.d(TAG, "getRankingItems() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
+            val items = response.data?.shows?.mapIndexed { index, dto ->
+                RankingItem(
+                    rank = index + 1,
+                    showId = dto.showId.toString(),
+                    name = dto.title,
+                    venue = dto.venue,
+                    poster = dto.posterUrl,
+                    genre = dto.region,
+                )
+            } ?: emptyList()
+            emit(items)
+        } catch (e: Exception) {
+            Log.e(TAG, "getRankingItems() error", e)
+            emit(emptyList())
+        }
     }
 
     override fun getOpenSchedule(): Flow<List<OpenScheduleItem>> = flow {
@@ -95,15 +114,21 @@ class ShowRepositoryImpl(
             val response = showService.getUpcomingShows()
             Log.d(TAG, "getOpenSchedule() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
             val items = response.data?.shows?.map { dto ->
+                val openDateStr = dto.reservation?.startDate ?: ""
+                val openLabel = formatOpenLabel(openDateStr)
                 OpenScheduleItem(
                     id = dto.showId.toString(),
                     showId = dto.showId.toString(),
                     name = dto.title,
-                    openLabel = dto.reservation?.startDate ?: "",
-                    openType = dto.status,
-                    tags = emptyList(),
+                    openLabel = openLabel,
+                    openType = dto.venue,
+                    tags = listOfNotNull(dto.region.takeIf { it.isNotBlank() }),
                     poster = dto.posterUrl,
                     isToday = false,
+                    venue = dto.venue,
+                    region = dto.region,
+                    showDate = dto.show?.showStartDate ?: "",
+                    showEndDate = dto.show?.showEndDate ?: "",
                 )
             } ?: emptyList()
             emit(items)
@@ -182,6 +207,39 @@ class ShowRepositoryImpl(
         } catch (e: Exception) {
             Log.e(TAG, "unlikeShow() error", e)
             throw e
+        }
+    }
+
+    override suspend fun getLikedShows(): List<LikedShow> {
+        Log.d(TAG, "getLikedShows()")
+        return try {
+            val response = showService.getLikedShows()
+            Log.d(TAG, "getLikedShows() statusCode=${response.httpStatusCode}, count=${response.data?.size}")
+            response.data?.map { dto ->
+                LikedShow(
+                    showId = dto.showId.toString(),
+                    title = dto.title,
+                    posterUrl = dto.posterUrl,
+                    venue = dto.venue,
+                    showStartDate = dto.showDate,
+                    status = dto.status,
+                )
+            } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "getLikedShows() error", e)
+            emptyList()
+        }
+    }
+
+    /** "2026-04-01T20:00:00" → "4/1 (화) 20:00 오픈" */
+    private fun formatOpenLabel(dateStr: String): String {
+        if (dateStr.isBlank()) return ""
+        return try {
+            val dt = LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val dayOfWeek = dt.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.KOREAN)
+            "${dt.monthValue}/${dt.dayOfMonth} ($dayOfWeek) %02d:%02d 오픈".format(dt.hour, dt.minute)
+        } catch (_: Exception) {
+            dateStr
         }
     }
 }
