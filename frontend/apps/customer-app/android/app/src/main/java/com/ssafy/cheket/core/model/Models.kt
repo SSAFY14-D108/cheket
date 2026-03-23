@@ -151,11 +151,24 @@ data class OpenScheduleItem(
     val id: String,
     val showId: String,
     val name: String,
-    val openLabel: String,
+    val openLabel: String,    // "3/25 (화) 20:00 오픈"
     val openType: String,
     val tags: List<String>,
     val poster: String,
     val isToday: Boolean,
+    val venue: String = "",
+    val region: String = "",
+    val showDate: String = "",      // 공연 시작일
+    val showEndDate: String = "",   // 공연 종료일
+)
+
+data class LikedShow(
+    val showId: String,
+    val title: String,
+    val posterUrl: String,
+    val venue: String,
+    val showStartDate: String = "",
+    val status: String = "",
 )
 
 data class DiscountItem(

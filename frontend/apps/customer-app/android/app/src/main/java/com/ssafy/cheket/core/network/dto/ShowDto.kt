@@ -112,3 +112,28 @@ data class RefundPolicyResponse(
 data class UpcomingShowsResponse(
     @SerializedName("shows") val shows: List<ShowSummaryDto>,
 )
+
+// ── Recommendations (AI 추천) ──
+
+data class RecommendationsResponse(
+    @SerializedName("shows") val shows: List<RecommendedShowDto>,
+)
+
+data class RecommendedShowDto(
+    @SerializedName("showId") val showId: Long,
+    @SerializedName("title") val title: String,
+    @SerializedName("posterUrl") val posterUrl: String,
+    @SerializedName("venue") val venue: String,
+    @SerializedName("purchaseLimit") val purchaseLimit: Int? = null,
+    @SerializedName("region") val region: String,
+    @SerializedName("show") val show: ShowPeriodDto? = null,
+    @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
+    @SerializedName("status") val status: String,
+    @SerializedName("artist") val artist: String? = null,
+    @SerializedName("ticketingState") val ticketingState: String? = null,
+    @SerializedName("showState") val showState: String? = null,
+    @SerializedName("score") val score: Double? = null,
+    @SerializedName("reason") val reason: String? = null,
+)
+
+// ── Liked Shows — LikedShowDto는 UserDto.kt에 정의 ──

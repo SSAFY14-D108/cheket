@@ -77,4 +77,9 @@ class FakeShowRepository : ShowRepository {
         Log.d(TAG, "getShowById() id=$id")
         return MockDataSource.mockShows.find { it.id == id }
     }
+
+    override suspend fun getLikedShows(): List<LikedShow> {
+        Log.d(TAG, "getLikedShows()")
+        return emptyList()
+    }
 }

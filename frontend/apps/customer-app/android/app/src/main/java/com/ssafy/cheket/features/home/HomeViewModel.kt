@@ -21,7 +21,7 @@ data class HomeUiState(
     val rankingItems: List<RankingItem> = emptyList(),
     val openSchedule: List<OpenScheduleItem> = emptyList(),
     val resaleItems: List<ResaleItem> = emptyList(),
-    val shows: List<Show> = emptyList(),
+    val likedShows: List<LikedShow> = emptyList(),
     val isLoading: Boolean = true,
 )
 
@@ -38,36 +38,39 @@ class HomeViewModel(
     }
 
     private fun load() {
+        // 1. 배너 (AI 추천 — API 미구현이므로 샘플)
         viewModelScope.launch {
-            showRepository.getBannerSlides().collect {
-                Log.d(TAG, "getBannerSlides() received ${it.size} slides")
-                _uiState.value = _uiState.value.copy(bannerSlides = it)
-            }
+            _uiState.value = _uiState.value.copy(bannerSlides = sampleBannerSlides())
         }
-        viewModelScope.launch {
-            showRepository.getCategories().collect {
-                Log.d(TAG, "getCategories() received ${it.size} categories")
-                _uiState.value = _uiState.value.copy(categories = it)
-            }
-        }
+
+        // 2. 랭킹 (인기순 top 5)
         viewModelScope.launch {
             showRepository.getRankingItems().collect {
                 Log.d(TAG, "getRankingItems() received ${it.size} items")
                 _uiState.value = _uiState.value.copy(rankingItems = it)
             }
         }
+
+        // 3. 오픈 예정
         viewModelScope.launch {
             showRepository.getOpenSchedule().collect {
                 Log.d(TAG, "getOpenSchedule() received ${it.size} items")
                 _uiState.value = _uiState.value.copy(openSchedule = it)
             }
         }
+
+        // 4. 찜한 공연
         viewModelScope.launch {
-            showRepository.getShows().collect {
-                Log.d(TAG, "getShows() received ${it.size} shows")
-                _uiState.value = _uiState.value.copy(shows = it)
+            try {
+                val liked = showRepository.getLikedShows()
+                Log.d(TAG, "getLikedShows() received ${liked.size} items")
+                _uiState.value = _uiState.value.copy(likedShows = liked)
+            } catch (e: Exception) {
+                Log.e(TAG, "getLikedShows() error", e)
             }
         }
+
+        // 5. 리세일 할인
         viewModelScope.launch {
             resaleRepository.getResaleItems().collect {
                 Log.d(TAG, "getResaleItems() received ${it.size} items")
@@ -75,6 +78,22 @@ class HomeViewModel(
             }
         }
     }
+
+    /**
+     * AI 추천 공연 배너 — 샘플 데이터
+     * TODO: GET /api/v1/shows/recommendations API 구현 후 교체
+     */
+    private fun sampleBannerSlides(): List<BannerSlide> = listOf(
+        BannerSlide(
+            id = "rec_1",
+            showId = "12",
+            image = "https://picsum.photos/seed/concert1/800/600",
+            title = "AI가 추천하는 공연",
+            subtitle = "나의 취향을 분석한 맞춤 추천",
+            venue = "취향 기반 AI 추천",
+            dates = "좋아할 만한 공연을 모아봤어요",
+        ),
+    )
 
     companion object {
         private const val TAG = "HomeViewModel"

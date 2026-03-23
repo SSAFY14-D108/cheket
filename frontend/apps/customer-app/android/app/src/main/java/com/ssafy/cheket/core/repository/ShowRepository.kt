@@ -28,4 +28,5 @@ interface ShowRepository {
     suspend fun getShowById(id: String): Show?
     suspend fun likeShow(showId: String)
     suspend fun unlikeShow(showId: String)
+    suspend fun getLikedShows(): List<LikedShow>
 }
