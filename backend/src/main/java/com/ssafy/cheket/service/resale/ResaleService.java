@@ -13,4 +13,10 @@ public interface ResaleService {
         int page, int size);
 
     GetResaleTicketsResponse getResaleTickets(Long showId, ResaleTicketSort sort, Long sessionId, int page, int size);
+
+    // 리세일 취소
+    Long cancelResale(Long userId, Long ticketId);
+
+    // 리세일 구매
+    Long purchaseResale(Long userId, Long ticketId);
 }

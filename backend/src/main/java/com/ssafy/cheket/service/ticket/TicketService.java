@@ -22,4 +22,7 @@ public interface TicketService {
     // 티켓 양도
     Long transferTicket(Long senderUserId, Long ticketId, String receiverPhoneNumber);
 
+    // 리세일 등록
+    Long createResale(Long userId, Long ticketId, int resalePrice);
+
 }

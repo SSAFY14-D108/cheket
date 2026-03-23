@@ -16,8 +16,12 @@ import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.GoneException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.entity.show.Seat;
 import com.ssafy.cheket.repository.queue.QueueRepository;
+import com.ssafy.cheket.entity.show.SeatGrade;
 import com.ssafy.cheket.repository.show.RefundPolicyRepository;
+import com.ssafy.cheket.repository.show.SeatGradeRepository;
+import com.ssafy.cheket.repository.show.SeatRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
@@ -52,6 +56,8 @@ public class TicketServiceImpl implements TicketService {
     private final SessionRepository sessionRepository;
     private final RefundPolicyRepository refundPolicyRepository;
     private final ShowRepository showRepository;
+    private final SeatRepository seatRepository;
+    private final SeatGradeRepository seatGradeRepository;
     private final QueueRepository queueRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
@@ -212,14 +218,6 @@ public class TicketServiceImpl implements TicketService {
             .toList();
     }
 
-    /**
-     * 지정 양도 — 1단계 (동기, 즉시 응답)
-     *
-     * 구매와 동일한 비동기 패턴: 검증 → Transaction PENDING → afterCommit에서 @Async 시작 → txId 반환
-     *
-     * [왜 구매보다 간단?] - approve 불필요 (SSF 이동 없음, 무료) - Marketplace.directTransfer() 1
-     * TX로 끝
-     */
     @Override
     @Transactional
     public Long transferTicket(Long senderUserId, Long ticketId, String receiverPhoneNumber) {
@@ -294,6 +292,87 @@ public class TicketServiceImpl implements TicketService {
         });
 
         // txId 즉시 반환 → 앱이 이걸로 폴링 시작
+        return txId;
+    }
+
+    /**
+     * 리세일 등록 — 보유 티켓을 리세일 마켓에 등록 Escrow.createDeal()로 NFT를 Escrow에 예치 원가 이하 가격은
+     * 온체인(Escrow)에서 강제 검증 deadline은 공연 시작 시각으로 서버가 자동 설정
+     */
+    @Override
+    @Transactional
+    public Long createResale(Long userId, Long ticketId, int resalePrice) {
+        log.info("[리세일 등록] 요청 — userId={}, ticketId={}, resalePrice={}", userId, ticketId, resalePrice);
+
+        // ① 티켓 소유자 확인
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
+
+        if (!ticket.getUserId().equals(userId)) {
+            throw new ForbiddenException("본인 소유 티켓만 등록할 수 있습니다.");
+        }
+
+        if (ticket.getResaleStatus() != ResaleStatus.AVAILABLE) {
+            throw new ConflictException("리세일 등록할 수 없는 상태입니다: " + ticket.getResaleStatus());
+        }
+
+        if (ticket.getTicketNftId() == null) {
+            throw new ConflictException("온체인 티켓이 없는 좌석입니다.");
+        }
+
+        // ② 원가 조회 (SessionSeat → Seat → Section → SeatGrade)
+        SessionSeat sessionSeat = sessionSeatRepository.findById(ticket.getSessionSeatId())
+            .orElseThrow(() -> new NotFoundException("좌석 정보를 찾을 수 없습니다."));
+
+        Seat seat = seatRepository.findById(sessionSeat.getSeatId())
+            .orElseThrow(() -> new NotFoundException("좌석을 찾을 수 없습니다."));
+
+        Session session = sessionRepository.findById(sessionSeat.getSessionId())
+            .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다."));
+
+        Show show = showRepository.findById(session.getShowId())
+            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
+
+        // SeatGrade에서 원가 조회 (showId + sectionId)
+        SeatGrade seatGrade = seatGradeRepository.findByShowIdAndSectionId(show.getId(), seat.getSectionId())
+            .orElseThrow(() -> new NotFoundException("좌석 등급을 찾을 수 없습니다."));
+
+        // 원가 이하인지 사전 검증 (온체인에서도 검증하지만 불필요한 TX 방지)
+        if (resalePrice > seatGrade.getPrice()) {
+            throw new ConflictException("원가(" + seatGrade.getPrice() + " SSF)를 초과하는 가격입니다.");
+        }
+
+        // ③ deadline = 공연 시작 시각
+        LocalDateTime deadline = session.getSessionStartTime();
+
+        if (deadline.isBefore(LocalDateTime.now())) {
+            throw new ConflictException("이미 시작된 공연의 티켓은 리세일 등록할 수 없습니다.");
+        }
+
+        // ④ Ticket.resaleStatus → LISTED
+        ticket.setResaleStatus(ResaleStatus.LISTED);
+        ticketRepository.save(ticket);
+
+        // ⑤ Transaction PENDING 생성
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE)
+            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId)
+            .build();
+        transactionRepository.save(transaction);
+
+        log.info("[리세일 등록] PENDING 생성 — txId={}, price={}, deadline={}", transaction.getId(), resalePrice, deadline);
+
+        // ⑥ afterCommit → @Async
+        Long txId = transaction.getId();
+        Long onChainTicketNftId = ticket.getTicketNftId();
+        long deadlineUnix = deadline.atZone(ZoneId.of("Asia/Seoul")).toEpochSecond();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainResaleCreate(txId, userId, ticketId, onChainTicketNftId,
+                    resalePrice, deadlineUnix, seatGrade.getPrice());
+            }
+        });
+
         return txId;
     }
 

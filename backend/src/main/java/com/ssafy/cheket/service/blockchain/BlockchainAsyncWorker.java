@@ -10,6 +10,7 @@ import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse;
+import com.ssafy.cheket.entity.resale.Resale;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
@@ -17,6 +18,7 @@ import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
+import com.ssafy.cheket.repository.resale.ResaleEntityRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +62,7 @@ import java.util.UUID;
 public class BlockchainAsyncWorker {
 
     private final BlockchainService blockchainService;
+    private final ResaleEntityRepository resaleEntityRepository;
     private final StakeholderRepository stakeholderRepository;
     private final HostRepository hostRepository;
     private final SessionSeatRepository sessionSeatRepository;
@@ -122,9 +125,9 @@ public class BlockchainAsyncWorker {
             // Transaction 금액 + 상태 업데이트
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
             tx.setAmount(totalPrice.longValue());
-            tx.setDescription("SSF 승인 중");
+            tx.setDescription("전자서명 처리 중 — SSF 결제 승인");
             transactionRepository.save(tx);
-            log.info("[티켓 구매 비동기] Transaction 업데이트 — amount={}, description=SSF 승인 중", totalPrice);
+            log.info("[티켓 구매 비동기] Transaction 업데이트 — amount={}", totalPrice);
 
             // ========== ③ SSF.approve() — 사용자 키로 대리 서명 ==========
             // "PurchaseRouter가 내 SSF를 totalPrice만큼 써도 돼"
@@ -156,7 +159,7 @@ public class BlockchainAsyncWorker {
             // Transaction 상태 업데이트
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
-            tx.setDescription("SSF 승인 완료, 티켓 구매 진행 중");
+            tx.setDescription("블록 확정 완료 — SSF 결제 승인 완료, 티켓 NFT 소유권 이전 준비 중");
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] Transaction → SUBMITTED");
 
@@ -170,7 +173,7 @@ public class BlockchainAsyncWorker {
                 SessionSeat seat = seats.get(i);
                 BigInteger ticketNftId = BigInteger.valueOf(seat.getOnChainTicketNftId());
 
-                tx.setDescription("티켓 구매 중 (" + (i + 1) + "/" + seats.size() + ")");
+                tx.setDescription("블록 생성 대기 중 — 티켓 NFT 소유권 이전 (" + (i + 1) + "/" + seats.size() + ")");
                 transactionRepository.save(tx);
                 log.info("[티켓 구매 비동기] purchaseTicket 호출 — {}/{}, nftId={}", i + 1, seats.size(), ticketNftId);
 
@@ -195,7 +198,7 @@ public class BlockchainAsyncWorker {
             // ========== ⑤ Transaction → CONFIRMED ==========
             tx.setTxHash(lastTxHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
-            tx.setDescription("구매 완료 (" + seats.size() + "매, " + totalPrice + " SSF)");
+            tx.setDescription("블록체인 확정 — 구매 완료 (" + seats.size() + "매, " + totalPrice + " SSF)");
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] 완료 — txId={}, {}매, {} SSF", txId, seats.size(), totalPrice);
 
@@ -203,7 +206,7 @@ public class BlockchainAsyncWorker {
             // ========== ⑥ 실패: 좌석 복원 + Transaction FAILED ==========
             log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
             restoreSeatsToAvailable(sessionSeatIds, txId);
-            updateTransactionFailed(txId, "구매 실패: " + e.getMessage());
+            updateTransactionFailed(txId, "구매 실패 — 블록체인 처리 중 오류가 발생했습니다. 잔액을 확인해주세요.");
         }
     }
 
@@ -242,23 +245,59 @@ public class BlockchainAsyncWorker {
             String receiverAddress = receiverWallet.getAddress();
             log.info("[양도 비동기] 받는 사람 지갑 조회 — userId={}, address={}", receiverUserId, receiverAddress);
 
-            // ========== ② Transaction 상태 업데이트 ==========
+            // ========== ② 보내는 사람 NFT approve ==========
+            // 구매자(보내는 사람)가 소유한 NFT를 Marketplace가 대신 옮길 수 있도록 허락
+            // 구매 때 SSF.approve()를 구매자 키로 서명한 것과 동일한 패턴
+            //
+            // [구매 vs 양도 차이]
+            // 구매: SSF.approve(PurchaseRouter, 금액) → ERC-20 돈 허락
+            // → 플랫폼 소유 NFT를 구매자에게 → 플랫폼 approval로 충분
+            // 양도: TicketNFT.setApprovalForAll(Marketplace, true) → ERC-721 NFT 허락
+            // → 구매자 소유 NFT를 받는사람에게 → 구매자 approval 필요
+            Credentials senderCredentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + senderWallet.getKeystoreFilename()));
+
+            RawTransactionManager senderTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
+                senderCredentials, blockchainService.getChainId());
+
+            // setApprovalForAll(Marketplace주소, true) 인코딩
+            Function approveFunction = new Function("setApprovalForAll",
+                Arrays.asList(new Address(blockchainService.getMarketplace().getContractAddress()), new Bool(true)),
+                Collections.emptyList());
+            String encodedApprove = FunctionEncoder.encode(approveFunction);
+
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("블록체인에 전송 중");
+            tx.setDescription("전자서명 처리 중 — NFT 전송 승인");
+            transactionRepository.save(tx);
+            log.info("[양도 비동기] NFT approve 전송 중 — sender={}, Marketplace={}", senderAddress,
+                blockchainService.getMarketplace().getContractAddress());
+
+            EthSendTransaction approveTx = senderTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
+                blockchainService.getTicketNFT().getContractAddress(), encodedApprove, BigInteger.ZERO);
+
+            if (approveTx.hasError()) {
+                throw new BlockchainException("NFT approve 실패: " + approveTx.getError().getMessage());
+            }
+
+            // approve TX 블록 확정 대기
+            waitForTransaction(approveTx.getTransactionHash());
+            log.info("[양도 비동기] NFT approve 블록 확정 완료");
+
+            // ========== ③ Transaction 상태 업데이트 ==========
+            tx.setDescription("블록 생성 대기 중 — NFT 소유권 이전 트랜잭션 전파");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            tx.setTxHash(approveTx.getTransactionHash());
             transactionRepository.save(tx);
             log.info("[양도 비동기] Transaction → SUBMITTED");
 
-            // ========== ③ Marketplace.directTransfer() 호출 ==========
+            // ========== ④ Marketplace.directTransfer() 호출 ==========
             // 플랫폼 키로 서명 (onlyOwner)
+            // 구매자가 approve 했으므로 Marketplace가 transferFrom 가능
             log.info("[양도 비동기] directTransfer 호출 — from={}, to={}, nftId={}", senderAddress, receiverAddress,
                 onChainTicketNftId);
 
             TransactionReceipt receipt = blockchainService.getMarketplace()
-                .directTransfer(senderAddress, receiverAddress, BigInteger.valueOf(onChainTicketNftId)).send(); // 블록
-                                                                                                                // 확정까지
-                                                                                                                // 대기
-                                                                                                                // (~10초)
+                .directTransfer(senderAddress, receiverAddress, BigInteger.valueOf(onChainTicketNftId)).send();
 
             String txHash = receipt.getTransactionHash();
             log.info("[양도 비동기] directTransfer 블록 확정 완료 — txHash={}", txHash);
@@ -274,7 +313,7 @@ public class BlockchainAsyncWorker {
             // Transaction → CONFIRMED
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
-            tx.setDescription("양도 완료");
+            tx.setDescription("블록체인 확정 — 양도 완료");
             transactionRepository.save(tx);
             log.info("[양도 비동기] Transaction → CONFIRMED — txId={}", txId);
 
@@ -286,7 +325,7 @@ public class BlockchainAsyncWorker {
             // 양도 실패해도 티켓은 보내는 사람에게 그대로 남음 (온체인 revert)
             // DB도 Ticket.userId 변경 전에 에러 발생 시 원래 상태 유지
             log.error("[양도 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "양도 실패: " + e.getMessage());
+            updateTransactionFailed(txId, "양도 실패 — 블록체인 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
         }
     }
 
@@ -305,8 +344,11 @@ public class BlockchainAsyncWorker {
             List<Stakeholder> stakeholders = stakeholderRepository.findAllById(stakeholderIds);
 
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("블록체인 준비 중 — 수익 분배 계약 등록 대기");
+            transactionRepository.save(tx);
+
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
-            tx.setDescription("StakeholderNFT 발행 중");
+            tx.setDescription("블록체인 기록 중 — 수익 분배 계약 등록");
             transactionRepository.save(tx);
 
             String lastTxHash = null;
@@ -314,7 +356,7 @@ public class BlockchainAsyncWorker {
             for (int i = 0; i < stakeholders.size(); i++) {
                 Stakeholder stakeholder = stakeholders.get(i);
 
-                tx.setDescription("StakeholderNFT 발행 중 (" + (i + 1) + "/" + stakeholders.size() + ")");
+                tx.setDescription("블록 확정 대기 — 이해관계자 등록 (" + (i + 1) + "/" + stakeholders.size() + ")");
                 transactionRepository.save(tx);
 
                 // ========== ① 이해관계자 지갑 주소 조회 ==========
@@ -370,13 +412,13 @@ public class BlockchainAsyncWorker {
             // ========== ⑤ Transaction → CONFIRMED ==========
             tx.setTxHash(lastTxHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
-            tx.setDescription("StakeholderNFT 발행 완료 (" + stakeholders.size() + "건)");
+            tx.setDescription("블록체인 확정 — 수익 분배 계약 등록 완료 (" + stakeholders.size() + "건)");
             transactionRepository.save(tx);
             log.info("[StakeholderNFT 발행 비동기] 완료 — txId={}, {}건", txId, stakeholders.size());
 
         } catch (Exception e) {
             log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "StakeholderNFT 발행 실패: " + e.getMessage());
+            updateTransactionFailed(txId, "공연 등록 실패 — 블록체인에 수익 분배 계약을 등록하지 못했습니다.");
         }
     }
 
@@ -428,6 +470,286 @@ public class BlockchainAsyncWorker {
             log.error("[비동기] 좌석 복원 실패 — txId={}", txId, seatErr);
         }
     }
+
+    // ==================== 리세일 등록 ====================
+
+    /**
+     * 리세일 등록 — Escrow.createDeal()로 NFT 예치
+     *
+     * [양도와의 차이] 양도: NFT를 받는사람에게 직접 전송 (Marketplace.directTransfer) 리세일: NFT를
+     * Escrow에 예치 → 구매자가 나타나면 Escrow가 정산
+     *
+     * [흐름] ① 판매자 키로 TicketNFT.setApprovalForAll(Escrow, true) — NFT 예치 허락 ②
+     * Escrow.createDeal(seller, ticketId, price, deadline) — NFT 예치 + 가격 상한 검증 ③
+     * 이벤트에서 dealId 추출 → DB Resale 레코드 생성
+     */
+    @Async
+    public void processOnChainResaleCreate(Long txId, Long userId, Long ticketId, Long onChainTicketNftId,
+        int resalePrice, long deadlineUnix, int originalPrice) {
+        log.info("[리세일 등록 비동기] 시작 — txId={}, ticketNftId={}, price={}", txId, onChainTicketNftId, resalePrice);
+
+        try {
+            // ① 판매자 지갑 로드
+            User seller = userRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new BlockchainException("판매자를 찾을 수 없습니다."));
+            Wallet sellerWallet = walletRepository.findById(seller.getWalletId())
+                .orElseThrow(() -> new BlockchainException("판매자 지갑을 찾을 수 없습니다."));
+            String sellerAddress = sellerWallet.getAddress();
+            log.info("[리세일 등록 비동기] 판매자 지갑 — userId={}, address={}", userId, sellerAddress);
+
+            // ② TicketNFT.setApprovalForAll(Escrow, true) — 판매자 키로 서명
+            Credentials sellerCredentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + sellerWallet.getKeystoreFilename()));
+
+            RawTransactionManager sellerTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
+                sellerCredentials, blockchainService.getChainId());
+
+            Function approveFunction = new Function("setApprovalForAll",
+                Arrays.asList(new Address(blockchainService.getEscrow().getContractAddress()), new Bool(true)),
+                Collections.emptyList());
+            String encodedApprove = FunctionEncoder.encode(approveFunction);
+
+            Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("전자서명 처리 중 — NFT 예치 승인");
+            transactionRepository.save(tx);
+            log.info("[리세일 등록 비동기] NFT approve 전송 중");
+
+            EthSendTransaction approveTx = sellerTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
+                blockchainService.getTicketNFT().getContractAddress(), encodedApprove, BigInteger.ZERO);
+
+            if (approveTx.hasError()) {
+                throw new BlockchainException("NFT approve 실패: " + approveTx.getError().getMessage());
+            }
+
+            waitForTransaction(approveTx.getTransactionHash());
+            log.info("[리세일 등록 비동기] NFT approve 블록 확정 완료");
+
+            // ③ Escrow.createDeal() — 플랫폼 키로 서명
+            tx.setDescription("블록 생성 대기 중 — 리세일 등록 트랜잭션 전파");
+            tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            tx.setTxHash(approveTx.getTransactionHash());
+            transactionRepository.save(tx);
+            log.info("[리세일 등록 비동기] Transaction → SUBMITTED");
+
+            log.info("[리세일 등록 비동기] createDeal 호출 — seller={}, nftId={}, price={}, deadline={}", sellerAddress,
+                onChainTicketNftId, resalePrice, deadlineUnix);
+
+            TransactionReceipt receipt = blockchainService.getEscrow()
+                .createDeal(sellerAddress, BigInteger.valueOf(onChainTicketNftId), BigInteger.valueOf(resalePrice),
+                    BigInteger.valueOf(deadlineUnix))
+                .send();
+
+            String txHash = receipt.getTransactionHash();
+            log.info("[리세일 등록 비동기] createDeal 블록 확정 — txHash={}", txHash);
+
+            // ④ 이벤트에서 dealId 추출
+            List<?> events = blockchainService.getEscrow().getDealCreatedEvents(receipt);
+            Long onChainDealId = null;
+            if (!events.isEmpty()) {
+                Object event = events.get(0);
+                onChainDealId = ((com.ssafy.cheket.blockchain.contract.Escrow.DealCreatedEventResponse) event).dealId
+                    .longValue();
+                log.info("[리세일 등록 비동기] onChainDealId={}", onChainDealId);
+            }
+
+            // ⑤ Resale 레코드 생성
+            Resale resale = Resale.builder().ticketId(ticketId).userId(userId).originalPrice(originalPrice)
+                .resalePrice(resalePrice).status(Resale.ResaleListingStatus.ACTIVE).txHash(txHash)
+                .onChainListingId(onChainDealId != null ? onChainDealId.intValue() : null).build();
+            resaleEntityRepository.save(resale);
+            log.info("[리세일 등록 비동기] Resale 레코드 생성 — resaleId={}", resale.getId());
+
+            // ⑥ Transaction → CONFIRMED
+            tx.setTxHash(txHash);
+            tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
+            tx.setDescription("블록체인 확정 — 리세일 등록 완료 (가격: " + resalePrice + " SSF)");
+            transactionRepository.save(tx);
+
+            log.info("[리세일 등록 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
+
+        } catch (Exception e) {
+            log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
+
+            // 실패 시 Ticket.resaleStatus → AVAILABLE 복원
+            try {
+                Ticket ticket = ticketRepository.findById(ticketId).orElseThrow();
+                if (ticket.getResaleStatus() == ResaleStatus.LISTED) {
+                    ticket.setResaleStatus(ResaleStatus.AVAILABLE);
+                    ticketRepository.save(ticket);
+                    log.info("[리세일 등록 비동기] Ticket resaleStatus AVAILABLE 복원 — ticketId={}", ticketId);
+                }
+            } catch (Exception restoreErr) {
+                log.error("[리세일 등록 비동기] Ticket 복원 실패 — ticketId={}", ticketId, restoreErr);
+            }
+
+            updateTransactionFailed(txId, "리세일 등록 실패 — 블록체인에 NFT를 예치하지 못했습니다. 다시 시도해주세요.");
+        }
+    }
+
+    /**
+     * 리세일 취소 — Escrow.cancelDeal()로 NFT 반환
+     *
+     * [등록과의 차이] 등록: approve(1 TX) + createDeal(1 TX) = 2 TX 취소: cancelDeal(1 TX) =
+     * 1 TX만 → Escrow가 이미 NFT를 갖고 있으니 approve 없이 반환만
+     *
+     * [Escrow.cancelDeal() 컨트랙트 내부 동작] ① deal.status → CANCELLED ②
+     * ticketNFT.transferFrom(Escrow → 판매자) — NFT 반환 ③ walletTicketCount 복원 (판매자 +1)
+     * → 하나라도 실패하면 전부 revert (원자적)
+     */
+    @Async
+    public void processOnChainResaleCancel(Long txId, Long ticketId, Long resaleId, int onChainDealId) {
+        log.info("[리세일 취소 비동기] 시작 — txId={}, dealId={}", txId, onChainDealId);
+
+        try {
+            // ① Transaction 상태 업데이트
+            Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("블록체인 준비 중 — NFT 반환 대기");
+            transactionRepository.save(tx);
+
+            tx.setDescription("블록 생성 대기 중 — NFT 반환 트랜잭션 전파");
+            tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            transactionRepository.save(tx);
+            log.info("[리세일 취소 비동기] Transaction → SUBMITTED");
+
+            // ② Escrow.cancelDeal() — 플랫폼 키로 서명
+            log.info("[리세일 취소 비동기] cancelDeal 호출 — dealId={}", onChainDealId);
+
+            TransactionReceipt receipt = blockchainService.getEscrow().cancelDeal(BigInteger.valueOf(onChainDealId))
+                .send();
+
+            String txHash = receipt.getTransactionHash();
+            log.info("[리세일 취소 비동기] cancelDeal 블록 확정 — txHash={}", txHash);
+
+            // ③ DB 업데이트: Resale → CANCELLED
+            Resale resale = resaleEntityRepository.findById(resaleId).orElseThrow();
+            resale.setStatus(Resale.ResaleListingStatus.CANCELLED);
+            resale.setUpdatedAt(java.time.LocalDateTime.now());
+            resaleEntityRepository.save(resale);
+            log.info("[리세일 취소 비동기] Resale → CANCELLED — resaleId={}", resaleId);
+
+            // ④ DB 업데이트: Ticket → AVAILABLE
+            Ticket ticket = ticketRepository.findById(ticketId).orElseThrow();
+            ticket.setResaleStatus(ResaleStatus.AVAILABLE);
+            ticketRepository.save(ticket);
+            log.info("[리세일 취소 비동기] Ticket → AVAILABLE — ticketId={}", ticketId);
+
+            // ⑤ Transaction → CONFIRMED
+            tx.setTxHash(txHash);
+            tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
+            tx.setDescription("블록체인 확정 — 리세일 취소 완료, NFT 반환됨");
+            transactionRepository.save(tx);
+
+            log.info("[리세일 취소 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
+
+        } catch (Exception e) {
+            log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "리세일 취소 실패 — 블록체인에서 NFT를 반환하지 못했습니다. 다시 시도해주세요.");
+        }
+    }
+
+    // ==================== 리세일 구매 ====================
+
+    /**
+     * 리세일 구매 — Escrow.buyAndSettle()로 SSF 전송 + NFT 이전
+     *
+     * [1차 구매와의 차이] 1차: SSF → Settlement (자금 잠금, 나중에 정산) 리세일: SSF → 판매자 직접 전송 (정산
+     * 없음, Escrow에 SSF 체류 없음)
+     *
+     * [Escrow.buyAndSettle() 컨트랙트 내부 동작] ① SSF: 구매자 → 판매자 직접 전송 (transferFrom) ②
+     * NFT: Escrow → 구매자 (transferFrom) ③ walletTicketCount 갱신 (구매자 +1) ④
+     * deal.status → SOLD → 하나라도 실패하면 전부 revert (원자적)
+     */
+    @Async
+    public void processOnChainResalePurchase(Long txId, Long buyerUserId, Long sellerUserId, Long ticketId,
+        Long resaleId, int onChainDealId, int resalePrice) {
+        log.info("[리세일 구매 비동기] 시작 — txId={}, dealId={}, price={}", txId, onChainDealId, resalePrice);
+
+        try {
+            // ① 구매자 지갑 로드
+            User buyer = userRepository.findByIdAndDeletedAtIsNull(buyerUserId)
+                .orElseThrow(() -> new BlockchainException("구매자를 찾을 수 없습니다."));
+            Wallet buyerWallet = walletRepository.findById(buyer.getWalletId())
+                .orElseThrow(() -> new BlockchainException("구매자 지갑을 찾을 수 없습니다."));
+            String buyerAddress = buyerWallet.getAddress();
+            log.info("[리세일 구매 비동기] 구매자 지갑 — userId={}, address={}", buyerUserId, buyerAddress);
+
+            // ② SSF.approve(Escrow, price) — 구매자 키로 서명
+            // "Escrow가 내 SSF를 resalePrice만큼 가져가도 돼"
+            Credentials buyerCredentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + buyerWallet.getKeystoreFilename()));
+
+            RawTransactionManager buyerTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
+                buyerCredentials, blockchainService.getChainId());
+
+            Function approveFunction = new Function("approve",
+                Arrays.asList(new Address(blockchainService.getEscrow().getContractAddress()),
+                    new Uint256(BigInteger.valueOf(resalePrice))),
+                Collections.singletonList(new TypeReference<Bool>() {
+                }));
+            String encodedApprove = FunctionEncoder.encode(approveFunction);
+
+            Transaction tx = transactionRepository.findById(txId).orElseThrow();
+            tx.setDescription("전자서명 처리 중 — SSF 결제 승인");
+            transactionRepository.save(tx);
+            log.info("[리세일 구매 비동기] SSF approve 전송 중 — Escrow={}, amount={}",
+                blockchainService.getEscrow().getContractAddress(), resalePrice);
+
+            EthSendTransaction approveTx = buyerTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
+                blockchainService.getSsfContractAddress(), encodedApprove, BigInteger.ZERO);
+
+            if (approveTx.hasError()) {
+                throw new BlockchainException("SSF approve 실패: " + approveTx.getError().getMessage());
+            }
+
+            waitForTransaction(approveTx.getTransactionHash());
+            log.info("[리세일 구매 비동기] SSF approve 블록 확정 완료");
+
+            // ③ Escrow.buyAndSettle() — 플랫폼 키로 서명
+            tx.setDescription("블록 생성 대기 중 — 리세일 구매 트랜잭션 전파");
+            tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            tx.setTxHash(approveTx.getTransactionHash());
+            transactionRepository.save(tx);
+            log.info("[리세일 구매 비동기] Transaction → SUBMITTED");
+
+            log.info("[리세일 구매 비동기] buyAndSettle 호출 — dealId={}, buyer={}", onChainDealId, buyerAddress);
+
+            TransactionReceipt receipt = blockchainService.getEscrow()
+                .buyAndSettle(buyerAddress, BigInteger.valueOf(onChainDealId)).send();
+
+            String txHash = receipt.getTransactionHash();
+            log.info("[리세일 구매 비동기] buyAndSettle 블록 확정 — txHash={}", txHash);
+
+            // ④ DB 업데이트: Resale → SOLD
+            Resale resale = resaleEntityRepository.findById(resaleId).orElseThrow();
+            resale.setStatus(Resale.ResaleListingStatus.SOLD);
+            resale.setBuyerId(buyerUserId);
+            resale.setUpdatedAt(java.time.LocalDateTime.now());
+            resaleEntityRepository.save(resale);
+            log.info("[리세일 구매 비동기] Resale → SOLD — resaleId={}", resaleId);
+
+            // ⑤ DB 업데이트: Ticket 소유자 변경 + resaleStatus
+            Ticket ticket = ticketRepository.findById(ticketId).orElseThrow();
+            ticket.setUserId(buyerUserId);
+            ticket.setResaleStatus(ResaleStatus.AVAILABLE);
+            ticketRepository.save(ticket);
+            log.info("[리세일 구매 비동기] Ticket 소유자 변경 — ticketId={}, seller={} → buyer={}", ticketId, sellerUserId,
+                buyerUserId);
+
+            // ⑥ Transaction → CONFIRMED
+            tx.setTxHash(txHash);
+            tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
+            tx.setDescription("블록체인 확정 — 리세일 구매 완료 (" + resalePrice + " SSF)");
+            transactionRepository.save(tx);
+
+            log.info("[리세일 구매 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
+
+        } catch (Exception e) {
+            log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "리세일 구매 실패 — 블록체인 처리 중 오류가 발생했습니다. 잔액을 확인해주세요.");
+        }
+    }
+
+    // ==================== 공통 유틸 ====================
 
     /**
      * Transaction → FAILED 업데이트 (공통)

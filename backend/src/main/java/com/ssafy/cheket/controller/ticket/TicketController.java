@@ -1,11 +1,12 @@
 package com.ssafy.cheket.controller.ticket;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.resale.request.CreateResaleRequest;
 import com.ssafy.cheket.dto.ticket.request.PurchaseTicketRequest;
 import com.ssafy.cheket.dto.ticket.request.TransferTicketRequest;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
-import com.ssafy.cheket.dto.ticket.response.PurchaseTicketResponse;
+import com.ssafy.cheket.dto.common.TxIdResponse;
 import com.ssafy.cheket.service.ticket.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,21 +25,15 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-    /**
-     * 티켓 구매 — 선택한 좌석에 대해 온체인 구매 처리
-     *
-     * [흐름] ① SSF.approve() — 사용자 Keystore로 대리 서명 ② PurchaseRouter.purchaseTicket()
-     * — 플랫폼 키로 서명 ③ SSF: 구매자 → Settlement (자금 잠금) ④ NFT: 플랫폼 → 구매자 (소유권 이전)
-     */
     @PostMapping("/shows/{showId}/sessions/{sessionId}/purchase")
     @Operation(summary = "티켓 구매", description = "선택한 좌석에 대해 SSF 결제 + NFT 소유권 이전")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<PurchaseTicketResponse>> purchaseTickets(@AuthenticationPrincipal Long userId,
+    public ResponseEntity<ApiResponse<TxIdResponse>> purchaseTickets(@AuthenticationPrincipal Long userId,
         @RequestHeader("Seat-Access-Token") String seatAccessToken, @PathVariable Long showId,
         @PathVariable Long sessionId, @RequestBody PurchaseTicketRequest request) {
         Long txId = ticketService.purchaseTickets(userId, showId, sessionId, seatAccessToken, request.sessionSeatIds());
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(200, "티켓 구매가 완료되었습니다.", new PurchaseTicketResponse(txId)));
+            .body(ApiResponse.ok(200, "티켓 구매가 완료되었습니다.", new TxIdResponse(txId)));
     }
 
     @PostMapping("/tickets/{ticketId}/refund")
@@ -67,22 +62,26 @@ public class TicketController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "티켓 컬렉션 목록 조회에 성공했습니다.", response));
     }
 
-    // TicketController.java에 추가
-
-    /**
-     * 지정 양도 — 전화번호로 1:1 무료 양도
-     *
-     * 티켓 구매와 동일한 비동기 패턴: 즉시 txId 반환 → 백그라운드에서 온체인 처리 → 앱이 폴링
-     */
     @PostMapping("/tickets/{ticketId}/transfer")
     @Operation(summary = "티켓 양도", description = "전화번호를 입력하여 티켓을 무료 양도")
-    public ResponseEntity<ApiResponse<PurchaseTicketResponse>> transferTicket(@AuthenticationPrincipal Long userId,
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<TxIdResponse>> transferTicket(@AuthenticationPrincipal Long userId,
         @PathVariable Long ticketId, // 양도할 티켓 ID
         @RequestBody TransferTicketRequest request // { "phoneNumber": "010-1234-5678" }
     ) {
         Long txId = ticketService.transferTicket(userId, ticketId, request.phoneNumber());
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(200, "양도 요청이 접수되었습니다.", new PurchaseTicketResponse(txId)));
+            .body(ApiResponse.ok(200, "양도 요청이 접수되었습니다.", new TxIdResponse(txId)));
+    }
+
+    @PostMapping("/tickets/{ticketId}/resales")
+    @Operation(summary = "리세일 등록", description = "보유 티켓을 리세일 마켓에 등록 (원가 이하 온체인 강제)")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<TxIdResponse>> createResale(@AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId, @RequestBody CreateResaleRequest request) {
+        Long txId = ticketService.createResale(userId, ticketId, request.resalePrice());
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.ok(201, "리세일 등록 요청이 접수되었습니다.", new TxIdResponse(txId)));
     }
 
 }
