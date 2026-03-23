@@ -212,10 +212,14 @@ export function SettingsCardPolicies({
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number | string, _name, props) => [
-                        `${(Number(value) / 100).toLocaleString()}% (${Number(value).toLocaleString()} bps)`,
-                        props?.payload?.name ?? "구성 비율",
-                      ]}
+                      formatter={(value, _name, props) => {
+                        const numericValue = Number(value ?? 0)
+
+                        return [
+                          `${(numericValue / 100).toLocaleString()}% (${numericValue.toLocaleString()} bps)`,
+                          props?.payload?.name ?? "구성 비율",
+                        ]
+                      }}
                       contentStyle={{
                         borderRadius: "8px",
                         fontSize: "12px",

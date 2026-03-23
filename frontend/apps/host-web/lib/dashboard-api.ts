@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "@/lib/api"
 import { fetchMyWalletBalance } from "@/lib/mypage-api"
+import { fetchShowDetail, type HostShowDetail } from "@/lib/show-manage-api"
 import type {
   DashboardBookingRate,
   DashboardData,
@@ -8,6 +9,9 @@ import type {
   DashboardTotalSales,
   WalletBalance,
 } from "@/lib/dashboard-types"
+
+const PLATFORM_FEE_BPS = 800
+const PLATFORM_NAME = "CHEKET"
 
 interface ApiResponse<T> {
   httpStatusCode: number
@@ -27,7 +31,9 @@ function toSafeString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback
 }
 
-function normalizeReservations(data: Partial<DashboardReservations> | null | undefined): DashboardReservations {
+function normalizeReservations(
+  data: Partial<DashboardReservations> | null | undefined
+): DashboardReservations {
   const sessions = Array.isArray(data?.sessions)
     ? data.sessions.map((session) => ({
         sessionId: toSafeNumber(session.sessionId),
@@ -45,21 +51,68 @@ function normalizeReservations(data: Partial<DashboardReservations> | null | und
   }
 }
 
+function createStakeholderNameQueue(showDetail?: HostShowDetail | null) {
+  const queueByRole = new Map<string, string[]>()
+
+  showDetail?.stakeholders.forEach((stakeholder) => {
+    const role = stakeholder.role === "ORGANIZER" ? "ORGANIZER" : "ARTIST"
+    const currentQueue = queueByRole.get(role) ?? []
+    const nextName = stakeholder.name?.trim() || stakeholder.number?.trim() || role
+
+    queueByRole.set(role, [...currentQueue, nextName])
+  })
+
+  return queueByRole
+}
+
 function normalizeRevenueSplit(
-  data: Partial<DashboardRevenueSplit> | null | undefined
+  data: Partial<DashboardRevenueSplit> | null | undefined,
+  showDetail?: HostShowDetail | null
 ): DashboardRevenueSplit {
+  const stakeholderNameQueueByRole = createStakeholderNameQueue(showDetail)
+
   const splits = Array.isArray(data?.splits)
-    ? data.splits.map((split) => ({
-        role: toSafeString(split.role, "미분류"),
-        rateBps: toSafeNumber(split.rateBps),
-        amount: toSafeNumber(split.amount),
-      }))
+    ? data.splits.map((split) => {
+        const role = toSafeString(split.role, "이해관계자")
+        const rateBps = toSafeNumber(split.rateBps)
+        const amount = toSafeNumber(split.amount)
+        const isPlatformSplit = role === "ORGANIZER" && rateBps === PLATFORM_FEE_BPS
+        const currentQueue = stakeholderNameQueueByRole.get(role) ?? []
+
+        const displayName = isPlatformSplit ? PLATFORM_NAME : currentQueue[0]
+
+        if (!isPlatformSplit && currentQueue.length > 0) {
+          stakeholderNameQueueByRole.set(role, currentQueue.slice(1))
+        }
+
+        return {
+          role,
+          displayName,
+          rateBps,
+          amount,
+        }
+      })
     : []
+
+  const totalRateBps = splits.reduce((sum, split) => sum + split.rateBps, 0)
+  const hasPlatformSplit = splits.some(
+    (split) => split.role === "ORGANIZER" && split.rateBps === PLATFORM_FEE_BPS
+  )
+  const totalRevenue = toSafeNumber(data?.totalRevenue)
+
+  if (!hasPlatformSplit && totalRateBps === 10000 - PLATFORM_FEE_BPS) {
+    splits.push({
+      role: "ORGANIZER",
+      displayName: PLATFORM_NAME,
+      rateBps: PLATFORM_FEE_BPS,
+      amount: totalRevenue * (PLATFORM_FEE_BPS / 10000),
+    })
+  }
 
   return {
     showId: toSafeNumber(data?.showId),
     title: toSafeString(data?.title, "공연"),
-    totalRevenue: toSafeNumber(data?.totalRevenue),
+    totalRevenue,
     splits,
   }
 }
@@ -171,26 +224,42 @@ async function fetchDashboardWalletBalance(): Promise<WalletBalance | null> {
   }
 }
 
+async function fetchDashboardShowDetail(showId: string | number): Promise<HostShowDetail | null> {
+  try {
+    return await fetchShowDetail(showId)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      throw error
+    }
+
+    return null
+  }
+}
+
 export async function fetchDashboardData(showId: string | number): Promise<DashboardData> {
   const partialErrors: string[] = []
-  const [reservationsResult, revenueSplitResult, bookingRateResult, totalSalesResult, walletResult] =
-    await Promise.allSettled([
+  const [
+    reservationsResult,
+    revenueSplitResult,
+    bookingRateResult,
+    totalSalesResult,
+    walletResult,
+    showDetailResult,
+  ] = await Promise.allSettled([
     fetchDashboardReservations(showId),
     fetchDashboardRevenueSplit(showId),
     fetchDashboardBookingRate(showId),
     fetchDashboardTotalSales(showId),
     fetchDashboardWalletBalance(),
+    fetchDashboardShowDetail(showId),
   ])
 
-  const reservations = resolveSettledValue(
-    reservationsResult,
-    "회차별 예매 현황",
-    partialErrors
-  )
+  const reservations = resolveSettledValue(reservationsResult, "회차별 예매 현황", partialErrors)
   const revenueSplit = resolveSettledValue(revenueSplitResult, "수익 배분", partialErrors)
   const bookingRate = resolveSettledValue(bookingRateResult, "예매율", partialErrors)
   const totalSales = resolveSettledValue(totalSalesResult, "총 판매금액", partialErrors)
   const wallet = resolveSettledValue(walletResult, "지갑 잔액", partialErrors)
+  const showDetail = resolveSettledValue(showDetailResult, "공연 상세", partialErrors)
 
   const derivedTitle =
     reservations?.title ??
@@ -200,7 +269,7 @@ export async function fetchDashboardData(showId: string | number): Promise<Dashb
     "공연"
 
   const normalizedReservations = normalizeReservations(reservations)
-  const normalizedRevenueSplit = normalizeRevenueSplit(revenueSplit)
+  const normalizedRevenueSplit = normalizeRevenueSplit(revenueSplit, showDetail)
   const normalizedBookingRate = normalizeBookingRate(bookingRate)
   const normalizedTotalSales = normalizeTotalSales(totalSales)
 

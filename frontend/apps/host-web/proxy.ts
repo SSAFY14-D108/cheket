@@ -14,7 +14,7 @@ function isProtectedPath(pathname: string) {
   )
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const accessToken = request.cookies.get(ACCESS_TOKEN_KEY)?.value
   const isAuthenticated = Boolean(accessToken)
