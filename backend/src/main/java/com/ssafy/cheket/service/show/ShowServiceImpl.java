@@ -1,13 +1,16 @@
 package com.ssafy.cheket.service.show;
 
 import com.ssafy.cheket.config.s3.S3Uploader;
+import com.ssafy.cheket.dto.show.request.SaveSearchKeywordRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.*;
+import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.show.*;
 import com.ssafy.cheket.repository.show.projection.SessionListProjection;
+import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,8 @@ public class ShowServiceImpl implements ShowService {
     private final VenueRepository venueRepository;
     private final SeatRepository seatRepository;
     private final ShowImageRepository showImageRepository;
+    private final SearchHistoryRepository searchHistoryRepository;
+    private final UserRepository userRepository;
     private final S3Uploader s3Uploader;
 
     // 공연 검색 및 목록 조회
@@ -211,6 +216,36 @@ public class ShowServiceImpl implements ShowService {
     public void deleteShowImages(Long showId) {
         s3Uploader.deleteAllByShowId(showId);
         showImageRepository.deleteAllByShowId(showId);
+    }
+
+    // 공연 검색 기록 저장
+    @Transactional
+    @Override
+    public void saveSearchKeyword(SaveSearchKeywordRequest request, Long userId) {
+        String normalizedKeyword = normalizeKeyword(request.keyword());
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
+
+        SearchHistory searchHistory = SearchHistory.create(user, normalizedKeyword);
+        searchHistoryRepository.save(searchHistory);
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            throw new BadRequestException("검색 키워드는 비어 있을 수 없습니다.");
+        }
+
+        String normalized = keyword.trim();
+
+        if (normalized.isEmpty()) {
+            throw new BadRequestException("검색 키워드는 비어 있을 수 없습니다.");
+        }
+
+        if (normalized.length() > 100) {
+            throw new BadRequestException("검색 키워드는 100자 이하여야 합니다.");
+        }
+
+        return normalized;
     }
 
     private ShowItem toShowItem(Show s) {
