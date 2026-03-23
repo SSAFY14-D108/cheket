@@ -2,6 +2,7 @@ package com.ssafy.cheket.controller.show;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.show.request.PurchaseSessionSeatRequest;
+import com.ssafy.cheket.dto.show.request.SaveSearchKeywordRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.service.show.ShowService;
@@ -87,6 +88,16 @@ public class ShowController {
         PurchaseSessionSeatResponse response = showService.purchaseSessionSeats(showId, sessionId, request);
         String message = response.seats().failure().isEmpty() ? "좌석 선점 완료" : "이미 선택된 좌석입니다.";
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, message, response));
+    }
+
+
+    @PostMapping("/search")
+    @Operation(summary = "공연 검색 기록 저장")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> saveSearchKeyword(@RequestBody SaveSearchKeywordRequest request,
+        @AuthenticationPrincipal Long userId) {
+        showService.saveSearchKeyword(request, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "검색 키워드가 저장되었습니다.", null));
     }
 
 }

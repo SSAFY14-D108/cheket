@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.resale;
 
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.common.TxIdResponse;
 import com.ssafy.cheket.dto.resale.response.GetResaleTicketsResponse;
 import com.ssafy.cheket.dto.resale.response.ResaleShowItem;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
@@ -8,9 +9,11 @@ import com.ssafy.cheket.enums.ResaleShowSort;
 import com.ssafy.cheket.enums.ResaleTicketSort;
 import com.ssafy.cheket.service.resale.ResaleService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,5 +42,30 @@ public class ResaleController {
         @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         GetResaleTicketsResponse response = resaleService.getResaleTickets(showId, sort, sessionId, page, size);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "거래 가능한 티켓 목록 조회 완료", response));
+    }
+
+    // 리세일 취소 — Escrow에 예치된 NFT를 판매자에게 반환
+    @DeleteMapping("/{ticketId}")
+    @Operation(summary = "리세일 취소", description = "2차 거래 티켓 등록을 취소하고 Escrow에서 NFT를 반환받음")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<TxIdResponse>> cancelResale(@AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId) {
+        Long txId = resaleService.cancelResale(userId, ticketId);
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "리세일 취소 요청이 접수되었습니다.", new TxIdResponse(txId)));
+    }
+
+    /**
+     * 리세일 구매 — SSF로 리세일 티켓 구매 SSF: 구매자 → 판매자 직접 전송 (Escrow에 SSF 체류 없음) NFT: Escrow
+     * → 구매자
+     */
+    @PostMapping("/{ticketId}")
+    @Operation(summary = "리세일 구매", description = "거래소에서 티켓을 구매. SSF가 구매자에서 판매자로 직접 전송")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<TxIdResponse>> purchaseResale(@AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId) {
+        Long txId = resaleService.purchaseResale(userId, ticketId);
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "리세일 구매 요청이 접수되었습니다.", new TxIdResponse(txId)));
     }
 }
