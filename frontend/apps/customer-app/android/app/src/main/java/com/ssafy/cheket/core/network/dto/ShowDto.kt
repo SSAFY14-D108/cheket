@@ -136,4 +136,10 @@ data class RecommendedShowDto(
     @SerializedName("reason") val reason: String? = null,
 )
 
+// ── Search Keyword ──
+
+data class SaveSearchKeywordRequest(
+    @SerializedName("keyword") val keyword: String,
+)
+
 // ── Liked Shows — LikedShowDto는 UserDto.kt에 정의 ──

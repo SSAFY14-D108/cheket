@@ -104,7 +104,7 @@ class PaymentViewModel(
             // CTK 잔액 조회
             var ctkBalance = 0
             try {
-                val balanceResponse = walletService.getBalance()
+                val balanceResponse = walletService.refreshBalance()
                 ctkBalance = balanceResponse.data?.balance ?: 0
                 Log.d(TAG, "load() — CTK balance: $ctkBalance")
             } catch (e: Exception) {

@@ -48,4 +48,8 @@ interface ShowService {
     /** 찜한 공연 목록 */
     @GET("api/v1/users/likes")
     suspend fun getLikedShows(): ApiResponse<List<LikedShowDto>>
+
+    /** 검색 키워드 저장 (AI 추천용) */
+    @POST("api/v1/shows/search")
+    suspend fun saveSearchKeyword(@Body request: SaveSearchKeywordRequest): ApiResponse<Unit>
 }

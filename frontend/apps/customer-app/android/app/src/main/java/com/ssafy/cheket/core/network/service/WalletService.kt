@@ -8,6 +8,9 @@ interface WalletService {
     @GET("api/v1/wallets/balance")
     suspend fun getBalance(): ApiResponse<BalanceResponse>
 
+    @GET("api/v1/wallets/balance/refresh")
+    suspend fun refreshBalance(): ApiResponse<BalanceResponse>
+
     @GET("api/v1/wallets/transactions")
     suspend fun getTransactions(): ApiResponse<List<TransactionDto>>
 
