@@ -84,8 +84,9 @@ public class ShowController {
     @Operation(summary = "좌석 선점(결제하기 버튼)")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<PurchaseSessionSeatResponse>> purchaseSessionSeat(@PathVariable Long showId,
-        @PathVariable Long sessionId, @RequestBody PurchaseSessionSeatRequest request) {
-        PurchaseSessionSeatResponse response = showService.purchaseSessionSeats(showId, sessionId, request);
+        @PathVariable Long sessionId, @RequestBody PurchaseSessionSeatRequest request,
+        @AuthenticationPrincipal Long userId) {
+        PurchaseSessionSeatResponse response = showService.purchaseSessionSeats(userId, showId, sessionId, request);
         String message = response.seats().failure().isEmpty() ? "좌석 선점 완료" : "이미 선택된 좌석입니다.";
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, message, response));
     }
