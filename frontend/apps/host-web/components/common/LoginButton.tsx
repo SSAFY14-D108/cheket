@@ -25,18 +25,18 @@ const LoginButton = React.forwardRef<HTMLButtonElement, LoginButtonProps>(
   ({ className, variant = "primary", label, children, ...props }, ref) => {
     const variantStyles = {
       primary:
-        "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        "bg-[#171717] text-white hover:bg-[#2a2a2a] shadow-[0_12px_30px_rgba(23,23,23,0.16)]",
       secondary:
-        "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        "border border-black/10 bg-white text-black hover:bg-black/[0.03]",
     }
 
     return (
       <button
         ref={ref}
         className={cn(
-          "h-12 w-full rounded-sm text-base font-semibold",
-          "outline-none transition-colors",
-          "focus-visible:ring-2 focus-visible:ring-ring",
+          "inline-flex h-15 w-full items-center justify-center gap-2 rounded-[1.35rem] px-4 text-base font-semibold",
+          "outline-none transition-all duration-200",
+          "focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
           "disabled:cursor-not-allowed disabled:opacity-50",
           variantStyles[variant],
           className

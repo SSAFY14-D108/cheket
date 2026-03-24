@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { ArrowLeft, Building2, Mail, ShieldAlert } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -69,13 +69,12 @@ export function MyPageSettingsContent() {
         }
 
         setHasLoadError(true)
-
         toast({
-          title: "계정 정보 조회 실패",
+          title: "회사 정보를 불러오지 못했습니다.",
           description:
             error instanceof ApiError
               ? error.message
-              : "계정 설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+              : "회사 정보를 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
           variant: "destructive",
         })
       } finally {
@@ -103,7 +102,7 @@ export function MyPageSettingsContent() {
 
     if (!companyName && !email) {
       toast({
-        title: "입력값 확인",
+        title: "입력값을 확인해주세요.",
         description: "회사명 또는 이메일을 입력해주세요.",
         variant: "destructive",
       })
@@ -112,7 +111,7 @@ export function MyPageSettingsContent() {
 
     if (email && !emailPattern.test(email)) {
       toast({
-        title: "이메일 형식 확인",
+        title: "이메일 형식이 올바르지 않습니다.",
         description: "올바른 이메일 주소를 입력해주세요.",
         variant: "destructive",
       })
@@ -136,13 +135,14 @@ export function MyPageSettingsContent() {
             }
           : previous
       )
+
       setForm({
         companyName,
         email,
       })
 
       toast({
-        title: "저장 완료",
+        title: "정보가 저장되었습니다.",
         description: response.responseMessage,
       })
     } catch (error) {
@@ -151,11 +151,11 @@ export function MyPageSettingsContent() {
       }
 
       toast({
-        title: "회사 정보 수정 실패",
+        title: "회사 정보 저장에 실패했습니다.",
         description:
           error instanceof ApiError
             ? error.message
-            : "회사 정보를 수정하지 못했습니다. 잠시 후 다시 시도해주세요.",
+            : "정보를 저장하는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
         variant: "destructive",
       })
     } finally {
@@ -166,8 +166,8 @@ export function MyPageSettingsContent() {
   const handleDeleteAccount = async () => {
     if (!deletePassword.trim()) {
       toast({
-        title: "비밀번호 확인 필요",
-        description: "회원 탈퇴를 위해 현재 비밀번호를 입력해주세요.",
+        title: "비밀번호를 입력해주세요.",
+        description: "회원 탈퇴를 진행하려면 현재 비밀번호가 필요합니다.",
         variant: "destructive",
       })
       return
@@ -182,7 +182,7 @@ export function MyPageSettingsContent() {
       setDeleteDialogOpen(false)
 
       toast({
-        title: "회원 탈퇴 완료",
+        title: "회원 탈퇴가 완료되었습니다.",
         description: response.responseMessage,
       })
 
@@ -193,11 +193,11 @@ export function MyPageSettingsContent() {
       }
 
       toast({
-        title: "회원 탈퇴 실패",
+        title: "회원 탈퇴에 실패했습니다.",
         description:
           error instanceof ApiError
             ? error.message
-            : "회원 탈퇴를 처리하지 못했습니다. 잠시 후 다시 시도해주세요.",
+            : "회원 탈퇴를 처리하는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
         variant: "destructive",
       })
     } finally {
@@ -207,94 +207,197 @@ export function MyPageSettingsContent() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold text-foreground">계정 설정</h1>
-          <p className="text-sm text-muted-foreground">
-            회사 정보 수정과 회원 탈퇴를 관리할 수 있습니다.
-          </p>
-        </div>
-        <Link
-          href="/mypage"
-          className="rounded-sm border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-                운영 홈으로 돌아가기
-        </Link>
-      </div>
+    <main className="min-h-svh bg-white">
+      <div className="mx-auto max-w-7xl px-6 py-8 sm:px-8 lg:px-10">
+        <section className="overflow-hidden rounded-[2rem] border border-black/8 bg-white px-6 py-7 shadow-sm sm:px-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-4">
+              <Link
+                href="/mypage"
+                className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-black transition-colors hover:bg-black/[0.03]"
+                aria-label="운영 홈으로 돌아가기"
+              >
+                <ArrowLeft className="size-4" />
+              </Link>
 
-      <div className="mt-8 grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>회사 정보 수정</CardTitle>
-            <CardDescription>
-              현재 등록된 회사명과 이메일을 수정할 수 있습니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            {hasLoadError ? (
-              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                계정 정보를 불러오지 못해 현재 값을 표시하지 못했습니다. 다시 시도해주세요.
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium uppercase tracking-[0.26em] text-black/42">
+                    Account Settings
+                  </p>
+                  <h1 className="text-3xl font-semibold tracking-[-0.04em] text-black sm:text-4xl">
+                    계정 설정
+                  </h1>
+                </div>
+                <p className="max-w-xl text-sm leading-6 text-black/55">
+                  회사 정보와 계정 설정을 관리하는 공간입니다. 자주 수정하는 정보와
+                  민감한 작업을 분리해 두었습니다.
+                </p>
               </div>
-            ) : null}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="company-name">회사명</Label>
-              <Input
-                id="company-name"
-                value={form.companyName}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, companyName: event.target.value }))
-                }
-                disabled={isLoading || isSaving}
-                placeholder="회사명을 입력해주세요."
-              />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="company-email">이메일</Label>
-              <Input
-                id="company-email"
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, email: event.target.value }))
-                }
-                disabled={isLoading || isSaving}
-                placeholder="이메일을 입력해주세요."
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-3">
-              <div className="text-sm text-muted-foreground">
-                사업자등록번호: <span className="font-medium text-foreground">{company?.businessNo ?? "-"}</span>
-              </div>
-              <Button onClick={handleSave} disabled={isLoading || isSaving || !isFormDirty}>
-                {isSaving ? "저장 중..." : "저장"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-destructive/30">
-          <CardHeader>
-            <CardTitle className="text-destructive">회원 탈퇴</CardTitle>
-            <CardDescription>
-              탈퇴 시 계정 상태만 비활성화되며, 진행 중인 공연이 있으면 탈퇴할 수 없습니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              탈퇴 후에는 동일한 계정으로 다시 접근할 수 없습니다. 진행 전에 꼭 확인해주세요.
-            </p>
-            <Button
-              variant="destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={isDeleting}
+            <Link
+              href="/mypage"
+              className="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black/72 transition-colors hover:bg-black/[0.03]"
             >
-              회원 탈퇴
-            </Button>
-          </CardContent>
-        </Card>
+              운영 홈으로 돌아가기
+            </Link>
+          </div>
+        </section>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
+          <section className="rounded-[1.75rem] border border-black/8 bg-white shadow-sm">
+            <div className="border-b border-black/6 px-6 py-5 sm:px-7">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-black/[0.04]">
+                  <Building2 className="size-5 text-black/70" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-xl font-semibold tracking-[-0.03em] text-black">
+                    회사 정보 수정
+                  </h2>
+                  <p className="text-sm text-black/50">
+                    회사명과 이메일을 업데이트할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 px-6 py-6 sm:px-7 sm:py-7">
+              {hasLoadError ? (
+                <div className="rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  회사 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+                </div>
+              ) : null}
+
+              <div className="grid gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="company-name" className="text-sm font-medium text-black/70">
+                    회사명
+                  </Label>
+                  <Input
+                    id="company-name"
+                    value={form.companyName}
+                    onChange={(event) =>
+                      setForm((previous) => ({ ...previous, companyName: event.target.value }))
+                    }
+                    disabled={isLoading || isSaving}
+                    placeholder="회사명을 입력해주세요."
+                    className="h-14 rounded-2xl border-black/10 bg-white px-4"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="company-email" className="text-sm font-medium text-black/70">
+                    이메일
+                  </Label>
+                  <Input
+                    id="company-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      setForm((previous) => ({ ...previous, email: event.target.value }))
+                    }
+                    disabled={isLoading || isSaving}
+                    placeholder="이메일을 입력해주세요."
+                    className="h-14 rounded-2xl border-black/10 bg-white px-4"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[1.25rem] border border-black/8 bg-[#fafafa] px-4 py-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-black/38">
+                      Business Number
+                    </p>
+                    <p className="text-sm text-black/68">
+                      사업자등록번호{" "}
+                      <span className="font-semibold text-black">
+                        {company?.businessNo ?? "-"}
+                      </span>
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={handleSave}
+                    disabled={isLoading || isSaving || !isFormDirty}
+                    className="h-12 rounded-2xl bg-[#171717] px-5 text-sm font-semibold text-white hover:bg-black/85"
+                  >
+                    {isSaving ? "저장 중..." : "저장"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <section className="rounded-[1.75rem] border border-black/8 bg-white px-6 py-6 shadow-sm sm:px-7">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-black/[0.04]">
+                  <Mail className="size-5 text-black/70" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold tracking-[-0.03em] text-black">
+                    현재 계정 정보
+                  </h2>
+                  <p className="text-sm text-black/50">
+                    현재 등록된 기본 정보를 빠르게 확인할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4 text-sm">
+                <div className="rounded-[1rem] bg-[#fafafa] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-black/38">Company</p>
+                  <p className="mt-2 font-semibold text-black">
+                    {company?.companyName || "-"}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] bg-[#fafafa] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-black/38">Email</p>
+                  <p className="mt-2 font-semibold text-black">{company?.email || "-"}</p>
+                </div>
+                <div className="rounded-[1rem] bg-[#fafafa] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-black/38">
+                    Business Number
+                  </p>
+                  <p className="mt-2 font-semibold text-black">{company?.businessNo || "-"}</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[1.75rem] border border-red-200 bg-white px-6 py-6 shadow-sm sm:px-7">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-red-50">
+                  <ShieldAlert className="size-5 text-red-500" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold tracking-[-0.03em] text-red-600">
+                    회원 탈퇴
+                  </h2>
+                  <p className="text-sm leading-6 text-black/52">
+                    계정을 비활성화하면 동일한 계정으로 다시 접근할 수 없습니다. 진행
+                    중인 공연이 있다면 먼저 상태를 확인해주세요.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[1rem] bg-red-50/60 px-4 py-4 text-sm text-black/58">
+                탈퇴 전에는 공연 진행 여부와 정산 상태를 꼭 확인해주세요.
+              </div>
+
+              <Button
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={isDeleting}
+                className="mt-6 h-12 w-full rounded-2xl bg-red-600 text-sm font-semibold hover:bg-red-700"
+              >
+                회원 탈퇴
+              </Button>
+            </section>
+          </aside>
+        </div>
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -302,7 +405,7 @@ export function MyPageSettingsContent() {
           <DialogHeader>
             <DialogTitle>회원 탈퇴 확인</DialogTitle>
             <DialogDescription>
-              현재 비밀번호를 입력하면 회원 탈퇴가 진행됩니다.
+              탈퇴를 진행하려면 현재 비밀번호를 입력해주세요.
             </DialogDescription>
           </DialogHeader>
 
@@ -330,7 +433,7 @@ export function MyPageSettingsContent() {
               취소
             </Button>
             <Button variant="destructive" onClick={handleDeleteAccount} disabled={isDeleting}>
-              {isDeleting ? "탈퇴 처리 중..." : "탈퇴 확인"}
+              {isDeleting ? "탈퇴 처리 중..." : "탈퇴하기"}
             </Button>
           </DialogFooter>
         </DialogContent>

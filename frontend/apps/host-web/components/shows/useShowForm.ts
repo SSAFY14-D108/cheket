@@ -18,6 +18,8 @@ import {
   buildInitialSessionInfo,
   buildInitialStakeholders,
   buildCreatePayload,
+  deriveReservationEndFromSessions,
+  deriveShowRangeFromSessions,
   buildUpdatePayload,
   buildValidationMessage,
   toLocalDateTimeValue,
@@ -119,6 +121,18 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       isMounted = false
     }
   }, [toast])
+
+  useEffect(() => {
+    const nextRange = deriveShowRangeFromSessions(sessionInfo, playtime)
+
+    setShowStartAt((previous) => (previous === nextRange.showStartAt ? previous : nextRange.showStartAt))
+    setShowEndAt((previous) => (previous === nextRange.showEndAt ? previous : nextRange.showEndAt))
+  }, [sessionInfo, playtime])
+
+  useEffect(() => {
+    const nextCloseAt = deriveReservationEndFromSessions(sessionInfo)
+    setCloseAt((previous) => (previous === nextCloseAt ? previous : nextCloseAt))
+  }, [sessionInfo])
 
   const handlePosterChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]

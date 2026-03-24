@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { ConditionalFooter } from '@/components/layout/ConditionalFooter'
 import { MockServiceWorkerProvider } from '@/components/providers/MockServiceWorkerProvider'
 import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
@@ -20,9 +21,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="font-sans antialiased">
+      <body className="min-h-screen bg-background font-sans antialiased">
         <MockServiceWorkerProvider>
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <main className="flex-1 bg-white">{children}</main>
+            <ConditionalFooter />
+          </div>
           <Toaster />
           <Analytics />
         </MockServiceWorkerProvider>

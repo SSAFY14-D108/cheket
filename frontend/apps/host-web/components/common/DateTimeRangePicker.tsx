@@ -3,8 +3,8 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
-import { Calendar as CalendarIcon, Clock } from "lucide-react"
-import { DateRange } from "react-day-picker"
+import { Calendar as CalendarIcon } from "lucide-react"
+import type { DateRange } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,86 +29,112 @@ interface DateTimeRangePickerProps {
     onChange: (startAt: string, endAt: string) => void
     placeholder?: string
     className?: string
+    minDate?: Date
 }
 
-export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "기간 선택", className }: DateTimeRangePickerProps) {
+function toTwoDigits(value: number) {
+    return value.toString().padStart(2, "0")
+}
+
+function toDateString(date: Date, hour: string, minute: string) {
+    const year = date.getFullYear()
+    const month = toTwoDigits(date.getMonth() + 1)
+    const day = toTwoDigits(date.getDate())
+    return `${year}-${month}-${day}T${hour}:${minute}:00`
+}
+
+export function DateTimeRangePicker({
+    startAt,
+    endAt,
+    onChange,
+    placeholder = "기간 선택",
+    className,
+    minDate,
+}: DateTimeRangePickerProps) {
     const [isOpen, setIsOpen] = React.useState(false)
     const [date, setDate] = React.useState<DateRange | undefined>({
         from: startAt ? new Date(startAt) : undefined,
         to: endAt ? new Date(endAt) : undefined,
     })
-
-    // Start Time
-    const [startHour, setStartHour] = React.useState<string>(
-        startAt ? new Date(startAt).getHours().toString().padStart(2, '0') : "12"
+    const [startHour, setStartHour] = React.useState(
+        startAt ? toTwoDigits(new Date(startAt).getHours()) : "12"
     )
-    const [startMinute, setStartMinute] = React.useState<string>(
-        startAt ? new Date(startAt).getMinutes().toString().padStart(2, '0') : "00"
+    const [startMinute, setStartMinute] = React.useState(
+        startAt ? toTwoDigits(new Date(startAt).getMinutes()) : "00"
     )
-
-    // End Time
-    const [endHour, setEndHour] = React.useState<string>(
-        endAt ? new Date(endAt).getHours().toString().padStart(2, '0') : "13"
+    const [endHour, setEndHour] = React.useState(
+        endAt ? toTwoDigits(new Date(endAt).getHours()) : "13"
     )
-    const [endMinute, setEndMinute] = React.useState<string>(
-        endAt ? new Date(endAt).getMinutes().toString().padStart(2, '0') : "00"
+    const [endMinute, setEndMinute] = React.useState(
+        endAt ? toTwoDigits(new Date(endAt).getMinutes()) : "00"
     )
 
-    // Sync props to state if they change externally
     React.useEffect(() => {
-        if (startAt) {
-            const d = new Date(startAt)
-            if (!isNaN(d.getTime())) {
-                setDate(prev => ({ ...prev, from: d }))
-                setStartHour(d.getHours().toString().padStart(2, '0'))
-                setStartMinute(d.getMinutes().toString().padStart(2, '0'))
-            }
+        if (!startAt) {
+            return
         }
+
+        const nextDate = new Date(startAt)
+        if (Number.isNaN(nextDate.getTime())) {
+            return
+        }
+
+        setDate((previous) => ({ ...previous, from: nextDate }))
+        setStartHour(toTwoDigits(nextDate.getHours()))
+        setStartMinute(toTwoDigits(nextDate.getMinutes()))
     }, [startAt])
 
     React.useEffect(() => {
-        if (endAt) {
-            const d = new Date(endAt)
-            if (!isNaN(d.getTime())) {
-                setDate(prev => {
-                    const fromDate = prev?.from ?? d;
-                    return { from: fromDate, to: d }
-                })
-                setEndHour(d.getHours().toString().padStart(2, '0'))
-                setEndMinute(d.getMinutes().toString().padStart(2, '0'))
-            }
+        if (!endAt) {
+            return
         }
+
+        const nextDate = new Date(endAt)
+        if (Number.isNaN(nextDate.getTime())) {
+            return
+        }
+
+        setDate((previous) => ({
+            from: previous?.from ?? nextDate,
+            to: nextDate,
+        }))
+        setEndHour(toTwoDigits(nextDate.getHours()))
+        setEndMinute(toTwoDigits(nextDate.getMinutes()))
     }, [endAt])
 
-    const buildDateString = (d: Date, h: string, m: string) => {
-        const newDate = new Date(d)
-        newDate.setHours(parseInt(h), parseInt(m), 0, 0)
-        const year = newDate.getFullYear()
-        const month = String(newDate.getMonth() + 1).padStart(2, '0')
-        const day = String(newDate.getDate()).padStart(2, '0')
-        return `${year}-${month}-${day}T${h}:${m}:00`
-    }
+    const hours = Array.from({ length: 24 }, (_, index) => toTwoDigits(index))
+    const minutes = Array.from({ length: 12 }, (_, index) => toTwoDigits(index * 5))
+
+    const normalizedMinDate = React.useMemo(() => {
+        if (!minDate) {
+            return undefined
+        }
+
+        const nextMinDate = new Date(minDate)
+        nextMinDate.setHours(0, 0, 0, 0)
+        return nextMinDate
+    }, [minDate])
 
     const handleApply = () => {
-        if (date?.from && date?.to) {
-            const startStr = buildDateString(date.from, startHour, startMinute)
-            const endStr = buildDateString(date.to, endHour, endMinute)
-            onChange(startStr, endStr)
-            setIsOpen(false)
+        if (!date?.from || !date?.to) {
+            return
         }
-    }
 
-    const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
-    const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'))
+        onChange(
+            toDateString(date.from, startHour, startMinute),
+            toDateString(date.to, endHour, endMinute)
+        )
+        setIsOpen(false)
+    }
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
                 <Button
-                    id="date"
-                    variant={"outline"}
+                    id="date-range"
+                    variant="outline"
                     className={cn(
-                        "w-full justify-start text-left font-normal h-9 px-3",
+                        "h-9 w-full justify-start px-3 text-left font-normal",
                         className,
                         !date?.from && "text-muted-foreground"
                     )}
@@ -140,67 +166,84 @@ export function DateTimeRangePicker({ startAt, endAt, onChange, placeholder = "�
                     onSelect={setDate}
                     numberOfMonths={2}
                     locale={ko}
+                    disabled={(day) => {
+                        if (!normalizedMinDate) {
+                            return false
+                        }
+
+                        const normalizedDay = new Date(day)
+                        normalizedDay.setHours(0, 0, 0, 0)
+                        return normalizedDay < normalizedMinDate
+                    }}
                 />
 
-                {/* Time Selection Row */}
-                <div className="flex flex-col gap-3 p-3 border-t bg-muted/20">
+                <div className="flex flex-col gap-3 border-t bg-muted/20 p-3">
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Start Time Selectors */}
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs text-muted-foreground font-semibold">시작 시간</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">시작 시간</Label>
                             <div className="flex items-center gap-1">
                                 <Select value={startHour} onValueChange={setStartHour}>
-                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="h-8 w-[82px] bg-background text-xs">
                                         <SelectValue placeholder="시" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
-                                        {hours.map(h => <SelectItem key={h} value={h} className="text-xs">{h}시</SelectItem>)}
+                                        {hours.map((hour) => (
+                                            <SelectItem key={hour} value={hour} className="text-xs">
+                                                {hour}시
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <span className="text-muted-foreground">:</span>
                                 <Select value={startMinute} onValueChange={setStartMinute}>
-                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="h-8 w-[82px] bg-background text-xs">
                                         <SelectValue placeholder="분" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
-                                        {minutes.map(m => <SelectItem key={m} value={m} className="text-xs">{m}분</SelectItem>)}
+                                        {minutes.map((minute) => (
+                                            <SelectItem key={minute} value={minute} className="text-xs">
+                                                {minute}분
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
 
-                        {/* End Time Selectors */}
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs text-muted-foreground font-semibold">종료 시간</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">종료 시간</Label>
                             <div className="flex items-center gap-1">
                                 <Select value={endHour} onValueChange={setEndHour}>
-                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="h-8 w-[82px] bg-background text-xs">
                                         <SelectValue placeholder="시" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
-                                        {hours.map(h => <SelectItem key={h} value={h} className="text-xs">{h}시</SelectItem>)}
+                                        {hours.map((hour) => (
+                                            <SelectItem key={hour} value={hour} className="text-xs">
+                                                {hour}시
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <span className="text-muted-foreground">:</span>
                                 <Select value={endMinute} onValueChange={setEndMinute}>
-                                    <SelectTrigger className="w-[82px] h-8 text-xs bg-background">
+                                    <SelectTrigger className="h-8 w-[82px] bg-background text-xs">
                                         <SelectValue placeholder="분" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-56">
-                                        {minutes.map(m => <SelectItem key={m} value={m} className="text-xs">{m}분</SelectItem>)}
+                                        {minutes.map((minute) => (
+                                            <SelectItem key={minute} value={minute} className="text-xs">
+                                                {minute}분
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
                     </div>
 
-                    <Button
-                        className="w-full mt-2"
-                        size="sm"
-                        onClick={handleApply}
-                        disabled={!date?.from || !date?.to}
-                    >
-                        기간 설정 적용하기
+                    <Button className="mt-2 w-full" size="sm" onClick={handleApply} disabled={!date?.from || !date?.to}>
+                        기간 적용
                     </Button>
                 </div>
             </PopoverContent>
