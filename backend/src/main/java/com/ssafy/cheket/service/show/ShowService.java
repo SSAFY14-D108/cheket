@@ -33,7 +33,8 @@ public interface ShowService {
     void deleteShowImages(Long showId);
 
     // 좌석 선점(결제하기 버튼)
-    PurchaseSessionSeatResponse purchaseSessionSeats(Long showId, Long sessionId, PurchaseSessionSeatRequest request);
+    PurchaseSessionSeatResponse purchaseSessionSeats(Long userId, Long showId, Long sessionId,
+        PurchaseSessionSeatRequest request);
 
     void saveSearchKeyword(SaveSearchKeywordRequest request, Long userId);
 
