@@ -29,4 +29,16 @@ public class ShowContractServiceImpl implements ShowContractService {
         stakeholder.setRejectedAt(null);
     }
 
+    @Override
+    @Transactional
+    public void reject(Long userId, Long showId) {
+        Stakeholder stakeholder = stakeholderRepository.findByShowIdAndUserId(showId, userId)
+            .or(() -> stakeholderRepository.findByShowIdAndHostId(showId, userId))
+            .orElseThrow(() -> new NotFoundException("찾을 수 없는 공연입니다."));
+
+        stakeholder.setApprovalStatus(ApprovalStatus.REJECTED);
+        stakeholder.setApprovedAt(null);
+        stakeholder.setRejectedAt(LocalDateTime.now());
+    }
+
 }
