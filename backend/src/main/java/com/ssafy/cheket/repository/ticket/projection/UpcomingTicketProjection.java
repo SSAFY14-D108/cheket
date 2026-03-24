@@ -34,6 +34,6 @@ public interface UpcomingTicketProjection {
 
     String getMetadataIpfsCid();
 
-    int getResalePrice();
+    Integer getResalePrice();
 
 }

@@ -39,10 +39,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             join Section sec on sec.id = seat.sectionId
             join SeatGrade sg on sg.showId = sh.id and sg.sectionId = sec.id
             left join Resale rs on rs.ticketId = t.id
+              and rs.status = com.ssafy.cheket.entity.resale.Resale.ResaleListingStatus.ACTIVE
             where t.userId = :userId
-              and t.resaleStatus in (
-                  com.ssafy.cheket.enums.ResaleStatus.AVAILABLE,
-                  com.ssafy.cheket.enums.ResaleStatus.LISTED
+              and (
+                  t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.AVAILABLE
+                  or (
+                      t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
+                      and rs.id is not null
+                  )
               )
               and s.sessionDate >= :now
             order by s.sessionDate asc, s.sessionStartTime asc, t.id asc
@@ -120,4 +124,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             where ss.sessionId = :sessionId
         """)
     List<Long> findDistinctUserIdsBySessionId(@Param("sessionId") Long sessionId);
+
+    /**
+     * 특정 사용자가 특정 회차의 티켓을 몇 장 갖고 있는지 구매 시 회차별 maxPerWallet 초과 여부 확인용 온체인
+     * walletTicketCount[eventId][sessionId][wallet]와 동일 기준
+     */
+    @Query("SELECT COUNT(t) FROM Ticket t " + "JOIN SessionSeat ss ON t.sessionSeatId = ss.id "
+        + "WHERE t.userId = :userId AND ss.sessionId = :sessionId")
+    long countByUserIdAndSessionId(@Param("userId") Long userId, @Param("sessionId") Long sessionId);
 }
