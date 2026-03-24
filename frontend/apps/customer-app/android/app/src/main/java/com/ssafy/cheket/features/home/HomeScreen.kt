@@ -1,9 +1,23 @@
 package com.ssafy.cheket.features.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,13 +27,18 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,19 +55,22 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.ssafy.cheket.R
 import com.ssafy.cheket.AppContainer
-import com.ssafy.cheket.core.model.*
-import com.ssafy.cheket.core.ui.component.elevatedSurface
+import com.ssafy.cheket.R
+import com.ssafy.cheket.core.model.BannerSlide
+import com.ssafy.cheket.core.model.LikedShow
+import com.ssafy.cheket.core.model.OpenScheduleItem
+import com.ssafy.cheket.core.model.RankingItem
+import com.ssafy.cheket.core.model.ResaleItem
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.ui.theme.Black
+import com.ssafy.cheket.ui.theme.Primary
+import com.ssafy.cheket.ui.theme.White
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-// ── v0 Design Tokens ──
 private val V0Background = Color(0xFFFCFCFC)
 private val V0Card = Color(0xFFFFFFFF)
-private val V0Border = Color(0xFFD8EFEA)
 private val V0TextPrimary = Color(0xFF111111)
 private val V0TextMuted = Color(0xFF5C7A73)
 private val V0TextSub = Color(0xFF9CA3AF)
@@ -69,6 +91,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Box(
                 modifier = Modifier
@@ -88,13 +111,12 @@ fun HomeScreen(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.height(32.dp),
                     )
-                    Row {
-                        IconButton(onClick = {}) {
-                            Icon(Icons.Outlined.Notifications, contentDescription = "알림", tint = V0TextPrimary)
-                        }
-                        IconButton(onClick = onMyPage) {
-                            Icon(Icons.Filled.Person, contentDescription = "마이페이지", tint = V0TextPrimary)
-                        }
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = "알림",
+                            tint = V0TextPrimary,
+                        )
                     }
                 }
             }
@@ -107,40 +129,34 @@ fun HomeScreen(
                 .background(Color(0xFFF9FAFB))
                 .padding(innerPadding),
         ) {
-            // 1. AI 추천 배너
             item {
                 HeroBanner(
                     slides = uiState.bannerSlides,
-                    onSlideClick = { onShowClick(it) },
+                    onSlideClick = onShowClick,
                 )
             }
 
-            // 2. 랭킹
             if (uiState.rankingItems.isNotEmpty()) {
                 item {
                     Column(Modifier.padding(top = 20.dp, bottom = 16.dp)) {
                         HomeSectionHeader(title = "랭킹")
                         RankingSection(
                             items = uiState.rankingItems,
-                            onItemClick = { onShowClick(it) },
+                            onItemClick = onShowClick,
                         )
                     }
                 }
-                item { SectionDivider() }
             }
 
-            // 3. 오픈 예정
             if (uiState.openSchedule.isNotEmpty()) {
                 item {
                     OpenScheduleSection(
                         items = uiState.openSchedule,
-                        onItemClick = { onShowClick(it) },
+                        onItemClick = onShowClick,
                     )
                 }
-                item { SectionDivider() }
             }
 
-            // 4. 찜한 공연
             if (uiState.likedShows.isNotEmpty()) {
                 item {
                     LikedShowsSection(
@@ -148,15 +164,13 @@ fun HomeScreen(
                         onShowClick = onShowClick,
                     )
                 }
-                item { SectionDivider() }
             }
 
-            // 5. 타임 세일 (리세일 할인)
             if (uiState.resaleItems.isNotEmpty()) {
                 item {
                     ResaleDiscountSection(
                         resaleItems = uiState.resaleItems,
-                        onItemClick = { onShowClick(it) },
+                        onItemClick = onShowClick,
                     )
                     Spacer(Modifier.height(32.dp))
                 }
@@ -166,20 +180,19 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SectionDivider() {
-    Box(Modifier.fillMaxWidth().height(8.dp).background(V0SectionDivider))
-}
-
-// ── Hero Banner (AI 추천 auto-carousel) ──
-
-@Composable
 private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit) {
     if (slides.isEmpty()) {
-        Box(Modifier.fillMaxWidth().aspectRatio(4f / 3f).background(Color(0xFFE5E7EB)))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(4f / 3f)
+                .background(Color(0xFFE5E7EB)),
+        )
         return
     }
+
     val pagerState = rememberPagerState { slides.size }
-    LaunchedEffect(pagerState) {
+    LaunchedEffect(pagerState, slides.size) {
         while (true) {
             delay(3500)
             if (slides.size > 1) {
@@ -188,17 +201,21 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
         }
     }
 
-    Box(Modifier.fillMaxWidth().aspectRatio(4f / 3f)) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(4f / 3f),
+    ) {
         HorizontalPager(state = pagerState) { page ->
             val slide = slides[page]
             Box(
-                Modifier
+                modifier = Modifier
                     .fillMaxSize()
                     .clickable { onSlideClick(slide.showId) },
             ) {
                 AsyncImage(
-                    slide.image,
-                    slide.title,
+                    model = slide.image,
+                    contentDescription = slide.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -221,27 +238,27 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
                         .padding(16.dp),
                 ) {
                     Text(
-                        slide.title,
+                        text = slide.title,
                         color = White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
                         lineHeight = 24.sp,
                     )
                     Text(
-                        slide.subtitle,
+                        text = slide.subtitle,
                         color = White.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                     Text(
-                        slide.venue,
+                        text = slide.venue,
                         color = White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     Text(
-                        slide.dates,
+                        text = slide.dates,
                         color = White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
                     )
@@ -250,7 +267,6 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
         }
 
         if (slides.size > 1) {
-            // counter pill
             Box(
                 Modifier
                     .align(Alignment.BottomEnd)
@@ -259,30 +275,29 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
                 Text(
-                    "${pagerState.currentPage + 1} / ${slides.size}",
+                    text = "${pagerState.currentPage + 1} / ${slides.size}",
                     color = White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
-            // dot indicators
+
             Row(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                repeat(slides.size) { i ->
+                repeat(slides.size) { index ->
                     Box(
                         Modifier
                             .size(
-                                width = if (i == pagerState.currentPage) 16.dp else 6.dp,
+                                width = if (index == pagerState.currentPage) 16.dp else 6.dp,
                                 height = 6.dp,
                             )
                             .clip(RoundedCornerShape(3.dp))
                             .background(
-                                if (i == pagerState.currentPage) White
-                                else White.copy(alpha = 0.4f),
+                                if (index == pagerState.currentPage) White else White.copy(alpha = 0.4f),
                             ),
                     )
                 }
@@ -290,8 +305,6 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
         }
     }
 }
-
-// ── Section Header ──
 
 @Composable
 private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
@@ -303,7 +316,12 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = V0TextPrimary)
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = V0TextPrimary,
+        )
         if (onMore != null) {
             Row(
                 modifier = Modifier
@@ -315,7 +333,7 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
             ) {
                 Text("더보기", fontSize = 12.sp, color = V0TextMuted)
                 Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = V0TextMuted,
@@ -324,8 +342,6 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
         }
     }
 }
-
-// ── Ranking (인기순 Top 5) ──
 
 @Composable
 private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Unit) {
@@ -340,6 +356,7 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                 3 -> Color(0xFFB45309)
                 else -> Color(0xFF374151)
             }
+
             Column(
                 modifier = Modifier
                     .width(128.dp)
@@ -350,8 +367,8 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
             ) {
                 Box {
                     AsyncImage(
-                        item.poster,
-                        item.name,
+                        model = item.poster,
+                        contentDescription = item.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -372,21 +389,26 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                     }
                 }
                 Text(
-                    item.name,
+                    text = item.name,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = V0Gray900,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp,
+                    modifier = Modifier.height(32.dp),
                 )
-                Text(item.venue, fontSize = 10.sp, color = V0Gray500)
+                Text(
+                    text = item.venue,
+                    fontSize = 10.sp,
+                    color = V0Gray500,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
 }
-
-// ── Open Schedule (오픈 예정 — 카드 개선) ──
 
 @Composable
 private fun OpenScheduleSection(
@@ -394,7 +416,7 @@ private fun OpenScheduleSection(
     onItemClick: (String) -> Unit,
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp
-    val cardWidth = minOf((screenWidth * 0.82f).toInt(), 320).dp
+    val cardWidth = minOf((screenWidth * 82 / 100), 320).dp
 
     Column(Modifier.padding(vertical = 20.dp)) {
         HomeSectionHeader(title = "오픈 예정", onMore = {})
@@ -410,10 +432,9 @@ private fun OpenScheduleSection(
                         .clickable { onItemClick(item.showId) }
                         .padding(12.dp),
                 ) {
-                    // 포스터
                     AsyncImage(
-                        item.poster,
-                        item.name,
+                        model = item.poster,
+                        contentDescription = item.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(width = 80.dp, height = 108.dp)
@@ -426,20 +447,18 @@ private fun OpenScheduleSection(
                             .weight(1f)
                             .padding(vertical = 2.dp),
                     ) {
-                        // 오픈 날짜/시간 (핵심 정보)
                         if (item.openLabel.isNotBlank()) {
                             Text(
-                                item.openLabel,
+                                text = item.openLabel,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (index == 0) Primary else Color(0xFF4B5563),
+                                color = Primary,
                                 maxLines = 1,
                             )
                         }
 
-                        // 공연명
                         Text(
-                            item.name,
+                            text = item.name,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = V0Gray900,
@@ -449,10 +468,9 @@ private fun OpenScheduleSection(
                             modifier = Modifier.padding(top = 4.dp),
                         )
 
-                        // 장소
                         if (item.venue.isNotBlank()) {
                             Text(
-                                item.venue,
+                                text = item.venue,
                                 fontSize = 12.sp,
                                 color = V0Gray500,
                                 maxLines = 1,
@@ -461,11 +479,10 @@ private fun OpenScheduleSection(
                             )
                         }
 
-                        // 공연 일정
                         val dateLabel = buildShowDateLabel(item.showDate, item.showEndDate)
                         if (dateLabel.isNotBlank()) {
                             Text(
-                                dateLabel,
+                                text = dateLabel,
                                 fontSize = 11.sp,
                                 color = V0TextSub,
                                 modifier = Modifier.padding(top = 2.dp),
@@ -474,12 +491,11 @@ private fun OpenScheduleSection(
 
                         Spacer(Modifier.height(6.dp))
 
-                        // 태그 (지역 등)
                         if (item.tags.isNotEmpty()) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 item.tags.forEach { tag ->
                                     Text(
-                                        tag,
+                                        text = tag,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = V0TextMuted,
@@ -498,27 +514,24 @@ private fun OpenScheduleSection(
     }
 }
 
-/** "2026-05-03" ~ "2026-05-05" → "공연 5/3 ~ 5/5" */
 private fun buildShowDateLabel(startDate: String, endDate: String): String {
     if (startDate.isBlank()) return ""
     return try {
         val start = startDate.split("-")
-        val m1 = start[1].toInt()
-        val d1 = start[2].toInt()
+        val startMonth = start[1].toInt()
+        val startDay = start[2].toInt()
         if (endDate.isNotBlank() && endDate != startDate) {
             val end = endDate.split("-")
-            val m2 = end[1].toInt()
-            val d2 = end[2].toInt()
-            "공연 $m1/$d1 ~ $m2/$d2"
+            val endMonth = end[1].toInt()
+            val endDay = end[2].toInt()
+            "$startMonth/$startDay ~ $endMonth/$endDay"
         } else {
-            "공연 $m1/$d1"
+            "$startMonth/$startDay"
         }
     } catch (_: Exception) {
         ""
     }
 }
-
-// ── 찜한 공연 (Liked Shows) ──
 
 @Composable
 private fun LikedShowsSection(
@@ -541,11 +554,10 @@ private fun LikedShowsSection(
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    // 포스터 + 하트 아이콘
                     Box {
                         AsyncImage(
-                            show.posterUrl,
-                            show.title,
+                            model = show.posterUrl,
+                            contentDescription = show.title,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -553,7 +565,6 @@ private fun LikedShowsSection(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color(0xFFF3F4F6)),
                         )
-                        // 하트 배지
                         Box(
                             Modifier
                                 .padding(8.dp)
@@ -564,26 +575,25 @@ private fun LikedShowsSection(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                Icons.Default.Favorite,
+                                imageVector = Icons.Default.Favorite,
                                 contentDescription = null,
                                 tint = White,
                                 modifier = Modifier.size(14.dp),
                             )
                         }
                     }
-                    // 공연명
                     Text(
-                        show.title,
+                        text = show.title,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = V0Gray900,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         lineHeight = 16.sp,
+                        modifier = Modifier.height(32.dp),
                     )
-                    // 장소
                     Text(
-                        show.venue,
+                        text = show.venue,
                         fontSize = 10.sp,
                         color = V0Gray500,
                         maxLines = 1,
@@ -595,8 +605,6 @@ private fun LikedShowsSection(
     }
 }
 
-// ── Resale Discount (타임 세일) ──
-
 @Composable
 private fun ResaleDiscountSection(
     resaleItems: List<ResaleItem>,
@@ -605,9 +613,9 @@ private fun ResaleDiscountSection(
     val discounted = remember(resaleItems) {
         resaleItems.mapNotNull { item ->
             if (item.originalPrice <= 0) return@mapNotNull null
-            val pct = ((item.originalPrice - item.resalePrice).toFloat() / item.originalPrice * 100)
-                .roundToInt()
-            if (pct > 0) item to pct else null
+            val percent =
+                ((item.originalPrice - item.resalePrice).toFloat() / item.originalPrice * 100).roundToInt()
+            if (percent > 0) item to percent else null
         }.sortedByDescending { it.second }.take(5)
     }
 
@@ -619,7 +627,7 @@ private fun ResaleDiscountSection(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            discounted.forEach { (item, pct) ->
+            discounted.forEach { (item, percent) ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -629,8 +637,8 @@ private fun ResaleDiscountSection(
                 ) {
                     Box {
                         AsyncImage(
-                            item.poster,
-                            item.showName,
+                            model = item.poster,
+                            contentDescription = item.showName,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(width = 96.dp, height = 128.dp)
@@ -645,7 +653,7 @@ private fun ResaleDiscountSection(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                 .align(Alignment.TopStart),
                         ) {
-                            Text("-$pct%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = White)
+                            Text(text = "-$percent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = White)
                         }
                     }
                     Spacer(Modifier.width(12.dp))
@@ -663,16 +671,21 @@ private fun ResaleDiscountSection(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
-                                Icons.Default.LocalOffer,
+                                imageVector = Icons.Default.LocalOffer,
                                 contentDescription = null,
                                 modifier = Modifier.size(10.dp),
                                 tint = V0TextMuted,
                             )
-                            Text("2차 거래", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = V0TextMuted)
+                            Text(
+                                text = "2차 거래",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = V0TextMuted,
+                            )
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            item.showName,
+                            text = item.showName,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = V0Gray900,
@@ -681,13 +694,13 @@ private fun ResaleDiscountSection(
                             lineHeight = 18.sp,
                         )
                         Text(
-                            item.venue.split(",").first().trim(),
+                            text = item.venue.split(",").first().trim(),
                             fontSize = 12.sp,
                             color = V0Gray500,
                             modifier = Modifier.padding(top = 2.dp),
                         )
                         Text(
-                            "${item.seatLabel} · ${item.grade}",
+                            text = "${item.seatLabel} · ${item.grade}",
                             fontSize = 12.sp,
                             color = V0Gray500,
                         )
@@ -697,13 +710,13 @@ private fun ResaleDiscountSection(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
-                                "%,d CTK".format(item.originalPrice),
+                                text = "%,d CTK".format(item.originalPrice),
                                 fontSize = 12.sp,
                                 color = V0TextSub,
                                 textDecoration = TextDecoration.LineThrough,
                             )
                             Text(
-                                "%,d CTK".format(item.resalePrice),
+                                text = "%,d CTK".format(item.resalePrice),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = V0Red500,
