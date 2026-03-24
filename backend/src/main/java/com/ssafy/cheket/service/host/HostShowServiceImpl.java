@@ -292,7 +292,7 @@ public class HostShowServiceImpl implements HostShowService {
         List<Long> stakeholderIds = savedStakeholders.stream().map(Stakeholder::getId).toList();
 
         Transaction tx = Transaction.builder().type(Transaction.TransactionType.TRANSFER).amount(0L)
-            .description("StakeholderNFT 발행 대기 중").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
+            .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
         tx = transactionRepository.save(tx);
         Long txId = tx.getId();
 

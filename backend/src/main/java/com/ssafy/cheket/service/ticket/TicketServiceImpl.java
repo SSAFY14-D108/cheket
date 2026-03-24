@@ -278,15 +278,14 @@ public class TicketServiceImpl implements TicketService {
             throw new ConflictException("본인에게는 양도할 수 없습니다.");
         }
 
-        // ========== ③ 받는 사람 maxPerWallet 초과 확인 ==========
-        // 컨트랙트에서도 검증하지만, 불필요한 TX를 막기 위해 사전 필터링
-        // "이 공연에 대해 받는 사람이 이미 몇 장 갖고 있나?"
+        // ========== ③ 받는 사람 회차별 maxPerWallet 초과 확인 ==========
+        // 온체인 walletTicketCount[eventId][sessionId][wallet]와 동일 기준
         Session session = sessionRepository.findById(seat.getSessionId())
             .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다."));
         Show show = showRepository.findById(session.getShowId())
             .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
 
-        long receiverTicketCount = ticketRepository.countByUserIdAndShowId(receiver.getId(), show.getId());
+        long receiverTicketCount = ticketRepository.countByUserIdAndSessionId(receiver.getId(), session.getId());
         if (receiverTicketCount >= show.getPurchaseLimit()) {
             throw new ConflictException("받는 사람의 구매 한도(" + show.getPurchaseLimit() + "매)를 초과합니다.");
         }
@@ -294,7 +293,7 @@ public class TicketServiceImpl implements TicketService {
         // ========== ④ Transaction PENDING 생성 ==========
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.TRANSFER) // 양도 타입
             .amount(0L) // 무료 양도
-            .description("양도 처리 중").txStatus(Transaction.TxStatus.PENDING).buyerId(senderUserId) // 보내는 사람 기록
+            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(senderUserId) // 보내는 사람 기록
             .build();
         transactionRepository.save(transaction);
 
