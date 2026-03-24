@@ -2,7 +2,9 @@ package com.ssafy.cheket.service.blockchain;
 
 import com.ssafy.cheket.entity.host.Host;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
+import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
+import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.ticket.Ticket;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.user.User;
@@ -13,15 +15,19 @@ import com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEven
 import com.ssafy.cheket.entity.resale.Resale;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.entity.show.Seat;
+import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.SeatRepository;
+import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
+import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.repository.resale.ResaleEntityRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
+import com.ssafy.cheket.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,6 +80,10 @@ public class BlockchainAsyncWorker {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
+    private final ShowRepository showRepository;
+    private final SessionRepository sessionRepository;
+
+    private final NotificationService notificationService;
 
     @Value("${wallet.keystore.password}")
     private String keystorePassword;
@@ -812,6 +822,18 @@ public class BlockchainAsyncWorker {
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setDescription("블록체인 확정 — 리세일 구매 완료 (" + resalePrice + " SSF)");
             transactionRepository.save(tx);
+
+            SessionSeat sessionSeat = sessionSeatRepository.findById(ticket.getSessionSeatId())
+                .orElseThrow(() -> new NotFoundException("좌석 정보를 찾을 수 없습니다."));
+
+            Session session = sessionRepository.findById(sessionSeat.getSessionId())
+                .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다."));
+
+            Show show = showRepository.findById(session.getShowId())
+                .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
+
+            // 판매자 알림
+            notificationService.sendResale(sellerUserId, show.getTitle());
 
             // RESALE_PURCHASE 1건에 buyerId + sellerId 둘 다 있으므로
             // 구매자/판매자 모두 거래내역에서 조회 가능 (별도 TX 불필요)

@@ -97,7 +97,7 @@ public class NotificationServiceTest {
     void 공연_등록_요청_알림_생성_성공() {
         int before = notificationRepository.findAll().size();
 
-        notificationService.sendRequestCreate(1L);
+        notificationService.sendRequestCreate(1L, 1L);
 
         List<Notification> notifications = notificationRepository.findAll();
         assertThat(notifications).hasSize(before + 1);
@@ -112,7 +112,7 @@ public class NotificationServiceTest {
     void 공연_수정_요청_알림_생성_성공() {
         int before = notificationRepository.findAll().size();
 
-        notificationService.sendRequestUpdate(1L);
+        notificationService.sendRequestUpdate(1L, 1L);
 
         List<Notification> notifications = notificationRepository.findAll();
         assertThat(notifications).hasSize(before + 1);

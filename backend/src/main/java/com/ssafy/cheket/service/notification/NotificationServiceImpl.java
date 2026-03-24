@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,6 +45,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void createNotification(CreateNotificationRequest request) {
+        createNotification(request, Map.of());
+    }
+
+    public void createNotification(CreateNotificationRequest request, Map<String, String> data) {
         User user = userRepository.findByIdAndDeletedAtIsNull(request.getUserId())
             .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
 
@@ -56,10 +61,18 @@ public class NotificationServiceImpl implements NotificationService {
         Notification notification = Notification.builder().title(request.getTitle()).message(finalMessage)
             .userId(request.getUserId()).notificationMessageId(template.getId()).build();
 
-        notificationRepository.save(notification);
+        Notification savedNotification = notificationRepository.save(notification);
 
         if (user.getFcmToken() != null && !user.getFcmToken().isBlank()) {
-            pushNotificationService.sendPush(user.getFcmToken(), request.getTitle(), finalMessage);
+            Map<String, String> payload = new HashMap<>();
+            payload.put("type", request.getType().name());
+            payload.put("notificationId", String.valueOf(savedNotification.getId()));
+
+            if (data != null) {
+                payload.putAll(data);
+            }
+
+            pushNotificationService.sendPush(user.getFcmToken(), request.getTitle(), finalMessage, payload);
         }
     }
 
@@ -86,15 +99,15 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void sendRequestCreate(Long userId) {
+    public void sendRequestCreate(Long userId, Long showId) {
         createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.RQ_CREATE)
-            .title("공연 등록 요청").variables(Map.of()).build());
+            .title("공연 등록 요청").variables(Map.of()).build(), Map.of("showId", String.valueOf(showId)));
     }
 
     @Override
-    public void sendRequestUpdate(Long userId) {
+    public void sendRequestUpdate(Long userId, Long showId) {
         createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.RQ_UPDATE)
-            .title("공연 수정 요청").variables(Map.of()).build());
+            .title("공연 수정 요청").variables(Map.of()).build(), Map.of("showId", String.valueOf(showId)));
     }
 
     @Override

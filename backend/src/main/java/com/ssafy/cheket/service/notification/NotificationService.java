@@ -14,9 +14,9 @@ public interface NotificationService {
 
     void sendSettlement(Long userId, LocalDateTime sessionDateTime, String showTitle, BigDecimal settlementAmount);
 
-    void sendRequestCreate(Long userId);
+    void sendRequestCreate(Long userId, Long showId);
 
-    void sendRequestUpdate(Long userId);
+    void sendRequestUpdate(Long userId, Long showId);
 
     void sendTomorrowShowStartNotifications();
 

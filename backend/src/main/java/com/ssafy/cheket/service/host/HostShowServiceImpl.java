@@ -289,7 +289,7 @@ public class HostShowServiceImpl implements HostShowService {
             .distinct().toList();
 
         for (Long userId : targetUserIds) {
-            notificationService.sendRequestCreate(userId);
+            notificationService.sendRequestCreate(userId, showId);
         }
 
         // 플랫폼도 Stakeholder로 추가 (800 bps = 8%)
@@ -526,7 +526,7 @@ public class HostShowServiceImpl implements HostShowService {
             .filter(Objects::nonNull).distinct().toList();
 
         for (Long userId : targetUserIds) {
-            notificationService.sendRequestUpdate(userId);
+            notificationService.sendRequestUpdate(userId, showId);
         }
     }
 

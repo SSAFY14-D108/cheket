@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -15,11 +17,11 @@ public class PushNotificationServiceImpl implements PushNotificationService {
     private final FirebaseMessaging firebaseMessaging;
 
     @Override
-    public void sendPush(String fcmToken, String title, String body) {
+    public void sendPush(String fcmToken, String title, String body, Map<String, String> data) {
         try {
             Message message = Message.builder().setToken(fcmToken)
                 .setNotification(Notification.builder().setTitle(title).setBody(body).build()).putData("title", title)
-                .putData("body", body).build();
+                .putData("body", body).putAllData(data == null ? Map.of() : data).build();
 
             String response = firebaseMessaging.send(message);
             log.info("FCM sent successfully: {}", response);
