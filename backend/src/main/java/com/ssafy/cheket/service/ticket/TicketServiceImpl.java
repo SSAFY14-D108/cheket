@@ -126,17 +126,14 @@ public class TicketServiceImpl implements TicketService {
         WalletBalanceResponse balanceResponse = walletService.refreshBalance(userId, "ROLE_USER");
         int currentBalance = balanceResponse.balance() != null ? balanceResponse.balance() : 0;
         if (currentBalance < totalPrice) {
-            throw new ConflictException("SSF 잔액이 부족합니다. (보유: "
-                + currentBalance + " SSF, 필요: " + totalPrice + " SSF)");
+            throw new ConflictException("SSF 잔액이 부족합니다. (보유: " + currentBalance + " SSF, 필요: " + totalPrice + " SSF)");
         }
         // 회차별 구매 한도 확인 (온체인 walletTicketCount와 동일 기준)
-        Show show = showRepository.findById(showId)
-            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
         long currentCount = ticketRepository.countByUserIdAndSessionId(userId, sessionId);
         if (currentCount + seats.size() > show.getPurchaseLimit()) {
-            throw new ConflictException("구매 한도를 초과합니다. (현재: "
-                + currentCount + "매, 요청: " + seats.size()
-                + "매, 한도: " + show.getPurchaseLimit() + "매)");
+            throw new ConflictException("구매 한도를 초과합니다. (현재: " + currentCount + "매, 요청: " + seats.size() + "매, 한도: "
+                + show.getPurchaseLimit() + "매)");
         }
 
         // ② 좌석 → PENDING_TX
@@ -372,8 +369,7 @@ public class TicketServiceImpl implements TicketService {
         // ========== ④ Transaction PENDING 생성 ==========
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.TRANSFER) // 양도 타입
             .amount(0L) // 무료 양도
-            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING)
-            .sellerId(senderUserId)   // 보내는 사람
+            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(senderUserId) // 보내는 사람
             .buyerId(receiver.getId()) // 받는 사람
             .build();
         transactionRepository.save(transaction);
@@ -460,8 +456,10 @@ public class TicketServiceImpl implements TicketService {
 
         // ⑤ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CREATE)
-            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING)
-            .sellerId(userId)  // 등록하는 사람 = 판매자
+            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(userId) // 등록하는
+                                                                                                                         // 사람
+                                                                                                                         // =
+                                                                                                                         // 판매자
             .build();
         transactionRepository.save(transaction);
 

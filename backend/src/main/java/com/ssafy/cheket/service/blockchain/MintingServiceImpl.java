@@ -7,7 +7,6 @@ import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.enums.SeatStatus;
-import com.ssafy.cheket.enums.ShowStatus;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
@@ -21,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,12 +27,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * MintingServiceImpl — 온체인 조회 + 유틸 구현체
+ *
+ * [역할] ① 온체인 조회: 공연 통합 상태, 좌석 매핑, 잔액 비교 등 ② 테스트 유틸: AVAILABLE 좌석 랜덤 조회, 사용자 잔액
+ * 비교 등
+ *
+ * [민팅은 ShowMintingService가 담당]
+ *
+ * MintingController에서 호출됨
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MintingQueryService {
+public class MintingServiceImpl implements MintingService {
 
-    private final ShowMintingService showMintingService;
     private final BlockchainService blockchainService;
     private final ShowRepository showRepository;
     private final StakeholderRepository stakeholderRepository;
@@ -43,36 +50,9 @@ public class MintingQueryService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
 
-    // ========== 민팅 ==========
+    // ========== 온체인 통합 조회 ==========
 
-    public void mintShow(Long showId) {
-        showMintingService.mintShowNfts(showId);
-    }
-
-    public Map<String, Object> mintAllDraftShows() {
-        List<Show> draftShows = showRepository.findByStatusAndReservationStartDateBetween(ShowStatus.DRAFT,
-            LocalDateTime.MIN, LocalDateTime.MAX);
-
-        log.info("[민팅] DRAFT 공연 전체 민팅 — {}건", draftShows.size());
-
-        int success = 0;
-        int failed = 0;
-
-        for (Show show : draftShows) {
-            try {
-                showMintingService.mintShowNfts(show.getId());
-                success++;
-            } catch (Exception e) {
-                log.error("[민팅] 공연 {} 민팅 실패", show.getId(), e);
-                failed++;
-            }
-        }
-
-        return Map.of("message", "전체 민팅 완료", "total", draftShows.size(), "success", success, "failed", failed);
-    }
-
-    // ========== showId 기반 온체인 통합 조회 ==========
-
+    @Override
     public Map<String, Object> getShowOnChainStatus(Long showId) {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
@@ -191,112 +171,9 @@ public class MintingQueryService {
         return result;
     }
 
-    // ========== 온체인 개별 조회 ==========
-
-    public Map<String, Object> getStakeholder(Long tokenId) {
-        try {
-            var result = blockchainService.getStakeholderNFT().getStakeholder(BigInteger.valueOf(tokenId)).send();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("tokenId", tokenId);
-            data.put("wallet", result.component1());
-            data.put("role", result.component2());
-            data.put("shareBps", result.component3());
-            data.put("eventNftId", result.component4());
-            return data;
-        } catch (Exception e) {
-            throw new BlockchainException("StakeholderNFT 조회 실패: tokenId=" + tokenId + " — " + e.getMessage());
-        }
-    }
-
-    public Map<String, Object> getEvent(Long eventId) {
-        try {
-            var info = blockchainService.getEventNFT().getEventInfo(BigInteger.valueOf(eventId)).send();
-            var stakeholderIds = blockchainService.getEventNFT().getStakeholderTokenIds(BigInteger.valueOf(eventId))
-                .send();
-            var sessionIds = blockchainService.getEventNFT().getSessionIds(BigInteger.valueOf(eventId)).send();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("eventId", eventId);
-            data.put("metadataCID", info.component1());
-            data.put("totalSupply", info.component2());
-            data.put("maxPerWallet", info.component3());
-            data.put("resaleCapBps", info.component4());
-            data.put("bookingStartTime", info.component5());
-            data.put("bookingEndTime", info.component6());
-            data.put("isActive", info.component7());
-            data.put("stakeholderTokenIds", stakeholderIds);
-            data.put("sessionIds", sessionIds);
-            return data;
-        } catch (Exception e) {
-            throw new BlockchainException("EventNFT 조회 실패: eventId=" + eventId + " — " + e.getMessage());
-        }
-    }
-
-    public Map<String, Object> getSession(Long sessionId) {
-        try {
-            var result = blockchainService.getEventNFT().getSession(BigInteger.valueOf(sessionId)).send();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("sessionId", sessionId);
-            data.put("eventId", result.component1());
-            data.put("sessionTimestamp", result.component2());
-            data.put("ticketSupply", result.component3());
-            data.put("isFinalized", result.component4());
-            return data;
-        } catch (Exception e) {
-            throw new BlockchainException("회차 조회 실패: sessionId=" + sessionId + " — " + e.getMessage());
-        }
-    }
-
-    public Map<String, Object> getTicket(Long tokenId) {
-        try {
-            var ticket = blockchainService.getTicketNFT().getTicket(BigInteger.valueOf(tokenId)).send();
-            String owner = blockchainService.getTicketNFT().ownerOf(BigInteger.valueOf(tokenId)).send();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("tokenId", tokenId);
-            data.put("owner", owner);
-            data.put("eventId", ticket.eventId);
-            data.put("sessionId", ticket.sessionId);
-            data.put("section", ticket.section);
-            data.put("row", ticket.row);
-            data.put("seat", ticket.seat);
-            data.put("grade", ticket.grade);
-            data.put("price", ticket.price);
-            data.put("status", ticket.status);
-            data.put("mintedAt", ticket.mintedAt);
-            return data;
-        } catch (Exception e) {
-            throw new BlockchainException("TicketNFT 조회 실패: tokenId=" + tokenId + " — " + e.getMessage());
-        }
-    }
-
-    public Map<String, Object> getTicketTotalSupply() {
-        try {
-            BigInteger totalSupply = blockchainService.getTicketNFT().totalSupply().send();
-            return Map.of("totalSupply", totalSupply);
-        } catch (Exception e) {
-            throw new BlockchainException("TicketNFT totalSupply 조회 실패 — " + e.getMessage());
-        }
-    }
-
-    public Map<String, Object> getRefundPolicy(Long eventId) {
-        try {
-            var result = blockchainService.getEventNFT().getRefundPolicies(BigInteger.valueOf(eventId)).send();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("eventId", eventId);
-            data.put("daysArray", result.component1());
-            data.put("rateBpsArray", result.component2());
-            return data;
-        } catch (Exception e) {
-            throw new BlockchainException("환불 정책 조회 실패: eventId=" + eventId + " — " + e.getMessage());
-        }
-    }
-
     // ========== 유틸 ==========
 
+    @Override
     public Map<String, Object> getSeatOnChainMapping(Long sessionSeatId) {
         SessionSeat seat = sessionSeatRepository.findById(sessionSeatId)
             .orElseThrow(() -> new NotFoundException("좌석을 찾을 수 없습니다: " + sessionSeatId));
@@ -327,6 +204,7 @@ public class MintingQueryService {
         return data;
     }
 
+    @Override
     public Map<String, Object> getShowSeatsMapping(Long showId) {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
@@ -388,6 +266,7 @@ public class MintingQueryService {
         return result;
     }
 
+    @Override
     public Map<String, Object> getUserOnChainBalance(Long userId) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다: " + userId));
@@ -406,6 +285,7 @@ public class MintingQueryService {
         return data;
     }
 
+    @Override
     public Map<String, Object> getUserOwnedTickets(Long userId) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다: " + userId));
@@ -449,20 +329,7 @@ public class MintingQueryService {
         return data;
     }
 
-    public Map<String, Object> getSettlementDeposit(Long onChainSessionId) {
-        try {
-            BigInteger deposited = blockchainService.getSettlement()
-                .sessionDeposits(BigInteger.valueOf(onChainSessionId)).send();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("onChainSessionId", onChainSessionId);
-            data.put("depositedAmount", deposited);
-            return data;
-        } catch (Exception e) {
-            throw new BlockchainException("Settlement 조회 실패: sessionId=" + onChainSessionId + " — " + e.getMessage());
-        }
-    }
-
+    @Override
     public Map<String, Object> getAvailableSeats(Long showId, int count) {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
