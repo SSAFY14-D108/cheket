@@ -3,6 +3,8 @@ package com.ssafy.cheket.service.ticket;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 import com.ssafy.cheket.dto.queue.SeatAccessMeta;
+import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
+import com.ssafy.cheket.service.wallet.WalletService;
 import com.ssafy.cheket.entity.show.RefundPolicy;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
@@ -66,6 +68,7 @@ public class TicketServiceImpl implements TicketService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final WalletService walletService;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
     private final BlockchainService blockchainService;
 
@@ -110,6 +113,30 @@ public class TicketServiceImpl implements TicketService {
             if (seat.getOnChainTicketNftId() == null) {
                 throw new NotFoundException("온체인 티켓이 없는 좌석입니다: sessionSeatId=" + seat.getId());
             }
+        }
+        // SSF 잔액 사전 검증 (온체인 balanceOf 직접 조회)
+        int totalPrice = 0;
+        for (SessionSeat seat : seats) {
+            Seat seatInfo = seatRepository.findById(seat.getSeatId())
+                .orElseThrow(() -> new NotFoundException("좌석 정보를 찾을 수 없습니다."));
+            SeatGrade grade = seatGradeRepository.findByShowIdAndSectionId(showId, seatInfo.getSectionId())
+                .orElseThrow(() -> new NotFoundException("좌석 등급을 찾을 수 없습니다."));
+            totalPrice += grade.getPrice();
+        }
+        WalletBalanceResponse balanceResponse = walletService.refreshBalance(userId, "ROLE_USER");
+        int currentBalance = balanceResponse.balance() != null ? balanceResponse.balance() : 0;
+        if (currentBalance < totalPrice) {
+            throw new ConflictException("SSF 잔액이 부족합니다. (보유: "
+                + currentBalance + " SSF, 필요: " + totalPrice + " SSF)");
+        }
+        // 회차별 구매 한도 확인 (온체인 walletTicketCount와 동일 기준)
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
+        long currentCount = ticketRepository.countByUserIdAndSessionId(userId, sessionId);
+        if (currentCount + seats.size() > show.getPurchaseLimit()) {
+            throw new ConflictException("구매 한도를 초과합니다. (현재: "
+                + currentCount + "매, 요청: " + seats.size()
+                + "매, 한도: " + show.getPurchaseLimit() + "매)");
         }
 
         // ② 좌석 → PENDING_TX
