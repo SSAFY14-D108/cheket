@@ -1,0 +1,68 @@
+server:
+    forward-headers-strategy: framework
+
+spring:
+    application:
+        name: cheket
+    autoconfigure:
+        exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+    datasource:
+        url: jdbc:mysql://localhost:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+        username: ${MYSQL_USER}
+        password: ${MYSQL_PASSWORD}
+        driver-class-name: com.mysql.cj.jdbc.Driver
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.MySQLDialect
+    data:
+        redis:
+            host: localhost
+            port: 6379
+            password: ${REDIS_PASSWORD}
+            database: 0
+    servlet:
+      multipart:
+          max-file-size: 5MB
+          max-request-size: 50MB
+
+wallet:
+    keystore:
+        password: ${KEYSTORE_PASSWORD}
+        directory: ${KEYSTORE_DIR}
+
+jwt:
+    secret: ${JWT_SECRET}
+    access-expiration: ${JWT_ACCESS_EXPIRATION}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+
+solapi:
+    api-key: ${SOLAPI_API_KEY}
+    api-secret: ${SOLAPI_API_SECRET}
+    sender: ${SOLAPI_SENDER_NUMBER}
+
+blockchain:
+    rpc-url: ${BLOCKCHAIN_RPC_URL}
+    platform-private-key: ${PRIVATE_KEY}
+    initial-transfer-amount: ${BLOCKCHAIN_INITIAL_TRANSFER_AMOUNT}
+    ssf-contract-address: ${BLOCKCHAIN_SSF_CONTRACT}
+    chain-id: ${BLOCKCHAIN_CHAIN_ID}
+    stakeholder-nft-address: ${BLOCKCHAIN_STAKEHOLDER_NFT}
+    event-nft-address: ${BLOCKCHAIN_EVENT_NFT}
+    ticket-nft-address: ${BLOCKCHAIN_TICKET_NFT}
+    settlement-address: ${BLOCKCHAIN_SETTLEMENT}
+    purchase-router-address: ${BLOCKCHAIN_PURCHASE_ROUTER}
+    marketplace-address: ${BLOCKCHAIN_MARKETPLACE}
+    escrow-address: ${BLOCKCHAIN_ESCROW}
+
+cloud:
+    aws:
+        credentials:
+            access-key: ${AWS_ACCESS_KEY}
+            secret-key: ${AWS_SECRET_KEY}
+        region:
+            static-region: ${AWS_REGION}
+        s3:
+            bucket: ${AWS_BUCKET}
