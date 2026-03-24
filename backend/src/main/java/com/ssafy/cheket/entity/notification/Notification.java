@@ -1,5 +1,6 @@
 package com.ssafy.cheket.entity.notification;
 
+import com.ssafy.cheket.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,6 +27,13 @@ public class Notification {
 
     @Column(name = "is_read", nullable = false)
     private boolean isRead;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private NotificationType type;
+
+    @Column(name = "show_id")
+    private Long showId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

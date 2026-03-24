@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.user;
 
 import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.notification.response.GetNotificationsResponse;
 import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
@@ -13,6 +14,7 @@ import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.notification.NotificationRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import com.ssafy.cheket.service.wallet.WalletService;
@@ -27,6 +29,7 @@ import org.web3j.crypto.WalletUtils;
 
 import java.io.File;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -37,6 +40,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final NotificationRepository notificationRepository;
+
     private final WalletService walletService;
     private final JwtTokenProvider jwtTokenProvider;
     private final StringRedisTemplate redisTemplate;
@@ -133,6 +138,7 @@ public class UserServiceImpl implements UserService {
         user.setNotificationEnable(request.notificationEnable());
     }
 
+    // FCM 토큰 저장
     @Override
     @Transactional
     public void saveFcmToken(Long userId, SaveFcmTokenRequest request) {
@@ -143,5 +149,15 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("FCM 토큰은 비어 있을 수 없습니다.");
 
         user.setFcmToken(request.fcmToken());
+    }
+
+    // 알림 내역 조회
+    @Override
+    @Transactional(readOnly = true)
+    public List<GetNotificationsResponse> getNotifications(Long userId) {
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+            .map(notification -> new GetNotificationsResponse(notification.getId(), notification.getMessage(),
+                notification.getType().name(), notification.isRead(), notification.getShowId()))
+            .toList();
     }
 }
