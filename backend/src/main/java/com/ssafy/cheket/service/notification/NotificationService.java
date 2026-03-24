@@ -17,4 +17,8 @@ public interface NotificationService {
     void sendRequestCreate(Long userId);
 
     void sendRequestUpdate(Long userId);
+
+    void sendTomorrowShowStartNotifications();
+
+    void sendTodayShowStartNotifications();
 }

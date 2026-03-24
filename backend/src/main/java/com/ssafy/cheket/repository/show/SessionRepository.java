@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.jpa.repository.Modifying;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SessionRepository extends JpaRepository<Session, Long> {
@@ -34,4 +35,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     boolean existsByIdAndShowId(Long sessionId, Long showId);
 
     List<Session> findByShowIdOrderBySessionDateAsc(Long showId);
+
+    // 주어진 기간 [start, end)에 해당하는 세션 목록 조회
+    List<Session> findBySessionDateGreaterThanEqualAndSessionDateLessThan(LocalDateTime start, LocalDateTime end);
 }

@@ -111,4 +111,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT COUNT(t) FROM Ticket t " + "JOIN SessionSeat ss ON t.sessionSeatId = ss.id "
         + "JOIN Session s ON ss.sessionId = s.id " + "WHERE t.userId = :userId AND s.showId = :showId")
     long countByUserIdAndShowId(@Param("userId") Long userId, @Param("showId") Long showId);
+
+    // 특정 세션의 티켓을 보유한 사용자 아이디를 중복 없이 조회
+    @Query("""
+            select distinct t.userId
+            from Ticket t
+            join SessionSeat ss on ss.id = t.sessionSeatId
+            where ss.sessionId = :sessionId
+        """)
+    List<Long> findDistinctUserIdsBySessionId(@Param("sessionId") Long sessionId);
 }

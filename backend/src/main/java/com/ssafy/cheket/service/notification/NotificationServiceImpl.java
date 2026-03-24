@@ -3,10 +3,15 @@ package com.ssafy.cheket.service.notification;
 import com.ssafy.cheket.dto.notification.request.CreateNotificationRequest;
 import com.ssafy.cheket.entity.notification.Notification;
 import com.ssafy.cheket.entity.notification.NotificationMessage;
+import com.ssafy.cheket.entity.show.Session;
+import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.NotificationType;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.notification.NotificationMessageRepository;
 import com.ssafy.cheket.repository.notification.NotificationRepository;
+import com.ssafy.cheket.repository.show.SessionRepository;
+import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.util.notification.NotificationTemplateUtil;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -25,6 +33,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMessageRepository notificationMessageRepository;
     private final UserRepository userRepository;
+    private final SessionRepository sessionRepository;
+    private final ShowRepository showRepository;
+    private final TicketRepository ticketRepository;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
@@ -77,6 +88,36 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendRequestUpdate(Long userId) {
         createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.RQ_UPDATE)
             .title("공연 수정 요청").variables(Map.of()).build());
+    }
+
+    @Override
+    public void sendTomorrowShowStartNotifications() {
+        LocalDate targetDate = LocalDate.now(ZoneId.of("Asia/Seoul")).plusDays(1);
+        sendShowStartNotificationsByDate(targetDate);
+    }
+
+    @Override
+    public void sendTodayShowStartNotifications() {
+        LocalDate targetDate = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        sendShowStartNotificationsByDate(targetDate);
+    }
+
+    private void sendShowStartNotificationsByDate(LocalDate targetDate) {
+        LocalDateTime start = targetDate.atStartOfDay();
+        LocalDateTime end = targetDate.plusDays(1).atStartOfDay();
+
+        List<Session> sessions = sessionRepository.findBySessionDateGreaterThanEqualAndSessionDateLessThan(start, end);
+
+        for (Session session : sessions) {
+            Show show = showRepository.findById(session.getShowId())
+                .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
+
+            List<Long> userIds = ticketRepository.findDistinctUserIdsBySessionId(session.getId());
+
+            for (Long userId : userIds) {
+                sendShowStart(userId, session.getSessionDate(), show.getTitle());
+            }
+        }
     }
 
     private Map<String, String> getVariablesOrEmpty(Map<String, String> variables) {
