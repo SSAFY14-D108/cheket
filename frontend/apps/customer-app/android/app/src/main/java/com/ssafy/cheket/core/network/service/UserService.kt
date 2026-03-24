@@ -16,4 +16,7 @@ interface UserService {
 
     @PUT("api/v1/users/notifications")
     suspend fun updateNotification(@Body request: NotificationRequest): ApiResponse<Unit>
+
+    @POST("api/v1/users/fcm-token")
+    suspend fun saveFcmToken(@Body request: FcmTokenRequest): ApiResponse<Unit>
 }

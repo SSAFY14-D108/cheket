@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.resale
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,7 +72,7 @@ import com.ssafy.cheket.ui.theme.White
 @Composable
 fun ResaleCreateScreen(
     ticketId: String,
-    onSuccess: () -> Unit,
+    onSuccess: (txId: Long?) -> Unit,
     onBack: () -> Unit,
     viewModel: ResaleCreateViewModel = viewModel(factory = ResaleCreateViewModel.factory(ticketId)),
 ) {
@@ -88,15 +89,12 @@ fun ResaleCreateScreen(
         0
     }
 
-    if (ticket != null && uiState.submitMessage != null) {
-        ResaleCreateSubmittedScreen(
-            ticket = ticket,
-            submittedPrice = price ?: 0,
-            submitMessage = uiState.submitMessage ?: "2차 판매 등록 요청이 접수되었습니다.",
-            transactionId = uiState.transactionId,
-            onSuccess = onSuccess,
-        )
-        return
+    // 리세일 등록 성공 시 → TX 폴링 화면으로 이동
+    LaunchedEffect(uiState.transactionId) {
+        val txId = uiState.transactionId
+        if (txId != null) {
+            onSuccess(txId)
+        }
     }
 
     Scaffold(

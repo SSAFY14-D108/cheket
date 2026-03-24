@@ -13,6 +13,10 @@ data class NotificationRequest(
     @SerializedName("notificationEnable") val notificationEnable: Boolean,
 )
 
+data class FcmTokenRequest(
+    @SerializedName("fcmToken") val fcmToken: String,
+)
+
 data class LikedShowDto(
     @SerializedName("showId") val showId: Long,
     @SerializedName("title") val title: String,

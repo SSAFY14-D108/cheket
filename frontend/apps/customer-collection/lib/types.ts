@@ -10,6 +10,7 @@ export interface CollectionTicket {
   grade: string
   numbering: string
   status: 'USED'
+  effect?: string | null
 }
 
 // Backend API response shape
@@ -49,5 +50,6 @@ export function mapDtoToTicket(dto: CollectionTicketDto): CollectionTicket {
     grade: dto.grade,
     numbering: dto.numbering,
     status: 'USED',
+    effect: dto.show.effect ?? null,
   }
 }

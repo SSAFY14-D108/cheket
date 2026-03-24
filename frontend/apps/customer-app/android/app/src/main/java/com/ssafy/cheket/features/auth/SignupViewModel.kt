@@ -185,7 +185,7 @@ class SignupViewModel(
                 val response = authService.signup(
                     SignupRequest(
                         username = state.name,
-                        phoneNumber = state.phone,
+                        phoneNumber = com.ssafy.cheket.core.ui.component.formatPhoneForApi(state.phone),
                         email = state.email,
                         password = state.password,
                     )

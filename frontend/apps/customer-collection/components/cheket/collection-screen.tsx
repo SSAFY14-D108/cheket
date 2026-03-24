@@ -13,10 +13,10 @@ import { TicketSparklesAura } from './ticket-sparkles-aura'
 type Ticket = CollectionTicket
 
 /**
- * Android WebView 가속계 Bridge → DeviceOrientation 이벤트로 변환.
+ * Android WebView 가속계 Bridge → 홀로그래픽 CSS 변수 직접 업데이트.
  * Android에서 CustomEvent('nativeTilt', {detail: {tiltX, tiltY}})를
- * 발행하면 이 hook이 DeviceOrientationEvent를 시뮬레이션해서
- * react-parallax-tilt의 gyroscope prop이 동작하도록 합니다.
+ * 발행하면 .ticket-holo-tilt 요소의 CSS 변수를 직접 세팅하여
+ * 홀로그래픽 이펙트가 기기 기울기에 반응하도록 합니다.
  */
 function useNativeTiltBridge() {
   useEffect(() => {
@@ -24,14 +24,34 @@ function useNativeTiltBridge() {
 
     const handler = (e: Event) => {
       const { tiltX, tiltY } = (e as CustomEvent).detail
-      // DeviceOrientationEvent: beta=앞뒤(tiltX), gamma=좌우(tiltY)
-      const event = new DeviceOrientationEvent('deviceorientation', {
-        alpha: 0,
-        beta: tiltX * 3,   // 가속계 값을 3배로 증폭 (체감 향상)
-        gamma: tiltY * 3,
-        absolute: false,
+
+      // tiltX: 앞뒤 (-15~15), tiltY: 좌우 (-15~15) → CSS 0~100%
+      const mx = ((tiltY + 15) / 30 * 100)
+      const my = ((tiltX + 15) / 30 * 100)
+      const rx = (0.5 - my / 100) * 10
+      const ry = (mx / 100 - 0.5) * 10
+
+      // 모든 .ticket-holo-tilt 요소에 CSS 변수 적용
+      document.querySelectorAll('.ticket-holo-tilt').forEach((host) => {
+        const el = host as HTMLElement
+        el.style.setProperty('--mx', `${mx}%`)
+        el.style.setProperty('--my', `${my}%`)
+        el.style.setProperty('--rx', `${rx}deg`)
+        el.style.setProperty('--ry', `${ry}deg`)
+        el.style.setProperty('--posx', `${mx}%`)
+        el.style.setProperty('--posy', `${my}%`)
       })
-      window.dispatchEvent(event)
+
+      // 홀로 레이어에도 적용
+      document.querySelectorAll('.ticket-holo-front-layer').forEach((layer) => {
+        const el = layer as HTMLElement
+        el.style.setProperty('--mx', `${mx}%`)
+        el.style.setProperty('--my', `${my}%`)
+        el.style.setProperty('--rx', `${rx}deg`)
+        el.style.setProperty('--ry', `${ry}deg`)
+        el.style.setProperty('--posx', `${mx}%`)
+        el.style.setProperty('--posy', `${my}%`)
+      })
     }
 
     window.addEventListener('nativeTilt', handler)
@@ -185,7 +205,29 @@ function useDecodedPoster(src: string, eagerLoad = false) {
   return ready
 }
 
-function getTicketEffect(ticketId: string): EffectType {
+// API effect 값 → EffectType 매핑
+const EFFECT_NAME_MAP: Record<string, EffectType> = {
+  'Gold': 'gold-foil',
+  'Silver': 'silver-foil',
+  'Rose': 'rose-foil',
+  'Hologram': 'rainbow',
+  'Aurora': 'aurora',
+  'Prism': 'prism',
+  'Cosmos': 'cosmos',
+  'Sunset': 'sunset',
+  'Neon': 'neon',
+}
+
+function getTicketEffect(ticketId: string, apiEffect?: string | null): EffectType {
+  // API에서 지정한 이펙트가 있으면 매핑
+  if (apiEffect) {
+    const mapped = EFFECT_NAME_MAP[apiEffect]
+    if (mapped) return mapped
+    // EffectType으로 직접 매치되는 경우 (예: 'gold-foil' 그대로)
+    const lower = apiEffect.toLowerCase().replace(/\s+/g, '-')
+    if (HOLO_VARIANTS.includes(lower as EffectType)) return lower as EffectType
+  }
+  // fallback: ticket ID 기반 랜덤
   const num = Number(ticketId.replace(/\D/g, '')) || 0
   return HOLO_VARIANTS[num % HOLO_VARIANTS.length]
 }
@@ -685,9 +727,10 @@ function CollectibleTicketCard({
             <div
               ref={holoHostRef}
               className="ticket-holo-tilt"
-              onMouseEnter={() => setHoloActive(true)}
-              onMouseMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
-              onMouseLeave={() => {
+              style={{ touchAction: 'none' }}
+              onPointerEnter={() => setHoloActive(true)}
+              onPointerMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
+              onPointerLeave={() => {
                 setHoloActive(false)
                 const host = holoHostRef.current
                 if (host) {
@@ -710,7 +753,7 @@ function CollectibleTicketCard({
                 layer.style.setProperty('--posy', '50%')
               }}
             >
-              <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false} gyroscope={true}>
+              <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
                 <ReactCardFlip
                   isFlipped={flipped}
                   flipDirection="horizontal"
@@ -914,8 +957,12 @@ export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) 
   }, [collected])
 
   const getEffect = useCallback(
-    (ticketId: string): EffectType => effectMap[ticketId] ?? getTicketEffect(ticketId),
-    [effectMap]
+    (ticketId: string): EffectType => {
+      if (effectMap[ticketId]) return effectMap[ticketId]
+      const ticket = collected.find((t) => t.id === ticketId)
+      return getTicketEffect(ticketId, ticket?.effect)
+    },
+    [effectMap, collected]
   )
   const getResolvedNumberAura = useCallback(
     (ticketId: string): NumberAuraType => {

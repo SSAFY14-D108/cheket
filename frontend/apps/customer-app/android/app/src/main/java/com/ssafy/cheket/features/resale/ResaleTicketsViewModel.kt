@@ -103,6 +103,25 @@ class ResaleTicketsViewModel(
         }
     }
 
+    /** 리세일 티켓 구매 */
+    fun purchaseResale(ticketId: Long, onSuccess: (txId: Long) -> Unit) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "purchaseResale() ticketId=$ticketId")
+                val response = resaleService.purchaseResale(ticketId)
+                val txId = response.data?.txId
+                if (txId != null) {
+                    Log.d(TAG, "purchaseResale() success, txId=$txId")
+                    onSuccess(txId)
+                } else {
+                    Log.e(TAG, "purchaseResale() no txId in response")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "purchaseResale() failed", e)
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "ResaleTicketsVM"
 

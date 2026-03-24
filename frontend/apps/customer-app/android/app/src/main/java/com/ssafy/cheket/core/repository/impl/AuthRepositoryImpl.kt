@@ -15,6 +15,7 @@ import com.ssafy.cheket.core.network.service.UserService
 import com.ssafy.cheket.core.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,6 +59,14 @@ class AuthRepositoryImpl(
                 Log.d(TAG, "login() success, tokens saved. Fetching user info...")
                 fetchAndSetCurrentUser()
                 _isLoggedIn.value = true
+                // FCM 토큰 서버 등록
+                try {
+                    val fcmToken = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                    userService.saveFcmToken(com.ssafy.cheket.core.network.dto.FcmTokenRequest(fcmToken = fcmToken))
+                    Log.d(TAG, "login() FCM token sent: ${fcmToken.take(10)}...")
+                } catch (e: Exception) {
+                    Log.w(TAG, "login() FCM token registration failed (non-critical)", e)
+                }
                 true
             } else {
                 Log.w(TAG, "login() failed: ${response.responseMessage}")

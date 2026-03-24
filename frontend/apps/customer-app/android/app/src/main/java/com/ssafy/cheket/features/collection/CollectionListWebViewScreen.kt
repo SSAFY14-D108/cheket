@@ -183,12 +183,15 @@ fun CollectionListWebViewScreen(
                                     }
                                 }, 2000)
 
-                                // 가속계 Bridge 시작
-                                if (tiltBridge.value == null && view != null) {
-                                    val bridge = TiltSensorBridge(ctx, view)
-                                    bridge.start()
-                                    tiltBridge.value = bridge
-                                }
+                                // 가속계 Bridge 시작 (React hydration + API fetch 완료 대기)
+                                view?.postDelayed({
+                                    if (tiltBridge.value == null) {
+                                        val bridge = TiltSensorBridge(ctx, view)
+                                        bridge.start()
+                                        tiltBridge.value = bridge
+                                        Log.d(TAG, "TiltBridge started (delayed)")
+                                    }
+                                }, 3000)
                             }
 
                             override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {

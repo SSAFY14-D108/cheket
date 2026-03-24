@@ -112,6 +112,7 @@ fun SeatMapScreen(
     var isExpanded by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     var showDebugVenues by remember { mutableStateOf(false) }
+    var showPurchaseConfirmDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -196,10 +197,47 @@ fun SeatMapScreen(
                 },
                 onPurchase = {
                     showBottomSheet = false
-                    viewModel.saveToNavParams()
-                    onPurchase()
+                    showPurchaseConfirmDialog = true
                 },
             )
+        }
+    }
+
+    // 좌석 선점 실패 모달
+    if (state.showLockFailedDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.dismissLockFailedDialog() },
+            title = { Text("좌석 선점 실패", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("다음 좌석은 이미 다른 사람이 선택했습니다:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    state.lockFailedSeats.forEach { seat ->
+                        Text("• ${seat.sectionName} ${seat.seatNo} (${seat.grade})",
+                            color = com.ssafy.cheket.ui.theme.Danger)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("좌석을 다시 선택해주세요.", color = com.ssafy.cheket.ui.theme.MutedForeground)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissLockFailedDialog() }) {
+                    Text("확인")
+                }
+            },
+        )
+    }
+
+    // 좌석 선점 로딩 오버레이
+    if (state.isLocking) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                CircularProgressIndicator(color = com.ssafy.cheket.ui.theme.Primary)
+                Text("좌석을 확보하고 있습니다...", color = Color.White, fontSize = 14.sp)
+            }
         }
     }
 
@@ -431,8 +469,7 @@ fun SeatMapScreen(
                                         seat?.let { viewModel.toggleSeat(it) }
                                     },
                                     onPurchase = {
-                                        viewModel.saveToNavParams()
-                                        onPurchase()
+                                        viewModel.lockSeatsAndProceed { onPurchase() }
                                     },
                                 )
                             }
@@ -463,6 +500,62 @@ fun SeatMapScreen(
                     )
                 }
             }
+        )
+    }
+
+    // ── 결제 확인 모달 ──
+    if (showPurchaseConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showPurchaseConfirmDialog = false },
+            title = { Text("결제 화면으로 이동", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "선택한 좌석으로 결제를 진행합니다.",
+                        fontSize = 14.sp,
+                    )
+                    Text(
+                        "⚠️ 결제 화면에서 뒤로 가기 시\n다시 대기열을 통해 진입해야 합니다.",
+                        fontSize = 13.sp,
+                        color = Color(0xFFD97706),
+                        lineHeight = 18.sp,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPurchaseConfirmDialog = false
+                    viewModel.lockSeatsAndProceed { onPurchase() }
+                }) { Text("결제 진행", color = Primary, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPurchaseConfirmDialog = false }) {
+                    Text("취소", color = V0MutedFg)
+                }
+            },
+        )
+    }
+
+    // ── 좌석 선점 만료 모달 (기존 타이머 활용) ──
+    var showExpiredDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(remainingSeconds) {
+        if (remainingSeconds == 0L) {
+            showExpiredDialog = true
+        }
+    }
+
+    if (showExpiredDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("시간 초과", fontWeight = FontWeight.Bold) },
+            text = { Text("좌석 선점 시간이 만료되었습니다.\n공연 상세 화면으로 이동합니다.", lineHeight = 20.sp) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExpiredDialog = false
+                    onBack()
+                }) { Text("확인", color = Primary) }
+            },
         )
     }
 }

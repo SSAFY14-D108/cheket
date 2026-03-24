@@ -15,8 +15,12 @@ import com.ssafy.cheket.core.model.SectionSeat
 import com.ssafy.cheket.core.model.Seat
 import com.ssafy.cheket.core.model.Show
 import com.ssafy.cheket.core.navigation.NavParams
+import com.ssafy.cheket.core.network.dto.SeatLockRequest
+import com.ssafy.cheket.core.network.dto.SeatLockResponse
+import com.ssafy.cheket.core.network.dto.SeatLockSeatItem
 import com.ssafy.cheket.core.network.dto.SeatSectionDto
 import com.ssafy.cheket.core.network.service.ShowService
+import com.ssafy.cheket.core.network.service.TicketService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,12 +38,17 @@ data class SeatMapUiState(
     val venueIndex: Int = 0,
     val isTestMode: Boolean = false,
     val errorMessage: String? = null,
+    // 좌석 선점
+    val isLocking: Boolean = false,
+    val lockFailedSeats: List<SeatLockSeatItem> = emptyList(),
+    val showLockFailedDialog: Boolean = false,
 )
 
 class SeatMapViewModel(
     private val showId: String,
     private val sessionId: String,
     private val showService: ShowService? = null,
+    private val ticketService: TicketService? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SeatMapUiState())
@@ -267,6 +276,103 @@ class SeatMapViewModel(
         Log.d(TAG, "saveToNavParams() seats=${details.size}, totalPrice=$totalPrice, sessionId=$sessionId, show=${state.show?.name}")
     }
 
+    /**
+     * 좌석 선점 API 호출 후 결과에 따라 결제 화면 이동 또는 실패 모달 표시.
+     * @param onSuccess 모든 좌석 선점 성공 시 콜백 (결제 화면으로 이동)
+     */
+    fun lockSeatsAndProceed(onSuccess: () -> Unit) {
+        val seatAccessToken = NavParams.seatAccessToken
+        if (seatAccessToken.isNullOrBlank()) {
+            Log.e(TAG, "lockSeatsAndProceed() — no Seat-Access-Token")
+            _uiState.update { it.copy(errorMessage = "좌석 접근 토큰이 없습니다. 대기열을 통해 다시 진입해주세요.") }
+            return
+        }
+
+        val selectedIds = _uiState.value.selectedSeatIds.toList()
+        if (selectedIds.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLocking = true) }
+            try {
+                val showIdLong = showId.toLong()
+                val sessionIdLong = sessionId.toLong()
+
+                Log.d(TAG, "lockSeatsAndProceed() — showId=$showIdLong, sessionId=$sessionIdLong, seats=$selectedIds")
+
+                val response = ticketService!!.lockSeats(
+                    seatAccessToken = seatAccessToken,
+                    showId = showIdLong,
+                    sessionId = sessionIdLong,
+                    request = SeatLockRequest(sessionSeatIds = selectedIds),
+                )
+
+                val lockData = response.data
+                if (lockData == null) {
+                    _uiState.update { it.copy(isLocking = false, errorMessage = "좌석 선점 응답이 없습니다.") }
+                    return@launch
+                }
+
+                val failedSeats = lockData.seats.failure
+                if (failedSeats.isNotEmpty()) {
+                    // 일부 좌석 선점 실패
+                    Log.w(TAG, "lockSeatsAndProceed() — ${failedSeats.size} seats failed")
+                    _uiState.update {
+                        it.copy(
+                            isLocking = false,
+                            lockFailedSeats = failedSeats,
+                            showLockFailedDialog = true,
+                            // 실패한 좌석은 선택 해제
+                            selectedSeatIds = it.selectedSeatIds - failedSeats.map { s -> s.sessionSeatId }.toSet(),
+                        )
+                    }
+                    // 좌석맵 새로고침
+                    reloadSeats()
+                } else {
+                    // 모든 좌석 선점 성공 → NavParams에 저장 후 결제로 이동
+                    Log.d(TAG, "lockSeatsAndProceed() — all ${lockData.seats.success.size} seats locked, expiresAt=${lockData.expiresAt}")
+                    saveToNavParams()
+                    NavParams.seatAccessExpiresAt = lockData.expiresAt
+                    _uiState.update { it.copy(isLocking = false) }
+                    onSuccess()
+                }
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val errorMsg = try {
+                    val json = com.google.gson.JsonParser.parseString(errorBody).asJsonObject
+                    json.get("errorMessage")?.asString ?: json.get("responseMessage")?.asString
+                } catch (_: Exception) { null }
+                Log.e(TAG, "lockSeatsAndProceed() — HTTP ${e.code()}: $errorMsg", e)
+                _uiState.update { it.copy(isLocking = false, errorMessage = errorMsg ?: "좌석 선점에 실패했습니다.") }
+            } catch (e: Exception) {
+                Log.e(TAG, "lockSeatsAndProceed() — failed", e)
+                _uiState.update { it.copy(isLocking = false, errorMessage = "좌석 선점에 실패했습니다: ${e.message}") }
+            }
+        }
+    }
+
+    /** 실패 모달 닫기 */
+    fun dismissLockFailedDialog() {
+        _uiState.update { it.copy(showLockFailedDialog = false, lockFailedSeats = emptyList()) }
+    }
+
+    /** 좌석 데이터 새로고침 (선점 실패 후) */
+    private fun reloadSeats() {
+        if (isTestMode || showService == null) return
+        viewModelScope.launch {
+            try {
+                val showIdLong = showId.toLong()
+                val sessionIdLong = sessionId.toLong()
+                val seatsResponse = showService.getSeats(showIdLong, sessionIdLong)
+                val sectionDtos = seatsResponse.data ?: return@launch
+                val newSections = sectionDtos.map { it.toDomain() }
+                _uiState.update { state -> state.copy(sections = newSections) }
+                Log.d(TAG, "reloadSeats() — refreshed ${newSections.sumOf { sec -> sec.seats.size }} seats")
+            } catch (e: Exception) {
+                Log.e(TAG, "reloadSeats() failed", e)
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "SeatMapViewModel"
 
@@ -277,7 +383,7 @@ class SeatMapViewModel(
             }
         }
 
-        /** API 연결용 Factory (showId + sessionId + showService) */
+        /** API 연결용 Factory (showId + sessionId + showService + ticketService) */
         fun factory(showId: String, sessionId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
@@ -285,6 +391,7 @@ class SeatMapViewModel(
                     showId = showId,
                     sessionId = sessionId,
                     showService = app.appContainer.showService,
+                    ticketService = app.appContainer.ticketService,
                 )
             }
         }
