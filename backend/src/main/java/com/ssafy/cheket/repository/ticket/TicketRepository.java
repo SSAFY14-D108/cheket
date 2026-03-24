@@ -116,6 +116,15 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         + "JOIN Session s ON ss.sessionId = s.id " + "WHERE t.userId = :userId AND s.showId = :showId")
     long countByUserIdAndShowId(@Param("userId") Long userId, @Param("showId") Long showId);
 
+    // 특정 세션의 티켓을 보유한 사용자 아이디를 중복 없이 조회
+    @Query("""
+            select distinct t.userId
+            from Ticket t
+            join SessionSeat ss on ss.id = t.sessionSeatId
+            where ss.sessionId = :sessionId
+        """)
+    List<Long> findDistinctUserIdsBySessionId(@Param("sessionId") Long sessionId);
+
     /**
      * 특정 사용자가 특정 회차의 티켓을 몇 장 갖고 있는지 구매 시 회차별 maxPerWallet 초과 여부 확인용 온체인
      * walletTicketCount[eventId][sessionId][wallet]와 동일 기준

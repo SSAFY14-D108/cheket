@@ -27,6 +27,7 @@ import com.ssafy.cheket.repository.ticket.TicketEffectRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
+import com.ssafy.cheket.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,6 +67,9 @@ public class HostShowServiceImpl implements HostShowService {
     private final TransactionRepository transactionRepository;
     private final S3Uploader s3Uploader;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
+
+    private final NotificationService notificationService;
+
     // 클래스 상단에 필드 추가
     @Value("${blockchain.platform-private-key}")
     private String platformPrivateKey;
@@ -279,6 +283,13 @@ public class HostShowServiceImpl implements HostShowService {
 
             stakeholder = stakeholderRepository.save(stakeholder);
             savedStakeholders.add(stakeholder);
+        }
+
+        List<Long> targetUserIds = savedStakeholders.stream().map(Stakeholder::getUserId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        for (Long userId : targetUserIds) {
+            notificationService.sendRequestCreate(userId, showId);
         }
 
         // 플랫폼도 Stakeholder로 추가 (800 bps = 8%)
@@ -509,6 +520,13 @@ public class HostShowServiceImpl implements HostShowService {
                 refundPolicyRepository.save(RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
                     .refundRate(policy.refundRate()).build());
             }
+        }
+
+        List<Long> targetUserIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getUserId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        for (Long userId : targetUserIds) {
+            notificationService.sendRequestUpdate(userId, showId);
         }
     }
 

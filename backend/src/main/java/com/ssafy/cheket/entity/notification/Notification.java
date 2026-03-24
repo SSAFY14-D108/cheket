@@ -25,7 +25,7 @@ public class Notification {
     private String message;
 
     @Column(name = "is_read", nullable = false)
-    private Boolean isRead;
+    private boolean isRead;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -39,5 +39,6 @@ public class Notification {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        this.isRead = false;
     }
 }
