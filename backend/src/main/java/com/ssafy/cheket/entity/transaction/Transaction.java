@@ -52,7 +52,8 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 거래 유형 — CHARGE, PURCHASE, REFUND, RESALE_PURCHASE, RESALE_CREATE, RESALE_CANCEL, TRANSFER, STAKEHOLDER_MINT
+    // 거래 유형 — CHARGE, PURCHASE, REFUND, RESALE_PURCHASE, RESALE_CREATE,
+    // RESALE_CANCEL, TRANSFER, STAKEHOLDER_MINT
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType type;

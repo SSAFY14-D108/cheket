@@ -24,6 +24,7 @@ services:
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - keystore_data:${KEYSTORE_DIR}
+      - /home/ubuntu/firebase:/app/firebase
     depends_on:
       mysql:
         condition: service_healthy

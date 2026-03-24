@@ -137,8 +137,7 @@ public class ResaleServiceImpl implements ResaleService {
 
         // ③ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CANCEL).amount(0L)
-            .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING)
-            .sellerId(userId)  // 취소하는 사람 = 판매자
+            .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(userId) // 취소하는 사람 = 판매자
             .build();
         transactionRepository.save(transaction);
 
@@ -199,8 +198,8 @@ public class ResaleServiceImpl implements ResaleService {
         // ⑤ SSF 잔액 사전 검증 (온체인 balanceOf 직접 조회)
         WalletBalanceResponse balanceResponse = walletService.refreshBalance(buyerUserId, "ROLE_USER");
         if (balanceResponse.balance() < resale.getResalePrice()) {
-            throw new ConflictException("SSF 잔액이 부족합니다. (보유: "
-                + balanceResponse.balance() + " SSF, 필요: " + resale.getResalePrice() + " SSF)");
+            throw new ConflictException(
+                "SSF 잔액이 부족합니다. (보유: " + balanceResponse.balance() + " SSF, 필요: " + resale.getResalePrice() + " SSF)");
         }
 
         // ⑥ Transaction PENDING 생성
