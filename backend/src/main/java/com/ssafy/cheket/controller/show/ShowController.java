@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -105,8 +106,8 @@ public class ShowController {
     @Operation(summary = "공연 계약 내용 승인")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Void>> approveContract(@AuthenticationPrincipal Long userId,
-        @PathVariable Long showId) {
-        showContractService.approve(userId, showId);
+        Authentication authentication, @PathVariable Long showId) {
+        showContractService.approve(authentication, userId, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "해당 계약 건이 승인 완료되었습니다.", null));
     }
 
@@ -114,8 +115,8 @@ public class ShowController {
     @Operation(summary = "공연 계약 내용 거절")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Void>> rejectContract(@AuthenticationPrincipal Long userId,
-        @PathVariable Long showId) {
-        showContractService.reject(userId, showId);
+        Authentication authentication, @PathVariable Long showId) {
+        showContractService.reject(authentication, userId, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "해당 계약 건이 거절되었습니다.", null));
     }
 
