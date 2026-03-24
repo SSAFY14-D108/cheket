@@ -58,7 +58,7 @@ public class BlockchainController {
 
     @PostMapping("/settlement/finalize-all")
     @Operation(summary = "[정산] 전체 자동 정산",
-        description = "종료된 모든 공연의 모든 회차를 즉시 정산"
+        description = "종료된 모든 공연의 미정산 회차를 즉시 정산"
             + " — 스케줄러(매일 9시)와 동일한 로직을 수동 트리거")
     public ResponseEntity<Map<String, Object>> finalizeAll() {
         log.info("[정산 API] 전체 정산 수동 트리거");
@@ -73,7 +73,7 @@ public class BlockchainController {
 
     @PostMapping("/settlement/{showId}/finalize")
     @Operation(summary = "[정산] 공연별 정산",
-        description = "특정 공연의 모든 회차를 즉시 정산")
+        description = "특정 공연의 종료된 미정산 회차들을 즉시 정산")
     public ResponseEntity<Map<String, Object>> finalizeByShow(
         @PathVariable Long showId) {
         log.info("[정산 API] 공연별 정산 요청 — showId={}", showId);

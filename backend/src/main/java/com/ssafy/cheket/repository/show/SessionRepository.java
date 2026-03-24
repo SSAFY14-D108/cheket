@@ -38,4 +38,31 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     // 주어진 기간 [start, end)에 해당하는 세션 목록 조회
     List<Session> findBySessionDateGreaterThanEqualAndSessionDateLessThan(LocalDateTime start, LocalDateTime end);
+
+    /**
+     * 특정 공연의 종료된 회차 조회 (onChainSessionId 있고, sessionStartTime + playtime < now)
+     */
+    @Query("""
+        SELECT s FROM Session s
+        JOIN Show sh ON sh.id = s.showId
+        WHERE s.showId = :showId
+          AND s.onChainSessionId IS NOT NULL
+          AND FUNCTION('TIMESTAMPADD', MINUTE, sh.playtime, s.sessionStartTime) < :now
+        ORDER BY s.sessionDate ASC
+        """)
+    List<Session> findCompletedSessionsByShowId(@Param("showId") Long showId,
+                                                @Param("now") LocalDateTime now);
+
+    /**
+     * 전체 공연 중 종료된 회차 조회 (onChainSessionId 있고, sessionStartTime + playtime < now)
+     */
+    @Query("""
+        SELECT s FROM Session s
+        JOIN Show sh ON sh.id = s.showId
+        WHERE s.onChainSessionId IS NOT NULL
+          AND sh.eventNftId IS NOT NULL
+          AND FUNCTION('TIMESTAMPADD', MINUTE, sh.playtime, s.sessionStartTime) < :now
+        ORDER BY s.sessionDate ASC
+        """)
+    List<Session> findAllCompletedSessions(@Param("now") LocalDateTime now);
 }
