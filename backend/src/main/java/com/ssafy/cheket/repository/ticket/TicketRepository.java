@@ -1,6 +1,7 @@
 package com.ssafy.cheket.repository.ticket;
 
 import com.ssafy.cheket.entity.ticket.Ticket;
+import com.ssafy.cheket.repository.ticket.projection.CheckInTicketProjection;
 import com.ssafy.cheket.repository.ticket.projection.UpcomingTicketProjection;
 import com.ssafy.cheket.repository.ticket.projection.UsedAndExpiredTicketProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -132,4 +133,26 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT COUNT(t) FROM Ticket t " + "JOIN SessionSeat ss ON t.sessionSeatId = ss.id "
         + "WHERE t.userId = :userId AND ss.sessionId = :sessionId")
     long countByUserIdAndSessionId(@Param("userId") Long userId, @Param("sessionId") Long sessionId);
+
+    // 체크인 시 좌석 + 공연 정보 조회
+    @Query("""
+        select
+            t.id as ticketId,
+            sh.title as showTitle,
+            sec.sectionName as sectionName,
+            seat.seatNo as seatNo,
+            sg.gradeName as grade,
+            v.name as venueName,
+            s.sessionDate as sessionDate
+        from Ticket t
+        join SessionSeat ss on ss.id = t.sessionSeatId
+        join Session s on s.id = ss.sessionId
+        join Show sh on sh.id = s.showId
+        join sh.venue v
+        join Seat seat on seat.id = ss.seatId
+        join Section sec on sec.id = seat.sectionId
+        join SeatGrade sg on sg.showId = sh.id and sg.sectionId = sec.id
+        where t.id = :ticketId
+        """)
+    CheckInTicketProjection findCheckInInfoByTicketId(@Param("ticketId") Long ticketId);
 }
