@@ -48,6 +48,24 @@ public interface SettlementService {
     List<Long> finalizeByShowId(Long showId);
 
     /**
+     * 특정 회차 1건 즉시 정산 (수동 API용)
+     *
+     * 공연 ID + 회차 ID를 지정해서 단일 회차만 정산
+     * 특정 회차만 긴급 정산하거나 테스트할 때 사용
+     *
+     * [사전 검증]
+     * - 공연/회차 존재 여부
+     * - EventNFT 발행(민팅) 완료 여부
+     * - onChainSessionId 존재 여부
+     * - 온체인 이중 정산 방지 (isFinalized 체크)
+     * - 예치금 존재 여부
+     *
+     * @param showId 공연 ID
+     * @param sessionId 회차 ID
+     */
+    void finalizeBySessionId(Long showId, Long sessionId);
+
+    /**
      * Settlement 예치 현황 조회
      *
      * 온체인 회차 ID로 Settlement 컨트랙트에 예치된 SSF 금액 조회 → 1차 판매 시 PurchaseRouter가 잠근 SSF 총액

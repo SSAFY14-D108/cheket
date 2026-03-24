@@ -147,6 +147,57 @@ public class SettlementServiceImpl implements SettlementService {
         return settledSessionIds;
     }
 
+    @Override
+    public void finalizeBySessionId(Long showId, Long sessionId) {
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new NotFoundException(
+                "공연을 찾을 수 없습니다: " + showId));
+
+        if (show.getEventNftId() == null) {
+            throw new BlockchainException("민팅되지 않은 공연입니다.");
+        }
+
+        Session session = sessionRepository.findById(sessionId)
+            .orElseThrow(() -> new NotFoundException(
+                "회차를 찾을 수 없습니다: " + sessionId));
+
+        if (!session.getShowId().equals(showId)) {
+            throw new BlockchainException(
+                "회차 " + sessionId + "는 공연 " + showId
+                    + "에 속하지 않습니다.");
+        }
+
+        if (session.getOnChainSessionId() == null) {
+            throw new BlockchainException(
+                "온체인에 등록되지 않은 회차입니다.");
+        }
+
+        try {
+            boolean isFinalized = blockchainService.getSettlement()
+                .isSessionFinalized(BigInteger.valueOf(
+                    session.getOnChainSessionId()))
+                .send();
+            if (isFinalized) {
+                throw new BlockchainException("이미 정산된 회차입니다.");
+            }
+
+            BigInteger deposits = blockchainService.getSettlement()
+                .getSessionDeposits(BigInteger.valueOf(
+                    session.getOnChainSessionId()))
+                .send();
+            if (deposits.compareTo(BigInteger.ZERO) == 0) {
+                throw new BlockchainException("예치금이 없는 회차입니다.");
+            }
+        } catch (BlockchainException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BlockchainException(
+                "온체인 조회 실패: " + e.getMessage());
+        }
+
+        finalizeSession(session, show);
+    }
+
     /**
      * 단일 회차 정산 실행
      *

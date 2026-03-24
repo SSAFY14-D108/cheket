@@ -49,28 +49,69 @@ public class BlockchainController {
 
     @PostMapping("/minting/shows/all")
     @Operation(summary = "[민팅] DRAFT 공연 일괄 민팅 (내일 이하)", description = "예매 시작일이 내일 이하인 DRAFT 공연을 순차 민팅"
-        + " — 스케줄러가 놓친 공연 수동 복구용")
+        + " — 스케줄러가 놓친 공연 복구")
     public ResponseEntity<Map<String, Object>> mintAllDraftShows() {
         return ResponseEntity.ok(showMintingService.mintAllDraftShows());
     }
 
     // ========== 정산 ==========
 
-    @PostMapping("/settlement/{showId}/finalize")
-    @Operation(summary = "[정산] 수동 정산", description = "공연의 모든 회차를 즉시 정산" + " — Settlement.finalizeSession() 호출,"
-        + " StakeholderNFT 비율대로 SSF 분배")
-    public ResponseEntity<Map<String, Object>> finalizeSettlement(@PathVariable Long showId) {
-        log.info("[정산 API] 수동 정산 요청 — showId={}", showId);
-        List<Long> settledSessionIds = settlementService.finalizeByShowId(showId);
+    @PostMapping("/settlement/finalize-all")
+    @Operation(summary = "[정산] 전체 자동 정산",
+        description = "종료된 모든 공연의 모든 회차를 즉시 정산"
+            + " — 스케줄러(매일 9시)와 동일한 로직을 수동 트리거")
+    public ResponseEntity<Map<String, Object>> finalizeAll() {
+        log.info("[정산 API] 전체 정산 수동 트리거");
+        List<Long> settledSessionIds =
+            settlementService.finalizeCompletedSessions();
 
-        return ResponseEntity
-            .ok(Map.of("showId", showId, "settledSessions", settledSessionIds, "count", settledSessionIds.size()));
+        return ResponseEntity.ok(Map.of(
+            "settledSessions", settledSessionIds,
+            "count", settledSessionIds.size()
+        ));
+    }
+
+    @PostMapping("/settlement/{showId}/finalize")
+    @Operation(summary = "[정산] 공연별 정산",
+        description = "특정 공연의 모든 회차를 즉시 정산")
+    public ResponseEntity<Map<String, Object>> finalizeByShow(
+        @PathVariable Long showId) {
+        log.info("[정산 API] 공연별 정산 요청 — showId={}", showId);
+        List<Long> settledSessionIds =
+            settlementService.finalizeByShowId(showId);
+
+        return ResponseEntity.ok(Map.of(
+            "showId", showId,
+            "settledSessions", settledSessionIds,
+            "count", settledSessionIds.size()
+        ));
+    }
+
+    @PostMapping("/settlement/{showId}/sessions/{sessionId}/finalize")
+    @Operation(summary = "[정산] 회차별 정산",
+        description = "특정 공연의 특정 회차 1건만 즉시 정산")
+    public ResponseEntity<Map<String, Object>> finalizeBySession(
+        @PathVariable Long showId,
+        @PathVariable Long sessionId) {
+        log.info("[정산 API] 회차별 정산 요청 — showId={}, sessionId={}",
+            showId, sessionId);
+        settlementService.finalizeBySessionId(showId, sessionId);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "정산 완료",
+            "showId", showId,
+            "sessionId", sessionId
+        ));
     }
 
     @GetMapping("/settlement/{onChainSessionId}/deposit")
-    @Operation(summary = "[정산] 예치 현황 조회", description = "온체인 회차 ID로 Settlement 컨트랙트에" + " 예치된 SSF 금액 조회")
-    public ResponseEntity<Map<String, Object>> getSettlementDeposit(@PathVariable Long onChainSessionId) {
-        return ResponseEntity.ok(settlementService.getSettlementDeposit(onChainSessionId));
+    @Operation(summary = "[정산] 예치 현황 조회",
+        description = "온체인 회차 ID로 Settlement 컨트랙트에"
+            + " 예치된 SSF 금액 조회")
+    public ResponseEntity<Map<String, Object>> getSettlementDeposit(
+        @PathVariable Long onChainSessionId) {
+        return ResponseEntity.ok(
+            settlementService.getSettlementDeposit(onChainSessionId));
     }
 
     // ========== 온체인 조회 ==========
