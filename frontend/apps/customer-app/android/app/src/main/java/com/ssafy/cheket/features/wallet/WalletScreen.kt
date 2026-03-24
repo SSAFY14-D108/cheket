@@ -19,8 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -28,19 +26,14 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,11 +46,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.MutedForeground
 import com.ssafy.cheket.ui.theme.OnBackground
+import com.ssafy.cheket.ui.theme.Primary
 import com.ssafy.cheket.ui.theme.Surface
 
 private val WalletCardShape = RoundedCornerShape(24.dp)
@@ -83,47 +80,23 @@ private val WalletMuted = Color(0xFF607971)
 private val WalletFooter = Color(0xFF7B8F88)
 private val WalletIconTint = Color(0xFF2F3433)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(
     onWalletHistory: () -> Unit = {},
     onBack: () -> Unit,
+    viewModel: WalletViewModel = viewModel(factory = WalletViewModel.Factory),
 ) {
-    val user = remember { MockDataSource.mockUser }
-    var balance by remember { mutableIntStateOf(user.ctkBalance) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(
-                            text = "지갑",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = OnBackground,
-                        )
-                        TutorialHelpButton(
-                            tutorialId = TutorialId.WALLET,
-                            tint = WalletIconTint,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "뒤로가기",
-                            tint = OnBackground,
-                        )
-                    }
-                },
+            AppHeader(
+                title = "지갑",
+                onBack = onBack,
                 actions = {
+                    TutorialHelpButton(tutorialId = TutorialId.WALLET, tint = WalletIconTint)
                     IconButton(onClick = {}) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
@@ -132,191 +105,234 @@ fun WalletScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface),
             )
         },
         containerColor = Background,
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(2.dp, WalletBorderBrush, WalletCardShape)
-                    .background(WalletSurface, WalletCardShape)
-                    .clip(WalletCardShape)
-                    .padding(20.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = WalletIconTint,
-                            modifier = Modifier.size(24.dp),
-                        )
-                        Text(
-                            text = "CTK 잔액",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
-                        )
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
+
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(uiState.error ?: "지갑 정보를 불러오지 못했어요.", color = MutedForeground, fontSize = 14.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = viewModel::load,
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text("다시 시도")
+                        }
                     }
+                }
+            }
 
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = "%,d".format(balance),
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = OnBackground,
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "CTK",
-                            fontSize = 18.sp,
-                            color = WalletMuted,
-                            modifier = Modifier.padding(bottom = 6.dp),
-                        )
-                    }
-
-                    Text(
-                        text = "약 %,d원".format((balance * 1.2).toInt()),
-                        fontSize = 16.sp,
-                        color = WalletMuted,
-                    )
-
-                    HorizontalDivider(color = Color(0xFFE5ECE8))
-
-                    Text(
-                        text = "지갑 주소",
-                        fontSize = 14.sp,
-                        color = WalletMuted,
-                    )
-
-                    Row(
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Background)
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                ) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(WalletAddressBg)
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .border(2.dp, WalletBorderBrush, WalletCardShape)
+                            .background(WalletSurface, WalletCardShape)
+                            .clip(WalletCardShape)
+                            .padding(20.dp),
                     ) {
-                        Text(
-                            text = user.walletAddress,
-                            fontSize = 14.sp,
-                            color = OnBackground,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        IconButton(
-                            onClick = {
-                                clipboardManager.setText(AnnotatedString(user.walletAddress))
-                                Toast.makeText(context, "지갑 주소를 복사했어요.", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.size(24.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "복사",
-                                tint = WalletMuted,
-                                modifier = Modifier.size(22.dp),
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AccountBalanceWallet,
+                                    contentDescription = null,
+                                    tint = WalletIconTint,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Text(
+                                    text = "CTK 잔액",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OnBackground,
+                                )
+                            }
+
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "%,d".format(uiState.balance),
+                                    fontSize = 34.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OnBackground,
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "CTK",
+                                    fontSize = 18.sp,
+                                    color = WalletMuted,
+                                    modifier = Modifier.padding(bottom = 6.dp),
+                                )
+                            }
+
+                            Text(
+                                text = "약 %,d원".format((uiState.balance * 1.2).toInt()),
+                                fontSize = 16.sp,
+                                color = WalletMuted,
+                            )
+
+                            HorizontalDivider(color = Color(0xFFE5ECE8))
+
+                            Text(
+                                text = "지갑 주소",
+                                fontSize = 14.sp,
+                                color = WalletMuted,
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(WalletAddressBg)
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = uiState.walletAddress.ifBlank { "-" },
+                                    fontSize = 14.sp,
+                                    color = OnBackground,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                IconButton(
+                                    onClick = {
+                                        if (uiState.walletAddress.isNotBlank()) {
+                                            clipboardManager.setText(AnnotatedString(uiState.walletAddress))
+                                            Toast.makeText(context, "지갑 주소를 복사했어요.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.size(24.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentCopy,
+                                        contentDescription = "복사",
+                                        tint = WalletMuted,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(WalletSurface, WalletCardShape)
+                            .clip(WalletCardShape)
+                            .padding(16.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Text(
+                                text = "테스트용 CTK 충전",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = OnBackground,
+                            )
+
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    listOf(5000, 10000).forEach { amount ->
+                                        ChargeButton(amount = amount, modifier = Modifier.weight(1f)) {
+                                            Toast.makeText(
+                                                context,
+                                                "충전 기능은 아직 연결 전이에요.",
+                                                Toast.LENGTH_SHORT,
+                                            ).show()
+                                        }
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    listOf(30000, 50000).forEach { amount ->
+                                        ChargeButton(amount = amount, modifier = Modifier.weight(1f)) {
+                                            Toast.makeText(
+                                                context,
+                                                "충전 기능은 아직 연결 전이에요.",
+                                                Toast.LENGTH_SHORT,
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = "실제 충전 기능은 추후 연결 예정입니다.",
+                                fontSize = 13.sp,
+                                color = WalletFooter,
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
                             )
                         }
                     }
-                }
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(WalletSurface, WalletCardShape)
-                    .clip(WalletCardShape)
-                    .padding(16.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(
-                        text = "테스트용 CTK 충전",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = OnBackground,
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(2.dp, WalletSoftBorderBrush, WalletButtonShape)
+                            .background(WalletSurface, WalletButtonShape)
+                            .clip(WalletButtonShape)
+                            .clickable(onClick = onWalletHistory)
+                            .padding(horizontal = 20.dp, vertical = 18.dp),
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            listOf(5000, 10000).forEach { amount ->
-                                ChargeButton(amount = amount, modifier = Modifier.weight(1f)) {
-                                    balance += amount
-                                    Toast.makeText(context, "%,d CTK 충전 완료".format(amount), Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            listOf(30000, 50000).forEach { amount ->
-                                ChargeButton(amount = amount, modifier = Modifier.weight(1f)) {
-                                    balance += amount
-                                    Toast.makeText(context, "%,d CTK 충전 완료".format(amount), Toast.LENGTH_SHORT).show()
-                                }
-                            }
+                            Text(
+                                text = "지갑 거래 내역",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = OnBackground,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(
+                                imageVector = Icons.Outlined.ChevronRight,
+                                contentDescription = null,
+                                tint = WalletMuted,
+                                modifier = Modifier.size(24.dp),
+                            )
                         }
                     }
 
-                    Text(
-                        text = "실제 충전 기능은 추후 연결 예정입니다.",
-                        fontSize = 13.sp,
-                        color = WalletFooter,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(2.dp, WalletSoftBorderBrush, WalletButtonShape)
-                    .background(WalletSurface, WalletButtonShape)
-                    .clip(WalletButtonShape)
-                    .clickable(onClick = onWalletHistory)
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "지갑 거래 내역",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = OnBackground,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = null,
-                        tint = WalletMuted,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }

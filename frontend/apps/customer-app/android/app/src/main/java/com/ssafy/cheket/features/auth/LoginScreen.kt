@@ -1,11 +1,19 @@
 package com.ssafy.cheket.features.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -15,8 +23,13 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -24,20 +37,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.gradientBorder
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.Danger
+import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.OnBackground
+import com.ssafy.cheket.ui.theme.White
+
+private val LoginDividerColor = Color(0xFFE1E5E8)
+private val LoginIconTint = Color(0xFF6E7B78)
+private val LoginPlaceholderTint = Color(0xFF8A9491)
 
 @Composable
 fun LoginScreen(
@@ -47,7 +64,7 @@ fun LoginScreen(
     onPasswordReset: () -> Unit = {},
     viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
 
     LaunchedEffect(uiState.isLoginSuccess) {
         if (uiState.isLoginSuccess) onLoginSuccess()
@@ -59,13 +76,11 @@ fun LoginScreen(
             .background(Background)
             .verticalScroll(rememberScrollState()),
     ) {
-        // Gradient header with wave decoration (matching v0 design)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp),
         ) {
-            // Gradient background
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -81,7 +96,7 @@ fun LoginScreen(
                         ),
                     ),
             )
-            // Wave curve at bottom
+
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -91,11 +106,11 @@ fun LoginScreen(
                 val w = size.width
                 val h = size.height
                 val path = Path().apply {
-                    moveTo(0f, h * 0.73f) // ~102/140
+                    moveTo(0f, h * 0.73f)
                     cubicTo(
-                        w * 0.236f, h * 0.386f, // C1: 92/390, 54/140
-                        w * 0.764f, h * 0.386f, // C2: 298/390, 54/140
-                        w, h * 0.73f,            // end: 390, 102
+                        w * 0.236f, h * 0.386f,
+                        w * 0.764f, h * 0.386f,
+                        w, h * 0.73f,
                     )
                     lineTo(w, h)
                     lineTo(0f, h)
@@ -105,31 +120,28 @@ fun LoginScreen(
             }
         }
 
-        // Form
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Title heading (matching v0)
             Text(
-                "로그인",
+                text = "로그인",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = OnBackground,
                 letterSpacing = (-1.12).sp,
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // ID field (bottom-border style)
             BasicTextField(
                 value = uiState.id,
                 onValueChange = viewModel::onIdChange,
                 singleLine = true,
                 textStyle = TextStyle(fontSize = 14.sp, color = OnBackground),
-                cursorBrush = SolidColor(Primary),
+                cursorBrush = SolidColor(OnBackground),
                 decorationBox = { innerTextField ->
                     Column {
                         Row(
@@ -139,37 +151,45 @@ fun LoginScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                Icons.Default.Person, null,
-                                tint = Color(0xFF5C7A73),
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = LoginIconTint,
                                 modifier = Modifier.size(20.dp),
                             )
-                            Spacer(Modifier.width(12.dp))
-                            Box(Modifier.weight(1f)) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Box(modifier = Modifier.weight(1f)) {
                                 if (uiState.id.isEmpty()) {
-                                    Text("아이디", fontSize = 14.sp, color = Color(0xFF7F9891))
+                                    Text(
+                                        text = "아이디",
+                                        fontSize = 14.sp,
+                                        color = LoginPlaceholderTint,
+                                    )
                                 }
                                 innerTextField()
                             }
                         }
                         Box(
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .height(1.dp)
-                                .background(Color(0xFFD8EFEA)),
+                                .background(LoginDividerColor),
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // Password field (bottom-border style)
             BasicTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChange,
                 singleLine = true,
                 textStyle = TextStyle(fontSize = 14.sp, color = OnBackground),
-                cursorBrush = SolidColor(Primary),
-                visualTransformation = if (uiState.showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                cursorBrush = SolidColor(OnBackground),
+                visualTransformation = if (uiState.showPassword) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
                 decorationBox = { innerTextField ->
                     Column {
                         Row(
@@ -179,14 +199,19 @@ fun LoginScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                Icons.Default.Lock, null,
-                                tint = Color(0xFF5C7A73),
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = LoginIconTint,
                                 modifier = Modifier.size(20.dp),
                             )
-                            Spacer(Modifier.width(12.dp))
-                            Box(Modifier.weight(1f)) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Box(modifier = Modifier.weight(1f)) {
                                 if (uiState.password.isEmpty()) {
-                                    Text("비밀번호", fontSize = 14.sp, color = Color(0xFF7F9891))
+                                    Text(
+                                        text = "비밀번호",
+                                        fontSize = 14.sp,
+                                        color = LoginPlaceholderTint,
+                                    )
                                 }
                                 innerTextField()
                             }
@@ -195,37 +220,57 @@ fun LoginScreen(
                                 modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
-                                    if (uiState.showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (uiState.showPassword) "비밀번호 숨기기" else "비밀번호 보기",
-                                    tint = Color(0xFF5C7A73),
+                                    imageVector = if (uiState.showPassword) {
+                                        Icons.Default.VisibilityOff
+                                    } else {
+                                        Icons.Default.Visibility
+                                    },
+                                    contentDescription = if (uiState.showPassword) {
+                                        "비밀번호 숨기기"
+                                    } else {
+                                        "비밀번호 보기"
+                                    },
+                                    tint = LoginIconTint,
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
                         Box(
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .height(1.dp)
-                                .background(Color(0xFFD8EFEA)),
+                                .background(LoginDividerColor),
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // Error message
             if (uiState.error.isNotEmpty()) {
                 Text(
-                    uiState.error,
+                    text = uiState.error,
                     fontSize = 12.sp,
                     color = Danger,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // Login button (rounded-full with gradient border like v0)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    text = "비밀번호 찾기",
+                    fontSize = 13.sp,
+                    color = MutedForeground,
+                    modifier = Modifier.clickable { onPasswordReset() },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
             Button(
                 onClick = viewModel::login,
                 modifier = Modifier
@@ -233,84 +278,44 @@ fun LoginScreen(
                     .height(52.dp)
                     .gradientBorder(shape = RoundedCornerShape(50), borderWidth = 1.5.dp),
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = White),
             ) {
-                Text("로그인", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = White)
+                Text(
+                    text = "로그인",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = OnBackground,
+                )
             }
 
-            // Divider
+            Spacer(modifier = Modifier.height(28.dp))
+
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                HorizontalDivider(Modifier.weight(1f), color = BorderColor)
                 Text(
-                    "또는",
-                    fontSize = 12.sp,
+                    text = "아이디 찾기",
+                    fontSize = 14.sp,
                     color = MutedForeground,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                HorizontalDivider(Modifier.weight(1f), color = BorderColor)
-            }
-
-            // Sign up button (outline with gradient border)
-            OutlinedButton(
-                onClick = onNavigateToSignup,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .gradientBorder(shape = RoundedCornerShape(50), borderWidth = 1.5.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.Transparent),
-                border = BorderStroke(0.dp, Color.Transparent),
-            ) {
-                Text("회원가입", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
-            }
-
-            // Help links
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    "이메일 찾기",
-                    fontSize = 12.sp,
-                    color = Primary,
-                    textDecoration = TextDecoration.Underline,
                     modifier = Modifier.clickable { onFindAccount() },
                 )
-                Text(" · ", fontSize = 12.sp, color = MutedForeground)
                 Text(
-                    "비밀번호 찾기",
-                    fontSize = 12.sp,
-                    color = Primary,
-                    textDecoration = TextDecoration.Underline,
-                    modifier = Modifier.clickable { onPasswordReset() },
+                    text = "  |  ",
+                    fontSize = 14.sp,
+                    color = MutedForeground,
+                )
+                Text(
+                    text = "회원가입",
+                    fontSize = 14.sp,
+                    color = OnBackground,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onNavigateToSignup() },
                 )
             }
 
-            // Footer
-            Text(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 32.dp),
-                text = buildAnnotatedString {
-                    append("로그인 시 ")
-                    withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append("이용약관")
-                    }
-                    append(" 및 ")
-                    withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append("개인정보처리방침")
-                    }
-                    append("에 동의합니다")
-                },
-                fontSize = 11.sp,
-                color = MutedForeground,
-                lineHeight = 16.sp,
-            )
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

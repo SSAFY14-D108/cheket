@@ -42,6 +42,7 @@ import com.ssafy.cheket.features.mypage.MyPageScreen
 import com.ssafy.cheket.features.mytickets.MyTicketsScreen
 import com.ssafy.cheket.features.mytickets.QrCheckinScreen
 import com.ssafy.cheket.features.mytickets.TicketDetailScreen
+import com.ssafy.cheket.features.mytickets.TicketHistoryScreen
 import com.ssafy.cheket.features.purchase.PaymentScreen
 import com.ssafy.cheket.features.purchase.PurchaseFailedScreen
 import com.ssafy.cheket.features.purchase.SeatSelectionScreen
@@ -76,6 +77,7 @@ object Routes {
     const val SHOWS = "shows"
     const val RESALE = "resale"
     const val MY_TICKETS = "my_tickets"
+    const val TICKET_HISTORY = "ticket_history"
     const val COLLECTION = "collection"
 
     // Detail / Flow screens
@@ -599,8 +601,7 @@ fun AppNavGraph(
                     userService = appContainer.userService,
                     onWallet = { navController.navigate(Routes.WALLET) },
                     onMyTickets = {
-                        navController.navigate(Routes.MY_TICKETS) {
-                            popUpTo(Routes.MY_TICKETS) { inclusive = false }
+                        navController.navigate(Routes.TICKET_HISTORY) {
                             launchSingleTop = true
                         }
                     },
@@ -623,8 +624,18 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
+            slideComposable(Routes.TICKET_HISTORY) {
+                TicketHistoryScreen(
+                    onBack = { navController.popBackStack() },
+                    onTicketClick = { ticket ->
+                        NavParams.selectedTicket = ticket
+                        navController.navigate(Routes.ticketDetail(ticket.id))
+                    },
+                )
+            }
             slideComposable(Routes.WALLET) {
                 WalletScreen(
+                    onWalletHistory = { navController.navigate(Routes.WALLET_HISTORY) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -634,7 +645,7 @@ fun AppNavGraph(
                 )
             }
             slideComposable(Routes.TX_HISTORY) {
-                TxHistoryScreen(
+                WalletHistoryScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -577,7 +577,7 @@ private fun RegionSheetChip(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) Primary else Color(0xFFF7F8F7))
+            .background(if (selected) Color(0xFFDCE5E1) else Color(0xFFF7F8F7))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center,
@@ -586,7 +586,7 @@ private fun RegionSheetChip(
             text = label,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) Color.White else OnBackground,
+            color = if (selected) Color(0xFF1F3A33) else OnBackground,
         )
     }
 }

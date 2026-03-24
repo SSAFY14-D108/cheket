@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -32,12 +31,12 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -71,30 +70,21 @@ import com.ssafy.cheket.ui.theme.Danger
 import com.ssafy.cheket.ui.theme.White
 import kotlinx.coroutines.launch
 
-private val V0Background = Color(0xFFFCFCFC)
-private val V0Card = Color(0xFFFFFFFF)
-private val V0Text = Color(0xFF111111)
-private val V0TextDark = Color(0xFF333333)
-private val V0Muted = Color(0xFF5C7A73)
-private val V0Sub = Color(0xFF9CA3AF)
-private val V0Border = Color(0xFFD8EFEA)
-private val V0FooterMuted = Color(0xFF7F9891)
-private val LargeCardShape = RoundedCornerShape(22.dp)
-private val MediumCardShape = RoundedCornerShape(18.dp)
+private val PageBackground = Color(0xFFFCFCFC)
+private val CardBackground = Color(0xFFFFFFFF)
+private val StrongText = Color(0xFF111111)
+private val BodyText = Color(0xFF2F3B37)
+private val MutedText = Color(0xFF6D8079)
+private val SubtleText = Color(0xFF8FA09B)
+private val BorderTint = Color(0xFFDDE9E5)
+private val LargeCardShape = RoundedCornerShape(20.dp)
+private val MediumCardShape = RoundedCornerShape(16.dp)
 
 private val GradientBorderBrush = Brush.linearGradient(
     colors = listOf(
-        Color(0xC2E2DAFF),
-        Color(0xBDC4F7E0),
-        Color(0xC2CAE6FF),
-    ),
-)
-
-private val GradientBorderSoftBrush = Brush.linearGradient(
-    colors = listOf(
-        Color(0x80E2DAFF),
-        Color(0x75C4F7E0),
-        Color(0x80CAE6FF),
+        Color(0xA6E2DAFF),
+        Color(0x99D7F0E7),
+        Color(0xA6D9DFFF),
     ),
 )
 
@@ -116,8 +106,8 @@ fun MyPageScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var showWithdrawConfirm by remember { mutableStateOf(false) }
     var showWithdrawWarning by remember { mutableStateOf(false) }
+    var showWithdrawConfirm by remember { mutableStateOf(false) }
     var isWithdrawing by remember { mutableStateOf(false) }
 
     if (showWithdrawWarning) {
@@ -128,14 +118,13 @@ fun MyPageScreen(
                     imageVector = Icons.Outlined.Warning,
                     contentDescription = null,
                     tint = Danger,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(28.dp),
                 )
             },
-            title = { Text("회원 탈퇴", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+            title = { Text("회원 탈퇴 전 안내", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "회원 탈퇴를 진행하면 보유 티켓, CTK 잔액, 거래 내역을 다시 복구할 수 없습니다.\n\n정말 탈퇴하시겠어요?",
-                    textAlign = TextAlign.Center,
+                    text = "회원 탈퇴를 진행하면 보유 티켓, CTK 잔액, 거래내역 등 계정 정보가 함께 삭제될 수 있어요. 신중하게 진행해 주세요.",
                     lineHeight = 22.sp,
                 )
             },
@@ -147,7 +136,7 @@ fun MyPageScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = Danger),
                 ) {
-                    Text("탈퇴 계속", fontWeight = FontWeight.SemiBold)
+                    Text("회원 탈퇴할게요")
                 }
             },
             dismissButton = {
@@ -166,16 +155,15 @@ fun MyPageScreen(
                     imageVector = Icons.Outlined.Warning,
                     contentDescription = null,
                     tint = Danger,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(28.dp),
                 )
             },
-            title = { Text("한 번 더 확인", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+            title = { Text("정말 탈퇴하시겠어요?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "보유 티켓, CTK 잔액, 거래 내역이 모두 삭제됩니다.\n\n탈퇴 후에는 복구할 수 없습니다.",
-                    textAlign = TextAlign.Center,
+                    text = "탈퇴한 계정 정보는 다시 복구할 수 없어요.",
                     lineHeight = 22.sp,
-                    color = Danger,
+                    color = BodyText,
                 )
             },
             confirmButton = {
@@ -183,32 +171,33 @@ fun MyPageScreen(
                     onClick = {
                         isWithdrawing = true
                         scope.launch {
-                            try {
-                                val response = userService.deleteUser()
-                                Log.d("MyPageScreen", "deleteUser() statusCode=${response.httpStatusCode}")
-                                isWithdrawing = false
-                                showWithdrawConfirm = false
-                                if (response.httpStatusCode in 200..299) {
-                                    Toast.makeText(context, "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
-                                    onWithdrawSuccess()
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        response.responseMessage ?: "회원 탈퇴에 실패했습니다.",
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                            runCatching { userService.deleteUser() }
+                                .onSuccess { response ->
+                                    Log.d("MyPageScreen", "deleteUser status=${response.httpStatusCode}")
+                                    isWithdrawing = false
+                                    showWithdrawConfirm = false
+                                    if (response.httpStatusCode in 200..299) {
+                                        Toast.makeText(context, "회원 탈퇴가 완료되었어요.", Toast.LENGTH_SHORT).show()
+                                        onWithdrawSuccess()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            response.responseMessage ?: "회원 탈퇴에 실패했어요.",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
                                 }
-                            } catch (e: Exception) {
-                                Log.e("MyPageScreen", "deleteUser() error", e)
-                                isWithdrawing = false
-                                showWithdrawConfirm = false
-                                Toast.makeText(context, "회원 탈퇴에 실패했습니다.", Toast.LENGTH_SHORT).show()
-                            }
+                                .onFailure { throwable ->
+                                    Log.e("MyPageScreen", "deleteUser error", throwable)
+                                    isWithdrawing = false
+                                    showWithdrawConfirm = false
+                                    Toast.makeText(context, "회원 탈퇴에 실패했어요.", Toast.LENGTH_SHORT).show()
+                                }
                         }
                     },
                     enabled = !isWithdrawing,
                     colors = ButtonDefaults.buttonColors(containerColor = Danger),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                 ) {
                     if (isWithdrawing) {
                         CircularProgressIndicator(
@@ -217,7 +206,7 @@ fun MyPageScreen(
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Text("회원 탈퇴", fontWeight = FontWeight.SemiBold, color = White)
+                        Text("탈퇴하기", color = White, fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
@@ -241,91 +230,93 @@ fun MyPageScreen(
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
                             contentDescription = "알림",
-                            tint = V0TextDark,
+                            tint = BodyText,
                         )
                     }
                 },
             )
         },
-        containerColor = V0Background,
+        containerColor = PageBackground,
     ) { innerPadding ->
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = V0Muted, strokeWidth = 2.dp)
+        when {
+            state.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = MutedText, strokeWidth = 2.dp)
+                }
             }
-            return@Scaffold
-        }
 
-        if (state.error != null) {
-            EmptyState(
-                title = "마이페이지 정보를 불러오지 못했어요",
-                description = state.error ?: "잠시 후 다시 시도해주세요.",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            )
-            return@Scaffold
-        }
+            state.error != null -> {
+                EmptyState(
+                    title = "마이페이지 정보를 불러오지 못했어요",
+                    description = state.error ?: "잠시 후 다시 시도해 주세요.",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                )
+            }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(V0Background)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            ProfileCard(
-                name = state.name.ifEmpty { "게스트" },
-                phone = state.phone,
-                email = state.email,
-                onSettings = onSettings,
-            )
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(PageBackground)
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ProfileCard(
+                        name = state.name.ifBlank { "사용자" },
+                        phone = state.phone,
+                        email = state.email,
+                        onSettings = onSettings,
+                    )
 
-            WalletCard(
-                ctkBalance = state.ctkBalance,
-                onWallet = onWallet,
-            )
+                    WalletCard(
+                        ctkBalance = state.ctkBalance,
+                        onWallet = onWallet,
+                    )
 
-            QuickLinksSection(
-                wishlistCount = state.wishlistCount,
-                onMyTickets = onMyTickets,
-                onCollection = onCollection,
-                onWishlist = onWishlist,
-                onTxHistory = onTxHistory,
-            )
+                    QuickLinksSection(
+                        wishlistCount = state.wishlistCount,
+                        onTicketHistory = onMyTickets,
+                        onCollection = onCollection,
+                        onWishlist = onWishlist,
+                        onTxHistory = onTxHistory,
+                    )
 
-            GradientActionButton(
-                label = "로그아웃",
-                icon = Icons.AutoMirrored.Outlined.Logout,
-                onClick = onLogout,
-            )
+                    GradientActionButton(
+                        label = "로그아웃",
+                        icon = Icons.AutoMirrored.Outlined.Logout,
+                        onClick = onLogout,
+                    )
 
-            Text(
-                text = "회원 탈퇴",
-                fontSize = 12.sp,
-                color = V0Muted,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .clickable { showWithdrawWarning = true }
-                    .padding(vertical = 4.dp),
-            )
+                    Text(
+                        text = "회원 탈퇴",
+                        fontSize = 12.sp,
+                        color = MutedText,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .clickable { showWithdrawWarning = true }
+                            .padding(vertical = 4.dp),
+                    )
 
-            Text(
-                text = "Cheket v1.0.0",
-                fontSize = 12.sp,
-                color = V0FooterMuted,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
+                    Text(
+                        text = "Cheket v1.0.0",
+                        fontSize = 12.sp,
+                        color = SubtleText,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            }
         }
     }
 }
@@ -340,55 +331,55 @@ private fun ProfileCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, V0Border, LargeCardShape)
-            .background(V0Card, LargeCardShape)
+            .border(1.dp, BorderTint, LargeCardShape)
+            .background(CardBackground, LargeCardShape)
             .clip(LargeCardShape)
-            .padding(20.dp),
+            .padding(14.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(
                         modifier = Modifier
-                            .size(76.dp)
-                            .border(2.dp, V0Border, CircleShape)
-                            .background(V0Card, CircleShape),
+                            .size(64.dp)
+                            .border(1.5.dp, BorderTint, CircleShape)
+                            .background(CardBackground, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Person,
                             contentDescription = null,
-                            tint = V0TextDark,
-                            modifier = Modifier.size(34.dp),
+                            tint = BodyText,
+                            modifier = Modifier.size(28.dp),
                         )
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = "MY ACCOUNT",
-                            fontSize = 14.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = V0Muted,
-                            letterSpacing = 2.sp,
+                            color = MutedText,
+                            letterSpacing = 1.6.sp,
                         )
                         Text(
                             text = name,
-                            fontSize = 22.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = V0Text,
+                            color = StrongText,
                         )
                     }
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .border(2.dp, V0Border, CircleShape)
-                        .background(V0Card, CircleShape)
+                        .size(48.dp)
+                        .border(1.5.dp, BorderTint, CircleShape)
+                        .background(CardBackground, CircleShape)
                         .clip(CircleShape)
                         .clickable(onClick = onSettings),
                     contentAlignment = Alignment.Center,
@@ -396,13 +387,13 @@ private fun ProfileCard(
                     Icon(
                         imageVector = Icons.Outlined.Settings,
                         contentDescription = "설정",
-                        tint = V0Muted,
-                        modifier = Modifier.size(24.dp),
+                        tint = MutedText,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 InfoRow(
                     icon = Icons.Outlined.Phone,
                     label = "전화번호",
@@ -431,26 +422,27 @@ private fun InfoRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = V0TextDark,
-                modifier = Modifier.size(22.dp),
+                tint = BodyText,
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 text = label,
-                fontSize = 14.sp,
-                color = V0Muted,
+                fontSize = 13.sp,
+                color = MutedText,
             )
         }
 
         Text(
             text = value,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            color = V0Text,
+            color = StrongText,
+            textAlign = TextAlign.End,
         )
     }
 }
@@ -463,47 +455,41 @@ private fun WalletCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, V0Border, LargeCardShape)
-            .background(V0Card, LargeCardShape)
+            .border(1.dp, BorderTint, LargeCardShape)
+            .background(CardBackground, LargeCardShape)
             .clip(LargeCardShape)
-            .padding(20.dp),
+            .padding(16.dp),
     ) {
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 text = "WALLET",
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = V0Muted,
-                letterSpacing = 2.sp,
+                color = MutedText,
+                letterSpacing = 1.6.sp,
             )
-
-            Spacer(modifier = Modifier.height(14.dp))
 
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = "%,d".format(ctkBalance),
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = V0Text,
+                    color = StrongText,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "CTK",
-                    fontSize = 14.sp,
-                    color = V0Muted,
-                    modifier = Modifier.padding(bottom = 4.dp),
+                    fontSize = 12.sp,
+                    color = MutedText,
+                    modifier = Modifier.padding(bottom = 3.dp),
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Text(
                 text = "예상 환산 금액 약 %,d원".format((ctkBalance * 1.2).toInt()),
-                fontSize = 13.sp,
-                color = V0Muted,
+                fontSize = 12.sp,
+                color = MutedText,
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             GradientActionButton(
                 label = "지갑 보기",
@@ -518,7 +504,7 @@ private fun WalletCard(
 @Composable
 private fun QuickLinksSection(
     wishlistCount: Int,
-    onMyTickets: () -> Unit,
+    onTicketHistory: () -> Unit,
     onCollection: () -> Unit,
     onWishlist: () -> Unit,
     onTxHistory: () -> Unit,
@@ -526,51 +512,45 @@ private fun QuickLinksSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, V0Border, LargeCardShape)
-            .background(V0Card, LargeCardShape)
+            .border(1.dp, BorderTint, LargeCardShape)
+            .background(CardBackground, LargeCardShape)
             .clip(LargeCardShape)
             .padding(16.dp),
     ) {
         Column {
             Text(
-                text = "빠른 이동",
-                fontSize = 14.sp,
+                text = "나의 활동",
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = V0Text,
+                color = StrongText,
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "자주 보는 메뉴를 바로 이동할 수 있어요.",
-                fontSize = 12.sp,
-                color = V0Muted,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 QuickLinkCard(
-                    label = "보유티켓",
-                    value = "확인",
+                    label = "티켓 내역",
+                    value = "",
                     icon = Icons.Outlined.ConfirmationNumber,
                     modifier = Modifier.weight(1f),
-                    onClick = onMyTickets,
+                    onClick = onTicketHistory,
                 )
                 QuickLinkCard(
-                    label = "관람완료",
-                    value = "확인",
-                    icon = Icons.Outlined.Badge,
+                    label = "컬렉션",
+                    value = "",
+                    icon = Icons.Outlined.Verified,
                     modifier = Modifier.weight(1f),
                     onClick = onCollection,
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 QuickLinkCard(
                     label = "찜한 공연",
@@ -581,7 +561,7 @@ private fun QuickLinksSection(
                 )
                 QuickLinkCard(
                     label = "거래내역",
-                    value = "확인",
+                    value = "",
                     icon = Icons.Outlined.Receipt,
                     modifier = Modifier.weight(1f),
                     onClick = onTxHistory,
@@ -602,25 +582,25 @@ private fun GradientActionButton(
         modifier = Modifier
             .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
             .border(2.dp, GradientBorderBrush, MediumCardShape)
-            .background(V0Card, MediumCardShape)
+            .background(CardBackground, MediumCardShape)
             .clip(MediumCardShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = V0TextDark,
-                modifier = Modifier.size(16.dp),
+                tint = BodyText,
+                modifier = Modifier.size(15.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = label,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = V0Text,
+                color = StrongText,
             )
         }
     }
@@ -636,11 +616,11 @@ private fun QuickLinkCard(
 ) {
     Box(
         modifier = modifier
-            .border(2.dp, GradientBorderSoftBrush, MediumCardShape)
+            .border(2.dp, GradientBorderBrush, MediumCardShape)
             .elevatedSurface(MediumCardShape)
             .clip(MediumCardShape)
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(14.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -651,24 +631,28 @@ private fun QuickLinkCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = V0TextDark,
-                    modifier = Modifier.size(20.dp),
+                    tint = BodyText,
+                    modifier = Modifier.size(18.dp),
                 )
-                Text(
-                    text = value,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = V0TextDark,
-                )
+                if (value.isNotBlank()) {
+                    Text(
+                        text = value,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = BodyText,
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(20.dp))
+                }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
             Text(
                 text = label,
-                fontSize = 17.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = V0Text,
+                color = StrongText,
             )
         }
     }

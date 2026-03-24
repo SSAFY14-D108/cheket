@@ -3,7 +3,15 @@ package com.ssafy.cheket.features.auth
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -15,9 +23,24 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Sms
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,12 +52,21 @@ import com.ssafy.cheket.core.network.dto.PasswordChangeRequest
 import com.ssafy.cheket.core.network.dto.PasswordResetRequest
 import com.ssafy.cheket.core.network.service.AuthService
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.core.ui.component.PhoneVisualTransformation
+import com.ssafy.cheket.core.ui.component.formatPhoneForApi
+import com.ssafy.cheket.core.ui.component.gradientBorder
+import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.Danger
+import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.OnBackground
+import com.ssafy.cheket.ui.theme.White
 import kotlinx.coroutines.launch
 
 private const val TAG = "PasswordResetScreen"
-
-// formatPhoneForApi / PhoneVisualTransformation → core.ui.component.PhoneUtils
+private val ResetInputBackground = Color(0xFFF6F7F8)
+private val ResetInputIconTint = Color(0xFF7A8682)
+private val ResetInputBorder = Color(0xFFE1E5E8)
+private val ResetFieldShape = RoundedCornerShape(22.dp)
 
 @Composable
 fun PasswordResetScreen(
@@ -52,7 +84,6 @@ fun PasswordResetScreen(
 
     var showNew by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
-
     var codeSent by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -64,7 +95,7 @@ fun PasswordResetScreen(
 
     fun sendCode() {
         if (email.isBlank() || !email.contains("@")) {
-            emailError = "올바른 이메일을 입력해주세요"
+            emailError = "이메일을 입력해 주세요"
             return
         }
         emailError = null
@@ -76,14 +107,14 @@ fun PasswordResetScreen(
                 isLoading = false
                 if (response.httpStatusCode in 200..299) {
                     codeSent = true
-                    Toast.makeText(context, "인증 코드가 발송되었습니다", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "인증번호를 전송했어요", Toast.LENGTH_SHORT).show()
                 } else {
-                    emailError = response.responseMessage ?: "인증 코드 발송 실패"
+                    emailError = response.responseMessage ?: "인증번호 전송에 실패했어요"
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "requestPasswordReset() error", e)
                 isLoading = false
-                emailError = "인증 코드 발송에 실패했습니다"
+                emailError = "인증번호 전송에 실패했어요"
             }
         }
     }
@@ -92,67 +123,70 @@ fun PasswordResetScreen(
         var valid = true
 
         if (email.isBlank()) {
-            emailError = "이메일을 입력해주세요"
+            emailError = "이메일을 입력해 주세요"
             valid = false
         } else emailError = null
 
         if (phone.isBlank() || phone.length < 10) {
-            phoneError = "전화번호를 입력해주세요"
+            phoneError = "전화번호를 입력해 주세요"
             valid = false
         } else phoneError = null
 
         if (smsCode.isBlank() || smsCode.length < 4) {
-            codeError = "인증 코드를 입력해주세요"
+            codeError = "인증번호를 입력해 주세요"
             valid = false
         } else codeError = null
 
         if (newPassword.length < 6) {
-            passwordError = "비밀번호는 6자 이상이어야 합니다"
+            passwordError = "비밀번호는 6자 이상이어야 해요"
             valid = false
         } else passwordError = null
 
-        if (confirmPassword != newPassword) {
-            confirmError = "비밀번호가 일치하지 않습니다"
+        if (confirmPassword.isBlank()) {
+            confirmError = "비밀번호 확인을 입력해 주세요"
             valid = false
-        } else if (confirmPassword.isBlank()) {
-            confirmError = "비밀번호 확인을 입력해주세요"
+        } else if (confirmPassword != newPassword) {
+            confirmError = "비밀번호가 일치하지 않아요"
             valid = false
         } else confirmError = null
 
         return valid
     }
 
-    fun onSubmit() {
+    fun submit() {
         if (!validate() || isLoading) return
         isLoading = true
-        val formattedPhone = com.ssafy.cheket.core.ui.component.formatPhoneForApi(phone)
-        Log.d(TAG, "onSubmit() raw phone='$phone', formatted='$formattedPhone', code='$smsCode'")
         scope.launch {
             try {
                 val response = authService.resetPassword(
-                    PasswordChangeRequest(phoneNumber = formattedPhone, code = smsCode, newPassword = newPassword)
+                    PasswordChangeRequest(
+                        phoneNumber = formatPhoneForApi(phone),
+                        code = smsCode,
+                        newPassword = newPassword,
+                    ),
                 )
                 Log.d(TAG, "resetPassword() statusCode=${response.httpStatusCode}")
                 isLoading = false
                 if (response.httpStatusCode in 200..299) {
-                    Toast.makeText(context, "비밀번호가 재설정되었습니다", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "비밀번호가 변경되었어요", Toast.LENGTH_SHORT).show()
                     onBack()
                 } else {
-                    codeError = response.responseMessage ?: "비밀번호 재설정 실패"
+                    codeError = response.responseMessage ?: "비밀번호 재설정에 실패했어요"
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "resetPassword() error", e)
                 isLoading = false
-                codeError = "비밀번호 재설정에 실패했습니다"
+                codeError = "비밀번호 재설정에 실패했어요"
             }
         }
     }
 
     Scaffold(
         topBar = { AppHeader(title = "비밀번호 재설정", onBack = onBack) },
+        containerColor = Background,
     ) { innerPadding ->
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
@@ -161,165 +195,181 @@ fun PasswordResetScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "가입 시 등록한 이메일을 입력하면 인증 코드를 발송합니다.",
+                text = "등록된 이메일로 인증번호를 받고 새 비밀번호를 설정해 주세요.",
                 fontSize = 14.sp,
                 color = MutedForeground,
                 lineHeight = 20.sp,
             )
 
-            // Email Input with Send Code button
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("이메일", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+            ResetInputBlock("이메일", emailError) {
                 Row(
-                    Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.Top,
                 ) {
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it; emailError = null },
-                        placeholder = { Text("이메일 입력", fontSize = 14.sp) },
-                        leadingIcon = { Icon(Icons.Outlined.Email, null, tint = MutedForeground) },
-                        shape = RoundedCornerShape(12.dp),
+                        onValueChange = {
+                            email = it
+                            emailError = null
+                        },
+                        placeholder = { Text("이메일을 입력해 주세요", fontSize = 14.sp) },
+                        leadingIcon = { Icon(Icons.Outlined.Email, null, tint = ResetInputIconTint) },
                         singleLine = true,
-                        isError = emailError != null,
-                        supportingText = emailError?.let { { Text(it, color = Danger) } },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary, unfocusedBorderColor = BorderColor,
-                            focusedContainerColor = Muted, unfocusedContainerColor = Muted,
-                        ),
+                        shape = ResetFieldShape,
+                        colors = resetInputColors(),
                         modifier = Modifier.weight(1f),
                     )
                     Button(
-                        onClick = { sendCode() },
+                        onClick = ::sendCode,
                         enabled = !isLoading,
-                        modifier = Modifier.height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (codeSent) MutedForeground else Primary,
-                        ),
+                        modifier = Modifier
+                            .height(52.dp)
+                            .gradientBorder(shape = ResetFieldShape, borderWidth = 1.5.dp),
+                        shape = ResetFieldShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = White, contentColor = OnBackground),
                     ) {
-                        Text(if (codeSent) "재발송" else "발송", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = White)
+                        Text(
+                            text = if (codeSent) "재전송" else "전송",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnBackground,
+                        )
                     }
                 }
             }
 
-            // Phone Number Input
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("전화번호", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+            ResetInputBlock("전화번호", phoneError) {
                 OutlinedTextField(
                     value = phone,
-                    onValueChange = { phone = it.filter { c -> c.isDigit() }.take(11); phoneError = null },
+                    onValueChange = {
+                        phone = it.filter(Char::isDigit).take(11)
+                        phoneError = null
+                    },
                     placeholder = { Text("010-0000-0000", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = MutedForeground) },
-                    visualTransformation = com.ssafy.cheket.core.ui.component.PhoneVisualTransformation(),
+                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = ResetInputIconTint) },
+                    visualTransformation = PhoneVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    isError = phoneError != null,
-                    supportingText = phoneError?.let { { Text(it, color = Danger) } },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary, unfocusedBorderColor = BorderColor,
-                        focusedContainerColor = Muted, unfocusedContainerColor = Muted,
-                    ),
+                    shape = ResetFieldShape,
+                    colors = resetInputColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            // SMS Code Input
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("인증 코드", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+            ResetInputBlock("인증번호", codeError) {
                 OutlinedTextField(
                     value = smsCode,
-                    onValueChange = { smsCode = it.filter { c -> c.isDigit() }; codeError = null },
-                    placeholder = { Text("인증 코드 입력", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Outlined.Sms, null, tint = MutedForeground) },
+                    onValueChange = {
+                        smsCode = it.filter(Char::isDigit)
+                        codeError = null
+                    },
+                    placeholder = { Text("인증번호를 입력해 주세요", fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Outlined.Sms, null, tint = ResetInputIconTint) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    isError = codeError != null,
-                    supportingText = codeError?.let { { Text(it, color = Danger) } },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary, unfocusedBorderColor = BorderColor,
-                        focusedContainerColor = Muted, unfocusedContainerColor = Muted,
-                    ),
+                    shape = ResetFieldShape,
+                    colors = resetInputColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            HorizontalDivider(color = BorderColor)
+            HorizontalDivider(color = ResetInputBorder)
 
-            // New Password
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("새 비밀번호", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+            ResetInputBlock("새 비밀번호", passwordError) {
                 OutlinedTextField(
                     value = newPassword,
-                    onValueChange = { newPassword = it; passwordError = null },
+                    onValueChange = {
+                        newPassword = it
+                        passwordError = null
+                    },
                     placeholder = { Text("새 비밀번호 (6자 이상)", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = MutedForeground) },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = ResetInputIconTint) },
                     trailingIcon = {
                         IconButton(onClick = { showNew = !showNew }) {
-                            Icon(if (showNew) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showNew) "숨기기" else "보기", tint = MutedForeground)
+                            Icon(
+                                imageVector = if (showNew) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showNew) "숨기기" else "보기",
+                                tint = ResetInputIconTint,
+                            )
                         }
                     },
                     visualTransformation = if (showNew) VisualTransformation.None else PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    isError = passwordError != null,
-                    supportingText = passwordError?.let { { Text(it, color = Danger) } },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary, unfocusedBorderColor = BorderColor,
-                        focusedContainerColor = Muted, unfocusedContainerColor = Muted,
-                    ),
+                    shape = ResetFieldShape,
+                    colors = resetInputColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            // Confirm Password
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("비밀번호 확인", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+            ResetInputBlock("비밀번호 확인", confirmError) {
                 OutlinedTextField(
                     value = confirmPassword,
-                    onValueChange = { confirmPassword = it; confirmError = null },
-                    placeholder = { Text("새 비밀번호 재입력", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = MutedForeground) },
+                    onValueChange = {
+                        confirmPassword = it
+                        confirmError = null
+                    },
+                    placeholder = { Text("비밀번호를 다시 입력해 주세요", fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = ResetInputIconTint) },
                     trailingIcon = {
                         IconButton(onClick = { showConfirm = !showConfirm }) {
-                            Icon(if (showConfirm) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showConfirm) "숨기기" else "보기", tint = MutedForeground)
+                            Icon(
+                                imageVector = if (showConfirm) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showConfirm) "숨기기" else "보기",
+                                tint = ResetInputIconTint,
+                            )
                         }
                     },
                     visualTransformation = if (showConfirm) VisualTransformation.None else PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    isError = confirmError != null,
-                    supportingText = confirmError?.let { { Text(it, color = Danger) } },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary, unfocusedBorderColor = BorderColor,
-                        focusedContainerColor = Muted, unfocusedContainerColor = Muted,
-                    ),
+                    shape = ResetFieldShape,
+                    colors = resetInputColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { onSubmit() },
+                onClick = ::submit,
                 enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .gradientBorder(shape = ResetFieldShape, borderWidth = 1.5.dp),
+                shape = ResetFieldShape,
+                colors = ButtonDefaults.buttonColors(containerColor = White, contentColor = OnBackground),
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = OnBackground, strokeWidth = 2.dp)
                 } else {
-                    Text("재설정", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = White)
+                    Text("변경하기", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
+
+@Composable
+private fun ResetInputBlock(
+    label: String,
+    error: String?,
+    content: @Composable () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
+        content()
+        if (!error.isNullOrBlank()) {
+            Text(text = error, fontSize = 12.sp, color = Danger)
+        }
+    }
+}
+
+@Composable
+private fun resetInputColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = ResetInputBorder,
+    unfocusedBorderColor = ResetInputBorder,
+    focusedContainerColor = ResetInputBackground,
+    unfocusedContainerColor = ResetInputBackground,
+)
