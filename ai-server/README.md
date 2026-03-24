@@ -7,6 +7,19 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
 
+Local env example:
+
+```env
+OPENAI_API_KEY=your-real-gms-key
+OPENAI_BASE_URL=https://gms.ssafy.io/gmsapi/api.openai.com/v1
+EMBEDDING_MODEL=text-embedding-3-large
+```
+
+Notes:
+
+- Put this in `ai-dev/ai-server/.env.local` and load it into your shell before starting uvicorn.
+- `OPENAI_API_KEY=GMS_KEY` does not usually expand to another variable in a plain `.env` file. Put the real key value directly into `OPENAI_API_KEY`.
+
 ## Endpoints
 
 - `GET /health`
@@ -67,6 +80,26 @@ Notes:
 ## Embedding
 
 `app.embedding.generate_embedding()` can be used later to generate show embeddings from text fields.
+
+Local sync workflow:
+
+```bash
+python scripts/sync_show_embeddings.py
+python scripts/bootstrap_local_ai_signal_tags.py
+```
+
+Notes:
+
+- This script reads local `ai-dev/ai-server/.env.local` and `be-dev/backend/.env.local`.
+- It creates and upserts a local-only `show_embeddings` table.
+- `bootstrap_local_ai_signal_tags.py` enriches `tags`, `show_tags`, and `user_preference_profiles` with local-only AI signals such as `GENRE`, `MOOD`, `SHOW_TYPE`, `AGENCY`, and `ARTIST_SEGMENT`.
+- Current user embedding is not stored separately. Backend builds it at request time by averaging liked and purchased show embeddings.
+
+Default embedding configuration:
+
+- model: `text-embedding-3-large`
+- base URL: `https://gms.ssafy.io/gmsapi/api.openai.com/v1`
+- key env: `OPENAI_API_KEY`
 
 Example text:
 
