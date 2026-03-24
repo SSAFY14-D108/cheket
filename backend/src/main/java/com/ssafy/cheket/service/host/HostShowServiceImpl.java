@@ -291,7 +291,7 @@ public class HostShowServiceImpl implements HostShowService {
         // Transaction PENDING 생성 후, 커밋 완료 시 afterCommit에서 비동기 민팅 시작
         List<Long> stakeholderIds = savedStakeholders.stream().map(Stakeholder::getId).toList();
 
-        Transaction tx = Transaction.builder().type(Transaction.TransactionType.TRANSFER).amount(0L)
+        Transaction tx = Transaction.builder().type(Transaction.TransactionType.STAKEHOLDER_MINT).amount(0L)
             .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
         tx = transactionRepository.save(tx);
         Long txId = tx.getId();

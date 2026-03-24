@@ -26,15 +26,17 @@ import java.time.LocalDateTime;
 @Table(name = "transaction")
 public class Transaction {
 
-    // ===== 거래 유형 (6가지) =====
+    // ===== 거래 유형 (9가지) =====
     // CHARGE: SSF 충전 (실물화폐 → SSF)
     // PURCHASE: 1차 티켓 구매 (유저 → 호스트)
     // REFUND: 1차 구매 환불 (호스트 → 유저, 1차 구매만 가능)
-    // RESALE_PURCHASE: 재판매 티켓 구매 (구매자 → 판매자)
-    // RESALE_INCOME: 재판매 수익 정산 (판매자에게 SSF 입금)
-    // TRANSFER: 초기 SSF 전송 (플랫폼 → 신규 유저/호스트)
+    // RESALE_CREATE: 리세일 등록 (NFT Escrow 예치)
+    // RESALE_CANCEL: 리세일 취소 (NFT Escrow 반환)
+    // RESALE_PURCHASE: 리세일 구매 (buyerId=구매자, sellerId=판매자, 1건으로 양쪽 조회 가능)
+    // TRANSFER: 양도 / 초기 SSF 전송
+    // STAKEHOLDER_MINT: 공연 등록 StakeholderNFT 발행
     public enum TransactionType {
-        CHARGE, PURCHASE, RESALE_INCOME, RESALE_PURCHASE, REFUND, TRANSFER
+        CHARGE, PURCHASE, RESALE_CREATE, RESALE_CANCEL, RESALE_PURCHASE, REFUND, TRANSFER, STAKEHOLDER_MINT
     }
 
     // ===== 트랜잭션 상태 (블록체인 생명주기) =====
@@ -50,7 +52,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 거래 유형 — CHARGE, PURCHASE, REFUND, RESALE_PURCHASE, RESALE_INCOME, TRANSFER
+    // 거래 유형 — CHARGE, PURCHASE, REFUND, RESALE_PURCHASE, RESALE_CREATE, RESALE_CANCEL, TRANSFER, STAKEHOLDER_MINT
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType type;
@@ -81,9 +83,9 @@ public class Transaction {
     @Column(name = "block_number")
     private Long blockNumber;
 
-    // 구매자 ID — 항상 users 테이블 참조 (FK 유지)
-    // 호스트는 구매 행위를 하지 않으므로 buyer는 항상 일반 유저
-    @Column(name = "buyer_id", nullable = false)
+    // 구매자/받는 사람 ID — users 또는 hosts 테이블 참조
+    // PURCHASE → 구매자, TRANSFER → 받는 사람, RESALE_CREATE/CANCEL → null
+    @Column(name = "buyer_id", nullable = true)
     private Long buyerId;
 
     // 판매자 ID — users 테이블만 참조 (2차 거래는 user만 가능)

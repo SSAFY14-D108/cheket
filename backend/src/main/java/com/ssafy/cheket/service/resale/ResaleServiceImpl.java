@@ -4,6 +4,7 @@ import com.ssafy.cheket.dto.resale.response.GetResaleTicketsResponse;
 import com.ssafy.cheket.dto.resale.response.ResaleShowItem;
 import com.ssafy.cheket.dto.resale.response.ResaleTicketItem;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
+import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
 import com.ssafy.cheket.entity.resale.Resale;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
@@ -18,16 +19,15 @@ import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.resale.ResaleEntityRepository;
 import com.ssafy.cheket.repository.resale.ResaleRepository;
-import com.ssafy.cheket.repository.resale.projection.ResaleShowProjection;
-import com.ssafy.cheket.repository.resale.projection.ResaleTicketProjection;
-import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.repository.resale.projection.ResaleShowProjection;
+import com.ssafy.cheket.repository.resale.projection.ResaleTicketProjection;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
-import com.ssafy.cheket.service.wallet.WalletService;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
+import com.ssafy.cheket.service.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -51,8 +51,8 @@ public class ResaleServiceImpl implements ResaleService {
     private final SessionSeatRepository sessionSeatRepository;
     private final SessionRepository sessionRepository;
     private final ShowRepository showRepository;
-    private final WalletService walletService;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
+    private final WalletService walletService;
 
     // 2차 거래 티켓이 존재하는 공연 목록 조회
     @Override
@@ -136,8 +136,10 @@ public class ResaleServiceImpl implements ResaleService {
         }
 
         // ③ Transaction PENDING 생성
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE).amount(0L)
-            .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CANCEL).amount(0L)
+            .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(userId)  // 취소하는 사람 = 판매자
+            .build();
         transactionRepository.save(transaction);
 
         log.info("[리세일 취소] PENDING 생성 — txId={}, onChainDealId={}", transaction.getId(), resale.getOnChainListingId());
@@ -177,7 +179,7 @@ public class ResaleServiceImpl implements ResaleService {
             throw new ConflictException("본인 티켓은 구매할 수 없습니다.");
         }
 
-        // ③ 티켓 + 좌석 + 회차 조회
+        // ③ deadline 초과 확인
         Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
 
         // ④ 구매자 회차별 구매 한도 확인 (온체인 walletTicketCount와 동일 기준)
@@ -197,12 +199,12 @@ public class ResaleServiceImpl implements ResaleService {
         // ⑤ SSF 잔액 사전 검증 (온체인 balanceOf 직접 조회)
         WalletBalanceResponse balanceResponse = walletService.refreshBalance(buyerUserId, "ROLE_USER");
         if (balanceResponse.balance() < resale.getResalePrice()) {
-            throw new ConflictException(
-                "SSF 잔액이 부족합니다. (보유: " + balanceResponse.balance() + " SSF, 필요: " + resale.getResalePrice() + " SSF)");
+            throw new ConflictException("SSF 잔액이 부족합니다. (보유: "
+                + balanceResponse.balance() + " SSF, 필요: " + resale.getResalePrice() + " SSF)");
         }
 
         // ⑥ Transaction PENDING 생성
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE)
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_PURCHASE)
             .amount((long) resale.getResalePrice()).description("리세일 구매 대기").txStatus(Transaction.TxStatus.PENDING)
             .buyerId(buyerUserId).sellerId(resale.getUserId()).build();
         transactionRepository.save(transaction);

@@ -31,9 +31,7 @@ import com.ssafy.cheket.repository.ticket.projection.UsedAndExpiredTicketProject
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
-import com.ssafy.cheket.dto.wallet.response.WalletBalanceResponse;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
-import com.ssafy.cheket.service.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,7 +63,6 @@ public class TicketServiceImpl implements TicketService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
-    private final WalletService walletService;
 
     // ========== 티켓 구매 ==========
 
@@ -85,52 +82,29 @@ public class TicketServiceImpl implements TicketService {
         }
 
         // ① 유효성 검증
-        // DB에서 sessionId=112 조회
         Session session = sessionRepository.findById(sessionId)
             .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다: " + sessionId));
-        // showId=46인데 session이 다른 공연 것이면 에러
+
         if (!session.getShowId().equals(showId)) {
             throw new NotFoundException("공연 정보와 회차 정보가 일치하지 않습니다.");
         }
-        // 민팅 안 됐으면 온체인에 TicketNFT가 없으니 구매 불가
+
         if (session.getOnChainSessionId() == null) {
             throw new ConflictException("아직 민팅되지 않은 회차입니다");
         }
-        // [1800, 1801, 1802] 요청했는데 DB에 2개만 있으면 에러
+
         List<SessionSeat> seats = sessionSeatRepository.findAllById(sessionSeatIds);
         if (seats.size() != sessionSeatIds.size()) {
             throw new NotFoundException("존재하지 않는 좌석이 포함되어 있습니다");
         }
-        // HELD만 구매 가능
-        for (SessionSeat seat : seats) { // test를 위해 AVAILABLE도 가능하도록 함
-            if (seat.getStatus() != SeatStatus.AVAILABLE && seat.getStatus() != SeatStatus.HELD) {
+
+        for (SessionSeat seat : seats) {
+            if (seat.getStatus() != SeatStatus.AVAILABLE) {
                 throw new ConflictException("이미 판매된 좌석입니다: sessionSeatId=" + seat.getId());
             }
-            // 민팅 시 저장된 온체인 NFT ID가 있어야 함
             if (seat.getOnChainTicketNftId() == null) {
                 throw new NotFoundException("온체인 티켓이 없는 좌석입니다: sessionSeatId=" + seat.getId());
             }
-        }
-        // SSF 잔액 사전 검증 (온체인 balanceOf 직접 조회)
-        long totalPrice = 0;
-        for (SessionSeat seat : seats) {
-            Seat seatInfo = seatRepository.findById(seat.getSeatId())
-                .orElseThrow(() -> new NotFoundException("좌석 정보를 찾을 수 없습니다: seatId=" + seat.getSeatId()));
-            SeatGrade grade = seatGradeRepository.findByShowIdAndSectionId(showId, seatInfo.getSectionId())
-                .orElseThrow(() -> new NotFoundException("좌석 등급을 찾을 수 없습니다: sectionId=" + seatInfo.getSectionId()));
-            totalPrice += grade.getPrice();
-        }
-        WalletBalanceResponse balanceResponse = walletService.refreshBalance(userId, "ROLE_USER");
-        if (balanceResponse.balance() < totalPrice) {
-            throw new ConflictException(
-                "SSF 잔액이 부족합니다. (보유: " + balanceResponse.balance() + " SSF, 필요: " + totalPrice + " SSF)");
-        }
-        // 회차별 구매 한도 확인 (온체인 walletTicketCount와 동일 기준)
-        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
-        long currentCount = ticketRepository.countByUserIdAndSessionId(userId, sessionId);
-        if (currentCount + seats.size() > show.getPurchaseLimit()) {
-            throw new ConflictException("구매 한도를 초과합니다. (현재: " + currentCount + "매, 요청: " + seats.size() + "매, 한도: "
-                + show.getPurchaseLimit() + "매)");
         }
 
         // ② 좌석 → PENDING_TX
@@ -278,14 +252,15 @@ public class TicketServiceImpl implements TicketService {
             throw new ConflictException("본인에게는 양도할 수 없습니다.");
         }
 
-        // ========== ③ 받는 사람 회차별 maxPerWallet 초과 확인 ==========
-        // 온체인 walletTicketCount[eventId][sessionId][wallet]와 동일 기준
+        // ========== ③ 받는 사람 maxPerWallet 초과 확인 ==========
+        // 컨트랙트에서도 검증하지만, 불필요한 TX를 막기 위해 사전 필터링
+        // "이 공연에 대해 받는 사람이 이미 몇 장 갖고 있나?"
         Session session = sessionRepository.findById(seat.getSessionId())
             .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다."));
         Show show = showRepository.findById(session.getShowId())
             .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
 
-        long receiverTicketCount = ticketRepository.countByUserIdAndSessionId(receiver.getId(), session.getId());
+        long receiverTicketCount = ticketRepository.countByUserIdAndShowId(receiver.getId(), show.getId());
         if (receiverTicketCount >= show.getPurchaseLimit()) {
             throw new ConflictException("받는 사람의 구매 한도(" + show.getPurchaseLimit() + "매)를 초과합니다.");
         }
@@ -293,7 +268,9 @@ public class TicketServiceImpl implements TicketService {
         // ========== ④ Transaction PENDING 생성 ==========
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.TRANSFER) // 양도 타입
             .amount(0L) // 무료 양도
-            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(senderUserId) // 보내는 사람 기록
+            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(senderUserId)   // 보내는 사람
+            .buyerId(receiver.getId()) // 받는 사람
             .build();
         transactionRepository.save(transaction);
 
@@ -378,8 +355,9 @@ public class TicketServiceImpl implements TicketService {
         ticketRepository.save(ticket);
 
         // ⑤ Transaction PENDING 생성
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE)
-            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId)
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CREATE)
+            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(userId)  // 등록하는 사람 = 판매자
             .build();
         transactionRepository.save(transaction);
 
