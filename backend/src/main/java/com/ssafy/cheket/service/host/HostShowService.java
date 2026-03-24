@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.settlement.response.GetApprovalListResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
@@ -25,4 +26,6 @@ public interface HostShowService {
 
     void updateShow(Long hostId, Long showId, UpdateShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages);
+
+    List<GetApprovalListResponse> getContracts(Long hostId, Long showId);
 }

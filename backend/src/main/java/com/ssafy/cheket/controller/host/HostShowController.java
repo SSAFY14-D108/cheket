@@ -3,6 +3,7 @@ package com.ssafy.cheket.controller.host;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.settlement.response.GetApprovalListResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
@@ -82,4 +83,15 @@ public class HostShowController {
         hostShowService.deleteShow(hostId, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 삭제 완료", null));
     }
+
+    @GetMapping("/{showId}/contracts")
+    @Operation(summary = "공연 별 스마트컨트랙트 승인/거절 내역 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetApprovalListResponse>>> getContracts(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        List<GetApprovalListResponse> response = hostShowService.getContracts(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "공연 스마트컨트랙트의 승인/거절에 관해 조회 성공했습니다.", response));
+    }
+
 }
