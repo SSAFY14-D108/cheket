@@ -247,24 +247,38 @@ public class QrTokenServiceImpl implements QrTokenService {
     /**
      * 온체인 체크인 — TicketNFT.checkIn(tokenId) 호출
      * VALID → USED 상태 변경 (블록체인에 영구 기록)
-     * 실패해도 DB 체크인은 이미 완료 → 로그만 남기고 진행
-     * (공연 후 batchCheckIn으로 보정 가능)
+     * 3회 재시도 + 2초 대기 (기존 BlockchainAsyncWorker 패턴과 동일)
+     * 모두 실패해도 DB 체크인은 이미 완료 → 로그만 남기고 진행
      */
     private void executeOnChainCheckIn(Ticket ticket) {
-        try {
-            BigInteger tokenId = BigInteger.valueOf(ticket.getTicketNftId());
+        BigInteger tokenId = BigInteger.valueOf(ticket.getTicketNftId());
+        int maxRetry = 3;
 
-            // 온체인 checkIn TX 전송 (onlyOwner → 플랫폼 지갑으로 서명)
-            blockchainService.getTicketNFT()
-                .checkIn(tokenId).send();
+        for (int attempt = 1; attempt <= maxRetry; attempt++) {
+            try {
+                // 온체인 checkIn TX 전송 (onlyOwner → 플랫폼 지갑으로 서명)
+                blockchainService.getTicketNFT()
+                    .checkIn(tokenId).send();
 
-            log.info("온체인 체크인 완료 — ticketNftId: {}", tokenId);
+                log.info("온체인 체크인 완료 — ticketNftId: {}", tokenId);
+                return; // 성공 시 즉시 종료
 
-        } catch (Exception e) {
-            // 온체인 실패해도 DB 체크인은 유지 (최종 일관성)
-            // 공연 후 batchCheckIn으로 보정 가능
-            log.error("온체인 체크인 실패 (DB 체크인은 유지) — ticketId: {}, error: {}",
-                ticket.getId(), e.getMessage());
+            } catch (Exception e) {
+                if (attempt < maxRetry) {
+                    log.warn("온체인 체크인 실패 {}/{}회, 2초 후 재시도 — ticketNftId: {}",
+                        attempt, maxRetry, tokenId);
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                } else {
+                    // 3회 모두 실패 — DB 체크인은 유지 (최종 일관성)
+                    log.error("온체인 체크인 {}회 모두 실패 (DB 체크인은 유지) — ticketId: {}, ticketNftId: {}, error: {}",
+                        maxRetry, ticket.getId(), tokenId, e.getMessage());
+                }
+            }
         }
     }
 }
