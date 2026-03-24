@@ -39,18 +39,51 @@ export default function Page() {
 
   console.log('[Collection] Rendering CollectionScreen with', tickets.length, 'tickets')
 
+  // 로딩 중 — inline style로 WebView height 문제 회피
   if (loading) {
     return (
-      <div className="flex h-full min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">컬렉션을 불러오는 중...</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #0a0a0a 0%, #111827 50%, #0a0a0a 100%)',
+        gap: 20,
+        fontFamily: 'Pretendard, -apple-system, sans-serif',
+      }}>
+        {/* 스피너 */}
+        <div style={{
+          width: 48,
+          height: 48,
+          border: '3px solid rgba(255,255,255,0.1)',
+          borderTopColor: '#00C598',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <p style={{ color: '#9ca3af', fontSize: 14, margin: 0 }}>
+          컬렉션을 불러오는 중...
+        </p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex h-full min-h-screen items-center justify-center bg-background">
-        <p className="text-destructive">오류: {error}</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        minHeight: '100vh',
+        background: '#0a0a0a',
+        gap: 12,
+        fontFamily: 'Pretendard, -apple-system, sans-serif',
+      }}>
+        <p style={{ color: '#f87171', fontSize: 14, margin: 0 }}>오류: {error}</p>
       </div>
     )
   }

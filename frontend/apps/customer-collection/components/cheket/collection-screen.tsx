@@ -12,6 +12,33 @@ import { TicketSparklesAura } from './ticket-sparkles-aura'
 // Re-export Ticket type alias for internal use
 type Ticket = CollectionTicket
 
+/**
+ * Android WebView 가속계 Bridge → DeviceOrientation 이벤트로 변환.
+ * Android에서 CustomEvent('nativeTilt', {detail: {tiltX, tiltY}})를
+ * 발행하면 이 hook이 DeviceOrientationEvent를 시뮬레이션해서
+ * react-parallax-tilt의 gyroscope prop이 동작하도록 합니다.
+ */
+function useNativeTiltBridge() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handler = (e: Event) => {
+      const { tiltX, tiltY } = (e as CustomEvent).detail
+      // DeviceOrientationEvent: beta=앞뒤(tiltX), gamma=좌우(tiltY)
+      const event = new DeviceOrientationEvent('deviceorientation', {
+        alpha: 0,
+        beta: tiltX * 3,   // 가속계 값을 3배로 증폭 (체감 향상)
+        gamma: tiltY * 3,
+        absolute: false,
+      })
+      window.dispatchEvent(event)
+    }
+
+    window.addEventListener('nativeTilt', handler)
+    return () => window.removeEventListener('nativeTilt', handler)
+  }, [])
+}
+
 const CARD_WIDTH = 270
 const CARD_HEIGHT = 530
 const CARD_COMPACT_WIDTH = 150
@@ -683,7 +710,7 @@ function CollectibleTicketCard({
                 layer.style.setProperty('--posy', '50%')
               }}
             >
-              <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
+              <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false} gyroscope={true}>
                 <ReactCardFlip
                   isFlipped={flipped}
                   flipDirection="horizontal"
@@ -831,6 +858,7 @@ function CollectionCoverFlow({
 }
 
 export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) {
+  useNativeTiltBridge() // Android 가속계 → DeviceOrientation 변환
   const [activeIndex, setActiveIndex] = useState(0)
   const [effectPickerOpen, setEffectPickerOpen] = useState(false)
   const [effectMap, setEffectMap] = useState<Record<string, EffectType>>({})
