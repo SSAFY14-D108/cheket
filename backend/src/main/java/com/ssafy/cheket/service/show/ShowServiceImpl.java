@@ -11,11 +11,13 @@ import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.show.*;
 import com.ssafy.cheket.repository.show.projection.HeldSeatLockProjection;
 import com.ssafy.cheket.repository.show.projection.PurchaseSessionSeatProjection;
 import com.ssafy.cheket.repository.show.projection.SessionListProjection;
+import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -57,6 +59,7 @@ public class ShowServiceImpl implements ShowService {
     private final ShowImageRepository showImageRepository;
     private final SearchHistoryRepository searchHistoryRepository;
     private final UserRepository userRepository;
+    private final TicketRepository ticketRepository;
     private final S3Uploader s3Uploader;
     private final StringRedisTemplate redisTemplate;
 
@@ -239,7 +242,7 @@ public class ShowServiceImpl implements ShowService {
     // 좌석 선점(결제하기 버튼)
     @Override
     @Transactional
-    public PurchaseSessionSeatResponse purchaseSessionSeats(Long showId, Long sessionId,
+    public PurchaseSessionSeatResponse purchaseSessionSeats(Long userId, Long showId, Long sessionId,
         PurchaseSessionSeatRequest request) {
         if (!sessionRepository.existsByIdAndShowId(sessionId, showId)) {
             throw new NotFoundException("존재하지 않는 공연 또는 회차입니다.");
@@ -253,6 +256,12 @@ public class ShowServiceImpl implements ShowService {
         List<Long> distinctSeatIds = requestedSeatIds.stream().distinct().toList();
         if (requestedSeatIds.size() != distinctSeatIds.size()) {
             throw new BadRequestException("중복된 자리 선택입니다.");
+        }
+
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        long purchasedCount = ticketRepository.countByUserIdAndSessionId(userId, sessionId);
+        if (purchasedCount + distinctSeatIds.size() > show.getPurchaseLimit()) {
+            throw new ConflictException(show.getPurchaseLimit() + "매까지만 선택 가능합니다.");
         }
 
         List<PurchaseSessionSeatProjection> rows = showRepository.findPurchaseSessionSeats(showId, sessionId,

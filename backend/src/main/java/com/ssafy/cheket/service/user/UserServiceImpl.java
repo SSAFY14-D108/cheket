@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.user;
 
 import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
@@ -130,5 +131,17 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         user.setNotificationEnable(request.notificationEnable());
+    }
+
+    @Override
+    @Transactional
+    public void saveFcmToken(Long userId, SaveFcmTokenRequest request) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        if (request.fcmToken() == null || request.fcmToken().isBlank())
+            throw new BadRequestException("FCM 토큰은 비어 있을 수 없습니다.");
+
+        user.setFcmToken(request.fcmToken());
     }
 }

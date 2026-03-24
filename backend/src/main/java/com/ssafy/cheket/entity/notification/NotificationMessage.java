@@ -1,5 +1,6 @@
 package com.ssafy.cheket.entity.notification;
 
+import com.ssafy.cheket.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,8 +17,9 @@ public class NotificationMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    private String type;
+    private NotificationType type;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;

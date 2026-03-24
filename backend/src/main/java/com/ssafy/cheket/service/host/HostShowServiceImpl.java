@@ -3,6 +3,7 @@ package com.ssafy.cheket.service.host;
 import com.ssafy.cheket.config.s3.S3Uploader;
 import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.settlement.response.GetApprovalListResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
 import com.ssafy.cheket.dto.show.response.GetShowListResponse;
@@ -14,9 +15,11 @@ import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.entity.ticket.TicketEffect;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.ApprovalStatus;
 import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.enums.ShowStatus;
 import com.ssafy.cheket.enums.StakeholderRole;
+import com.ssafy.cheket.enums.UserType;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.NotFoundException;
@@ -27,6 +30,7 @@ import com.ssafy.cheket.repository.ticket.TicketEffectRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
+import com.ssafy.cheket.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,6 +70,9 @@ public class HostShowServiceImpl implements HostShowService {
     private final TransactionRepository transactionRepository;
     private final S3Uploader s3Uploader;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
+
+    private final NotificationService notificationService;
+
     // 클래스 상단에 필드 추가
     @Value("${blockchain.platform-private-key}")
     private String platformPrivateKey;
@@ -279,6 +286,13 @@ public class HostShowServiceImpl implements HostShowService {
 
             stakeholder = stakeholderRepository.save(stakeholder);
             savedStakeholders.add(stakeholder);
+        }
+
+        List<Long> targetUserIds = savedStakeholders.stream().map(Stakeholder::getUserId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        for (Long userId : targetUserIds) {
+            notificationService.sendRequestCreate(userId, showId);
         }
 
         // 플랫폼도 Stakeholder로 추가 (800 bps = 8%)
@@ -510,6 +524,65 @@ public class HostShowServiceImpl implements HostShowService {
                     .refundRate(policy.refundRate()).build());
             }
         }
+
+        List<Long> targetUserIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getUserId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        for (Long userId : targetUserIds) {
+            notificationService.sendRequestUpdate(userId, showId);
+        }
+    }
+
+    // 공연 별 스마트컨트랙트 승인/거절 내역 조회
+    @Override
+    public List<GetApprovalListResponse> getContracts(Long hostId, Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (!show.getHost().getId().equals(hostId))
+            throw new ForbiddenException("본인이 등록한 공연만 조회할 수 있습니다.");
+
+        List<Stakeholder> stakeholders = stakeholderRepository.findContractTargetsByShowId(showId);
+
+        List<Long> stakeholderHostIds = stakeholders.stream().map(Stakeholder::getHostId).filter(Objects::nonNull)
+            .distinct().toList();
+        List<Long> stakeholderUserIds = stakeholders.stream().map(Stakeholder::getUserId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        Map<Long, Host> hostMap = stakeholderHostIds.isEmpty()
+            ? Collections.emptyMap()
+            : hostRepository.findAllById(stakeholderHostIds).stream()
+                .collect(Collectors.toMap(Host::getId, Function.identity()));
+        Map<Long, User> userMap = stakeholderUserIds.isEmpty()
+            ? Collections.emptyMap()
+            : userRepository.findAllById(stakeholderUserIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return stakeholders.stream().map(stakeholder -> {
+            UserType userType = stakeholder.getRole() == StakeholderRole.ORGANIZER ? UserType.HOST : UserType.USER;
+            Long userId = userType == UserType.HOST ? stakeholder.getHostId() : stakeholder.getUserId();
+            String username = null;
+
+            if (userType == UserType.HOST) {
+                Host host = hostMap.get(userId);
+                if (host != null)
+                    username = host.getCompanyName();
+            } else {
+                User user = userMap.get(userId);
+                if (user != null)
+                    username = user.getUsername();
+            }
+
+            ApprovalStatus approvalStatus = stakeholder.getApprovalStatus() == null
+                ? ApprovalStatus.PENDING
+                : stakeholder.getApprovalStatus();
+            LocalDateTime determinedAt = null;
+            if (approvalStatus == ApprovalStatus.APPROVED) {
+                determinedAt = stakeholder.getApprovedAt();
+            } else if (approvalStatus == ApprovalStatus.REJECTED) {
+                determinedAt = stakeholder.getRejectedAt();
+            }
+
+            return new GetApprovalListResponse(userType, userId, username, approvalStatus, determinedAt);
+        }).toList();
     }
 
     private ShowItem toShowItem(Show s) {
