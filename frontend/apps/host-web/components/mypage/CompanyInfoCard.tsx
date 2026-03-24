@@ -1,8 +1,6 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { Building2, Check, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import type { MyCompanyInfo } from "@/lib/mypage-api"
 
 interface CompanyInfoCardProps {
@@ -18,9 +16,7 @@ export function CompanyInfoCard({ company }: CompanyInfoCardProps) {
       : walletAddress
 
   const handleCopyWalletAddress = async () => {
-    if (!company.walletAddress) {
-      return
-    }
+    if (!company.walletAddress) return
 
     try {
       await navigator.clipboard.writeText(company.walletAddress)
@@ -40,49 +36,61 @@ export function CompanyInfoCard({ company }: CompanyInfoCardProps) {
       label: "잔액",
       value:
         company.balance !== null && company.balance !== undefined
-          ? `${Number(company.balance).toLocaleString()} CTK`
+          ? `${Number(company.balance).toLocaleString()} SSF`
           : "잔액 정보 없음",
     },
   ]
 
   return (
-    <Card className="flex h-full flex-col">
-      <CardHeader className="border-b bg-slate-50/50 pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-          <Building2 className="h-5 w-5 text-primary" />
-          <span>회사 정보</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col justify-center pt-6">
-        <div className="flex flex-col gap-4">
-          {fields.map((field, index) => (
-            <div key={field.label} className="group transition-colors">
-              <div className="flex flex-col gap-1.5 sm:grid sm:grid-cols-3 sm:gap-6 sm:items-start">
-                <span className="text-sm font-medium text-slate-400">{field.label}</span>
-                {field.label === "지갑 주소" ? (
-                  <div className="sm:col-span-2 flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-700">{field.value}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={handleCopyWalletAddress}
-                      disabled={!company.walletAddress}
-                    >
-                      {copied ? <Check className="mr-1 h-3.5 w-3.5" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
-                      {copied ? "복사됨" : "복사"}
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="break-all text-sm font-bold text-slate-700 sm:col-span-2">{field.value}</span>
-                )}
-              </div>
-              {index < fields.length - 1 && <Separator className="mt-4" />}
-            </div>
-          ))}
+    <section className="rounded-[2rem] border border-black/8 bg-white p-6 shadow-sm sm:p-8">
+      <div className="flex items-center gap-3 border-b border-black/8 pb-5">
+        <div className="flex size-11 items-center justify-center rounded-2xl bg-black/[0.04]">
+          <Building2 className="h-5 w-5 text-black" />
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <h2 className="text-xl font-semibold tracking-[-0.03em] text-black">
+            회사 정보
+          </h2>
+          <p className="text-sm text-black/45">운영자 계정 기본 정보</p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {fields.map((field) => (
+          <div
+            key={field.label}
+            className="rounded-[1.5rem] border border-black/8 bg-white p-5"
+          >
+            <p className="text-sm text-black/42">{field.label}</p>
+            {field.label === "지갑 주소" ? (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="break-all text-sm font-semibold text-black/80">
+                  {field.value}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full border-black/10 px-3 text-xs"
+                  onClick={handleCopyWalletAddress}
+                  disabled={!company.walletAddress}
+                >
+                  {copied ? (
+                    <Check className="mr-1 h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="mr-1 h-3.5 w-3.5" />
+                  )}
+                  {copied ? "복사됨" : "복사"}
+                </Button>
+              </div>
+            ) : (
+              <p className="mt-2 break-all text-base font-semibold text-black">
+                {field.value}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

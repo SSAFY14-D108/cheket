@@ -23,13 +23,13 @@ export interface RevenueSplitItem {
     role: string
     displayName?: string
     rateBps: number // 예: 5000 = 50%
-    amount: number  // ETH
+    amount: number  // SSF
 }
 
 export interface DashboardRevenueSplit {
     showId: number
     title: string
-    totalRevenue: number // ETH
+    totalRevenue: number // SSF
     splits: RevenueSplitItem[]
 }
 

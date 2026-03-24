@@ -87,12 +87,45 @@ export function SettingsCardPolicies({
   // UI 전용 상태 모델: { id, daysBefore, refundRate }
   const refundPolicies = useMemo(
     () =>
-      refundPolicy.map((policy, index) => ({
-        id: `refund-${index}`,
-        sourceIndex: index,
-        daysBefore: policy.daysRemaining,
-        refundRate: policy.refundRate,
-      })),
+      refundPolicy
+        .map((policy, index) => ({
+          id: `refund-${index}`,
+          sourceIndex: index,
+          daysBefore: policy.daysRemaining,
+          refundRate: policy.refundRate,
+        }))
+        .sort((a, b) => Number(b.daysBefore || 0) - Number(a.daysBefore || 0))
+        .map((policy, index, policies) => {
+          const currentDays = Number(policy.daysBefore)
+          const previousDays = Number(policies[index - 1]?.daysBefore)
+
+          let rangeLabel = "구간을 입력하세요"
+
+          if (Number.isFinite(currentDays)) {
+            if (index === 0) {
+              rangeLabel = currentDays === 0 ? "관람 당일" : `관람 ${currentDays}일 전 이상`
+            } else if (Number.isFinite(previousDays)) {
+              const endDays = previousDays - 1
+              rangeLabel =
+                endDays === currentDays
+                  ? currentDays === 0
+                    ? "관람 당일"
+                    : `관람 ${currentDays}일 전`
+                  : endDays <= 0
+                    ? currentDays === 0
+                      ? "관람 당일"
+                      : `관람 ${currentDays}일 전 ~ 당일`
+                    : `관람 ${currentDays}~${endDays}일 전`
+            } else {
+              rangeLabel = currentDays === 0 ? "관람 당일" : `관람 ${currentDays}일 전 ~ 당일`
+            }
+          }
+
+          return {
+            ...policy,
+            rangeLabel,
+          }
+        }),
     [refundPolicy]
   )
 
@@ -259,9 +292,8 @@ export function SettingsCardPolicies({
                       }`}
                     >
                       {remainingShareBps >= 0
-                        ? `${remainingShareBps.toLocaleString()}`
-                        : `-${Math.abs(remainingShareBps).toLocaleString()}`}{" "}
-                      <span className="text-xs font-medium text-muted-foreground">bps</span>
+                        ? `${(remainingShareBps / 100).toLocaleString()}%`
+                        : `-${(Math.abs(remainingShareBps) / 100).toLocaleString()}%`}
                     </p>
                   </div>
                 </div>
@@ -460,6 +492,12 @@ export function SettingsCardPolicies({
             </Button>
           </div>
 
+          <div className="rounded-lg border border-border/80 bg-muted/10 px-4 py-3">
+            <p className="text-sm font-medium text-foreground">
+              각 행은 취소 수수료가 적용되는 구간의 시작 기준입니다. 아래 표에서 실제 적용 구간이 자동으로 계산됩니다.
+            </p>
+          </div>
+
           {refundPolicy.length === 0 && showErrors && (
             <p className="text-[10px] font-medium text-destructive">
               환불 정책을 최소 1개 이상 추가해 주세요.
@@ -467,10 +505,10 @@ export function SettingsCardPolicies({
           )}
 
           <div className="rounded-lg border bg-muted/10 p-3">
-            <div className="grid grid-cols-[120px_170px_170px_40px] items-center gap-x-3 border-b border-border px-3 pb-2 text-[11px] text-muted-foreground">
-              <div>기준</div>
-              <div>기간</div>
-              <div>환불율</div>
+            <div className="grid grid-cols-[1.3fr_0.9fr_0.9fr_56px] items-center gap-x-4 border-b border-border px-3 pb-2 text-[11px] text-muted-foreground">
+              <div>적용 구간</div>
+              <div>시작 기준</div>
+              <div>수수료</div>
               <div className="text-center">삭제</div>
             </div>
 
@@ -478,9 +516,13 @@ export function SettingsCardPolicies({
             {refundPolicies.map((policy) => (
               <div
                 key={policy.id}
-                className="grid grid-cols-[120px_170px_170px_40px] items-center gap-x-3 px-3 py-2 text-xs"
+                className="grid grid-cols-[1.3fr_0.9fr_0.9fr_56px] items-center gap-x-4 px-3 py-2 text-xs"
               >
-                <div className="text-muted-foreground">공연일</div>
+                <div>
+                  <span className="inline-flex rounded-full bg-background px-2.5 py-1 text-[11px] font-medium text-foreground">
+                    {policy.rangeLabel}
+                  </span>
+                </div>
 
                 <div className="flex items-center gap-1">
                   <Input
@@ -490,7 +532,7 @@ export function SettingsCardPolicies({
                     onChange={(event) => onUpdateRefund(policy.sourceIndex, "daysRemaining", event.target.value)}
                     className="h-7 w-[72px] px-2 text-center text-[11px]"
                   />
-                  <span className="text-muted-foreground">일</span>
+                  <span className="text-muted-foreground">일 전부터</span>
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -499,7 +541,7 @@ export function SettingsCardPolicies({
                     step="1"
                     min="0"
                     max="100"
-                    placeholder="100"
+                    placeholder="0"
                     value={policy.refundRate}
                     onChange={(event) => onUpdateRefund(policy.sourceIndex, "refundRate", event.target.value)}
                     className="h-7 w-[72px] px-2 text-center text-[11px]"

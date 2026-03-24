@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Plus, Settings } from "lucide-react"
+import { Plus, Settings, Wallet } from "lucide-react"
 import { CompanyInfoCard } from "@/components/mypage/CompanyInfoCard"
 import { EventCard } from "@/components/mypage/EventCard"
 import { LogoutButton } from "@/components/mypage/LogoutButton"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
-import { compareShowsByDisplayOrder } from "@/lib/show-display"
+import { compareShowsByDisplayOrder, getShowDisplayMeta } from "@/lib/show-display"
 import {
   fetchMyCompanyInfo,
   fetchMyShows,
@@ -23,6 +23,7 @@ import {
 
 const FETCH_SHOWS_SIZE = 100
 const DISPLAY_SHOWS_PAGE_SIZE = 8
+type ShowFilter = "all" | "upcoming" | "live" | "ended"
 
 export function MyPageContent() {
   const { toast } = useToast()
@@ -34,6 +35,7 @@ export function MyPageContent() {
   const [hasShowsLoadError, setHasShowsLoadError] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [activeTab, setActiveTab] = useState<"info" | "shows">("shows")
+  const [showFilter, setShowFilter] = useState<ShowFilter>("all")
 
   useEffect(() => {
     let isCancelled = false
@@ -47,9 +49,7 @@ export function MyPageContent() {
             .catch((error: unknown) => ({ status: "rejected" as const, reason: error })),
         ])
 
-        if (isCancelled) {
-          return
-        }
+        if (isCancelled) return
 
         const nextCompany: MyCompanyInfo = { ...companyInfo }
 
@@ -65,11 +65,11 @@ export function MyPageContent() {
 
           if (!(walletError instanceof ApiError && walletError.status === 401)) {
             toast({
-              title: "지갑 정보 조회 실패",
+              title: "지갑 정보를 불러오지 못했습니다.",
               description:
                 walletError instanceof ApiError
                   ? walletError.message
-                  : "지갑 잔액 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+                  : "지갑 정보를 가져오는 중 문제가 발생했습니다.",
               variant: "destructive",
             })
           }
@@ -77,26 +77,21 @@ export function MyPageContent() {
 
         setCompany(nextCompany)
       } catch (error) {
-        if (isCancelled) {
-          return
-        }
+        if (isCancelled) return
 
         if (!(error instanceof ApiError && error.status === 401)) {
           setHasSummaryLoadError(true)
-
           toast({
-            title: "운영 홈 조회 실패",
+            title: "회사 정보를 불러오지 못했습니다.",
             description:
               error instanceof ApiError
                 ? error.message
-                : "운영 홈 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+                : "회사 정보를 가져오는 중 문제가 발생했습니다.",
             variant: "destructive",
           })
         }
       } finally {
-        if (!isCancelled) {
-          setIsSummaryLoading(false)
-        }
+        if (!isCancelled) setIsSummaryLoading(false)
       }
     }
 
@@ -120,32 +115,24 @@ export function MyPageContent() {
           size: FETCH_SHOWS_SIZE,
         })
 
-        if (isCancelled) {
-          return
-        }
-
+        if (isCancelled) return
         setShowsPage(nextShowsPage)
       } catch (error) {
-        if (isCancelled) {
-          return
-        }
+        if (isCancelled) return
 
         if (!(error instanceof ApiError && error.status === 401)) {
           setHasShowsLoadError(true)
-
           toast({
-            title: "공연 목록 조회 실패",
+            title: "공연 목록을 불러오지 못했습니다.",
             description:
               error instanceof ApiError
                 ? error.message
-                : "등록한 공연 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+                : "공연 목록을 가져오는 중 문제가 발생했습니다.",
             variant: "destructive",
           })
         }
       } finally {
-        if (!isCancelled) {
-          setIsShowsLoading(false)
-        }
+        if (!isCancelled) setIsShowsLoading(false)
       }
     }
 
@@ -157,14 +144,46 @@ export function MyPageContent() {
   }, [toast])
 
   const allShows: MyShowSummary[] = [...(showsPage?.shows ?? [])].sort(compareShowsByDisplayOrder)
+  const filteredShows = allShows.filter((show) => {
+    if (showFilter === "all") return true
+
+    const performancePhase = getShowDisplayMeta(show).performance.phase
+
+    if (showFilter === "upcoming") return performancePhase === "UPCOMING"
+    if (showFilter === "live") return performancePhase === "LIVE"
+    return performancePhase === "ENDED"
+  })
   const totalShows = showsPage?.totalElements ?? 0
-  const totalPages = Math.ceil(allShows.length / DISPLAY_SHOWS_PAGE_SIZE)
+  const totalPages = Math.ceil(filteredShows.length / DISPLAY_SHOWS_PAGE_SIZE)
   const isFirstPage = currentPage === 0
   const isLastPage = totalPages === 0 || currentPage >= totalPages - 1
-  const visibleShows = allShows.slice(
+  const visibleShows = filteredShows.slice(
     currentPage * DISPLAY_SHOWS_PAGE_SIZE,
     (currentPage + 1) * DISPLAY_SHOWS_PAGE_SIZE
   )
+  const liveShowsCount = allShows.filter(
+    (show) => getShowDisplayMeta(show).performance.phase === "LIVE"
+  ).length
+  const filterOptions: Array<{ key: ShowFilter; label: string; count: number }> = [
+    { key: "all", label: "전체", count: allShows.length },
+    {
+      key: "upcoming",
+      label: "공연 예정",
+      count: allShows.filter((show) => getShowDisplayMeta(show).performance.phase === "UPCOMING")
+        .length,
+    },
+    {
+      key: "live",
+      label: "공연 중",
+      count: allShows.filter((show) => getShowDisplayMeta(show).performance.phase === "LIVE").length,
+    },
+    {
+      key: "ended",
+      label: "공연 완료",
+      count: allShows.filter((show) => getShowDisplayMeta(show).performance.phase === "ENDED")
+        .length,
+    },
+  ]
 
   useEffect(() => {
     if (totalPages > 0 && currentPage > totalPages - 1) {
@@ -172,62 +191,180 @@ export function MyPageContent() {
     }
   }, [currentPage, totalPages])
 
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [showFilter])
+
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">운영 홈</h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/shows/create"
-            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+    <main className="min-h-svh bg-white">
+      <div className="mx-auto max-w-[1160px] px-5 py-6">
+        <section className="overflow-hidden rounded-[1.4rem] border border-black/8 bg-white px-5 py-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-black/42">
+                My Page
+              </p>
+              <div className="space-y-2">
+                <h1 className="text-[1.8rem] font-semibold tracking-[-0.04em] text-black sm:text-[2rem]">
+                  {company?.companyName ?? "회사 정보"}
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/shows/create"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/85"
+              >
+                <Plus className="size-4" />
+                공연 등록
+              </Link>
+              <Link
+                href="/mypage/settings"
+                className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white px-3.5 py-2 text-sm font-semibold text-black/72 transition-colors hover:bg-black/[0.03]"
+              >
+                <Settings className="size-4" />
+                설정
+              </Link>
+              <LogoutButton />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-[1.1rem] border border-black/8 bg-white p-4">
+              <p className="text-sm text-black/45">전체 공연</p>
+              <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.04em] text-black">
+                {totalShows}
+              </p>
+            </div>
+            <div className="rounded-[1.1rem] border border-black/8 bg-white p-4">
+              <p className="text-sm text-black/45">진행 중 공연</p>
+              <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.04em] text-black">
+                {liveShowsCount}
+              </p>
+            </div>
+            <div className="rounded-[1.1rem] border border-black/8 bg-white p-4">
+              <div className="flex items-center gap-2 text-sm text-black/45">
+                <Wallet className="size-4" />
+                지갑 잔액
+              </div>
+              <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.04em] text-black">
+                {company?.balance !== null && company?.balance !== undefined
+                  ? `${Number(company.balance).toLocaleString()} SSF`
+                  : "-"}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-6 flex gap-6 border-b border-black/10">
+          <button
+            onClick={() => setActiveTab("shows")}
+            className={`pb-3 text-sm font-semibold transition-colors ${
+              activeTab === "shows"
+                ? "border-b-2 border-black text-black"
+                : "text-black/40 hover:text-black/70"
+            }`}
           >
-            <Plus className="size-4" />
-            <span>공연 등록</span>
-          </Link>
-          <Link
-            href="/mypage/settings"
-            className="flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-semibold shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            공연 목록
+          </button>
+          <button
+            onClick={() => setActiveTab("info")}
+            className={`pb-3 text-sm font-semibold transition-colors ${
+              activeTab === "info"
+                ? "border-b-2 border-black text-black"
+                : "text-black/40 hover:text-black/70"
+            }`}
           >
-            <Settings className="size-4" />
-            <span>계정 설정</span>
-          </Link>
-          <LogoutButton />
+            회사 정보
+          </button>
         </div>
-      </div>
 
-      <div className="mt-6 flex gap-6 border-b border-border px-1">
-        <button
-          onClick={() => setActiveTab("shows")}
-          className={`border-b-2 pb-3 pt-1 text-sm font-bold transition-all ${
-            activeTab === "shows" ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
-          }`}
-        >
-          등록한 공연
-        </button>
-        <button
-          onClick={() => setActiveTab("info")}
-          className={`border-b-2 pb-3 pt-1 text-sm font-bold transition-all ${
-            activeTab === "info" ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
-          }`}
-        >
-          내 정보
-        </button>
-      </div>
+        {activeTab === "shows" ? (
+          <section className="mt-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                {filterOptions.map((option) => {
+                  const active = showFilter === option.key
 
-      {activeTab === "info" && (
-      <section className="mt-8 flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div className="w-full max-w-2xl">
-          <div className="flex flex-col">
-            {company ? (
-              <div className="flex flex-col">
-                <CompanyInfoCard company={company} />
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setShowFilter(option.key)}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "border-black bg-black text-white"
+                          : "border-black/10 bg-white text-black/62 hover:bg-black/[0.03]"
+                      }`}
+                    >
+                      <span>{option.label}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          active ? "bg-white/14 text-white" : "bg-black/[0.05] text-black/56"
+                        }`}
+                      >
+                        {option.count}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((previous) => Math.max(previous - 1, 0))}
+                  disabled={isShowsLoading || isFirstPage}
+                  className="rounded-full border-black/10 bg-white px-4"
+                >
+                  이전
+                </Button>
+                <div className="min-w-16 text-center text-sm text-black/45">
+                  {totalPages > 0 ? `${currentPage + 1} / ${totalPages}` : "-"}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((previous) =>
+                      totalPages > 0 ? Math.min(previous + 1, totalPages - 1) : previous
+                    )
+                  }
+                  disabled={isShowsLoading || isLastPage}
+                  className="rounded-full border-black/10 bg-white px-4"
+                >
+                  다음
+                </Button>
+              </div>
+            </div>
+
+            {visibleShows.length > 0 ? (
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {visibleShows.map((event) => (
+                  <EventCard key={event.showId} event={event} />
+                ))}
               </div>
             ) : (
-              <Card className="flex flex-col justify-center text-center">
-                <CardHeader>
-                  <CardTitle className="text-lg">회사 정보</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
+              <Card className="mt-4 rounded-[1.35rem] border-black/8 bg-white shadow-none">
+                <CardContent className="py-8 text-center text-sm text-black/50">
+                  {isShowsLoading
+                    ? "공연 목록을 불러오는 중입니다."
+                    : hasShowsLoadError
+                      ? "공연 목록을 불러오지 못했습니다."
+                      : "선택한 상태의 공연이 없습니다."}
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        ) : (
+          <section className="mt-6">
+            {company ? (
+              <CompanyInfoCard company={company} />
+            ) : (
+              <Card className="rounded-[1.35rem] border-black/8 bg-white shadow-none">
+                <CardContent className="py-8 text-center text-sm text-black/50">
                   {isSummaryLoading
                     ? "회사 정보를 불러오는 중입니다."
                     : hasSummaryLoadError
@@ -236,65 +373,9 @@ export function MyPageContent() {
                 </CardContent>
               </Card>
             )}
-          </div>
-        </div>
-      </section>
-      )}
-
-      {activeTab === "shows" && (
-      <section className="mt-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">등록한 공연</h2>
-            <p className="text-sm text-muted-foreground">
-              총 {totalShows}개의 공연이 등록되어 있습니다.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((previous) => Math.max(previous - 1, 0))}
-              disabled={isShowsLoading || isFirstPage}
-            >
-              이전
-            </Button>
-            <div className="min-w-24 text-center text-sm text-muted-foreground">
-              {totalPages > 0 ? `${currentPage + 1} / ${totalPages}` : "-"}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setCurrentPage((previous) =>
-                  totalPages > 0 ? Math.min(previous + 1, totalPages - 1) : previous
-                )
-              }
-              disabled={isShowsLoading || isLastPage}
-            >
-              다음
-            </Button>
-          </div>
-        </div>
-        {visibleShows.length > 0 ? (
-          <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {visibleShows.map((event) => (
-              <EventCard key={event.showId} event={event} />
-            ))}
-          </div>
-        ) : (
-          <Card className="mt-4">
-            <CardContent className="pt-6 text-sm text-muted-foreground">
-              {isShowsLoading
-                ? "공연 목록을 불러오는 중입니다."
-                : hasShowsLoadError
-                  ? "공연 목록을 불러오지 못했습니다."
-                  : "아직 등록한 공연이 없습니다."}
-            </CardContent>
-          </Card>
+          </section>
         )}
-      </section>
-      )}
+      </div>
     </main>
   )
 }

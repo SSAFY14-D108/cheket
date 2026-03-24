@@ -1,6 +1,7 @@
 "use client"
 
 import { type FormEvent, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { LoginInput } from "@/components/common/LoginInput"
 import { LoginButton } from "@/components/common/LoginButton"
@@ -36,7 +37,7 @@ export function LoginForm() {
       setRefreshToken(response.data.refreshToken)
 
       toast({
-        title: "로그인 성공",
+        title: "로그인 완료",
         description: response.responseMessage,
       })
       router.push("/mypage")
@@ -44,7 +45,7 @@ export function LoginForm() {
       const message =
         error instanceof ApiError
           ? error.message
-          : "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+          : "로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
 
       setErrorMessage(message)
       toast({
@@ -55,10 +56,6 @@ export function LoginForm() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const handleSignup = () => {
-    router.push("/signup")
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -72,64 +69,63 @@ export function LoginForm() {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full max-w-md flex-col gap-5 rounded-lg border border-dashed border-gray-400 p-8 px-6"
-    >
-      <h1 className="text-center text-2xl font-bold tracking-tight text-primary">
-        CHEKET HOST
-      </h1>
-
-      <div className="mb-2 mt-2 flex flex-col space-y-2 text-center">
-        <h2 className="text-xl font-bold tracking-tight text-foreground">
-          호스트 로그인
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          관리자 시스템에 접근하려면 계정 정보를 입력해주세요
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="space-y-4">
+        <p className="text-sm font-medium uppercase tracking-[0.28em] text-black/36">
+          Login
         </p>
+        <div className="space-y-2">
+          <h1 className="text-5xl font-semibold tracking-[-0.06em] text-black">로그인</h1>
+          <p className="text-sm leading-6 text-black/50">호스트 계정으로 접속하세요.</p>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <LoginInput
-          type="email"
-          placeholder="이메일"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value)
-            if (errorMessage) setErrorMessage("")
-          }}
-        />
-        <LoginInput
-          type="password"
-          placeholder="비밀번호"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value)
-            if (errorMessage) setErrorMessage("")
-          }}
-        />
-      </div>
+      <div className="relative overflow-hidden rounded-[2rem] border border-black/8 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,255,255,0.8),_rgba(255,255,255,0.95))]" />
+        <div className="relative space-y-8">
+          <div className="space-y-7">
+            <label className="block">
+              <LoginInput
+                type="email"
+                placeholder="이메일"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  if (errorMessage) setErrorMessage("")
+                }}
+              />
+            </label>
+            <label className="block">
+              <LoginInput
+                type="password"
+                placeholder="비밀번호"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  if (errorMessage) setErrorMessage("")
+                }}
+              />
+            </label>
+          </div>
 
-      {errorMessage ? (
-        <p className="text-sm text-destructive">{errorMessage}</p>
-      ) : null}
+          {errorMessage ? (
+            <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {errorMessage}
+            </p>
+          ) : null}
 
-      <div className="flex flex-col gap-2">
-        <LoginButton
-          type="submit"
-          variant="primary"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "로그인 중..." : "로그인"}
-        </LoginButton>
-        <LoginButton
-          type="button"
-          variant="secondary"
-          onClick={handleSignup}
-          disabled={isSubmitting}
-        >
-          회원가입
-        </LoginButton>
+          <div className="space-y-4 pt-6">
+            <LoginButton type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? "로그인 중..." : "로그인"}
+            </LoginButton>
+            <Link
+              href="/signup"
+              className="flex h-14 items-center justify-center rounded-2xl border border-black/10 px-4 text-sm font-semibold text-black/72 transition-colors hover:bg-black/[0.03]"
+            >
+              회원가입
+            </Link>
+          </div>
+        </div>
       </div>
     </form>
   )

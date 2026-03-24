@@ -1,16 +1,14 @@
-﻿"use client"
+"use client"
 
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { useEffect, useMemo, useState } from "react"
+import { ChevronDown, Palette, Plus, Ticket, Trash2, X, ZoomIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Plus, Trash2, Ticket, X, ZoomIn, ChevronDown, ChevronUp, Palette } from "lucide-react"
-import { useState, useEffect } from "react"
-import type { Grade, SessionItem } from "./showFormTypes"
+import { Separator } from "@/components/ui/separator"
 import { DateTimePicker } from "@/components/common/DateTimePicker"
-import { TicketEffectPreview } from "./TicketEffectPreview"
 import { ApiError } from "@/lib/api"
 import {
   fetchShowSections,
@@ -18,6 +16,8 @@ import {
   type HostShowSection,
   type HostShowTicketEffect,
 } from "@/lib/show-manage-api"
+import { TicketEffectPreview } from "./TicketEffectPreview"
+import type { Grade, SessionItem } from "./showFormTypes"
 
 interface SettingsCardTicketsProps {
   venueId: string
@@ -28,6 +28,7 @@ interface SettingsCardTicketsProps {
   grades: Grade[]
   sessionInfo: SessionItem[]
   showErrors?: boolean
+  showSessionSection?: boolean
   onChangePurchaseLimit: (val: string) => void
   onAddGrade: () => void
   onRemoveGrade: (idx: number) => void
@@ -35,6 +36,28 @@ interface SettingsCardTicketsProps {
   onAddSession: () => void
   onRemoveSession: (idx: number) => void
   onUpdateSession: (idx: number, field: keyof SessionItem, val: string | number) => void
+}
+
+function parseSelectedSectionIds(sectionIdValue: string) {
+  return sectionIdValue
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
+
+function getVenueMapImg(id: string) {
+  switch (id) {
+    case "1":
+      return "/venue_map/sectionId1.png"
+    case "2":
+      return "/venue_map/sectionid2.jpg"
+    case "3":
+      return "/venue_map/sectionid3.png"
+    case "4":
+      return "/venue_map/sectionid4.jpg"
+    default:
+      return "/venue_map/sectionId1.png"
+  }
 }
 
 export function SettingsCardTickets({
@@ -53,19 +76,16 @@ export function SettingsCardTickets({
   onRemoveSession,
   onUpdateSession,
   showErrors = false,
+  showSessionSection = true,
 }: SettingsCardTicketsProps) {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
   const [sectionsError, setSectionsError] = useState<string | null>(null)
   const [ticketEffectsError, setTicketEffectsError] = useState<string | null>(null)
   const [sectionsRetryKey, setSectionsRetryKey] = useState(0)
   const [ticketEffectsRetryKey, setTicketEffectsRetryKey] = useState(0)
-  const [expandedGradeIndex, setExpandedGradeIndex] = useState(0)
-
-  const parseSelectedSectionIds = (sectionIdValue: string) =>
-    sectionIdValue
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
+  const [availableSections, setAvailableSections] = useState<HostShowSection[]>([])
+  const [ticketEffects, setTicketEffects] = useState<HostShowTicketEffect[]>([])
+  const [activeGradeIndex, setActiveGradeIndex] = useState(0)
 
   const invalidSessionCount =
     showStartAt && showEndAt
@@ -82,24 +102,10 @@ export function SettingsCardTickets({
         }).length
       : 0
 
-  const getVenueMapImg = (id: string) => {
-    switch (id) {
-      case "1":
-        return "/venue_map/sectionId1.png"
-      case "2":
-        return "/venue_map/sectionid2.jpg"
-      case "3":
-        return "/venue_map/sectionid3.png"
-      case "4":
-        return "/venue_map/sectionid4.jpg"
-      default:
-        return "/venue_map/sectionId1.png"
-    }
-  }
-
   const mapImageSrc = getVenueMapImg(venueId)
-
-  const [availableSections, setAvailableSections] = useState<HostShowSection[]>([])
+  const safeActiveGradeIndex =
+    grades.length === 0 ? 0 : Math.min(activeGradeIndex, grades.length - 1)
+  const activeGrade = grades[safeActiveGradeIndex] ?? null
 
   useEffect(() => {
     let isCancelled = false
@@ -127,8 +133,6 @@ export function SettingsCardTickets({
       isCancelled = true
     }
   }, [venueId, sectionsRetryKey])
-
-  const [ticketEffects, setTicketEffects] = useState<HostShowTicketEffect[]>([])
 
   useEffect(() => {
     let isCancelled = false
@@ -165,8 +169,8 @@ export function SettingsCardTickets({
   }, [ticketEffectsRetryKey])
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         setIsImageModalOpen(false)
       }
     }
@@ -178,18 +182,64 @@ export function SettingsCardTickets({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isImageModalOpen])
 
+  const usedSectionIds = useMemo(() => {
+    if (!activeGrade) {
+      return new Set<string>()
+    }
+
+    return new Set(
+      grades.flatMap((grade, index) =>
+        index === safeActiveGradeIndex ? [] : parseSelectedSectionIds(grade.sectionId)
+      )
+    )
+  }, [activeGrade, grades, safeActiveGradeIndex])
+
+  const activeSelectedSectionIds = activeGrade ? parseSelectedSectionIds(activeGrade.sectionId) : []
+  const validSelectedSections = activeSelectedSectionIds.filter((id) =>
+    availableSections.some((section) => section.sectionId.toString() === id)
+  )
+
+  const handleRemoveActiveGrade = () => {
+    if (!activeGrade) return
+    onRemoveGrade(safeActiveGradeIndex)
+    if (safeActiveGradeIndex > 0) {
+      setActiveGradeIndex(safeActiveGradeIndex - 1)
+    }
+  }
+
+  const handleToggleActiveSection = (sectionId: string) => {
+    if (!activeGrade) return
+
+    const isSelected = activeSelectedSectionIds.includes(sectionId)
+    const isDisabled = usedSectionIds.has(sectionId)
+
+    if (isDisabled && !isSelected) {
+      return
+    }
+
+    const nextSelected = isSelected
+      ? activeSelectedSectionIds.filter((selected) => selected !== sectionId)
+      : [...activeSelectedSectionIds, sectionId]
+
+    onUpdateGrade(
+      activeGradeIndex,
+      "sectionId",
+      nextSelected.sort((left, right) => Number(left) - Number(right)).join(", ")
+    )
+  }
+
   return (
-    <Card className="mx-auto w-full max-w-[980px]">
-      <CardHeader className="py-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Ticket className="size-5 text-primary" />
+    <Card className="mx-auto w-full max-w-[72rem] rounded-[2rem] border-black/8 bg-white shadow-sm">
+      <CardHeader className="border-b border-black/8 px-6 pb-3 pt-5">
+        <CardTitle className="flex items-center gap-2 text-xl font-semibold tracking-[-0.03em] text-black">
+          <Ticket className="size-5 text-black" />
           티켓 설정
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-6 pb-5">
-        <div className="flex flex-col gap-1.5">
-          <Label className={`text-xs ${!purchaseLimit && showErrors ? "text-destructive" : ""}`}>
+      <CardContent className="flex flex-col gap-6 px-5 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-4">
+        <div className="flex flex-col gap-2">
+          <Label className={`text-[15px] font-bold ${!purchaseLimit && showErrors ? "text-destructive" : ""}`}>
             1인당 구매 가능 티켓 수 <span className="text-destructive">*</span>
           </Label>
           <div className="inline-flex w-fit items-center gap-2">
@@ -198,37 +248,42 @@ export function SettingsCardTickets({
               inputMode="numeric"
               placeholder="2"
               value={purchaseLimit}
-              onChange={(e) => onChangePurchaseLimit(e.target.value)}
-              className={`h-9 w-[96px] text-center ${!purchaseLimit && showErrors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : ""}`}
+              onChange={(event) => onChangePurchaseLimit(event.target.value)}
+              className={`h-11 w-[140px] rounded-2xl text-center text-lg font-semibold ${
+                !purchaseLimit && showErrors
+                  ? "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                  : "bg-black/[0.02]"
+              }`}
             />
-            <span className="text-sm font-medium text-muted-foreground">장</span>
+            <span className="text-base font-medium text-muted-foreground">장</span>
           </div>
-          {!purchaseLimit && showErrors && (
-            <p className="text-[10px] font-medium text-destructive">1인당 구매 가능 티켓 수를 입력해주세요.</p>
-          )}
+          {!purchaseLimit && showErrors ? (
+            <p className="text-[11px] font-medium text-destructive">1인당 구매 가능 티켓 수를 입력해주세요.</p>
+          ) : null}
         </div>
 
-        <div className="rounded-lg border bg-muted/10 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <Label className={`text-sm ${grades.length === 0 && showErrors ? "text-destructive" : ""}`}>
+        <div className="rounded-[1.5rem] border bg-muted/10 p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <Label className={`text-[15px] font-bold ${grades.length === 0 && showErrors ? "text-destructive" : ""}`}>
               좌석 등급 및 가격 <span className="text-destructive">*</span>
             </Label>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-2"
+              className="h-10 rounded-full px-4 font-semibold"
               onClick={() => {
                 onAddGrade()
-                setExpandedGradeIndex(grades.length)
+                setActiveGradeIndex(grades.length)
               }}
             >
-              <Plus className="mr-1 size-3.5" />
+              <Plus className="mr-1 size-4" />
               추가
             </Button>
           </div>
-          {grades.length === 0 && showErrors && (
-            <p className="mb-3 text-[10px] font-medium text-destructive">좌석 등급을 최소 1개 이상 추가해주세요.</p>
-          )}
+
+          {grades.length === 0 && showErrors ? (
+            <p className="mb-3 text-[11px] font-medium text-destructive">좌석 등급을 최소 1개 이상 추가해주세요.</p>
+          ) : null}
 
           {(sectionsError || ticketEffectsError) && (
             <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
@@ -251,8 +306,8 @@ export function SettingsCardTickets({
             </div>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <div className="rounded-md border bg-background p-3">
+          <div className="grid gap-4 xl:grid-cols-[260px_220px_minmax(0,1fr)]">
+            <div className="rounded-[1.25rem] border bg-background p-4">
               <div className="mb-2 flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">구역 번호 참고(sectionId)</Label>
                 <Button
@@ -267,237 +322,268 @@ export function SettingsCardTickets({
                 </Button>
               </div>
               <div
-                className="flex cursor-pointer items-center justify-center overflow-hidden rounded border border-border/50 bg-muted/20"
+                className="flex cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-muted/20"
                 onClick={() => setIsImageModalOpen(true)}
               >
                 <img
                   src={mapImageSrc}
                   alt="구역 안내도"
-                  className="max-h-44 w-full object-contain"
-                  onError={(e) => {
-                    ;(e.target as HTMLImageElement).src = "/venue_map/sectionId1.png"
+                  className="max-h-52 w-full object-contain"
+                  onError={(event) => {
+                    ;(event.target as HTMLImageElement).src = "/venue_map/sectionId1.png"
                   }}
                 />
               </div>
             </div>
 
-            <div className="max-h-[560px] overflow-y-auto pr-1">
-              <div className="flex flex-col gap-3">
-              {grades.map((grade, idx) => {
-                const isExpanded = expandedGradeIndex === idx
-                const rawSelected = grade.sectionId ? parseSelectedSectionIds(grade.sectionId) : []
-                const validSelected = rawSelected.filter((id) =>
-                  availableSections.some((sec) => sec.sectionId.toString() === id)
-                )
-                const usedSectionIds = new Set(
-                  grades.flatMap((otherGrade, otherIndex) =>
-                    otherIndex === idx ? [] : parseSelectedSectionIds(otherGrade.sectionId)
-                  )
-                )
+            <div className="rounded-[1.25rem] border bg-background p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">등급 목록</Label>
+                <span className="text-xs text-muted-foreground">{grades.length}개</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {grades.length > 0 ? (
+                  grades.map((grade, idx) => {
+                    const selectedCount = parseSelectedSectionIds(grade.sectionId).length
+                    const isActive = idx === safeActiveGradeIndex
 
-                return (
-                  <div key={`grade-${idx}`} className="relative rounded-lg border bg-background p-3 pl-5 shadow-sm">
-                    <div
-                      className="absolute bottom-0 left-0 top-0 w-2 rounded-l-lg"
-                      style={{ backgroundColor: grade.colorCode || "#ccc" }}
-                      title="등급 색상"
-                    />
-
-                    <div className="mb-3 flex items-center justify-between">
+                    return (
                       <button
+                        key={`grade-tab-${idx}`}
                         type="button"
-                        className="flex items-center gap-2"
-                        onClick={() => setExpandedGradeIndex((current) => (current === idx ? -1 : idx))}
+                        onClick={() => setActiveGradeIndex(idx)}
+                        className={`flex w-full items-start justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
+                          isActive
+                            ? "border-black/15 bg-black/[0.04]"
+                            : "border-transparent bg-black/[0.02] hover:border-black/8 hover:bg-black/[0.035]"
+                        }`}
                       >
-                        <span className="text-xs font-semibold text-muted-foreground">등급 {idx + 1}</span>
-                        {isExpanded ? (
-                          <ChevronUp className="size-3.5 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="size-3.5 text-muted-foreground" />
-                        )}
-                      </button>
-                      <div className="flex items-center gap-1.5">
-                        <div className="relative">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted/60"
-                            title="등급 색상 선택"
-                          >
-                            <Palette className="size-3.5 text-muted-foreground" />
-                          </Button>
-                          <Input
-                            type="color"
-                            value={grade.colorCode || "#000000"}
-                            onChange={(e) => onUpdateGrade(idx, "colorCode", e.target.value)}
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            aria-label={`등급 ${idx + 1} 색상 선택`}
-                          />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full"
+                              style={{ backgroundColor: grade.colorCode || "#8b5cf6" }}
+                            />
+                            <span className="text-xs font-semibold text-foreground">등급 {idx + 1}</span>
+                          </div>
+                          <p className="mt-2 truncate text-sm font-semibold text-foreground">
+                            {grade.gradeName.trim() || "새 좌석 등급"}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {grade.price ? `${Number(grade.price).toLocaleString()} SSF` : "가격 미입력"}
+                          </p>
                         </div>
+                        <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] text-muted-foreground">
+                          {selectedCount}구역
+                        </span>
+                      </button>
+                    )
+                  })
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-black/10 bg-black/[0.02] px-4 py-6 text-center text-sm text-muted-foreground">
+                    좌석 등급을 추가해주세요.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[1.25rem] border bg-background p-4 shadow-sm">
+              {activeGrade ? (
+                <>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: activeGrade.colorCode || "#8b5cf6" }}
+                      />
+                      <span className="text-sm font-semibold text-foreground">
+                        {activeGrade.gradeName.trim() || `등급 ${safeActiveGradeIndex + 1}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative">
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => onRemoveGrade(idx)}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted/60"
+                          title="등급 색상 선택"
                         >
-                          <Trash2 className="size-3.5" />
+                          <Palette className="size-4 text-muted-foreground" />
                         </Button>
+                        <Input
+                          type="color"
+                          value={activeGrade.colorCode || "#000000"}
+                          onChange={(event) => onUpdateGrade(safeActiveGradeIndex, "colorCode", event.target.value)}
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          aria-label={`등급 ${safeActiveGradeIndex + 1} 색상 선택`}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        onClick={handleRemoveActiveGrade}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-medium">등급명</Label>
+                      <Input
+                        placeholder="등급명(예: VIP, R석, S석)"
+                        value={activeGrade.gradeName}
+                        onChange={(event) =>
+                          onUpdateGrade(
+                            safeActiveGradeIndex,
+                            "gradeName",
+                            event.target.value.toUpperCase()
+                          )
+                        }
+                        className={`h-11 rounded-2xl text-sm font-semibold ${
+                          !activeGrade.gradeName.trim() && showErrors
+                            ? "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                            : "bg-black/[0.02]"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-medium">가격(SSF)</Label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          placeholder="가격(예: 15 SSF)"
+                          value={activeGrade.price ? Number(activeGrade.price).toLocaleString() : ""}
+                          onChange={(event) => {
+                            const rawValue = event.target.value.replace(/,/g, "")
+                            if (!Number.isNaN(Number(rawValue))) {
+                              onUpdateGrade(safeActiveGradeIndex, "price", rawValue)
+                            }
+                          }}
+                          className={`h-11 rounded-2xl pr-12 text-sm ${
+                            (!activeGrade.price || Number(activeGrade.price) <= 0) && showErrors
+                              ? "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                              : "bg-black/[0.02]"
+                          }`}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-muted-foreground">
+                          SSF
+                        </span>
                       </div>
                     </div>
 
-                    {!isExpanded && (
-                      <div className="rounded-md border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
-                        <span className="font-medium text-foreground">{grade.gradeName || `등급 ${idx + 1}`}</span>
-                        {" · "}
-                        <span>{grade.price ? `${Number(grade.price).toLocaleString()} CTK` : "가격 미입력"}</span>
-                        {" · "}
-                        <span>{validSelected.length > 0 ? `${validSelected.length}개 구역` : "구역 미선택"}</span>
-                      </div>
-                    )}
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-medium">구역 선택</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={`h-11 w-full justify-between rounded-2xl px-3 text-sm font-normal ${
+                              validSelectedSections.length === 0 ? "text-muted-foreground" : ""
+                            } ${
+                              validSelectedSections.length === 0 && showErrors
+                                ? "border-destructive bg-destructive/5"
+                                : "bg-black/[0.02]"
+                            }`}
+                          >
+                            <span className="truncate">
+                              {validSelectedSections.length > 0
+                                ? `${validSelectedSections.length}개 구역 선택됨`
+                                : "구역 선택 (다중)"}
+                            </span>
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[260px] p-3 text-xs" align="start">
+                          <div className="mb-2 font-semibold">구역 선택</div>
+                          {availableSections.length > 0 ? (
+                            <>
+                              <div className="flex flex-wrap gap-2">
+                                {availableSections.map((section) => {
+                                  const sectionIdString = section.sectionId.toString()
+                                  const isSelected = activeSelectedSectionIds.includes(sectionIdString)
+                                  const isDisabled = usedSectionIds.has(sectionIdString)
 
-                    {isExpanded && <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-[11px] font-medium">등급명</Label>
-                        <Input
-                          placeholder="등급명(예: VIP, R석, S석)"
-                          value={grade.gradeName}
-                          onChange={(e) => onUpdateGrade(idx, "gradeName", e.target.value)}
-                          className={`h-9 text-xs font-semibold ${!grade.gradeName.trim() && showErrors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : ""}`}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-[11px] font-medium">가격(CTK)</Label>
-                        <div className="relative">
-                          <Input
-                            type="text"
-                            placeholder="가격(예: 15 CTK)"
-                            value={grade.price ? Number(grade.price).toLocaleString() : ""}
-                            onChange={(e) => {
-                              const rawValue = e.target.value.replace(/,/g, "")
-                              if (!isNaN(Number(rawValue))) {
-                                onUpdateGrade(idx, "price", rawValue)
-                              }
-                            }}
-                            className={`h-9 pr-10 text-xs ${(!grade.price || Number(grade.price) <= 0) && showErrors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : ""}`}
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground font-medium">CTK</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-[11px] font-medium">구역 선택</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={`h-9 w-full justify-between px-2 text-xs font-normal ${validSelected.length === 0 ? "text-muted-foreground" : ""} ${validSelected.length === 0 && showErrors ? "border-destructive bg-destructive/5" : ""}`}
-                            >
-                              <span className="truncate">
-                                {validSelected.length > 0
-                                  ? `${validSelected.length}개 구역 선택됨`
-                                  : "구역 선택 (다중)"}
-                              </span>
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[260px] p-3 text-xs" align="start">
-                            <div className="mb-2 font-semibold">구역 선택</div>
-                            {availableSections.length > 0 ? (
-                              <>
-                                <div className="flex flex-wrap gap-2">
-                                  {availableSections.map((section) => {
-                                    const selectedSections = grade.sectionId
-                                      ? parseSelectedSectionIds(grade.sectionId)
-                                      : []
-                                    const sectionIdString = section.sectionId.toString()
-                                    const isSelected = selectedSections.includes(sectionIdString)
-                                    const isDisabled = usedSectionIds.has(sectionIdString)
-
-                                    const toggleSelection = () => {
-                                      if (isDisabled && !isSelected) {
-                                        return
-                                      }
-
-                                      const nextSelected = isSelected
-                                        ? selectedSections.filter((s) => s !== sectionIdString)
-                                        : [...selectedSections, sectionIdString]
-
-                                      onUpdateGrade(
-                                        idx,
-                                        "sectionId",
-                                        nextSelected.sort((a, b) => Number(a) - Number(b)).join(", ")
-                                      )
-                                    }
-
-                                    return (
-                                      <div
-                                        key={section.sectionId}
-                                        onClick={toggleSelection}
-                                        className={`flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
-                                          isSelected
-                                            ? "bg-primary text-primary-foreground border-primary"
-                                            : isDisabled
-                                              ? "bg-muted text-muted-foreground border-border cursor-not-allowed opacity-50"
-                                              : "bg-background hover:bg-muted border-border"
-                                        }`}
-                                        aria-disabled={isDisabled && !isSelected}
-                                      >
-                                        {section.sectionName}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                                {validSelected.length > 0 && (
-                                  <div className="mt-3 border-t pt-2 text-muted-foreground whitespace-normal break-words leading-relaxed">
-                                    선택: {validSelected
-                                      .map((id) => {
-                                        const sec = availableSections.find((a) => a.sectionId.toString() === id)
-                                        return sec ? sec.sectionName : id
-                                      })
-                                      .join(", ")}
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="py-4 text-center text-muted-foreground">
-                                해당 공연장의 구역 정보가 없습니다.
+                                  return (
+                                    <div
+                                      key={section.sectionId}
+                                      onClick={() => handleToggleActiveSection(sectionIdString)}
+                                      className={`flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
+                                        isSelected
+                                          ? "border-primary bg-primary text-primary-foreground"
+                                          : isDisabled
+                                            ? "cursor-not-allowed border-border bg-muted text-muted-foreground opacity-50"
+                                            : "border-border bg-background hover:bg-muted"
+                                      }`}
+                                      aria-disabled={isDisabled && !isSelected}
+                                    >
+                                      {section.sectionName}
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            )}
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>}
+                              {validSelectedSections.length > 0 ? (
+                                <div className="mt-3 whitespace-normal break-words border-t pt-2 leading-relaxed text-muted-foreground">
+                                  선택:{" "}
+                                  {validSelectedSections
+                                    .map((id) => {
+                                      const section = availableSections.find(
+                                        (item) => item.sectionId.toString() === id
+                                      )
+                                      return section ? section.sectionName : id
+                                    })
+                                    .join(", ")}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <div className="py-4 text-center text-muted-foreground">
+                              해당 공연장의 구역 정보가 없습니다.
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
-                    <div className="mt-3">
+                    <div className="space-y-2">
+                      <Label className="text-[11px] font-medium">티켓 효과</Label>
                       <TicketEffectPreview
                         posterUrl={posterPreview}
-                        selectedEffectId={grade.ticketEffectId}
-                        onSelectEffect={(effectId) => onUpdateGrade(idx, "ticketEffectId", effectId)}
+                          selectedEffectId={activeGrade.ticketEffectId}
+                          onSelectEffect={(effectId) => onUpdateGrade(safeActiveGradeIndex, "ticketEffectId", effectId)}
                         ticketEffects={ticketEffects}
                       />
                     </div>
                   </div>
-                )
-              })}
-              </div>
+                </>
+              ) : (
+                <div className="flex h-full min-h-[320px] items-center justify-center rounded-[1rem] border border-dashed border-black/10 bg-black/[0.02] px-6 text-center text-sm text-muted-foreground">
+                  좌석 등급을 추가하면 여기서 바로 편집할 수 있습니다.
+                </div>
+              )}
             </div>
           </div>
         </div>
       </CardContent>
 
-      {isImageModalOpen && (
+      {isImageModalOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex animate-in fade-in items-center justify-center bg-black/80 p-4 backdrop-blur-sm duration-200"
           onClick={() => setIsImageModalOpen(false)}
         >
-          <div className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative flex max-h-[90vh] w-full max-w-5xl items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
             <Button
               variant="ghost"
               size="icon"
-              className="absolute -top-12 right-0 text-white hover:bg-white/20 hover:text-white rounded-full size-10"
+              className="absolute -top-12 right-0 size-10 rounded-full text-white hover:bg-white/20 hover:text-white"
               onClick={() => setIsImageModalOpen(false)}
             >
               <X className="size-6" />
@@ -505,74 +591,88 @@ export function SettingsCardTickets({
             <img
               src={mapImageSrc}
               alt="구역 안내도 크게 보기"
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl ring-1 ring-white/10"
-              onError={(e) => {
-                ;(e.target as HTMLImageElement).src = "/venue_map/sectionId1.png"
+              className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl ring-1 ring-white/10"
+              onError={(event) => {
+                ;(event.target as HTMLImageElement).src = "/venue_map/sectionId1.png"
               }}
             />
           </div>
         </div>
-      )}
+      ) : null}
 
-      <Separator className="my-2" />
+      {showSessionSection ? (
+        <>
+          <Separator className="my-2" />
 
-      <CardContent className="flex flex-col gap-4 pt-0 pb-4">
-        <div className="w-full rounded-lg border bg-muted/10 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <Label className={`text-sm font-semibold ${sessionInfo.length === 0 && showErrors ? "text-destructive" : ""}`}>
-              회차 <span className="text-destructive">*</span>
-            </Label>
-            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onAddSession}>
-              <Plus className="mr-1 size-3.5" />
-              추가
-            </Button>
-          </div>
-
-          {sessionInfo.length === 0 && showErrors && (
-            <p className="mb-2 text-[10px] font-medium text-destructive">회차 정보를 최소 1개 이상 추가해주세요.</p>
-          )}
-
-          {invalidSessionCount > 0 && (
-            <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-              회차 {invalidSessionCount}개가 전체 공연 일정 범위를 벗어났습니다.
-            </div>
-          )}
-
-            <div className="space-y-1">
-              {sessionInfo.map((sess, idx) => (
-                <div
-                  key={`sess-${idx}`}
-                  className="grid w-full grid-cols-1 gap-1.5 rounded-md border bg-background px-3 py-1.5 sm:inline-grid sm:w-auto sm:grid-cols-[96px_360px_28px] sm:items-center sm:gap-2"
-                >
-                  <div className="w-24 shrink-0 text-xs font-semibold text-slate-700">회차 {idx + 1}</div>
-                  <div className={`w-full sm:w-[360px] ${(!sess.sessionDate || !sess.sessionStartTime) && showErrors ? "rounded-md border border-destructive bg-destructive/5 p-1" : ""}`}>
-                  <DateTimePicker
-                    value={sess.sessionDate && sess.sessionStartTime ? `${sess.sessionDate}T${sess.sessionStartTime}` : undefined}
-                    onChange={(val) => {
-                      const [date, time] = val.split("T")
-                      onUpdateSession(idx, "sessionDate", date)
-                      onUpdateSession(idx, "sessionStartTime", time)
-                    }}
-                    placeholder="공연 시작 날짜/시간"
-                    minDate={showStartAt ? new Date(showStartAt) : undefined}
-                    maxDate={showEndAt ? new Date(showEndAt) : undefined}
-                  />
-                </div>
-                <div className="flex items-center justify-end sm:justify-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => onRemoveSession(idx)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
+          <CardContent className="flex flex-col gap-4 pb-4 pt-0">
+            <div className="w-full rounded-lg border bg-muted/10 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <Label className={`text-sm font-semibold ${sessionInfo.length === 0 && showErrors ? "text-destructive" : ""}`}>
+                  회차 <span className="text-destructive">*</span>
+                </Label>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onAddSession}>
+                  <Plus className="mr-1 size-3.5" />
+                  추가
+                </Button>
               </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
+
+              {sessionInfo.length === 0 && showErrors ? (
+                <p className="mb-2 text-[10px] font-medium text-destructive">회차 정보를 최소 1개 이상 추가해주세요.</p>
+              ) : null}
+
+              {invalidSessionCount > 0 ? (
+                <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                  회차 {invalidSessionCount}개가 전체 공연 일정 범위를 벗어났습니다.
+                </div>
+              ) : null}
+
+              <div className="space-y-1">
+                {sessionInfo.map((session, idx) => (
+                  <div
+                    key={`sess-${idx}`}
+                    className="grid w-full grid-cols-1 gap-1.5 rounded-md border bg-background px-3 py-1.5 sm:inline-grid sm:w-auto sm:grid-cols-[96px_360px_28px] sm:items-center sm:gap-2"
+                  >
+                    <div className="w-24 shrink-0 text-xs font-semibold text-slate-700">회차 {idx + 1}</div>
+                    <div
+                      className={`w-full sm:w-[360px] ${
+                        (!session.sessionDate || !session.sessionStartTime) && showErrors
+                          ? "rounded-md border border-destructive bg-destructive/5 p-1"
+                          : ""
+                      }`}
+                    >
+                      <DateTimePicker
+                        value={
+                          session.sessionDate && session.sessionStartTime
+                            ? `${session.sessionDate}T${session.sessionStartTime}`
+                            : undefined
+                        }
+                        onChange={(value) => {
+                          const [date, time] = value.split("T")
+                          onUpdateSession(idx, "sessionDate", date)
+                          onUpdateSession(idx, "sessionStartTime", time)
+                        }}
+                        placeholder="공연 시작 날짜/시간"
+                        minDate={showStartAt ? new Date(showStartAt) : undefined}
+                        maxDate={showEndAt ? new Date(showEndAt) : undefined}
+                      />
+                    </div>
+                    <div className="flex items-center justify-end sm:justify-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => onRemoveSession(idx)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </>
+      ) : null}
     </Card>
   )
 }

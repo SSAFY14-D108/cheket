@@ -207,7 +207,7 @@ export function ShowDetailView({ showDetail }: ShowDetailViewProps) {
                       className="rounded-md bg-background/80 px-2.5 py-1 text-xs"
                       style={{ borderLeft: `3px solid ${seat.colorCode}` }}
                     >
-                      {seat.gradeName}: {seat.price.toLocaleString()}CTK
+                      {seat.gradeName}: {seat.price.toLocaleString()}SSF
                     </Badge>
                   ))}
                 </div>

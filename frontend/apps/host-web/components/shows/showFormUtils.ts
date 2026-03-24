@@ -50,6 +50,13 @@ export function toNumericString(value?: number | null) {
   return value === undefined || value === null ? "" : String(value)
 }
 
+export function getReservationStartMinDate(baseDate = new Date()) {
+  const minDate = new Date(baseDate)
+  minDate.setHours(0, 0, 0, 0)
+  minDate.setDate(minDate.getDate() + 2)
+  return minDate
+}
+
 export function parseSectionIds(rawValue: string) {
   return rawValue
     .split(",")
@@ -58,7 +65,12 @@ export function parseSectionIds(rawValue: string) {
 }
 
 function toApiDateTimeValue(value: string) {
-  return value.length === 16 ? `${value}:00` : value
+  if (!value) {
+    return value
+  }
+
+  const withSeconds = value.length === 16 ? `${value}:00` : value
+  return withSeconds.replace(/([zZ]|[+-]\d{2}:\d{2})$/, "")
 }
 
 export function toLocalDateTimeString(value: string) {
@@ -111,6 +123,58 @@ function toSessionTimestamp(sessionDate: string, sessionStartTime: string) {
   return new Date(
     `${normalizeSessionDateValue(sessionDate)}T${normalizeSessionTimeValue(sessionStartTime)}`
   ).getTime()
+}
+
+function formatLocalDateTime(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+export function deriveShowRangeFromSessions(sessionInfo: SessionItem[], playtime: string) {
+  const validSessions = sessionInfo
+    .filter((session) => session.sessionDate && session.sessionStartTime)
+    .map((session) => new Date(`${session.sessionDate}T${session.sessionStartTime}`))
+    .filter((date) => !Number.isNaN(date.getTime()))
+
+  if (validSessions.length === 0) {
+    return { showStartAt: "", showEndAt: "" }
+  }
+
+  const sortedSessions = [...validSessions].sort((left, right) => left.getTime() - right.getTime())
+  const startDate = sortedSessions[0]
+  const lastSessionStart = sortedSessions[sortedSessions.length - 1]
+  const durationMinutes = Number.parseInt(playtime, 10)
+  const endDate = new Date(lastSessionStart)
+
+  if (Number.isFinite(durationMinutes) && durationMinutes > 0) {
+    endDate.setMinutes(endDate.getMinutes() + durationMinutes)
+  }
+
+  return {
+    showStartAt: formatLocalDateTime(startDate),
+    showEndAt: formatLocalDateTime(endDate),
+  }
+}
+
+export function deriveReservationEndFromSessions(sessionInfo: SessionItem[]) {
+  const validSessions = sessionInfo
+    .filter((session) => session.sessionDate && session.sessionStartTime)
+    .map((session) => new Date(`${session.sessionDate}T${session.sessionStartTime}`))
+    .filter((date) => !Number.isNaN(date.getTime()))
+
+  if (validSessions.length === 0) {
+    return ""
+  }
+
+  const lastSessionStart = [...validSessions].sort((left, right) => left.getTime() - right.getTime())[validSessions.length - 1]
+  const reservationEnd = new Date(lastSessionStart)
+  reservationEnd.setHours(reservationEnd.getHours() - 1)
+
+  return formatLocalDateTime(reservationEnd)
 }
 
 export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
@@ -209,14 +273,16 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
 export function buildInitialRefundPolicy(initialData?: HostShowDetail): RefundItem[] {
   if (!initialData?.refundPolicy?.length) {
     return [
-      { daysRemaining: "14", refundRate: "100" },
-      { daysRemaining: "7", refundRate: "70" },
+      { daysRemaining: "10", refundRate: "0" },
+      { daysRemaining: "7", refundRate: "10" },
+      { daysRemaining: "3", refundRate: "20" },
+      { daysRemaining: "1", refundRate: "30" },
     ]
   }
 
   return initialData.refundPolicy.map((policy) => ({
     daysRemaining: String(policy.daysRemaining),
-    refundRate: String(policy.refundRate),
+    refundRate: String(Math.max(0, 100 - Number(policy.refundRate))),
   }))
 }
 
@@ -261,6 +327,32 @@ export function buildValidationMessage(values: ShowFormValues) {
 
   if (!values.openAt || !values.closeAt) {
     return "예매 가능 기간을 선택해주세요."
+  }
+
+  const reservationOpenAt = new Date(values.openAt)
+  const reservationCloseAt = new Date(values.closeAt)
+  const reservationMinDate = getReservationStartMinDate()
+
+  if (!Number.isNaN(reservationOpenAt.getTime()) && reservationOpenAt < reservationMinDate) {
+    return "예매 가능 시작일은 현재 날짜 기준 2일 뒤부터 설정할 수 있습니다."
+  }
+
+  if (
+    !Number.isNaN(reservationOpenAt.getTime()) &&
+    !Number.isNaN(reservationCloseAt.getTime()) &&
+    reservationOpenAt >= reservationCloseAt
+  ) {
+    return "예매 시작일은 자동 계산된 예매 마감일보다 빨라야 합니다."
+  }
+
+  const firstSessionAt = new Date(values.showStartAt)
+
+  if (
+    !Number.isNaN(reservationOpenAt.getTime()) &&
+    !Number.isNaN(firstSessionAt.getTime()) &&
+    reservationOpenAt > firstSessionAt
+  ) {
+    return "예매 시작일은 첫 번째 회차 시작일보다 늦을 수 없습니다."
   }
 
   if (!values.description.trim()) {
@@ -388,7 +480,7 @@ export function buildPayload(values: Omit<ShowFormValues, "mode">): ShowFormPayl
       })),
     refundPolicy: values.refundPolicy.map((item) => ({
       daysRemaining: Number(item.daysRemaining),
-      refundRate: Number(item.refundRate),
+      refundRate: Math.max(0, 100 - Number(item.refundRate)),
     })),
     sessionInfo: sortedSessionInfo.map((session) => ({
       sessionDate: toLocalDateTimeString(session.sessionDate),
