@@ -1,8 +1,11 @@
 package com.ssafy.cheket.entity.settlement;
 
+import com.ssafy.cheket.enums.ApprovalStatus;
 import com.ssafy.cheket.enums.StakeholderRole;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -35,4 +38,15 @@ public class Stakeholder {
 
     @Column(name = "share_bps", nullable = false)
     private Integer shareBps;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status")
+    private ApprovalStatus approvalStatus;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
 }
