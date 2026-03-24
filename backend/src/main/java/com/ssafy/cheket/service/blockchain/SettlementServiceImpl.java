@@ -60,6 +60,8 @@ public class SettlementServiceImpl implements SettlementService {
             try {
                 Show show = showRepository.findById(session.getShowId()).orElse(null);
                 if (show == null) {
+                    log.warn("[정산] 회차 {} 공연 없음 → 스킵 (showId={})",
+                        session.getId(), session.getShowId());
                     continue;
                 }
 
@@ -78,12 +80,13 @@ public class SettlementServiceImpl implements SettlementService {
                     continue;
                 }
 
-                // 정산 실행
-                finalizeSession(session, show);
+                // 정산 실행 (실패 시 재시도)
+                finalizeWithRetry(session, show);
                 settledSessionIds.add(session.getId());
 
             } catch (Exception e) {
-                log.error("[정산] 회차 {} 정산 실패", session.getId(), e);
+                log.error("[정산] 회차 {} 최종 실패 — {}: {}",
+                    session.getId(), e.getClass().getSimpleName(), e.getMessage());
             }
         }
 
@@ -119,11 +122,13 @@ public class SettlementServiceImpl implements SettlementService {
                     continue;
                 }
 
-                finalizeSession(session, show);
+                // 정산 실행 (실패 시 재시도)
+                finalizeWithRetry(session, show);
                 settledSessionIds.add(session.getId());
 
             } catch (Exception e) {
-                log.error("[정산] 회차 {} 정산 실패", session.getId(), e);
+                log.error("[정산] 회차 {} 최종 실패 — {}: {}",
+                    session.getId(), e.getClass().getSimpleName(), e.getMessage());
             }
         }
 
@@ -186,6 +191,33 @@ public class SettlementServiceImpl implements SettlementService {
         }
 
         finalizeSession(session, show);
+    }
+
+    private static final int MAX_RETRY = 5;
+
+    /**
+     * 정산 실행 + 재시도 (최대 5회)
+     *
+     * 블록체인 통신 실패 시 재시도, 비즈니스 예외(BlockchainException)는 즉시 실패
+     */
+    private void finalizeWithRetry(Session session, Show show) {
+        for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
+            try {
+                finalizeSession(session, show);
+                return;
+            } catch (BlockchainException e) {
+                // 비즈니스 예외 (stakeholder 없음, 분배율 오류 등)는 재시도 불필요
+                throw e;
+            } catch (Exception e) {
+                log.warn("[정산] 회차 {} 재시도 {}/{} — {}",
+                    session.getId(), attempt, MAX_RETRY, e.getMessage());
+                if (attempt == MAX_RETRY) {
+                    throw new BlockchainException(
+                        "정산 " + MAX_RETRY + "회 재시도 실패 — sessionId="
+                            + session.getId() + ": " + e.getMessage());
+                }
+            }
+        }
     }
 
     /**
