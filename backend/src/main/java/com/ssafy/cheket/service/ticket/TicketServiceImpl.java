@@ -16,6 +16,7 @@ import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.GoneException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.entity.show.Seat;
 import com.ssafy.cheket.repository.queue.QueueRepository;
 import com.ssafy.cheket.entity.show.SeatGrade;
@@ -32,13 +33,16 @@ import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
+import com.ssafy.cheket.service.blockchain.BlockchainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -63,6 +67,7 @@ public class TicketServiceImpl implements TicketService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
+    private final BlockchainService blockchainService;
 
     // ========== 티켓 구매 ==========
 
@@ -151,39 +156,109 @@ public class TicketServiceImpl implements TicketService {
         }
     }
 
-    // ========== 티켓 환불 ==========
-
     // 티켓 환불
     @Override
-    public void refundTicket(Long ticketId) {
+    @Transactional
+    public void refundTicket(Long userId, Long ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
 
-        if (ticket.getResaleStatus().equals(ResaleStatus.EXPIRED)) {
+        if (!ticket.getUserId().equals(userId)) {
+            throw new ForbiddenException("본인 소유 티켓만 환불할 수 있습니다.");
+        }
+
+        if (ticket.getResaleStatus() == ResaleStatus.LISTED) {
+            throw new ConflictException("리세일 등록된 티켓은 환불할 수 없습니다.");
+        }
+
+        if (ticket.getResaleStatus() == ResaleStatus.USED || ticket.getResaleStatus() == ResaleStatus.EXPIRED) {
             throw new NotFoundException("유효하지 않은 티켓입니다.");
         }
 
         SessionSeat sessionSeat = sessionSeatRepository.findById(ticket.getSessionSeatId())
             .orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
+        if (sessionSeat.getStatus() != SeatStatus.SOLD) {
+            throw new ConflictException("환불 가능한 좌석 상태가 아닙니다.");
+        }
+
         Session session = sessionRepository.findById(sessionSeat.getSessionId())
             .orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
+
         List<RefundPolicy> refundPolicies = refundPolicyRepository
             .findByShowIdOrderByDaysRemainingDesc(session.getShowId());
+        if (refundPolicies.isEmpty()) {
+            throw new ConflictException("환불 정책이 등록되지 않은 공연입니다.");
+        }
 
         LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        long remain = ChronoUnit.DAYS.between(now, session.getSessionDate());
+        long remain = ChronoUnit.DAYS.between(now, session.getSessionDate().toLocalDate());
+
+        RefundPolicy targetPolicy = null;
         for (RefundPolicy policy : refundPolicies) {
-            if (policy.getDaysRemaining() > remain) {
-                continue;
+            if (policy.getDaysRemaining() <= remain) {
+                targetPolicy = policy;
+                break;
+            }
+        }
+
+        if (targetPolicy == null) {
+            throw new ConflictException("환불 가능한 기간이 아닙니다.");
+        }
+
+        User owner = userRepository.findByIdAndDeletedAtIsNull(ticket.getUserId())
+            .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        var ownerWallet = walletRepository.findById(owner.getWalletId())
+            .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다."));
+
+        Seat seat = seatRepository.findById(sessionSeat.getSeatId())
+            .orElseThrow(() -> new NotFoundException("좌석을 찾을 수 없습니다."));
+        SeatGrade seatGrade = seatGradeRepository.findByShowIdAndSectionId(session.getShowId(), seat.getSectionId())
+            .orElseThrow(() -> new NotFoundException("좌석 등급을 찾을 수 없습니다."));
+
+        long expectedRefundAmount = (long) seatGrade.getPrice() * targetPolicy.getRefundRate() / 100;
+
+        BigInteger onChainSessionId = BigInteger.valueOf(session.getOnChainSessionId());
+        BigInteger onChainTicketNftId = BigInteger.valueOf(ticket.getTicketNftId());
+        String ownerAddress = ownerWallet.getAddress();
+
+        try {
+            // 환불 전 온체인 소유자 검증 (현재 소유자 -> 서버측 변경 시도 전 체크)
+            String currentOnChainOwner = blockchainService.getTicketNFT().ownerOf(onChainTicketNftId).send();
+            if (!currentOnChainOwner.equalsIgnoreCase(ownerAddress)) {
+                throw new ConflictException("온체인 티켓 소유자가 환불 요청자와 일치하지 않습니다.");
             }
 
-            // TODO: 환불 로직 작성
-            // 1. 티켓의 소유자를 현재 소유자 -> 서버측으로 변경 시도(실패 시 에러)
-            // 2. 소유자 변경 완료 시 원래 소유자의 지갑으로 환불 금액 만큼의 가격 환불
-            // 3. 해당 NFT의 소유자를 서버 운영자 측으로 변경
-            // 4. DB에서 Ticket 삭제
-            // 5. SessionSeat의 STATUS를 SOLD -> AVAILABLE로 변경
-            // 6. 모든 로직을 완료하면 return 해줘야 다음 로직을 이행하지 않음.
-            return;
+            // Settlement.refund()로 환불 실행 (환불 금액 지급 + NFT 소유권 회수)
+            TransactionReceipt refundReceipt = blockchainService.getSettlement()
+                .refund(onChainSessionId, ownerAddress, onChainTicketNftId).send();
+
+            // 온체인 NFT 소유자 검증 (서버 운영자 지갑으로 이전됐는지 확인)
+            String newOnChainOwner = blockchainService.getTicketNFT().ownerOf(onChainTicketNftId).send();
+            if (!newOnChainOwner.equalsIgnoreCase(blockchainService.getPlatformWalletAddress())) {
+                throw new ConflictException("환불 후 NFT 소유권 이전이 완료되지 않았습니다.");
+            }
+
+            long refundedAmount = expectedRefundAmount;
+            var refundedEvents = com.ssafy.cheket.blockchain.contract.Settlement.getRefundedEvents(refundReceipt);
+            if (!refundedEvents.isEmpty() && refundedEvents.get(0).amount != null) {
+                refundedAmount = refundedEvents.get(0).amount.longValue();
+            }
+
+            Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND)
+                .amount(refundedAmount).description("티켓 환불 완료").txHash(refundReceipt.getTransactionHash())
+                .txStatus(Transaction.TxStatus.CONFIRMED)
+                .blockNumber(refundReceipt.getBlockNumber() != null ? refundReceipt.getBlockNumber().longValue() : null)
+                .buyerId(ticket.getUserId()).build();
+            transactionRepository.save(transaction);
+
+            ticketRepository.delete(ticket);
+
+            // SessionSeat 상태 복구
+            sessionSeat.setStatus(SeatStatus.AVAILABLE);
+            sessionSeatRepository.save(sessionSeat);
+        } catch (ConflictException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BlockchainException("티켓 환불 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -195,12 +270,14 @@ public class TicketServiceImpl implements TicketService {
             now);
 
         return tickets.stream()
+            .filter(ticket -> ticket.getStatus() != ResaleStatus.LISTED || ticket.getResalePrice() != null)
             .map(ticket -> new GetUpcomingTicketResponse(ticket.getTicketId(), ticket.getNumbering(),
                 ticket.getPosterUrl(),
                 new GetUpcomingTicketResponse.ShowInfo(ticket.getShowId(), ticket.getShowName(),
                     ticket.getSessionDate(), ticket.getVenueName()),
                 ticket.getPrice(), ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade(),
-                ticket.getStatus(), ticket.getMetadataIpfsCid(), ticket.getResalePrice()))
+                ticket.getStatus(), ticket.getMetadataIpfsCid(),
+                (ticket.getResalePrice() == null) ? 0 : ticket.getResalePrice()))
             .toList();
     }
 

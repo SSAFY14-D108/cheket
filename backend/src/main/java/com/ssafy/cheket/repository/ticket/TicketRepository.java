@@ -39,10 +39,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             join Section sec on sec.id = seat.sectionId
             join SeatGrade sg on sg.showId = sh.id and sg.sectionId = sec.id
             left join Resale rs on rs.ticketId = t.id
+              and rs.status = com.ssafy.cheket.entity.resale.Resale.ResaleListingStatus.ACTIVE
             where t.userId = :userId
-              and t.resaleStatus in (
-                  com.ssafy.cheket.enums.ResaleStatus.AVAILABLE,
-                  com.ssafy.cheket.enums.ResaleStatus.LISTED
+              and (
+                  t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.AVAILABLE
+                  or (
+                      t.resaleStatus = com.ssafy.cheket.enums.ResaleStatus.LISTED
+                      and rs.id is not null
+                  )
               )
               and s.sessionDate >= :now
             order by s.sessionDate asc, s.sessionStartTime asc, t.id asc
