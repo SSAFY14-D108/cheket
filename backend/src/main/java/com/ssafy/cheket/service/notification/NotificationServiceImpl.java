@@ -3,6 +3,7 @@ package com.ssafy.cheket.service.notification;
 import com.ssafy.cheket.dto.notification.request.CreateNotificationRequest;
 import com.ssafy.cheket.entity.notification.Notification;
 import com.ssafy.cheket.entity.notification.NotificationMessage;
+import com.ssafy.cheket.enums.NotificationType;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.notification.NotificationMessageRepository;
 import com.ssafy.cheket.repository.notification.NotificationRepository;
@@ -12,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @Service
@@ -21,6 +25,8 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMessageRepository notificationMessageRepository;
     private final UserRepository userRepository;
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
     @Override
     public void createNotification(CreateNotificationRequest request) {
@@ -37,6 +43,40 @@ public class NotificationServiceImpl implements NotificationService {
             .userId(request.getUserId()).notificationMessageId(template.getId()).build();
 
         notificationRepository.save(notification);
+    }
+
+    @Override
+    public void sendShowStart(Long userId, LocalDateTime sessionDateTime, String showTitle) {
+        createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.SHOW_START)
+            .title("공연 시작 알림")
+            .variables(Map.of("sessionDateTime", sessionDateTime.format(FORMATTER), "showTitle", showTitle)).build());
+    }
+
+    @Override
+    public void sendResale(Long userId, String showTitle) {
+        createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.RESALE)
+            .title("2차 티켓 판매 완료").variables(Map.of("showTitle", showTitle)).build());
+    }
+
+    @Override
+    public void sendSettlement(Long userId, LocalDateTime sessionDateTime, String showTitle,
+        BigDecimal settlementAmount) {
+        createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.SETTLEMENT)
+            .title("정산 완료 알림").variables(Map.of("sessionDateTime", sessionDateTime.format(FORMATTER), "showTitle",
+                showTitle, "settlementAmount", settlementAmount.stripTrailingZeros().toPlainString()))
+            .build());
+    }
+
+    @Override
+    public void sendRequestCreate(Long userId) {
+        createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.RQ_CREATE)
+            .title("공연 등록 요청").variables(Map.of()).build());
+    }
+
+    @Override
+    public void sendRequestUpdate(Long userId) {
+        createNotification(CreateNotificationRequest.builder().userId(userId).type(NotificationType.RQ_UPDATE)
+            .title("공연 수정 요청").variables(Map.of()).build());
     }
 
     private Map<String, String> getVariablesOrEmpty(Map<String, String> variables) {
