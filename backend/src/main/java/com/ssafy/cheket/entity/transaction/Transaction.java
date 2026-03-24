@@ -85,7 +85,7 @@ public class Transaction {
 
     // 구매자/받는 사람 ID — users 또는 hosts 테이블 참조
     // PURCHASE → 구매자, TRANSFER → 받는 사람, RESALE_CREATE/CANCEL → null
-    @Column(name = "buyer_id", nullable = true)
+    @Column(name = "buyer_id")
     private Long buyerId;
 
     // 판매자 ID — users 테이블만 참조 (2차 거래는 user만 가능)
