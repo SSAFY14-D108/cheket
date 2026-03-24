@@ -12,8 +12,10 @@ import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.blockchain.contract.StakeholderNFT.StakeholderMintedEventResponse;
 import com.ssafy.cheket.entity.resale.Resale;
 import com.ssafy.cheket.exception.common.BlockchainException;
+import com.ssafy.cheket.entity.show.Seat;
 import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.show.SeatRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
@@ -39,6 +41,7 @@ import org.web3j.tx.RawTransactionManager;
 
 import java.io.File;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -65,6 +68,7 @@ public class BlockchainAsyncWorker {
     private final ResaleEntityRepository resaleEntityRepository;
     private final StakeholderRepository stakeholderRepository;
     private final HostRepository hostRepository;
+    private final SeatRepository seatRepository;
     private final SessionSeatRepository sessionSeatRepository;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
@@ -105,6 +109,7 @@ public class BlockchainAsyncWorker {
                 .orElseThrow(() -> new BlockchainException("지갑을 찾을 수 없습니다"));
 
             log.info("[티켓 구매 비동기] 사용자 지갑 로드 — userId={}, walletId={}", userId, user.getWalletId());
+            // keystore 파일 열어서, 비밀번호로 복호화, 사용자의 개인키 꺼내서 approve TX에 서명 (Custodial 대리 서명)
             Credentials buyerCredentials = WalletUtils.loadCredentials(keystorePassword,
                 new File(keystoreDirectory + "/" + wallet.getKeystoreFilename()));
 
@@ -127,18 +132,19 @@ public class BlockchainAsyncWorker {
             tx.setAmount(totalPrice.longValue());
             tx.setDescription("전자서명 처리 중 — SSF 결제 승인");
             transactionRepository.save(tx);
-            log.info("[티켓 구매 비동기] Transaction 업데이트 — amount={}", totalPrice);
+            log.info("[티켓 구매 비동기] Transaction 업데이트 — totalPrice={}", totalPrice);
 
             // ========== ③ SSF.approve() — 사용자 키로 대리 서명 ==========
-            // "PurchaseRouter가 내 SSF를 totalPrice만큼 써도 돼"
+            // "PurchaseRouter가 내 SSF 400개를 써도 돼" 허락
             RawTransactionManager buyerTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
                 buyerCredentials, blockchainService.getChainId());
 
-            log.info("[티켓 구매 비동기] SSF approve 준비 — PurchaseRouter={}, amount={}",
+            log.info("[티켓 구매 비동기] SSF approve 준비 — PurchaseRouter={}, totalPrice={}",
                 blockchainService.getPurchaseRouter().getContractAddress(), totalPrice);
             Function approveFunction = new Function("approve",
-                Arrays.asList(new Address(blockchainService.getPurchaseRouter().getContractAddress()),
-                    new Uint256(totalPrice)),
+                Arrays.asList(new Address(blockchainService.getPurchaseRouter().getContractAddress()), // 누구에게 허락:
+                                                                                                       // PurchaseRouter
+                    new Uint256(totalPrice)), // 얼마까지: 400 SSF
                 Collections.singletonList(new TypeReference<Bool>() {
                 }));
             String encodedApprove = FunctionEncoder.encode(approveFunction);
@@ -146,6 +152,7 @@ public class BlockchainAsyncWorker {
             log.info("[티켓 구매 비동기] SSF approve TX 전송 중...");
             EthSendTransaction approveTx = buyerTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
                 blockchainService.getSsfContractAddress(), encodedApprove, BigInteger.ZERO);
+            // → txHash = "0xapprove123..." 받음
 
             if (approveTx.hasError()) {
                 throw new BlockchainException("SSF approve 실패: " + approveTx.getError().getMessage());
@@ -163,11 +170,14 @@ public class BlockchainAsyncWorker {
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] Transaction → SUBMITTED");
 
-            // ========== ④ 좌석별 PurchaseRouter.purchaseTicket() ==========
+            // ========== ④ 좌석별 PurchaseRouter.purchaseTicket() (재시도 + 전체 취소) ==========
             // 플랫폼 키로 서명 — 컨트랙트 내부에서 원자적 처리:
             // SSF: buyer → Settlement (자금 잠금) + NFT: platform → buyer (소유권 이전)
             BigInteger onChainSessionId = BigInteger.valueOf(onChainSessionIdValue);
             String lastTxHash = null;
+
+            // 성공한 좌석 추적 (실패 시 전체 환불용)
+            List<PurchasedSeatInfo> purchasedSeats = new ArrayList<>();
 
             for (int i = 0; i < seats.size(); i++) {
                 SessionSeat seat = seats.get(i);
@@ -177,8 +187,52 @@ public class BlockchainAsyncWorker {
                 transactionRepository.save(tx);
                 log.info("[티켓 구매 비동기] purchaseTicket 호출 — {}/{}, nftId={}", i + 1, seats.size(), ticketNftId);
 
-                TransactionReceipt receipt = blockchainService.getPurchaseRouter()
-                    .purchaseTicket(buyerAddress, ticketNftId, onChainSessionId).send();
+                // 3회 재시도 (네트워크 일시 장애 대비)
+                int maxRetry = 3;
+                boolean success = false;
+                TransactionReceipt receipt = null;
+
+                for (int attempt = 1; attempt <= maxRetry; attempt++) {
+                    try {
+                        receipt = blockchainService.getPurchaseRouter()
+                            .purchaseTicket(buyerAddress, ticketNftId, onChainSessionId).send();
+                        success = true;
+                        break;
+                    } catch (Exception retryErr) {
+                        if (attempt < maxRetry) {
+                            log.warn("[티켓 구매 비동기] purchaseTicket 실패 {}/{}회, 2초 후 재시도 — nftId={}", attempt, maxRetry,
+                                ticketNftId);
+                            Thread.sleep(2000);
+                        } else {
+                            log.error("[티켓 구매 비동기] purchaseTicket {}회 모두 실패 — nftId={}", maxRetry, ticketNftId);
+                        }
+                    }
+                }
+
+                if (!success) {
+                    // 3회 다 실패 → 성공한 것만 유지 + 관리자 알림
+                    // 성공한 좌석 정보
+                    String successInfo = purchasedSeats.stream().map(info -> {
+                        Seat seatInfo = seatRepository.findById(info.seat.getSeatId()).orElse(null);
+                        String seatNo = seatInfo != null ? seatInfo.getSeatNo() : "?";
+                        return seatNo + "(id:" + info.seat.getId() + ")";
+                    }).collect(java.util.stream.Collectors.joining(", "));
+                    // 실패한 좌석 정보
+                    StringBuilder failedInfo = new StringBuilder();
+                    for (int j = i; j < seats.size(); j++) {
+                        SessionSeat failedSeat = seats.get(j);
+                        Seat seatInfo = seatRepository.findById(failedSeat.getSeatId()).orElse(null);
+                        String seatNo = seatInfo != null ? seatInfo.getSeatNo() : "?";
+                        if (!failedInfo.isEmpty()) {
+                            failedInfo.append(", ");
+                        }
+                        failedInfo.append(seatNo).append("(id:").append(failedSeat.getId()).append(")");
+                    }
+
+                    log.error("[티켓 구매 비동기] 부분 실패 — 성공: [{}], 실패: [{}], 관리자 확인 필요", successInfo, failedInfo);
+                    throw new BlockchainException(
+                        "일부 좌석 구매 실패 (성공: [" + successInfo + "], 실패: [" + failedInfo + "]) — 관리자에게 문의해주세요.");
+                }
 
                 lastTxHash = receipt.getTransactionHash();
                 log.info("[티켓 구매 비동기] purchaseTicket 완료 — nftId={}, txHash={}", ticketNftId, lastTxHash);
@@ -193,20 +247,25 @@ public class BlockchainAsyncWorker {
                     .resaleStatus(ResaleStatus.AVAILABLE).build();
                 ticketRepository.save(ticket);
                 log.info("[티켓 구매 비동기] DB 업데이트 — seatId={} → SOLD, ticket 생성", seat.getId());
+
+                // 성공 목록에 추가 (실패 시 환불용)
+                purchasedSeats.add(new PurchasedSeatInfo(seat, ticket, ticketNftId));
             }
 
             // ========== ⑤ Transaction → CONFIRMED ==========
-            tx.setTxHash(lastTxHash);
+            tx.setTxHash(lastTxHash); // purchase tx로 수정
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setDescription("블록체인 확정 — 구매 완료 (" + seats.size() + "매, " + totalPrice + " SSF)");
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] 완료 — txId={}, {}매, {} SSF", txId, seats.size(), totalPrice);
 
         } catch (Exception e) {
-            // ========== ⑥ 실패: 좌석 복원 + Transaction FAILED ==========
-            log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
-            restoreSeatsToAvailable(sessionSeatIds, txId);
-            updateTransactionFailed(txId, "구매 실패 — 블록체인 처리 중 오류가 발생했습니다. 잔액을 확인해주세요.");
+            // ========== ⑥ 실패: 좌석 상태 유지 + Transaction FAILED ==========
+            // 좌석을 AVAILABLE로 복원하지 않음 — 관리자가 수동 처리
+            // 성공한 좌석: SOLD 유지 (온체인 구매 완료)
+            // 실패한 좌석: PENDING_TX 유지 (관리자 확인 필요)
+            log.error("[티켓 구매 비동기] 실패 — txId={}, 관리자 확인 필요", txId, e);
+            updateTransactionFailed(txId, "구매 실패 — 관리자에게 문의해주세요.");
         }
     }
 
@@ -344,11 +403,7 @@ public class BlockchainAsyncWorker {
             List<Stakeholder> stakeholders = stakeholderRepository.findAllById(stakeholderIds);
 
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("블록체인 준비 중 — 수익 분배 계약 등록 대기");
-            transactionRepository.save(tx);
-
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
-            tx.setDescription("블록체인 기록 중 — 수익 분배 계약 등록");
             transactionRepository.save(tx);
 
             String lastTxHash = null;
@@ -468,6 +523,21 @@ public class BlockchainAsyncWorker {
             log.info("[비동기] 좌석 AVAILABLE 복원 완료 — txId={}", txId);
         } catch (Exception seatErr) {
             log.error("[비동기] 좌석 복원 실패 — txId={}", txId, seatErr);
+        }
+    }
+
+    /**
+     * 구매 성공한 좌석 정보 (에러 메시지에 좌석 정보 포함용)
+     */
+    private static class PurchasedSeatInfo {
+        final SessionSeat seat;
+        final Ticket ticket;
+        final BigInteger ticketNftId;
+
+        PurchasedSeatInfo(SessionSeat seat, Ticket ticket, BigInteger ticketNftId) {
+            this.seat = seat;
+            this.ticket = ticket;
+            this.ticketNftId = ticketNftId;
         }
     }
 
@@ -668,8 +738,10 @@ public class BlockchainAsyncWorker {
             // ① 구매자 지갑 로드
             User buyer = userRepository.findByIdAndDeletedAtIsNull(buyerUserId)
                 .orElseThrow(() -> new BlockchainException("구매자를 찾을 수 없습니다."));
+
             Wallet buyerWallet = walletRepository.findById(buyer.getWalletId())
                 .orElseThrow(() -> new BlockchainException("구매자 지갑을 찾을 수 없습니다."));
+
             String buyerAddress = buyerWallet.getAddress();
             log.info("[리세일 구매 비동기] 구매자 지갑 — userId={}, address={}", buyerUserId, buyerAddress);
 
@@ -691,7 +763,7 @@ public class BlockchainAsyncWorker {
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
             tx.setDescription("전자서명 처리 중 — SSF 결제 승인");
             transactionRepository.save(tx);
-            log.info("[리세일 구매 비동기] SSF approve 전송 중 — Escrow={}, amount={}",
+            log.info("[리세일 구매 비동기] SSF approve 전송 중 — Escrow={}, resalePrice={}",
                 blockchainService.getEscrow().getContractAddress(), resalePrice);
 
             EthSendTransaction approveTx = buyerTxManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
