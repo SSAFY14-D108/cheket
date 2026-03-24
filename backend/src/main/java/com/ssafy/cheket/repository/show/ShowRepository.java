@@ -41,6 +41,27 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         """)
     List<Show> findUpcomingTop5ByLikeCount(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"venue", "host", "venue.region"})
+    @Query("""
+        select s
+        from Show s
+        join s.venue v
+        where s.status = com.ssafy.cheket.enums.ShowStatus.MINTED
+          and s.showEndDate >= :now
+          and (
+                :excludeLiked = false
+                or not exists (
+                    select 1
+                    from Like l
+                    where l.userId = :userId
+                      and l.showId = s.id
+                )
+          )
+        order by s.reservationStartDate asc, s.id desc
+        """)
+    List<Show> findRecommendationCandidates(@Param("userId") Long userId,
+        @Param("excludeLiked") boolean excludeLiked, @Param("now") LocalDateTime now);
+
     // 인기순(예매수)
     @EntityGraph(attributePaths = {"venue"})
     @Query(value = """

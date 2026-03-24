@@ -24,6 +24,8 @@ public interface ShowService {
 
     GetUpcomingResponse getUpcoming();
 
+    GetRecommendationsResponse getRecommendations(Long userId);
+
     List<GetSectionsResponse> getSections(Long venueId);
 
     // 공연 이미지 조회
