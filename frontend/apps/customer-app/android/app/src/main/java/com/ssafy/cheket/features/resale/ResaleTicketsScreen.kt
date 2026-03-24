@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.TutorialHelpButton
@@ -45,10 +46,12 @@ private enum class SortMode(val label: String, val apiValue: String?) {
     PRICE("가격순", "PRICE"),
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResaleTicketsScreen(
     showId: String,
     onResaleItemClick: (resaleItemId: String) -> Unit,
+    onTxProcessing: (txId: Long, txType: String) -> Unit = { _, _ -> },
     onBack: () -> Unit,
     viewModel: ResaleTicketsViewModel = viewModel(
         factory = ResaleTicketsViewModel.factory(showId),
@@ -56,6 +59,11 @@ fun ResaleTicketsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var sortMode by remember { mutableStateOf(SortMode.LATEST) }
+
+    // 상세 BottomSheet 상태
+    var selectedTicket by remember { mutableStateOf<ResaleTicketUiItem?>(null) }
+    var showPurchaseConfirm by remember { mutableStateOf(false) }
+    var isPurchasing by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -118,12 +126,22 @@ fun ResaleTicketsScreen(
                         SortMode.PRICE -> state.tickets.sortedBy { it.resalePrice }
                     }
                 }
+                var isRefreshing by remember { mutableStateOf(false) }
 
-                Column(
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        viewModel.load(sort = sortMode.apiValue)
+                        isRefreshing = false
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .background(V0Background)
                         .padding(innerPadding),
+                ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     // Show info card
                     ShowInfoCard(showInfo = state.showInfo, ticketCount = sortedTickets.size)
@@ -173,15 +191,145 @@ fun ResaleTicketsScreen(
                                 items(sortedTickets, key = { it.ticketId }) { item ->
                                     ResaleTicketCard(
                                         item = item,
-                                        onClick = { onResaleItemClick(item.ticketId.toString()) },
+                                        onClick = { selectedTicket = item },
                                     )
                                 }
                             }
                         }
                     }
                 }
+                } // PullToRefreshBox
             }
         }
+    }
+
+    // ── 티켓 상세 BottomSheet ──
+    selectedTicket?.let { ticket ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedTicket = null },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    "리세일 티켓 상세",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V0ActiveFilterText,
+                )
+
+                // 좌석 정보
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF9FAFB))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ResaleDetailRow("좌석", ticket.seatLabel)
+                    ResaleDetailRow("등급", ticket.grade)
+                    ResaleDetailRow("공연 일시", ticket.showDate)
+                    HorizontalDivider(color = Color(0xFFE5E7EB))
+                    ResaleDetailRow("정가", "%,d CTK".format(ticket.originalPrice))
+                    ResaleDetailRow(
+                        "리세일가",
+                        "%,d CTK".format(ticket.resalePrice),
+                        valueColor = Primary,
+                    )
+                    if (ticket.originalPrice > ticket.resalePrice) {
+                        val savePct = ((ticket.originalPrice - ticket.resalePrice) * 100) / ticket.originalPrice
+                        ResaleDetailRow(
+                            "할인",
+                            "${savePct}% 할인 (${ticket.originalPrice - ticket.resalePrice} CTK 절약)",
+                            valueColor = Danger,
+                        )
+                    }
+                }
+
+                // 구매 버튼
+                Button(
+                    onClick = { showPurchaseConfirm = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    enabled = !isPurchasing,
+                ) {
+                    if (isPurchasing) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    } else {
+                        Text(
+                            "구매하기 · %,d CTK".format(ticket.resalePrice),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // ── 구매 확인 AlertDialog ──
+    if (showPurchaseConfirm && selectedTicket != null) {
+        AlertDialog(
+            onDismissRequest = { showPurchaseConfirm = false },
+            title = { Text("리세일 티켓 구매", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "${selectedTicket!!.seatLabel} (${selectedTicket!!.grade})\n" +
+                            "가격: %,d CTK\n\n".format(selectedTicket!!.resalePrice) +
+                            "구매하시겠습니까? 블록체인에 기록되며 취소할 수 없습니다.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPurchaseConfirm = false
+                        isPurchasing = true
+                        viewModel.purchaseResale(selectedTicket!!.ticketId) { txId ->
+                            isPurchasing = false
+                            selectedTicket = null
+                            onTxProcessing(txId, "RESALE_PURCHASE")
+                        }
+                    },
+                ) {
+                    Text("구매", color = Primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPurchaseConfirm = false }) {
+                    Text("취소", color = MutedForeground)
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ResaleDetailRow(
+    label: String,
+    value: String,
+    valueColor: Color = V0ActiveFilterText,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, fontSize = 13.sp, color = MutedForeground)
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
     }
 }
 

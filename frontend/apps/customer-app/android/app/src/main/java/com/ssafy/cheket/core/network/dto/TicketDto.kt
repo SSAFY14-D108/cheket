@@ -9,7 +9,31 @@ data class PurchaseRequest(
 )
 
 data class SeatLockRequest(
-    @SerializedName("seatId") val seatId: List<String>,
+    @SerializedName("sessionSeatIds") val sessionSeatIds: List<Long>,
+)
+
+// ── Seat Lock Response ──
+
+data class SeatLockResponse(
+    @SerializedName("expiresAt") val expiresAt: String,
+    @SerializedName("showTitle") val showTitle: String,
+    @SerializedName("sessionDate") val sessionDate: String,
+    @SerializedName("venueName") val venueName: String,
+    @SerializedName("seats") val seats: SeatLockSeats,
+    @SerializedName("totalPrice") val totalPrice: Int,
+)
+
+data class SeatLockSeats(
+    @SerializedName("success") val success: List<SeatLockSeatItem>,
+    @SerializedName("failure") val failure: List<SeatLockSeatItem>,
+)
+
+data class SeatLockSeatItem(
+    @SerializedName("sessionSeatId") val sessionSeatId: Long,
+    @SerializedName("sectionName") val sectionName: String,
+    @SerializedName("seatNo") val seatNo: String,
+    @SerializedName("grade") val grade: String,
+    @SerializedName("price") val price: Int,
 )
 
 data class TransferRequest(

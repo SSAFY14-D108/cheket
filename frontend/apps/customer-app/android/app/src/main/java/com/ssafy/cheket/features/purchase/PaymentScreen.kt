@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
@@ -42,10 +43,41 @@ fun PaymentScreen(
     onSuccess: (txId: Long) -> Unit,
     onFailure: (showId: String, reason: String) -> Unit,
     onBack: () -> Unit,
+    onBackToShowDetail: () -> Unit = onBack,
     viewModel: PaymentViewModel = viewModel(factory = PaymentViewModel.factory(showId)),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
+    var showBackWarning by remember { mutableStateOf(false) }
+    var showExpiredDialog by remember { mutableStateOf(false) }
+
+    // 좌석 선점 만료 타이머
+    val expiresAt = remember { NavParams.seatAccessExpiresAt }
+    var remainingSeconds by remember { mutableIntStateOf(-1) }
+
+    LaunchedEffect(expiresAt) {
+        if (expiresAt == null) return@LaunchedEffect
+        try {
+            val formatter = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            val expireTime = java.time.LocalDateTime.parse(expiresAt, formatter)
+            while (true) {
+                val now = java.time.LocalDateTime.now()
+                val diff = java.time.Duration.between(now, expireTime).seconds.toInt()
+                if (diff <= 0) {
+                    remainingSeconds = 0
+                    showExpiredDialog = true
+                    break
+                }
+                remainingSeconds = diff
+                kotlinx.coroutines.delay(1000L)
+            }
+        } catch (_: Exception) { }
+    }
+
+    // 뒤로가기 가로채기
+    androidx.activity.compose.BackHandler(enabled = uiState.step == PaymentStep.REVIEW) {
+        showBackWarning = true
+    }
 
     when (uiState.step) {
         PaymentStep.SUCCESS -> {
@@ -60,9 +92,52 @@ fun PaymentScreen(
                 numberFormat = numberFormat,
                 onPurchase = viewModel::purchase,
                 onToggleFailure = viewModel::toggleFailureSimulation,
-                onBack = onBack,
+                onBack = { showBackWarning = true },
+                remainingSeconds = remainingSeconds,
             )
         }
+    }
+
+    // 뒤로가기 경고 모달
+    if (showBackWarning) {
+        AlertDialog(
+            onDismissRequest = { showBackWarning = false },
+            title = { Text("결제를 취소하시겠습니까?", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Text(
+                    "결제 화면을 나가면 좌석 선점이 해제되며,\n다시 대기열을 통해 진입해야 합니다.",
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = V0Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackWarning = false
+                    onBackToShowDetail()
+                }) { Text("나가기", color = V0Red500, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBackWarning = false }) {
+                    Text("계속 결제", color = Primary)
+                }
+            },
+        )
+    }
+
+    // 좌석 선점 만료 모달
+    if (showExpiredDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("결제 시간 초과", fontWeight = FontWeight.Bold) },
+            text = { Text("좌석 선점 시간이 만료되었습니다.\n공연 상세 화면으로 이동합니다.", lineHeight = 20.sp) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExpiredDialog = false
+                    onBackToShowDetail()
+                }) { Text("확인", color = Primary) }
+            },
+        )
     }
 }
 
@@ -73,6 +148,7 @@ private fun PaymentMainContent(
     onPurchase: () -> Unit,
     onToggleFailure: () -> Unit,
     onBack: () -> Unit,
+    remainingSeconds: Int = -1,
 ) {
     if (uiState.isLoading) {
         Scaffold(topBar = { AppHeader(title = "결제 확인", onBack = onBack) }) { p ->
@@ -112,6 +188,28 @@ private fun PaymentMainContent(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState()),
         ) {
+            // ── 좌석 선점 만료 타이머 ──
+            if (remainingSeconds >= 0) {
+                val minutes = remainingSeconds / 60
+                val seconds = remainingSeconds % 60
+                val timerColor = if (remainingSeconds <= 60) V0Red500 else Primary
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(timerColor.copy(alpha = 0.08f))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "⏱ 결제 마감까지 %d:%02d".format(minutes, seconds),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = timerColor,
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),

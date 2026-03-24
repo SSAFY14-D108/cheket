@@ -432,7 +432,7 @@ private fun RegionChip(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) ActiveChipBackground else RegionSheetButtonBackground)
+            .background(if (selected) com.ssafy.cheket.ui.theme.Primary else RegionSheetButtonBackground)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
@@ -441,7 +441,7 @@ private fun RegionChip(
             text = region,
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = OnBackground,
+            color = if (selected) Color.White else OnBackground,
             maxLines = 1,
         )
     }

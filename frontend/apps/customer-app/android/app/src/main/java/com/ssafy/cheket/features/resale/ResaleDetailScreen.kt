@@ -1,5 +1,6 @@
 package com.ssafy.cheket.features.resale
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -23,21 +24,33 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
+import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
+import kotlinx.coroutines.launch
 
+private const val TAG = "ResaleDetailScreen"
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResaleDetailScreen(
     resaleItemId: String,
-    onPurchaseComplete: (String) -> Unit,
+    onPurchaseComplete: (txId: Long) -> Unit,
     onBack: () -> Unit,
 ) {
     val resaleItem = remember { MockDataSource.mockResaleItems.find { it.id == resaleItemId } }
     val user = remember { MockDataSource.mockUser }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var isPurchasing by remember { mutableStateOf(false) }
+    var purchaseError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val resaleService = remember { (context.applicationContext as CheketApplication).appContainer.resaleService }
 
     if (resaleItem == null) {
         Scaffold(
@@ -102,22 +115,41 @@ fun ResaleDetailScreen(
                         }
                         Spacer(Modifier.height(12.dp))
                     }
+                    if (purchaseError != null) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Danger.copy(alpha = 0.1f))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Outlined.Warning, contentDescription = null, tint = Danger, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(purchaseError ?: "", fontSize = 12.sp, color = Danger)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     Button(
-                        onClick = { onPurchaseComplete(resaleItem.ticketId) },
+                        onClick = { showConfirmDialog = true },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Primary,
                             disabledContainerColor = Muted,
                         ),
-                        enabled = !hasInsufficientBalance,
+                        enabled = !hasInsufficientBalance && !isPurchasing,
                     ) {
-                        Text(
-                            "구매하기",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (!hasInsufficientBalance) White else MutedForeground,
-                        )
+                        if (isPurchasing) {
+                            CircularProgressIndicator(color = White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text(
+                                "구매하기",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (!hasInsufficientBalance) White else MutedForeground,
+                            )
+                        }
                     }
                 }
             }
@@ -260,6 +292,49 @@ fun ResaleDetailScreen(
 
             Spacer(Modifier.height(80.dp))
         }
+    }
+
+    // 구매 확인 다이얼로그
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("리세일 티켓 구매", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "%,d CTK로 구매하시겠습니까?\n구매 후 블록체인에 기록됩니다.".format(resaleItem.resalePrice),
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmDialog = false
+                    isPurchasing = true
+                    purchaseError = null
+                    val ticketIdLong = resaleItem.ticketId.toLongOrNull() ?: return@TextButton
+                    scope.launch {
+                        try {
+                            val response = resaleService.purchaseResale(ticketIdLong)
+                            val txId = response.data?.txId
+                            Log.d(TAG, "purchaseResale() txId=$txId")
+                            isPurchasing = false
+                            if (txId != null && txId > 0) {
+                                onPurchaseComplete(txId)
+                            } else {
+                                purchaseError = "구매 응답에 txId가 없습니다."
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "purchaseResale() failed", e)
+                            isPurchasing = false
+                            purchaseError = e.message ?: "구매 처리 중 오류가 발생했습니다."
+                        }
+                    }
+                }) { Text("구매", color = Primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) { Text("취소", color = MutedForeground) }
+            },
+        )
     }
 }
 

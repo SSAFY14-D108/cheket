@@ -15,10 +15,11 @@ interface TicketService {
 
     @POST("api/v1/shows/{showId}/sessions/{sessionId}/seats")
     suspend fun lockSeats(
+        @Header("Seat-Access-Token") seatAccessToken: String,
         @Path("showId") showId: Long,
         @Path("sessionId") sessionId: Long,
         @Body request: SeatLockRequest,
-    ): ApiResponse<Unit>
+    ): ApiResponse<SeatLockResponse>
 
     @GET("api/v1/tickets/upcoming")
     suspend fun getUpcomingTickets(): ApiResponse<List<UpcomingTicketDto>>

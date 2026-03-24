@@ -18,6 +18,12 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ssafy.cheket.core.navigation.NavParams
@@ -63,6 +69,7 @@ import com.ssafy.cheket.features.purchase.TransactionProcessingScreen
 import com.ssafy.cheket.features.show.ShowDateSelectionScreen
 
 object Routes {
+    const val SPLASH = "splash"
     const val LOGIN = "login"
     const val SIGNUP = "signup"
     const val HOME = "home"
@@ -178,7 +185,8 @@ fun AppNavGraph(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in bottomTabRoutes
+    var splashDone by remember { mutableStateOf(false) }
+    val showBottomBar = splashDone && currentRoute in bottomTabRoutes
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -199,9 +207,30 @@ fun AppNavGraph(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = if (startLoggedIn) Routes.HOME else Routes.LOGIN,
+            startDestination = Routes.SPLASH,
             modifier = Modifier.padding(innerPadding),
         ) {
+            // ── Splash ──
+            composable(
+                route = Routes.SPLASH,
+                exitTransition = { fadeOut(animationSpec = tween(300)) },
+            ) {
+                val scope = rememberCoroutineScope()
+                com.ssafy.cheket.features.splash.SplashScreen(
+                    onSplashFinished = {
+                        val dest = if (startLoggedIn) Routes.HOME else Routes.LOGIN
+                        navController.navigate(dest) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                        // 전환 애니메이션(300ms) 완료 후 바텀바 표시
+                        scope.launch {
+                            kotlinx.coroutines.delay(350)
+                            splashDone = true
+                        }
+                    },
+                )
+            }
+
             // ── Auth ──
             composable(Routes.LOGIN) {
                 LoginScreen(
@@ -344,6 +373,11 @@ fun AppNavGraph(
                         }
                     },
                     onBack = { navController.popBackStack() },
+                    onBackToShowDetail = {
+                        navController.navigate(Routes.showDetail(showId)) {
+                            popUpTo(Routes.showDetail(showId)) { inclusive = true }
+                        }
+                    },
                 )
             }
             // ── TX Processing ──
@@ -445,9 +479,18 @@ fun AppNavGraph(
                 val ticketId = backStackEntry.arguments?.getString("ticketId") ?: ""
                 TransferScreen(
                     ticketId = ticketId,
-                    onTransferComplete = { navController.navigate(Routes.transferComplete(it)) {
-                        popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
-                    } },
+                    onTransferComplete = {
+                        val txId = NavParams.transferTransactionId
+                        if (txId > 0) {
+                            navController.navigate(Routes.txProcessing(txId, "TRANSFER")) {
+                                popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Routes.transferComplete(it)) {
+                                popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
+                            }
+                        }
+                    },
                     onTransferFailed = { navController.navigate(Routes.transferFailed(it)) {
                         popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
                     } },
@@ -497,8 +540,8 @@ fun AppNavGraph(
                 val resaleItemId = backStackEntry.arguments?.getString("resaleItemId") ?: ""
                 ResaleDetailScreen(
                     resaleItemId = resaleItemId,
-                    onPurchaseComplete = { ticketId ->
-                        navController.navigate(Routes.resalePurchaseComplete(ticketId)) {
+                    onPurchaseComplete = { txId ->
+                        navController.navigate(Routes.txProcessing(txId, "RESALE_PURCHASE")) {
                             popUpTo(Routes.RESALE)
                         }
                     },
@@ -528,10 +571,18 @@ fun AppNavGraph(
                 val ticketId = backStackEntry.arguments?.getString("ticketId") ?: ""
                 ResaleCreateScreen(
                     ticketId = ticketId,
-                    onSuccess = { navController.navigate(Routes.MY_TICKETS) {
-                        popUpTo(Routes.HOME) { saveState = true }
-                        launchSingleTop = true
-                    } },
+                    onSuccess = { txId ->
+                        if (txId != null && txId > 0) {
+                            navController.navigate(Routes.txProcessing(txId, "RESALE_LIST")) {
+                                popUpTo(Routes.resaleCreate(ticketId)) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Routes.MY_TICKETS) {
+                                popUpTo(Routes.HOME) { saveState = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -631,6 +682,9 @@ fun AppNavGraph(
                 ResaleTicketsScreen(
                     showId = showId,
                     onResaleItemClick = { resaleId -> navController.navigate(Routes.resaleDetail(resaleId)) },
+                    onTxProcessing = { txId, txType ->
+                        navController.navigate(Routes.txProcessing(txId, txType))
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
