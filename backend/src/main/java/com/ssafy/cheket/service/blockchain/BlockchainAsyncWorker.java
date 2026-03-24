@@ -735,11 +735,14 @@ public class BlockchainAsyncWorker {
             log.info("[리세일 구매 비동기] Ticket 소유자 변경 — ticketId={}, seller={} → buyer={}", ticketId, sellerUserId,
                 buyerUserId);
 
-            // ⑥ Transaction → CONFIRMED
+            // ⑥ 구매자 Transaction → CONFIRMED
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setDescription("블록체인 확정 — 리세일 구매 완료 (" + resalePrice + " SSF)");
             transactionRepository.save(tx);
+
+            // RESALE_PURCHASE 1건에 buyerId + sellerId 둘 다 있으므로
+            // 구매자/판매자 모두 거래내역에서 조회 가능 (별도 TX 불필요)
 
             log.info("[리세일 구매 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 

@@ -268,7 +268,9 @@ public class TicketServiceImpl implements TicketService {
         // ========== ④ Transaction PENDING 생성 ==========
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.TRANSFER) // 양도 타입
             .amount(0L) // 무료 양도
-            .description("양도 처리 중").txStatus(Transaction.TxStatus.PENDING).buyerId(senderUserId) // 보내는 사람 기록
+            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(senderUserId)   // 보내는 사람
+            .buyerId(receiver.getId()) // 받는 사람
             .build();
         transactionRepository.save(transaction);
 
@@ -353,8 +355,9 @@ public class TicketServiceImpl implements TicketService {
         ticketRepository.save(ticket);
 
         // ⑤ Transaction PENDING 생성
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE)
-            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId)
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CREATE)
+            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(userId)  // 등록하는 사람 = 판매자
             .build();
         transactionRepository.save(transaction);
 

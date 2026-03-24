@@ -124,8 +124,10 @@ public class ResaleServiceImpl implements ResaleService {
         }
 
         // ③ Transaction PENDING 생성
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE).amount(0L)
-            .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CANCEL).amount(0L)
+            .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(userId)  // 취소하는 사람 = 판매자
+            .build();
         transactionRepository.save(transaction);
 
         log.info("[리세일 취소] PENDING 생성 — txId={}, onChainDealId={}", transaction.getId(), resale.getOnChainListingId());
@@ -169,7 +171,7 @@ public class ResaleServiceImpl implements ResaleService {
         Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
 
         // ④ Transaction PENDING 생성
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE)
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_PURCHASE)
             .amount((long) resale.getResalePrice()).description("리세일 구매 대기").txStatus(Transaction.TxStatus.PENDING)
             .buyerId(buyerUserId).sellerId(resale.getUserId()).build();
         transactionRepository.save(transaction);
