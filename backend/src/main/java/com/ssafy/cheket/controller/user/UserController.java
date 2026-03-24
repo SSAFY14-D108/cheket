@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.user;
 
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
@@ -64,5 +65,14 @@ public class UserController {
         @AuthenticationPrincipal Long userId) {
         userService.updateNotification(userId, request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 여부 수정 완료", null));
+    }
+
+    @PostMapping("/fcm-token")
+    @Operation(summary = "FCM 토큰 저장")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> saveFcmToken(@RequestBody SaveFcmTokenRequest request,
+        @AuthenticationPrincipal Long userId) {
+        userService.saveFcmToken(userId, request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "FCM 토큰이 정상적으로 저장되었습니다.", null));
     }
 }

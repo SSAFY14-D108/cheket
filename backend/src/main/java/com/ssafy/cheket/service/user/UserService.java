@@ -1,6 +1,7 @@
 package com.ssafy.cheket.service.user;
 
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
@@ -16,4 +17,6 @@ public interface UserService {
     GetProfileResponse getProfile(Long userId);
 
     void updateNotification(Long userId, UpdateNotificationRequest request);
+
+    void saveFcmToken(Long userId, SaveFcmTokenRequest request);
 }
