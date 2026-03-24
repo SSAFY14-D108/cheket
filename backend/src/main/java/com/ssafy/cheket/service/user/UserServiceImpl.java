@@ -8,12 +8,10 @@ import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
+import com.ssafy.cheket.entity.notification.Notification;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
-import com.ssafy.cheket.exception.common.BadRequestException;
-import com.ssafy.cheket.exception.common.BlockchainException;
-import com.ssafy.cheket.exception.common.ConflictException;
-import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.exception.common.*;
 import com.ssafy.cheket.repository.notification.NotificationRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
@@ -159,5 +157,18 @@ public class UserServiceImpl implements UserService {
             .map(notification -> new GetNotificationsResponse(notification.getId(), notification.getMessage(),
                 notification.getType().name(), notification.isRead(), notification.getShowId()))
             .toList();
+    }
+
+    // 알림 읽음 처리
+    @Override
+    @Transactional
+    public void readNotification(Long userId, Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 알림입니다."));
+
+        if (!notification.getUserId().equals(userId))
+            throw new ForbiddenException("해당 알림에 접근할 수 없습니다.");
+
+        notification.setRead(true);
     }
 }
