@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 로컬 개발용: 에뮬레이터에서 localhost WebView 허용 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">192.168.100.69</domain>
+        <domain includeSubdomains="true">j14d108.p.ssafy.io</domain>
+    </domain-config>
+</network-security-config>

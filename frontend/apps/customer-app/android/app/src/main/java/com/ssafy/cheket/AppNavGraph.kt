@@ -27,6 +27,7 @@ import com.ssafy.cheket.features.auth.LoginScreen
 import com.ssafy.cheket.features.auth.SignupScreen
 import com.ssafy.cheket.features.collection.ArchiveScreen
 import com.ssafy.cheket.features.collection.CollectibleTicketDetailScreen
+import com.ssafy.cheket.features.collection.CollectionListWebViewScreen
 import com.ssafy.cheket.features.collection.CollectionScreen
 import com.ssafy.cheket.features.shows.ShowsScreen
 import com.ssafy.cheket.features.show.ShowDetailScreen
@@ -257,8 +258,7 @@ fun AppNavGraph(
                 )
             }
             composable(Routes.COLLECTION) {
-                CollectionScreen(
-                    appContainer = appContainer,
+                CollectionListWebViewScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -411,6 +411,11 @@ fun AppNavGraph(
                     onQrCheckin = { navController.navigate(Routes.qrCheckin(it)) },
                     onTransfer = { navController.navigate(Routes.transfer(it)) },
                     onResaleCreate = { navController.navigate(Routes.resaleCreate(it)) },
+                    onResaleCancelRequested = { txId ->
+                        navController.navigate(Routes.txProcessing(txId, "RESALE_CANCEL")) {
+                            popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
+                        }
+                    },
                     onRefundSuccess = {
                         navController.navigate(Routes.MY_TICKETS) {
                             popUpTo(Routes.MY_TICKETS) { inclusive = true }

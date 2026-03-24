@@ -33,7 +33,8 @@ fun TransferFailedScreen(
     onGoToTickets: () -> Unit,
 ) {
     val ticket = remember(ticketId) {
-        MockDataSource.mockTickets.find { it.id == ticketId }
+        NavParams.selectedTicket?.takeIf { it.id == ticketId }
+            ?: MockDataSource.mockTickets.find { it.id == ticketId }
     }
     val recipientName = NavParams.recipientName
     val recipientPhone = NavParams.recipientPhone

@@ -5,11 +5,11 @@ import retrofit2.http.*
 
 interface ResaleService {
 
-    @POST("api/v1/resales/{ticketId}")
+    @POST("api/v1/tickets/{ticketId}/resales")
     suspend fun registerResale(
         @Path("ticketId") ticketId: Long,
         @Body request: ResaleRegisterRequest,
-    ): ApiResponse<Unit>
+    ): ApiResponse<TxIdResponse>
 
     @GET("api/v1/resales")
     suspend fun getResaleShows(
@@ -29,9 +29,9 @@ interface ResaleService {
         @Query("size") size: Int = 20,
     ): ApiResponse<ResaleTicketListResponse>
 
-    @HTTP(method = "POST", path = "api/v1/resales/{ticketId}/purchase")
-    suspend fun purchaseResale(@Path("ticketId") ticketId: Long): ApiResponse<Unit>
+    @POST("api/v1/resales/{ticketId}")
+    suspend fun purchaseResale(@Path("ticketId") ticketId: Long): ApiResponse<TxIdResponse>
 
     @DELETE("api/v1/resales/{ticketId}")
-    suspend fun cancelResale(@Path("ticketId") ticketId: Long): ApiResponse<Unit>
+    suspend fun cancelResale(@Path("ticketId") ticketId: Long): ApiResponse<TxIdResponse>
 }

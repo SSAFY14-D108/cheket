@@ -15,6 +15,7 @@ object NavParams {
     var recipientName: String = ""
     var recipientPhone: String = ""
     var transferFailureReason: String = ""
+    var transferTransactionId: Long = 0L
     var selectedTicket: Ticket? = null
     var showInfo: Show? = null
     var sessionId: Long = 0L
@@ -35,6 +36,7 @@ object NavParams {
         recipientName = ""
         recipientPhone = ""
         transferFailureReason = ""
+        transferTransactionId = 0L
     }
 
     fun clearSelectedTicket() {

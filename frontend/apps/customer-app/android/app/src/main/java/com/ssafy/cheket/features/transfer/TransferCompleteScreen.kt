@@ -25,8 +25,6 @@ import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.ui.theme.*
-import java.text.NumberFormat
-import java.util.Locale
 
 @Composable
 fun TransferCompleteScreen(
@@ -35,9 +33,13 @@ fun TransferCompleteScreen(
     onGoHome: () -> Unit,
 ) {
     val ticket = remember(ticketId) {
-        MockDataSource.mockTickets.find { it.id == ticketId }
+        NavParams.selectedTicket?.takeIf { it.id == ticketId }
+            ?: MockDataSource.mockTickets.find { it.id == ticketId }
     }
-    val recipientName = NavParams.recipientName
+    val recipientLabel = NavParams.recipientName.ifEmpty {
+        NavParams.recipientPhone.ifEmpty { "-" }
+    }
+    val transferTransactionId = NavParams.transferTransactionId
 
     Scaffold(containerColor = Background) { innerPadding ->
         Column(
@@ -85,14 +87,14 @@ fun TransferCompleteScreen(
             }
 
             Text(
-                "양도 완료되었습니다!",
+                "양도 요청이 접수되었습니다!",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = OnBackground,
                 textAlign = TextAlign.Center,
             )
             Text(
-                "티켓이 성공적으로 양도되었습니다.\nNFT 소유권이 이전되었습니다.",
+                "블록체인 처리 후 상대방 티켓으로 반영됩니다.\n내 티켓 목록에서 상태를 다시 확인해주세요.",
                 fontSize = 14.sp,
                 color = MutedForeground,
                 textAlign = TextAlign.Center,
@@ -161,13 +163,13 @@ fun TransferCompleteScreen(
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     DetailRow(label = "좌석", value = ticket?.seatLabel ?: "-")
                     HorizontalDivider(color = BorderColor)
-                    DetailRow(label = "양도 대상", value = recipientName.ifEmpty { "-" })
+                    DetailRow(label = "수신 연락처", value = recipientLabel)
                     HorizontalDivider(color = BorderColor)
                     DetailRow(label = "양도 금액", value = "무료", valueColor = Primary)
                 }
             }
 
-            // --- Transaction / NFT Status ---
+            // --- Transaction Status ---
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBg),
@@ -184,7 +186,7 @@ fun TransferCompleteScreen(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            "블록체인 트랜잭션",
+                            "처리 정보",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = OnBackground,
@@ -193,18 +195,20 @@ fun TransferCompleteScreen(
 
                     HorizontalDivider(color = BorderColor)
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Transaction Hash", fontSize = 11.sp, color = MutedForeground)
-                        Text(
-                            "0x${ticketId.hashCode().toUInt().toString(16)}a7b3e9f1c4d2...8e6f",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = OnBackground,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Muted)
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
+                    if (transferTransactionId > 0L) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("TX ID", fontSize = 11.sp, color = MutedForeground)
+                            Text(
+                                "#$transferTransactionId",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = OnBackground,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Muted)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                     }
 
                     Row(
@@ -212,7 +216,7 @@ fun TransferCompleteScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("NFT 소유권 이전", fontSize = 13.sp, color = MutedForeground)
+                        Text("처리 상태", fontSize = 13.sp, color = MutedForeground)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.CheckCircle,
@@ -221,7 +225,7 @@ fun TransferCompleteScreen(
                                 modifier = Modifier.size(16.dp),
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text("완료", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Success)
+                            Text("요청 접수", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Success)
                         }
                     }
                 }

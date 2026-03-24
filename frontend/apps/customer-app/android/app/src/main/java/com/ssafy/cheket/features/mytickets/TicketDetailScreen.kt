@@ -74,17 +74,22 @@ fun TicketDetailScreen(
     onQrCheckin: (String) -> Unit,
     onTransfer: (String) -> Unit,
     onResaleCreate: (String) -> Unit,
+    onResaleCancelRequested: (Long) -> Unit,
     onRefundSuccess: () -> Unit,
     onBack: () -> Unit,
     refundViewModel: TicketRefundViewModel = viewModel(factory = TicketRefundViewModel.Factory),
+    resaleCancelViewModel: ResaleCancelViewModel = viewModel(factory = ResaleCancelViewModel.Factory),
 ) {
     val refundUiState by refundViewModel.uiState.collectAsStateWithLifecycle()
+    val resaleCancelUiState by resaleCancelViewModel.uiState.collectAsStateWithLifecycle()
     val ticket = remember(ticketId) {
         NavParams.selectedTicket?.takeIf { it.id == ticketId }
             ?: MockDataSource.mockTickets.find { it.id == ticketId }
     }
     var showRefundDialog by rememberSaveable { mutableStateOf(false) }
+    var showResaleCancelDialog by rememberSaveable { mutableStateOf(false) }
     var refundErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var resaleCancelErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = { AppHeader(title = "티켓 상세", onBack = onBack) },
@@ -145,6 +150,45 @@ fun TicketDetailScreen(
             )
         }
 
+        if (showResaleCancelDialog) {
+            AlertDialog(
+                onDismissRequest = { showResaleCancelDialog = false },
+                title = { Text("판매 등록 취소") },
+                text = { Text("판매 등록을 취소하시겠어요? 블록체인 처리 후 다시 보유중 상태로 돌아옵니다.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showResaleCancelDialog = false
+                            resaleCancelViewModel.cancelResale(
+                                ticketId = ticket.id,
+                                onSuccess = onResaleCancelRequested,
+                                onFailure = { message -> resaleCancelErrorMessage = message },
+                            )
+                        },
+                        enabled = !resaleCancelUiState.isCancelling,
+                    ) {
+                        if (resaleCancelUiState.isCancelling) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = White,
+                            )
+                        } else {
+                            Text("취소 요청하기")
+                        }
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { showResaleCancelDialog = false },
+                        enabled = !resaleCancelUiState.isCancelling,
+                    ) {
+                        Text("닫기")
+                    }
+                },
+            )
+        }
+
         refundErrorMessage?.let { message ->
             AlertDialog(
                 onDismissRequest = { refundErrorMessage = null },
@@ -152,6 +196,19 @@ fun TicketDetailScreen(
                 text = { Text(message) },
                 confirmButton = {
                     Button(onClick = { refundErrorMessage = null }) {
+                        Text("확인")
+                    }
+                },
+            )
+        }
+
+        resaleCancelErrorMessage?.let { message ->
+            AlertDialog(
+                onDismissRequest = { resaleCancelErrorMessage = null },
+                title = { Text("판매 등록 취소 실패") },
+                text = { Text(message) },
+                confirmButton = {
+                    Button(onClick = { resaleCancelErrorMessage = null }) {
                         Text("확인")
                     }
                 },
@@ -281,7 +338,7 @@ fun TicketDetailScreen(
                     ) {
                         Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("QR 체크인", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("QR 코드 보기", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
 
                     Row(
@@ -313,7 +370,7 @@ fun TicketDetailScreen(
                         ) {
                             Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("판매하기", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("2차 판매하기", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
                     }
 
@@ -349,14 +406,23 @@ fun TicketDetailScreen(
 
                 TicketStatus.LISTED -> {
                     Button(
-                        onClick = { },
+                        onClick = { showResaleCancelDialog = true },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Danger),
+                        enabled = !resaleCancelUiState.isCancelling,
                     ) {
-                        Text("판매 등록 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
+                        if (resaleCancelUiState.isCancelling) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = White,
+                            )
+                        } else {
+                            Text("판매 등록 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
+                        }
                     }
                 }
 
