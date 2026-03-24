@@ -5,6 +5,7 @@ import com.ssafy.cheket.entity.notification.Notification;
 import com.ssafy.cheket.entity.notification.NotificationMessage;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.enums.NotificationType;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.notification.NotificationMessageRepository;
@@ -37,12 +38,14 @@ public class NotificationServiceImpl implements NotificationService {
     private final ShowRepository showRepository;
     private final TicketRepository ticketRepository;
 
+    private final PushNotificationService pushNotificationService;
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
     @Override
     public void createNotification(CreateNotificationRequest request) {
-        if (!userRepository.existsById(request.getUserId()))
-            throw new NotFoundException("존재하지 않는 사용자입니다.");
+        User user = userRepository.findByIdAndDeletedAtIsNull(request.getUserId())
+            .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
 
         NotificationMessage template = notificationMessageRepository.findByType(request.getType())
             .orElseThrow(() -> new NotFoundException("알림 메시지 템플릿을 찾을 수 없습니다."));
@@ -54,6 +57,10 @@ public class NotificationServiceImpl implements NotificationService {
             .userId(request.getUserId()).notificationMessageId(template.getId()).build();
 
         notificationRepository.save(notification);
+
+        if (user.getFcmToken() != null && !user.getFcmToken().isBlank()) {
+            pushNotificationService.sendPush(user.getFcmToken(), request.getTitle(), finalMessage);
+        }
     }
 
     @Override

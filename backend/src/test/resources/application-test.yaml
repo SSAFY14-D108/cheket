@@ -66,3 +66,6 @@ cloud:
             static-region: ${AWS_REGION}
         s3:
             bucket: ${AWS_BUCKET}
+
+firebase:
+    config-path: ${FIREBASE_CONFIG_PATH}
