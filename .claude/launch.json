@@ -8,6 +8,13 @@
       "port": 3000,
       "autoPort": false,
       "cwd": "frontend/apps/customer-app/v0-version2"
+    },
+    {
+      "name": "host-web",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx", "next", "dev", "--port", "3002"],
+      "port": 3002,
+      "cwd": "frontend/apps/host-web"
     }
   ]
 }

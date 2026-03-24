@@ -1,20 +1,36 @@
 package com.ssafy.cheket.features.mytickets
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,44 +39,54 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ssafy.cheket.core.datasource.mock.MockDataSource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.BorderColor
+import com.ssafy.cheket.ui.theme.CardBg
+import com.ssafy.cheket.ui.theme.Danger
+import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.OnBackground
+import com.ssafy.cheket.ui.theme.Primary
+import com.ssafy.cheket.ui.theme.SubText
+import com.ssafy.cheket.ui.theme.Warning
+import com.ssafy.cheket.ui.theme.White
 import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 
 @Composable
 fun QrCheckinScreen(
     ticketId: String,
     onBack: () -> Unit,
+    viewModel: QrCheckinViewModel = viewModel(factory = QrCheckinViewModel.factory(ticketId)),
 ) {
-    val ticket = remember(ticketId) {
-        MockDataSource.mockTickets.find { it.id == ticketId }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var remainingSeconds by remember(uiState.expiresAt) {
+        mutableIntStateOf(calculateRemainingSeconds(uiState.expiresAt))
     }
 
-    var isCheckedIn by remember { mutableStateOf(false) }
-    var remainingSeconds by remember { mutableIntStateOf(30) }
-    var qrSeed by remember { mutableIntStateOf(Random.nextInt()) }
-
-    // Countdown timer
-    LaunchedEffect(qrSeed) {
-        remainingSeconds = 30
-        while (remainingSeconds > 0 && !isCheckedIn) {
+    LaunchedEffect(uiState.expiresAt) {
+        while (remainingSeconds > 0) {
             delay(1000)
-            remainingSeconds--
+            remainingSeconds = calculateRemainingSeconds(uiState.expiresAt)
         }
     }
 
     Scaffold(
         topBar = {
             AppHeader(
-                title = "QR 체크인",
+                title = "QR 코드 보기",
                 onBack = onBack,
                 actions = {
                     TutorialHelpButton(tutorialId = TutorialId.QR_CHECKIN)
@@ -76,77 +102,39 @@ fun QrCheckinScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Spacer(Modifier.height(8.dp))
 
-            AnimatedVisibility(visible = isCheckedIn, enter = fadeIn() + scaleIn()) {
-                // --- Success State ---
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(Success.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = "체크인 완료",
-                            tint = Success,
-                            modifier = Modifier.size(56.dp),
-                        )
-                    }
+            Text(
+                text = uiState.title.ifBlank { "티켓 정보를 확인하는 중입니다." },
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = OnBackground,
+                textAlign = TextAlign.Center,
+            )
 
-                    Text(
-                        "체크인 완료!",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = OnBackground,
-                    )
-
-                    Text(
-                        ticket?.showName ?: "",
-                        fontSize = 14.sp,
-                        color = MutedForeground,
-                        textAlign = TextAlign.Center,
-                    )
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Button(
-                        onClick = onBack,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    ) {
-                        Text("닫기", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
-                }
-            }
-
-            if (!isCheckedIn) {
-                // --- Event info ---
+            if (uiState.seatLabel.isNotBlank()) {
                 Text(
-                    text = ticket?.showName ?: "알 수 없는 공연",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OnBackground,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = ticket?.seatLabel ?: "",
+                    text = uiState.seatLabel,
                     fontSize = 13.sp,
                     color = MutedForeground,
                 )
+            }
 
-                // --- QR Code with Countdown Ring ---
+            if (uiState.isLoading && uiState.qrData == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 36.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            } else {
                 Box(contentAlignment = Alignment.Center) {
-                    // Circular progress ring
-                    val progress = remainingSeconds / 30f
+                    val progress = (remainingSeconds.coerceAtLeast(0) / 30f).coerceIn(0f, 1f)
+
                     Canvas(modifier = Modifier.size(240.dp)) {
                         val strokeWidth = 6.dp.toPx()
                         val radius = (size.minDimension - strokeWidth) / 2f
@@ -155,7 +143,6 @@ fun QrCheckinScreen(
                             (size.height - radius * 2) / 2f,
                         )
 
-                        // Track
                         drawArc(
                             color = BorderColor,
                             startAngle = -90f,
@@ -166,14 +153,12 @@ fun QrCheckinScreen(
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
                         )
 
-                        // Progress
-                        val progressColor = when {
-                            remainingSeconds <= 5 -> Color(0xFFE53E3E)
-                            remainingSeconds <= 10 -> Color(0xFFF59E0B)
-                            else -> Color(0xFF00C598)
-                        }
                         drawArc(
-                            color = progressColor,
+                            color = when {
+                                remainingSeconds <= 5 -> Danger
+                                remainingSeconds <= 10 -> Warning
+                                else -> Primary
+                            },
                             startAngle = -90f,
                             sweepAngle = 360f * progress,
                             useCenter = false,
@@ -183,12 +168,32 @@ fun QrCheckinScreen(
                         )
                     }
 
-                    // QR Placeholder
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        MockQrCode(seed = qrSeed, modifier = Modifier.size(160.dp))
+                        if (uiState.qrData != null) {
+                            TokenMatrixCode(
+                                payload = uiState.qrData ?: ticketId,
+                                modifier = Modifier.size(160.dp),
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(160.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(CardBg),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = MutedForeground,
+                                    modifier = Modifier.size(36.dp),
+                                )
+                            }
+                        }
+
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "${remainingSeconds}s",
+                            text = if (remainingSeconds > 0) "${remainingSeconds}s" else "만료됨",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (remainingSeconds <= 5) Danger else OnBackground,
@@ -196,38 +201,87 @@ fun QrCheckinScreen(
                     }
                 }
 
-                // Always show status text per v0-version2
                 Text(
-                    if (remainingSeconds > 0) "QR 코드가 자동 갱신됩니다"
-                    else "QR 코드가 만료되었습니다. 재발급 버튼을 눌러주세요.",
+                    text = when {
+                        uiState.qrData == null -> "QR 코드를 불러오지 못했습니다."
+                        remainingSeconds > 0 -> "유효 시간이 지나면 새 QR을 다시 받아야 합니다."
+                        else -> "QR 코드가 만료되었습니다. 새로고침해서 다시 발급해주세요."
+                    },
                     fontSize = 13.sp,
-                    color = if (remainingSeconds > 0) MutedForeground else Danger,
+                    color = if (remainingSeconds > 0 && uiState.qrData != null) MutedForeground else Danger,
                     textAlign = TextAlign.Center,
                 )
 
-                // --- Refresh button ---
-                OutlinedButton(
-                    onClick = {
-                        qrSeed = Random.nextInt()
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("QR 재발급", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                formatExpiry(uiState.expiresAt)?.let { expiresAt ->
+                    Text(
+                        text = "만료 시각 $expiresAt",
+                        fontSize = 12.sp,
+                        color = SubText,
+                    )
                 }
+            }
 
-                // --- Mock Check-in button ---
-                Button(
-                    onClick = { isCheckedIn = true },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+            uiState.errorMessage?.let { message ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    enabled = remainingSeconds > 0,
+                    colors = CardDefaults.cardColors(containerColor = Danger.copy(alpha = 0.08f)),
                 ) {
-                    Text("체크인 (Mock)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = message,
+                        fontSize = 13.sp,
+                        color = OnBackground,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+
+            OutlinedButton(
+                onClick = viewModel::refreshQr,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
+                enabled = !uiState.isRefreshing,
+            ) {
+                if (uiState.isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = Primary,
+                    )
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = if (uiState.isRefreshing) "다시 불러오는 중..." else "QR 새로고침",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                )
+            }
+
+            uiState.qrData?.let { qrData ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBg),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("입장 코드", fontSize = 12.sp, color = MutedForeground)
+                        Text(
+                            text = qrData,
+                            fontSize = 13.sp,
+                            color = OnBackground,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 18.sp,
+                        )
+                    }
                 }
             }
 
@@ -236,27 +290,25 @@ fun QrCheckinScreen(
     }
 }
 
-/**
- * A simple deterministic mock QR code rendered as a grid of black and white cells.
- */
 @Composable
-private fun MockQrCode(seed: Int, modifier: Modifier = Modifier) {
+private fun TokenMatrixCode(
+    payload: String,
+    modifier: Modifier = Modifier,
+) {
     val gridSize = 21
-    val cells = remember(seed) {
-        val random = Random(seed)
+    val cells = remember(payload) {
+        val random = Random(payload.hashCode())
         Array(gridSize) { row ->
             BooleanArray(gridSize) { col ->
-                // Keep corners for finder patterns
                 val isFinderArea = (row < 3 && col < 3) ||
-                        (row < 3 && col >= gridSize - 3) ||
-                        (row >= gridSize - 3 && col < 3)
+                    (row < 3 && col >= gridSize - 3) ||
+                    (row >= gridSize - 3 && col < 3)
                 if (isFinderArea) true else random.nextBoolean()
             }
         }
     }
 
     Canvas(modifier = modifier.clip(RoundedCornerShape(8.dp)).background(White)) {
-        val cellSize = size.minDimension / gridSize
         val padding = 8.dp.toPx()
         val drawableArea = size.minDimension - padding * 2
         val drawCellSize = drawableArea / gridSize
@@ -273,4 +325,22 @@ private fun MockQrCode(seed: Int, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+private fun calculateRemainingSeconds(expiresAt: String?): Int {
+    if (expiresAt.isNullOrBlank()) return 0
+
+    return runCatching {
+        val expireTime = LocalDateTime.parse(expiresAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        Duration.between(LocalDateTime.now(), expireTime).seconds.coerceAtLeast(0).toInt()
+    }.getOrDefault(0)
+}
+
+private fun formatExpiry(expiresAt: String?): String? {
+    if (expiresAt.isNullOrBlank()) return null
+
+    return runCatching {
+        LocalDateTime.parse(expiresAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss"))
+    }.getOrNull()
 }

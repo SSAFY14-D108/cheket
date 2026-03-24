@@ -1,0 +1,1903 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Cheket — Cube Palette: #00C598 / #ABFEFF / #FCFCD4 */
+  --background: #fcfcfc;
+  --foreground: #0d1f1a;
+  --card: #ffffff;
+  --card-foreground: #0d1f1a;
+  --popover: #ffffff;
+  --popover-foreground: #0d1f1a;
+
+  /* Primary: #00C598 — emerald green point color */
+  --primary: #00c598;
+  --primary-foreground: #ffffff;
+
+  /* Secondary: very light mint tint of #ABFEFF */
+  --secondary: #eef9f7;
+  --secondary-foreground: #0d4035;
+
+  /* Muted */
+  --muted: #f2f7f6;
+  --muted-foreground: #5c7a73;
+
+  /* Accent: #FCFCD4 cream-yellow */
+  --accent: #fcfcd4;
+  --accent-foreground: #3a3a00;
+
+  --destructive: #e53e3e;
+  --destructive-foreground: #ffffff;
+
+  /* Border and input */
+  --border: #d8efea;
+  --input: #eef9f7;
+  --ring: #00c598;
+  --radius: 0.75rem;
+
+  /* Custom badge tokens */
+  --badge-sold: #7c9ef8;
+  --badge-listed: #00c598;
+  --badge-used: #7a8a85;
+  --badge-expired: #e53e3e;
+
+  /* Surface token */
+  --surface: #ffffff;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0d1f1a;
+  --sidebar-primary: #00c598;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef9f7;
+  --sidebar-accent-foreground: #0d1f1a;
+  --sidebar-border: #d8efea;
+  --sidebar-ring: #00c598;
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .elevated-surface {
+    background-color: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.045);
+  }
+
+  .elevated-surface-soft {
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.03);
+  }
+
+  .neutral-icon-button {
+    @apply flex items-center justify-center rounded-full bg-transparent text-[#333333] transition-colors;
+  }
+
+  .neutral-icon-button:hover {
+    @apply text-[#111111];
+    background-color: transparent;
+  }
+
+  .gradient-border-icon-button {
+    @apply flex items-center justify-center rounded-full bg-transparent text-[#333333] transition-colors;
+  }
+
+  .gradient-border-icon-button:hover {
+    @apply text-[#111111];
+  }
+
+  .gradient-border-button {
+    @apply rounded-xl border-2 border-transparent bg-white font-semibold text-[#111111] transition-all active:scale-[0.98];
+    background-image:
+      linear-gradient(#ffffff, #ffffff),
+      linear-gradient(
+        135deg,
+        rgba(226, 218, 255, 0.76),
+        rgba(196, 247, 224, 0.74),
+        rgba(202, 230, 255, 0.76)
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .gradient-border-badge {
+    @apply inline-flex items-center rounded-full border border-transparent bg-white font-semibold text-[#5f6b76];
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.96)),
+      linear-gradient(
+        135deg,
+        rgba(226, 218, 255, 0.92),
+        rgba(196, 247, 224, 0.88),
+        rgba(202, 230, 255, 0.92)
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 4px 12px rgba(148, 163, 184, 0.12);
+  }
+
+  .gradient-border-badge-muted {
+    @apply inline-flex items-center rounded-full border border-transparent bg-white font-medium text-[#6c7782];
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)),
+      linear-gradient(
+        135deg,
+        rgba(226, 218, 255, 0.74),
+        rgba(196, 247, 224, 0.7),
+        rgba(202, 230, 255, 0.74)
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 4px 10px rgba(148, 163, 184, 0.08);
+  }
+
+  .badge-info {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.94)),
+      linear-gradient(
+        135deg,
+        rgba(226, 218, 255, 0.82),
+        rgba(196, 247, 224, 0.78),
+        rgba(202, 230, 255, 0.82)
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border: 1px solid transparent;
+    color: #6b7785;
+    box-shadow: 0 4px 12px rgba(148, 163, 184, 0.1);
+  }
+
+  .badge-status {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98)),
+      linear-gradient(
+        135deg,
+        rgba(226, 218, 255, 0.96),
+        rgba(196, 247, 224, 0.92),
+        rgba(202, 230, 255, 0.96)
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border: 1px solid transparent;
+    box-shadow: 0 6px 14px rgba(148, 163, 184, 0.14);
+  }
+}
+
+/* =================================================================
+   ORIGINAL TICKET SHAPE
+   ================================================================= */
+
+.ticket-shape-megabox {
+  /* Authentically "bitten out" scalloped edges using mask intersection */
+  --r: 12px;  /* Larger radius for deeper bites */
+  --s: 34px;  /* Wider spacing for fewer bites (approx 8 across) */
+
+  -webkit-mask:
+    radial-gradient(var(--r) at 50% 0, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x,
+    radial-gradient(var(--r) at 50% 100%, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x;
+  -webkit-mask-composite: source-in;
+
+  mask:
+    radial-gradient(var(--r) at 50% 0, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x,
+    radial-gradient(var(--r) at 50% 100%, #0000 98%, #000) 50% 0 / var(--s) 100% repeat-x;
+  mask-composite: intersect;
+}
+
+.ticket-perforation-line {
+  position: absolute;
+  bottom: 80px; /* Adjust according to design */
+  left: 14px;
+  right: 14px;
+  height: 0;
+  border-top: 2px dashed rgba(255, 255, 255, 0.25);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.ticket-perforation-line-dark {
+  border-top-color: rgba(0, 0, 0, 0.15);
+}
+
+/* ===== HOLOGRAPHIC CARD EFFECT ===== */
+
+.ticket-holo-tilt {
+  position: relative;
+  width: 272px;
+  height: 460px;
+  isolation: isolate;
+}
+
+.ticket-holo-front-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ticket-holo-rainbow,
+.ticket-holo-glare,
+.ticket-holo-foil,
+.ticket-holo-noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 0;
+  transition: opacity 350ms ease;
+}
+
+/* === RAINBOW — Layer 1: color blend for vivid rainbow tinting === */
+.ticket-holo-rainbow {
+  opacity: 0.2;
+  mix-blend-mode: color;
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, 133deg)),
+    hsl(0, 100%, 65%) 0%,
+    hsl(40, 100%, 60%) 4%,
+    hsl(60, 100%, 62%) 8%,
+    hsl(120, 95%, 50%) 12%,
+    hsl(180, 100%, 55%) 16%,
+    hsl(220, 100%, 65%) 20%,
+    hsl(270, 100%, 65%) 24%,
+    hsl(310, 100%, 62%) 28%,
+    hsl(340, 100%, 60%) 32%,
+    hsl(0, 100%, 65%) 36%
+  );
+  background-size: 200% 200%;
+  background-position: var(--mx, 50%) var(--my, 50%);
+  filter: saturate(1.4);
+}
+
+/* ::after — Layer 2: screen blend for bright shimmer streaks */
+.ticket-holo-rainbow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.2;
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, 133deg)),
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 2%,
+    rgba(255, 255, 255, 0.45) 3.5%,
+    rgba(255, 255, 255, 0.08) 5%,
+    rgba(255, 255, 255, 0) 8%,
+    rgba(255, 255, 255, 0) 16%
+  );
+  background-size: 300% 300%;
+  background-position: var(--mx, 50%) var(--my, 50%);
+}
+
+.ticket-holo-rainbow.is-active {
+  opacity: 0.25;
+}
+
+/* -- VARIANT: aurora (teal/green tones) -- */
+.ticket-holo-rainbow.ticket-holo-aurora {
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, 133deg)),
+    hsl(160, 100%, 65%) 0%,
+    hsl(180, 100%, 60%) 8%,
+    hsl(200, 90%, 70%) 16%,
+    hsl(140, 90%, 60%) 24%,
+    hsl(170, 100%, 65%) 32%,
+    hsl(160, 100%, 65%) 40%
+  );
+}
+
+/* -- VARIANT: prism (wide rainbow bands) -- */
+.ticket-holo-rainbow.ticket-holo-prism {
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, 115deg)),
+    hsl(330, 100%, 65%) 0%,
+    hsl(40, 100%, 60%) 10%,
+    hsl(120, 90%, 55%) 20%,
+    hsl(200, 100%, 65%) 30%,
+    hsl(270, 95%, 65%) 40%,
+    hsl(330, 100%, 65%) 50%
+  );
+  background-size: 200% 200%;
+  background-position: var(--mx, 50%) var(--my, 50%);
+}
+
+/* -- VARIANT: cosmos (sparkle dots + nebula colors) -- */
+.ticket-holo-rainbow.ticket-holo-cosmos {
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, 55deg)),
+    hsl(270, 80%, 60%) 0%,
+    hsl(200, 90%, 65%) 8%,
+    hsl(320, 90%, 65%) 16%,
+    hsl(170, 85%, 55%) 24%,
+    hsl(270, 80%, 60%) 32%
+  );
+}
+
+/* -- VARIANT: sunset (warm orange/pink tones) -- */
+.ticket-holo-rainbow.ticket-holo-sunset {
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, -33deg)),
+    hsl(15, 100%, 60%) 0%,
+    hsl(40, 100%, 65%) 7%,
+    hsl(55, 100%, 60%) 14%,
+    hsl(340, 100%, 65%) 21%,
+    hsl(280, 80%, 60%) 28%,
+    hsl(15, 100%, 60%) 36%
+  );
+}
+
+/* -- VARIANT: neon (electric blue/pink) -- */
+.ticket-holo-rainbow.ticket-holo-neon {
+  background-image: repeating-linear-gradient(
+    calc(var(--angle, 133deg)),
+    hsl(180, 100%, 55%) 0%,
+    hsl(220, 100%, 65%) 7%,
+    hsl(280, 100%, 65%) 14%,
+    hsl(330, 100%, 60%) 21%,
+    hsl(180, 100%, 55%) 28%
+  );
+}
+
+/* === GLARE — bright light reflection point that follows mouse === */
+.ticket-holo-glare {
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+  background-image: radial-gradient(
+    ellipse 50% 40% at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(255, 255, 255, 0.2) 40%,
+    transparent 70%
+  );
+  transition: opacity 350ms ease;
+}
+
+.ticket-holo-glare.is-active {
+  opacity: 0.4;
+}
+
+/* === FOIL — fine texture grain for sparkle === */
+.ticket-holo-foil {
+  opacity: 0.1;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj4KPGZpbHRlciBpZD0ibiI+CjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuNyIgbnVtT2N0YXZlcz0iMTAiIHN0aXRjaFRpbGVzPSJzdGl0Y2giPjwvZmVUdXJidWxlbmNlPgo8L2ZpbHRlcj4KPHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwMDAiPjwvcmVjdD4KPHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbHRlcj0idXJsKCNuKSIgb3BhY2l0eT0iMC4zIj48L3JlY3Q+Cjwvc3ZnPg==");
+  background-size: 250px;
+  transition: opacity 350ms ease;
+}
+
+.ticket-holo-foil.is-active {
+  opacity: 0.35;
+}
+
+/* === NOISE — subtle grain overlay === */
+.ticket-holo-noise {
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj4KPGZpbHRlciBpZD0ibiI+CjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIxLjUiIG51bU9jdGF2ZXM9IjYiIHN0aXRjaFRpbGVzPSJzdGl0Y2giPjwvZmVUdXJidWxlbmNlPgo8L2ZpbHRlcj4KPHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiMwMDAiPjwvcmVjdD4KPHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNuKSIgb3BhY2l0eT0iMC40Ij48L3JlY3Q+Cjwvc3ZnPg==");
+  background-size: 200px;
+}
+
+/* ---- CARD GLOW on hover ---- */
+.ticket-holo-tilt:hover {
+  filter: drop-shadow(0 0 15px rgba(120, 200, 255, 0.3));
+}
+
+.ticket-metallic-gold-foil,
+.ticket-metallic-silver-foil,
+.ticket-metallic-rose-foil {
+  isolation: isolate;
+}
+
+.ticket-metallic-gold-foil {
+  box-shadow:
+    inset 0 0 0 1px rgba(120, 92, 8, 0.28),
+    inset 0 1px 0 rgba(255, 250, 220, 0.52),
+    inset 0 18px 28px rgba(255, 241, 170, 0.24),
+    inset 0 -26px 34px rgba(96, 72, 4, 0.22),
+    0 18px 40px rgba(102, 82, 14, 0.2);
+}
+
+.ticket-metallic-silver-foil {
+  box-shadow:
+    inset 0 0 0 1px rgba(79, 92, 112, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 18px 28px rgba(248, 251, 255, 0.2),
+    inset 0 -26px 34px rgba(60, 72, 92, 0.24),
+    0 18px 40px rgba(70, 82, 102, 0.2);
+}
+
+.ticket-metallic-rose-foil {
+  box-shadow:
+    inset 0 0 0 1px rgba(121, 80, 74, 0.26),
+    inset 0 1px 0 rgba(255, 246, 241, 0.52),
+    inset 0 18px 28px rgba(255, 231, 221, 0.18),
+    inset 0 -26px 34px rgba(92, 58, 52, 0.22),
+    0 18px 40px rgba(103, 71, 67, 0.2);
+}
+
+.ticket-metallic-gold-foil__tint,
+.ticket-metallic-gold-foil__base,
+.ticket-metallic-gold-foil__brushed,
+.ticket-metallic-gold-foil__sheen,
+.ticket-metallic-gold-foil__print,
+.ticket-metallic-silver-foil__tint,
+.ticket-metallic-silver-foil__base,
+.ticket-metallic-silver-foil__brushed,
+.ticket-metallic-silver-foil__sheen,
+.ticket-metallic-silver-foil__print,
+.ticket-metallic-rose-foil__tint,
+.ticket-metallic-rose-foil__base,
+.ticket-metallic-rose-foil__brushed,
+.ticket-metallic-rose-foil__sheen,
+.ticket-metallic-rose-foil__print,
+.ticket-metallic-silver-foil__print {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.ticket-metallic-gold-foil__base {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 251, 224, 0.18), transparent 22%),
+    radial-gradient(circle at 82% 82%, rgba(84, 66, 6, 0.24), transparent 28%),
+    linear-gradient(
+      110deg,
+      rgba(88, 68, 4, 0.72) 0%,
+      rgba(160, 126, 12, 0.72) 12%,
+      rgba(247, 210, 88, 0.18) 28%,
+      rgba(154, 118, 8, 0.68) 43%,
+      rgba(255, 243, 181, 0.24) 52%,
+      rgba(148, 114, 8, 0.7) 62%,
+      rgba(235, 195, 66, 0.16) 76%,
+      rgba(96, 74, 6, 0.78) 100%
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.98;
+}
+
+.ticket-metallic-gold-foil__tint {
+  background:
+    linear-gradient(180deg, rgba(255, 233, 126, 0.34), rgba(148, 116, 8, 0.22)),
+    radial-gradient(circle at 50% 30%, rgba(255, 243, 182, 0.28), transparent 30%),
+    radial-gradient(circle at 72% 72%, rgba(182, 146, 16, 0.18), transparent 28%);
+  mix-blend-mode: color;
+  opacity: 0.96;
+}
+
+.ticket-metallic-gold-foil__brushed {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      103deg,
+      rgba(255, 250, 232, 0.16) 0 1px,
+      rgba(144, 116, 8, 0.04) 1px 2px,
+      rgba(250, 214, 84, 0.12) 2px 3px,
+      rgba(102, 80, 4, 0.06) 3px 5px
+    );
+  background-size: 220px 220px, auto;
+  mix-blend-mode: soft-light;
+  opacity: 0.72;
+}
+
+.ticket-metallic-gold-foil__sheen {
+  background:
+    radial-gradient(ellipse 18% 26% at var(--mx, 50%) var(--my, 50%), rgba(255, 253, 241, 0.24), transparent 72%),
+    radial-gradient(ellipse 28% 34% at calc(var(--mx, 50%) * 0.9) calc(var(--my, 50%) * 0.72), rgba(255, 238, 162, 0.12), transparent 76%),
+    conic-gradient(
+      from calc(204deg + var(--ry, 0deg)) at var(--mx, 50%) var(--my, 50%),
+      rgba(255, 238, 162, 0) 0deg,
+      rgba(255, 246, 210, 0.08) 18deg,
+      rgba(255, 255, 248, 0.14) 30deg,
+      rgba(255, 240, 172, 0.04) 52deg,
+      rgba(255, 238, 162, 0) 96deg
+    ),
+    linear-gradient(180deg, rgba(255, 253, 238, 0.2) 0%, rgba(255, 247, 214, 0.06) 16%, rgba(255, 230, 138, 0.02) 38%, rgba(255, 214, 86, 0.06) 72%, rgba(120, 92, 8, 0.08) 100%),
+    linear-gradient(90deg, rgba(255, 248, 220, 0.12) 0%, transparent 18%, transparent 82%, rgba(255, 242, 198, 0.12) 100%);
+  background-position:
+    center,
+    center,
+    center,
+    center,
+    center;
+  transform: translate3d(calc(var(--dx, 0%) * 0.32), calc(var(--dy, 0%) * 0.32), 0) rotate(calc(var(--ry, 0deg) * 0.08));
+  mix-blend-mode: screen;
+  opacity: 0.72;
+  will-change: transform, background-position, opacity;
+  transition: transform 140ms ease-out, background-position 140ms ease-out, opacity 180ms ease;
+}
+
+.ticket-metallic-gold-foil__print {
+  background:
+    radial-gradient(circle at 14% 86%, rgba(102, 78, 6, 0.18), transparent 18%),
+    radial-gradient(circle at calc(100% - var(--mx, 50%)) 18%, rgba(255, 246, 194, 0.18), transparent 14%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  mix-blend-mode: overlay;
+  opacity: 0.58;
+  transform: translate3d(calc(var(--dx, 0%) * -0.3), calc(var(--dy, 0%) * -0.3), 0);
+  transition: transform 120ms ease;
+}
+
+.ticket-metallic-silver-foil__base {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.18), transparent 24%),
+    radial-gradient(circle at 84% 82%, rgba(24, 30, 42, 0.24), transparent 30%),
+    linear-gradient(
+      110deg,
+      rgba(18, 24, 34, 0.74) 0%,
+      rgba(98, 112, 132, 0.72) 14%,
+      rgba(248, 251, 255, 0.22) 30%,
+      rgba(90, 104, 124, 0.74) 44%,
+      rgba(255, 255, 255, 0.2) 53%,
+      rgba(84, 98, 118, 0.78) 63%,
+      rgba(224, 232, 242, 0.18) 79%,
+      rgba(17, 22, 32, 0.82) 100%
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.98;
+}
+
+.ticket-metallic-silver-foil__tint {
+  background:
+    linear-gradient(180deg, rgba(236, 242, 248, 0.34), rgba(112, 124, 144, 0.22)),
+    radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.28), transparent 32%),
+    radial-gradient(circle at 76% 70%, rgba(164, 178, 196, 0.18), transparent 28%);
+  mix-blend-mode: color;
+  opacity: 0.96;
+}
+
+.ticket-metallic-silver-foil__brushed {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      101deg,
+      rgba(255, 255, 255, 0.16) 0 1px,
+      rgba(102, 116, 136, 0.05) 1px 2px,
+      rgba(228, 236, 246, 0.12) 2px 3px,
+      rgba(56, 68, 86, 0.08) 3px 5px
+    );
+  background-size: 220px 220px, auto;
+  mix-blend-mode: soft-light;
+  opacity: 0.72;
+}
+
+.ticket-metallic-silver-foil__sheen {
+  background:
+    radial-gradient(ellipse 18% 26% at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.24), transparent 72%),
+    radial-gradient(ellipse 28% 34% at calc(var(--mx, 50%) * 0.9) calc(var(--my, 50%) * 0.72), rgba(221, 231, 242, 0.12), transparent 76%),
+    conic-gradient(
+      from calc(204deg + var(--ry, 0deg)) at var(--mx, 50%) var(--my, 50%),
+      rgba(228, 236, 246, 0) 0deg,
+      rgba(240, 245, 251, 0.08) 18deg,
+      rgba(255, 255, 255, 0.14) 30deg,
+      rgba(228, 236, 246, 0.04) 52deg,
+      rgba(228, 236, 246, 0) 96deg
+    ),
+    linear-gradient(180deg, rgba(252, 254, 255, 0.18) 0%, rgba(238, 244, 251, 0.06) 16%, rgba(216, 226, 238, 0.02) 38%, rgba(196, 208, 224, 0.05) 72%, rgba(72, 86, 104, 0.08) 100%),
+    linear-gradient(90deg, rgba(248, 251, 255, 0.12) 0%, transparent 18%, transparent 82%, rgba(235, 241, 248, 0.12) 100%);
+  background-position:
+    center,
+    center,
+    center,
+    center,
+    center;
+  transform: translate3d(calc(var(--dx, 0%) * 0.32), calc(var(--dy, 0%) * 0.32), 0) rotate(calc(var(--ry, 0deg) * 0.08));
+  mix-blend-mode: screen;
+  opacity: 0.72;
+  will-change: transform, background-position, opacity;
+  transition: transform 140ms ease-out, background-position 140ms ease-out, opacity 180ms ease;
+}
+
+.ticket-metallic-silver-foil__print {
+  background:
+    radial-gradient(circle at 14% 86%, rgba(38, 46, 60, 0.22), transparent 18%),
+    radial-gradient(circle at calc(100% - var(--mx, 50%)) 18%, rgba(255, 255, 255, 0.16), transparent 14%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  mix-blend-mode: overlay;
+  opacity: 0.56;
+  transform: translate3d(calc(var(--dx, 0%) * -0.3), calc(var(--dy, 0%) * -0.3), 0);
+  transition: transform 120ms ease;
+}
+
+.ticket-metallic-rose-foil__base {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 244, 239, 0.16), transparent 22%),
+    radial-gradient(circle at 82% 82%, rgba(67, 40, 37, 0.24), transparent 30%),
+    linear-gradient(
+      110deg,
+      rgba(52, 30, 28, 0.72) 0%,
+      rgba(126, 78, 68, 0.74) 14%,
+      rgba(246, 210, 193, 0.18) 30%,
+      rgba(126, 78, 68, 0.74) 44%,
+      rgba(255, 240, 232, 0.2) 53%,
+      rgba(117, 71, 63, 0.76) 63%,
+      rgba(236, 193, 178, 0.16) 79%,
+      rgba(49, 28, 27, 0.8) 100%
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.98;
+}
+
+.ticket-metallic-rose-foil__tint {
+  background:
+    linear-gradient(180deg, rgba(248, 220, 210, 0.34), rgba(154, 96, 94, 0.22)),
+    radial-gradient(circle at 50% 34%, rgba(255, 240, 234, 0.28), transparent 32%),
+    radial-gradient(circle at 76% 70%, rgba(204, 136, 126, 0.18), transparent 28%);
+  mix-blend-mode: color;
+  opacity: 0.96;
+}
+
+.ticket-metallic-rose-foil__brushed {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      103deg,
+      rgba(255, 245, 240, 0.16) 0 1px,
+      rgba(132, 82, 73, 0.05) 1px 2px,
+      rgba(241, 198, 182, 0.12) 2px 3px,
+      rgba(78, 45, 41, 0.08) 3px 5px
+    );
+  background-size: 220px 220px, auto;
+  mix-blend-mode: soft-light;
+  opacity: 0.7;
+}
+
+.ticket-metallic-rose-foil__sheen {
+  background:
+    radial-gradient(ellipse 18% 26% at var(--mx, 50%) var(--my, 50%), rgba(255, 250, 246, 0.24), transparent 72%),
+    radial-gradient(ellipse 28% 34% at calc(var(--mx, 50%) * 0.9) calc(var(--my, 50%) * 0.72), rgba(245, 214, 200, 0.12), transparent 76%),
+    conic-gradient(
+      from calc(204deg + var(--ry, 0deg)) at var(--mx, 50%) var(--my, 50%),
+      rgba(238, 201, 194, 0) 0deg,
+      rgba(249, 229, 220, 0.08) 18deg,
+      rgba(255, 249, 246, 0.14) 30deg,
+      rgba(238, 201, 194, 0.04) 52deg,
+      rgba(238, 201, 194, 0) 96deg
+    ),
+    linear-gradient(180deg, rgba(255, 248, 244, 0.18) 0%, rgba(255, 236, 231, 0.06) 16%, rgba(236, 198, 186, 0.02) 38%, rgba(214, 164, 150, 0.05) 72%, rgba(108, 70, 64, 0.08) 100%),
+    linear-gradient(90deg, rgba(255, 244, 240, 0.12) 0%, transparent 18%, transparent 82%, rgba(255, 234, 228, 0.12) 100%);
+  background-position:
+    center,
+    center,
+    center,
+    center,
+    center;
+  transform: translate3d(calc(var(--dx, 0%) * 0.32), calc(var(--dy, 0%) * 0.32), 0) rotate(calc(var(--ry, 0deg) * 0.08));
+  mix-blend-mode: screen;
+  opacity: 0.72;
+  will-change: transform, background-position, opacity;
+  transition: transform 140ms ease-out, background-position 140ms ease-out, opacity 180ms ease;
+}
+
+.ticket-metallic-rose-foil__print {
+  background:
+    radial-gradient(circle at 14% 86%, rgba(68, 41, 40, 0.22), transparent 18%),
+    radial-gradient(circle at calc(100% - var(--mx, 50%)) 18%, rgba(255, 242, 237, 0.16), transparent 14%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  mix-blend-mode: overlay;
+  opacity: 0.56;
+  transform: translate3d(calc(var(--dx, 0%) * -0.3), calc(var(--dy, 0%) * -0.3), 0);
+  transition: transform 120ms ease;
+}
+
+.ticket-paper-paper-cotton__base,
+.ticket-paper-paper-cotton__fiber,
+.ticket-paper-paper-cotton__speckle,
+.ticket-paper-paper-cotton__print,
+.ticket-paper-paper-crumpled__base,
+.ticket-paper-paper-crumpled__fiber,
+.ticket-paper-paper-crumpled__speckle,
+.ticket-paper-paper-crumpled__print {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.ticket-paper-paper-cotton__base {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.12), transparent 24%),
+    radial-gradient(circle at 82% 84%, rgba(130, 122, 110, 0.025), transparent 28%),
+    linear-gradient(180deg, rgba(250, 249, 246, 0.08), rgba(241, 239, 234, 0.06));
+  mix-blend-mode: multiply;
+  opacity: 0.34;
+}
+
+.ticket-paper-paper-cotton__fiber {
+  background-image:
+    url("/textures/light-paper-fibers.png"),
+    url("/textures/paper-fibers.png"),
+    radial-gradient(circle at 16% 26%, rgba(124, 116, 104, 0.04) 0 0.8px, transparent 1.2px),
+    radial-gradient(circle at 72% 64%, rgba(124, 116, 104, 0.03) 0 0.9px, transparent 1.3px);
+  background-size: 220px 220px, 320px 320px, auto, auto;
+  background-position: center, center, center, center;
+  mix-blend-mode: multiply;
+  opacity: 0.48;
+}
+
+.ticket-paper-paper-cotton__speckle {
+  background:
+    radial-gradient(circle at 14% 22%, rgba(126, 118, 104, 0.05) 0 0.6px, transparent 0.95px),
+    radial-gradient(circle at 78% 30%, rgba(126, 118, 104, 0.04) 0 0.7px, transparent 1px),
+    radial-gradient(circle at 68% 78%, rgba(126, 118, 104, 0.04) 0 0.6px, transparent 0.95px),
+    radial-gradient(circle at 30% 82%, rgba(126, 118, 104, 0.04) 0 0.6px, transparent 0.95px),
+    radial-gradient(circle at 52% 42%, rgba(255, 255, 255, 0.03) 0 0.9px, transparent 1.3px);
+  mix-blend-mode: multiply;
+  opacity: 0.1;
+}
+
+.ticket-paper-paper-cotton__print {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 20%),
+    linear-gradient(0deg, rgba(120, 92, 64, 0.014), transparent 24%),
+    radial-gradient(circle at 50% 50%, transparent 68%, rgba(116, 92, 62, 0.02) 100%);
+  mix-blend-mode: soft-light;
+  opacity: 0.06;
+}
+
+.ticket-paper-paper-crumpled__base {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 248, 238, 0.2), transparent 24%),
+    radial-gradient(circle at 80% 82%, rgba(120, 102, 82, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(232, 224, 210, 0.28), rgba(206, 194, 176, 0.24));
+  mix-blend-mode: soft-light;
+}
+
+.ticket-paper-paper-crumpled__fiber {
+  background-image:
+    url("/textures/crumpled-paper-cc0.png"),
+    url("/textures/paper-fibers.png");
+  background-size: cover, 420px 420px;
+  background-position: center, center;
+  mix-blend-mode: multiply;
+  opacity: 0.8;
+}
+
+.ticket-paper-paper-crumpled__speckle {
+  background:
+    radial-gradient(circle at 84% 76%, rgba(255, 255, 255, 0.08) 0 18px, transparent 20px),
+    radial-gradient(circle at 18% 22%, rgba(92, 78, 60, 0.08) 0 12px, transparent 14px);
+  mix-blend-mode: soft-light;
+  opacity: 0.42;
+}
+
+.ticket-paper-paper-crumpled__print {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 20%),
+    radial-gradient(circle at 50% 50%, transparent 52%, rgba(92, 78, 60, 0.12) 100%);
+  mix-blend-mode: overlay;
+  opacity: 0.36;
+}
+
+.collection-carousel-shell {
+  width: 100%;
+  position: relative;
+  min-height: 600px;
+  padding: 0;
+  -webkit-perspective: 2200px;
+  perspective: 2200px;
+  -webkit-perspective-origin: 50% 30%;
+  perspective-origin: 50% 30%;
+  isolation: isolate;
+}
+
+.collection-carousel-shell::after {
+  content: "";
+  position: absolute;
+  inset: 12px -32px 36px;
+  border-radius: 48px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(191, 244, 216, 0.34), transparent 36%),
+    radial-gradient(circle at 78% 50%, rgba(197, 226, 255, 0.3), transparent 40%),
+    radial-gradient(circle at 18% 34%, rgba(218, 198, 255, 0.3), transparent 34%),
+    linear-gradient(90deg, rgba(226, 218, 255, 0.76), rgba(196, 247, 224, 0.74) 48%, rgba(202, 230, 255, 0.76));
+  filter: blur(22px);
+  z-index: -2;
+}
+
+.collection-carousel-shell::before {
+  content: "";
+  position: absolute;
+  left: 26%;
+  right: 26%;
+  bottom: 40px;
+  height: 84px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0));
+  filter: blur(22px);
+  z-index: -1;
+}
+
+.collection-carousel-viewport {
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+  touch-action: pan-y;
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+.collection-carousel-drag {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform;
+  cursor: grab;
+}
+
+.collection-carousel-drag:active {
+  cursor: grabbing;
+}
+
+.collection-carousel-rotator {
+  position: absolute;
+  inset: 0;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.collection-carousel-arm {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 150px;
+  margin-left: -75px;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.collection-carousel-card-anchor {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.collection-carousel-card {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.collection-carousel-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 28px;
+  background: radial-gradient(circle at center, rgba(0, 197, 152, 0.18), transparent 62%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+.collection-carousel-glow.is-active {
+  opacity: 1;
+}
+
+.ticket-number-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  overflow: visible;
+}
+
+.ticket-number-aura.is-compact {
+  inset: 0;
+}
+
+.ticket-number-aura__halo,
+.ticket-number-aura__spark {
+  position: absolute;
+  pointer-events: none;
+}
+
+.ticket-number-aura__halo {
+  inset: -14px;
+  border-radius: 42px;
+  opacity: 0.8;
+  background: transparent;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.18),
+    0 0 24px rgba(214, 228, 255, 0.24),
+    0 0 52px rgba(214, 228, 255, 0.16);
+}
+
+.ticket-number-aura__spark {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: scale(0.72) rotate(8deg);
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,0.98) 0 22%, rgba(255,255,255,0.36) 42%, rgba(255,255,255,0) 74%);
+  box-shadow:
+    0 0 16px rgba(255,255,255,0.78),
+    0 0 40px rgba(205,228,255,0.34);
+}
+
+.ticket-number-aura__spark::before,
+.ticket-number-aura__spark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(255,255,255,0.82);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.ticket-number-aura__spark::before {
+  width: 2px;
+  height: 20px;
+}
+
+.ticket-number-aura__spark::after {
+  width: 20px;
+  height: 2px;
+}
+
+.ticket-number-aura__spark--top {
+  top: -18px;
+  left: 24px;
+}
+
+.ticket-number-aura__spark--side {
+  top: 112px;
+  right: -14px;
+}
+
+.ticket-number-aura__spark--extra {
+  bottom: 56px;
+  left: -12px;
+}
+
+.ticket-number-aura__spark--top-right {
+  top: -10px;
+  right: 28px;
+}
+
+.ticket-number-aura__spark--mid-left {
+  top: 182px;
+  left: -16px;
+}
+
+.ticket-number-aura__spark--bottom-right {
+  bottom: 118px;
+  right: -18px;
+}
+
+.ticket-number-aura__spark--bottom-left {
+  bottom: 18px;
+  left: 20px;
+}
+
+.ticket-number-aura.aura-rare .ticket-number-aura__halo {
+  animation: ticket-aura-breathe 4.8s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.18),
+    0 0 28px rgba(224, 232, 255, 0.28),
+    0 0 58px rgba(224, 232, 255, 0.2);
+}
+
+.ticket-number-aura.aura-rare .ticket-number-aura__spark--top {
+  animation: ticket-sparkle-soft 5.2s ease-in-out infinite;
+}
+
+.ticket-number-aura.aura-rare .ticket-number-aura__spark--side {
+  animation: ticket-sparkle-soft 5.2s ease-in-out infinite 2.2s;
+}
+
+.ticket-number-aura.milestone-rare .ticket-number-aura__halo {
+  animation: ticket-aura-breathe 4s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255,248,224,0.24),
+    0 0 32px rgba(243,228,186,0.28),
+    0 0 62px rgba(224, 232, 255, 0.2);
+}
+
+.ticket-number-aura.milestone-rare .ticket-number-aura__spark--top {
+  animation: ticket-sparkle-soft 4.5s ease-in-out infinite;
+}
+
+.ticket-number-aura.milestone-rare .ticket-number-aura__spark--side {
+  animation: ticket-sparkle-soft 4.5s ease-in-out infinite 1.6s;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__halo {
+  animation: ticket-aura-breathe 3.3s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.22),
+    0 0 36px rgba(226,218,255,0.34),
+    0 0 72px rgba(202,230,255,0.26);
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark {
+  opacity: 0.28;
+}
+
+.ticket-sparkles-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ticket-sparkles-aura__canvas {
+  position: absolute !important;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ticket-sparkles-aura__canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+.ticket-sparkles-aura__canvas--top-left {
+  top: -26px;
+  left: -28px;
+  width: 78px;
+  height: 78px;
+}
+
+.ticket-sparkles-aura__canvas--top-right {
+  top: -26px;
+  right: -28px;
+  width: 78px;
+  height: 78px;
+}
+
+.ticket-sparkles-aura__canvas--mid-left {
+  top: 58px;
+  left: -42px;
+  width: 92px;
+  height: 290px;
+}
+
+.ticket-sparkles-aura__canvas--mid-right {
+  top: 54px;
+  right: -46px;
+  width: 96px;
+  height: 300px;
+}
+
+.ticket-sparkles-aura__canvas--bottom-left {
+  bottom: -18px;
+  left: -18px;
+  width: 100px;
+  height: 110px;
+}
+
+.ticket-sparkles-aura__canvas--bottom-right {
+  bottom: -18px;
+  right: -18px;
+  width: 100px;
+  height: 110px;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--top {
+  animation: ticket-sparkle-bright 3.4s ease-in-out infinite;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--side {
+  animation: ticket-sparkle-bright 3.4s ease-in-out infinite 0.9s;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--extra {
+  animation: ticket-sparkle-bright 3.4s ease-in-out infinite 1.8s;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--top-right {
+  animation: ticket-sparkle-bright 3.6s ease-in-out infinite 0.45s;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--mid-left {
+  animation: ticket-sparkle-bright 3.8s ease-in-out infinite 1.15s;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--bottom-right {
+  animation: ticket-sparkle-bright 3.5s ease-in-out infinite 2.05s;
+}
+
+.ticket-number-aura.spark-rare .ticket-number-aura__spark--bottom-left {
+  animation: ticket-sparkle-bright 4s ease-in-out infinite 2.55s;
+}
+
+@keyframes ticket-aura-breathe {
+  0%, 100% {
+    opacity: 0.62;
+    transform: scale(0.985) translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.018) translate3d(0, -2px, 0);
+  }
+}
+
+@keyframes ticket-sparkle-soft {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.72) rotate(0deg);
+  }
+  34% {
+    opacity: 0;
+    transform: scale(0.72) rotate(0deg);
+  }
+  48% {
+    opacity: 1;
+    transform: scale(1.18) rotate(10deg);
+  }
+  62% {
+    opacity: 0.28;
+    transform: scale(0.9) rotate(4deg);
+  }
+}
+
+@keyframes ticket-sparkle-bright {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.7) rotate(0deg);
+  }
+  22% {
+    opacity: 0;
+    transform: scale(0.7) rotate(0deg);
+  }
+  38% {
+    opacity: 0.96;
+    transform: scale(1.34) rotate(12deg);
+  }
+  54% {
+    opacity: 0.34;
+    transform: scale(0.94) rotate(4deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .collection-carousel-shell {
+    min-height: 540px;
+  }
+
+  .collection-carousel-shell::after {
+    inset: 16px -20px 40px;
+  }
+
+  .collection-carousel-viewport {
+    height: 540px;
+    width: min(100%, 440px);
+  }
+
+  .collection-carousel-arm {
+    top: 28px;
+  }
+
+  .ticket-number-aura {
+    inset: 0;
+  }
+
+  .ticket-number-aura__halo {
+    inset: -10px;
+  }
+
+  .ticket-number-aura__spark--top {
+    top: -14px;
+    left: 18px;
+  }
+
+  .ticket-number-aura__spark--side {
+    top: 94px;
+    right: -2px;
+  }
+
+  .ticket-number-aura__spark--top-right {
+    top: -8px;
+    right: 16px;
+  }
+
+  .ticket-number-aura__spark--mid-left {
+    top: 148px;
+    left: -10px;
+  }
+
+  .ticket-number-aura__spark--bottom-right {
+    bottom: 96px;
+    right: -10px;
+  }
+
+  .ticket-number-aura__spark--bottom-left {
+    bottom: 14px;
+    left: 12px;
+  }
+
+  .ticket-sparkles-aura__canvas--top-left {
+    top: -16px;
+    left: -16px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .ticket-sparkles-aura__canvas--top-right {
+    top: -16px;
+    right: -16px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .ticket-sparkles-aura__canvas--mid-left {
+    top: 58px;
+    left: -20px;
+    width: 42px;
+    height: 194px;
+  }
+
+  .ticket-sparkles-aura__canvas--mid-right {
+    top: 56px;
+    right: -22px;
+    width: 46px;
+    height: 200px;
+  }
+
+  .ticket-sparkles-aura__canvas--bottom-left {
+    bottom: -10px;
+    left: -12px;
+    width: 64px;
+    height: 68px;
+  }
+
+  .ticket-sparkles-aura__canvas--bottom-right {
+    bottom: -10px;
+    right: -12px;
+    width: 64px;
+    height: 68px;
+  }
+
+}
+
+/* =================================================================
+   POKEMON-STYLE HOLOGRAPHIC EFFECTS (ported from poke-holo open src)
+   ================================================================= */
+
+.ticket-poke-shine,
+.ticket-poke-shine::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  mix-blend-mode: color-dodge;
+  opacity: 0.3;
+  transition: opacity 350ms ease;
+}
+
+.ticket-poke-shine::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* Same opacity when active (hovering) so it doesn't get unnaturally stronger */
+.ticket-poke-shine.is-active {
+  opacity: 0.35;
+}
+
+.ticket-poke-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 7;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  transition: opacity 350ms ease;
+  background-image: radial-gradient(
+    farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.8) 10%,
+    rgba(255, 255, 255, 0.45) 20%,
+      rgba(0, 0, 0, 0.24) 90%
+  );
+}
+
+.ticket-poke-glare.is-active {
+  opacity: 0.25;
+}
+
+/* --- HOLO: classic bar pattern --- */
+.ticket-poke-shine[data-effect="poke-holo"] {
+  --space: 2px;
+  --h: 21;
+  --s: 70%;
+  --l: 50%;
+
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      hsl(calc(var(--h) * 0), var(--s), var(--l)) calc(var(--space) * 0),
+      hsl(calc(var(--h) * 0), var(--s), var(--l)) calc(var(--space) * 1),
+      black calc(var(--space) * 1.001), black calc(var(--space) * 1.999),
+      hsl(calc(var(--h) * 1), var(--s), var(--l)) calc(var(--space) * 2),
+      hsl(calc(var(--h) * 1), var(--s), var(--l)) calc(var(--space) * 3),
+      black calc(var(--space) * 3.001), black calc(var(--space) * 3.999),
+      hsl(calc(var(--h) * 2), var(--s), var(--l)) calc(var(--space) * 4),
+      hsl(calc(var(--h) * 2), var(--s), var(--l)) calc(var(--space) * 5),
+      black calc(var(--space) * 5.001), black calc(var(--space) * 5.999),
+      hsl(calc(var(--h) * 3), var(--s), var(--l)) calc(var(--space) * 6),
+      hsl(calc(var(--h) * 3), var(--s), var(--l)) calc(var(--space) * 7),
+      black calc(var(--space) * 7.001), black calc(var(--space) * 7.999),
+      hsl(calc(var(--h) * 4), var(--s), var(--l)) calc(var(--space) * 8),
+      hsl(calc(var(--h) * 4), var(--s), var(--l)) calc(var(--space) * 9),
+      black calc(var(--space) * 9.001), black calc(var(--space) * 9.999),
+      hsl(calc(var(--h) * 5), var(--s), var(--l)) calc(var(--space) * 10),
+      hsl(calc(var(--h) * 5), var(--s), var(--l)) calc(var(--space) * 11),
+      black calc(var(--space) * 11.001), black calc(var(--space) * 11.999),
+      hsl(calc(var(--h) * 6), var(--s), var(--l)) calc(var(--space) * 12),
+      hsl(calc(var(--h) * 6), var(--s), var(--l)) calc(var(--space) * 13),
+      black calc(var(--space) * 13.001), black calc(var(--space) * 13.999),
+      hsl(calc(var(--h) * 7), var(--s), var(--l)) calc(var(--space) * 14),
+      hsl(calc(var(--h) * 7), var(--s), var(--l)) calc(var(--space) * 15),
+      black calc(var(--space) * 15.001), black calc(var(--space) * 15.999)
+    ),
+    repeating-linear-gradient(
+      90deg, #f80e7b, #eedf10, #21e985, #0dbde9, #c929f1, #f80e7b
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(230,230,230,0.85) 0%, rgba(200,200,200,0.1) 25%, rgb(0,0,0) 90%
+    );
+
+  background-blend-mode: soft-light, soft-light, screen;
+  background-position: center,
+    calc(((50% - var(--posx, 50%)) * 25) + 50%) center,
+    var(--posx, 50%) var(--posy, 50%);
+  background-size: 100% 100%, 200% 200%, 120% 120%;
+  filter: brightness(0.9) contrast(3.2) saturate(0.66);
+}
+
+/* --- GALAXY: galaxy texture overlay --- */
+.ticket-poke-shine[data-effect="poke-galaxy"] {
+  --space: 80px;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/galaxy.png"),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/galaxy.png"),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/galaxy.png"),
+    repeating-linear-gradient(
+      82deg,
+      rgb(218,56,50) calc(var(--space) * 1),
+      rgb(219,204,86) calc(var(--space) * 2),
+      rgb(121,199,58) calc(var(--space) * 3),
+      rgb(58,192,183) calc(var(--space) * 4),
+      rgb(71,98,207) calc(var(--space) * 5),
+      rgb(170,69,209) calc(var(--space) * 6),
+      rgb(218,56,50) calc(var(--space) * 10)
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(255,255,255,0.6) 5%,
+      rgba(150,150,150,0.3) 40%,
+      rgb(0,0,0) 100%
+    );
+
+  background-blend-mode: color-dodge, color-burn, saturation, screen;
+  background-position: center, center, center,
+    calc(((50% - var(--posx, 50%)) * 2.5) + 50%)
+    calc(((50% - var(--posy, 50%)) * 2.5) + 50%),
+    center;
+  background-size: cover, cover, cover, 600% 1200%, cover;
+  filter: brightness(0.75) contrast(1.2) saturate(1.5);
+  mix-blend-mode: color-dodge;
+}
+
+/* --- V: grain texture + dual layer --- */
+.ticket-poke-shine[data-effect="poke-v"],
+.ticket-poke-shine[data-effect="poke-v"]::after {
+  --space: 5%;
+  --angle: 133deg;
+  --grain: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCI+CjxmaWx0ZXIgaWQ9Im4iPgo8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjciIG51bU9jdGF2ZXM9IjEwIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIj48L2ZlVHVyYnVsZW5jZT4KPC9maWx0ZXI+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMDAwIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiBmaWx0ZXI9InVybCgjbikiIG9wYWNpdHk9IjAuMyI+PC9yZWN0Pgo8L3N2Zz4=");
+
+  background-image:
+    var(--grain),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: screen, hue, hard-light;
+  background-size: 620px, 230% 760%, 340%, 230%;
+  background-position:
+    46% 48%,
+    10% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.84) + 43%) calc(((var(--posy, 50%) - 50%) * 0.84) + 54%),
+    calc(((var(--posx, 50%) - 50%) * 0.66) + 58%) calc(((var(--posy, 50%) - 50%) * 0.66) + 45%);
+  filter: brightness(0.82) contrast(2.36) saturate(0.5);
+}
+
+.ticket-poke-shine[data-effect="poke-v"]::after {
+  background-position:
+    58% 53%,
+    13% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.74) + 61%) calc(((var(--posy, 50%) - 50%) * -0.74) + 41%),
+    calc(((var(--posx, 50%) - 50%) * 0.56) + 38%) calc(((var(--posy, 50%) - 50%) * 0.56) + 62%);
+  background-size: 740px, 210% 430%, 220%, 245%;
+  filter: brightness(0.96) contrast(2.04) saturate(1.6);
+  mix-blend-mode: soft-light;
+}
+
+/* --- VMAX: dedicated background + color-burn --- */
+.ticket-poke-shine[data-effect="poke-vmax"] {
+  --space: 6%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/vmaxbg.webp"),
+    repeating-linear-gradient(
+      -33deg,
+      rgb(206,42,36) calc(var(--space) * 1),
+      rgb(157,170,223) calc(var(--space) * 2),
+      rgb(45,153,146) calc(var(--space) * 3),
+      rgb(29,151,36) calc(var(--space) * 4),
+      rgb(181,64,228) calc(var(--space) * 5),
+      rgb(206,42,36) calc(var(--space) * 6)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(14,21,46,0.5) 0%, hsl(180,10%,50%) 2.5%, hsl(83,50%,35%) 5%,
+      hsl(180,10%,50%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(6,218,255,0.6) 0%, rgba(38,235,127,0.6) 25%,
+      rgba(155,78,228,0.6) 50%, rgba(228,78,90,0.6) 75%
+    );
+
+  background-blend-mode: color-burn, screen, soft-light;
+  background-size: 60% 30%, 1100% 1100%, 600% 600%, 200% 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.65) contrast(2.5) saturate(0.6);
+}
+
+/* --- RAINBOW: rainbow secret --- */
+.ticket-poke-shine[data-effect="poke-rainbow"],
+.ticket-poke-shine[data-effect="poke-rainbow"]::after {
+  --space: 7%;
+  --angle: -20deg;
+  --angle2: 130deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      var(--angle),
+      rgb(253,71,65) calc(var(--space) * 1),
+      rgb(255,243,151) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgb(75,198,255) calc(var(--space) * 5),
+      rgb(255,73,246) calc(var(--space) * 6),
+      rgb(255,56,49) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle2),
+      rgba(89,46,80,0.5) 0%, hsl(118,43%,76%) 2.5%, rgb(223,96,202) 5%,
+      hsl(180,57%,56%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    ),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/illusion2.webp");
+
+  background-size: 50% 50%, 500% 500%, 1000% 1000%, 540px 700px;
+  background-position: center,
+    0% calc(var(--posy, 50%) * 1.5),
+    var(--posx, 50%) var(--posy, 50%), center;
+  background-blend-mode: color-burn, soft-light, normal;
+  filter: brightness(0.92) contrast(1.55) saturate(1.02);
+}
+
+.ticket-poke-shine[data-effect="poke-rainbow"]::after {
+  background-position: center,
+    0% calc(var(--posy, 50%) * -1),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1), center;
+  mix-blend-mode: exclusion;
+}
+
+/* --- GOLD SECRET: metal texture --- */
+.ticket-poke-shine[data-effect="poke-secret"],
+.ticket-poke-shine[data-effect="poke-secret"]::after {
+  --angle: 110deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(89,46,80,0.5) 0%, hsl(39,37%,60%) 2.5%, rgb(216,183,92) 5%,
+      hsl(39,37%,60%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    ),
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/metal.webp");
+
+  background-size: 50% 50%, 600% 600%, 250px;
+  background-position: center, var(--posx, 50%) var(--posy, 50%), center;
+  background-blend-mode: color-burn, darken;
+  filter: brightness(0.96) contrast(2.1) saturate(0.82);
+}
+
+.ticket-poke-shine[data-effect="poke-secret"]::after {
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(89,46,80,0.5) 0%, hsl(39,37%,60%) 2.5%, rgb(216,183,92) 5%,
+      hsl(39,37%,60%) 7.5%, rgba(14,21,46,0.5) 10%, rgba(14,21,46,0.5) 15%
+    );
+  background-position: center,
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1), center;
+  filter: brightness(0.98) contrast(1.9) saturate(0.82);
+  mix-blend-mode: exclusion;
+}
+
+/* --- VSTAR: ancient texture + exclusion --- */
+.ticket-poke-shine[data-effect="poke-vstar"],
+.ticket-poke-shine[data-effect="poke-vstar"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/ancient.webp"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: soft-light, hue, hard-light;
+  background-size: 30%, 200% 700%, 300%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    var(--posx, 50%) var(--posy, 50%), var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.94) contrast(1.6) saturate(0.86);
+}
+
+.ticket-poke-shine[data-effect="poke-vstar"]::after {
+  background-size: 30%, 200% 400%, 195%, 200%;
+  background-position: center, 0% var(--posy, 50%),
+    calc(var(--posx, 50%) * -1) calc(var(--posy, 50%) * -1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(1.2) contrast(1.5) saturate(1.75);
+  mix-blend-mode: exclusion;
+}
+
+/* --- FULL ART: illusion texture + exclusion dual layer --- */
+.ticket-poke-shine[data-effect="poke-fullart"],
+.ticket-poke-shine[data-effect="poke-fullart"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/illusion.webp"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: exclusion, hue, hard-light;
+  background-size: 62%, 230% 760%, 340%, 230%;
+  background-position:
+    46% 49%,
+    8% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.82) + 44%) calc(((var(--posy, 50%) - 50%) * 0.82) + 53%),
+    calc(((var(--posx, 50%) - 50%) * 0.68) + 57%) calc(((var(--posy, 50%) - 50%) * 0.68) + 46%);
+  filter: brightness(0.86) contrast(1.42) saturate(1.18);
+}
+
+.ticket-poke-shine[data-effect="poke-fullart"]::after {
+  background-size: 71%, 210% 430%, 220%, 245%;
+  background-position:
+    58% 54%,
+    12% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.76) + 59%) calc(((var(--posy, 50%) - 50%) * -0.76) + 42%),
+    calc(((var(--posx, 50%) - 50%) * 0.58) + 39%) calc(((var(--posy, 50%) - 50%) * 0.58) + 61%);
+  filter: brightness(0.98) contrast(1.18) saturate(1.12);
+  mix-blend-mode: exclusion;
+}
+
+/* --- TRAINER: trainerbg + difference blend --- */
+.ticket-poke-shine[data-effect="poke-trainer"],
+.ticket-poke-shine[data-effect="poke-trainer"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/trainerbg.jpg"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: difference, hue, hard-light;
+  background-size: 63%, 230% 760%, 340%, 230%;
+  background-position:
+    45% 48%,
+    9% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.84) + 43%) calc(((var(--posy, 50%) - 50%) * 0.84) + 54%),
+    calc(((var(--posx, 50%) - 50%) * 0.66) + 58%) calc(((var(--posy, 50%) - 50%) * 0.66) + 45%);
+  filter: brightness(0.94) contrast(1.56) saturate(0.86);
+}
+
+.ticket-poke-shine[data-effect="poke-trainer"]::after {
+  background-size: 72%, 210% 430%, 220%, 245%;
+  background-position:
+    58% 53%,
+    13% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.74) + 61%) calc(((var(--posy, 50%) - 50%) * -0.74) + 41%),
+    calc(((var(--posx, 50%) - 50%) * 0.56) + 38%) calc(((var(--posy, 50%) - 50%) * 0.56) + 62%);
+  filter: brightness(1.04) contrast(1.42) saturate(0.72);
+  mix-blend-mode: exclusion;
+}
+
+/* --- RADIANT: crosshatch bar pattern + 3-layer --- */
+.ticket-poke-shine[data-effect="poke-radiant"] {
+  --barwidth: 1.2%;
+  --space: 320px;
+  opacity: 0.42;
+
+  background-image:
+    repeating-linear-gradient(
+      55deg,
+      rgb(255,161,158) calc(var(--space) * 1),
+      rgb(85,178,255) calc(var(--space) * 2),
+      rgb(255,199,146) calc(var(--space) * 3),
+      rgb(130,255,213) calc(var(--space) * 4),
+      rgb(253,170,240) calc(var(--space) * 5),
+      rgb(148,241,255) calc(var(--space) * 6),
+      rgb(255,161,158) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.2) var(--barwidth),
+      rgba(226,232,240,0.14) calc(var(--barwidth) + 0.01%), rgba(226,232,240,0.14) calc(var(--barwidth) * 2),
+      rgba(186,198,214,0.1) calc(var(--barwidth) * 2 + 0.01%), rgba(186,198,214,0.1) calc(var(--barwidth) * 3),
+      rgba(120,138,160,0.06) calc(var(--barwidth) * 3 + 0.01%), rgba(120,138,160,0.06) calc(var(--barwidth) * 4),
+      transparent calc(var(--barwidth) * 4 + 0.01%), transparent calc(var(--barwidth) * 10)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.16) var(--barwidth),
+      rgba(214,222,232,0.1) calc(var(--barwidth) + 0.01%), rgba(214,222,232,0.1) calc(var(--barwidth) * 2),
+      rgba(150,166,186,0.06) calc(var(--barwidth) * 2 + 0.01%), rgba(150,166,186,0.06) calc(var(--barwidth) * 3),
+      transparent calc(var(--barwidth) * 3 + 0.01%), transparent calc(var(--barwidth) * 10)
+    );
+
+  background-size: 560% 560%, 320% 320%, 320% 320%;
+  background-position:
+    calc(((var(--posx, 50%) - 50%) * -1.35) + 47%)
+    calc(((var(--posy, 50%) - 50%) * -1.35) + 46%),
+    calc(((var(--posx, 50%) - 50%) * 0.9) + 41%)
+    calc(((var(--posy, 50%) - 50%) * 0.9) + 57%),
+    calc(((var(--posx, 50%) - 50%) * 1.1) + 63%)
+    calc(((var(--posy, 50%) - 50%) * 1.1) + 43%);
+  background-blend-mode: soft-light, screen, screen;
+  filter: brightness(1.02) contrast(1.2) saturate(0.8);
+  mix-blend-mode: color-dodge;
+}
+
+.ticket-poke-shine[data-effect="poke-radiant"]::after {
+  opacity: 0.22;
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/rainbow2.jpg"),
+    repeating-linear-gradient(
+      55deg,
+      rgb(255,161,158) calc(320px * 1),
+      rgb(85,178,255) calc(320px * 2),
+      rgb(255,199,146) calc(320px * 3),
+      rgb(130,255,213) calc(320px * 4),
+      rgb(253,170,240) calc(320px * 5),
+      rgb(148,241,255) calc(320px * 6),
+      rgb(255,161,158) calc(320px * 7)
+    );
+  background-size: 54%, 580%;
+  background-position: center,
+    calc(((var(--posx, 50%) - 50%) * -1.1) + 58%)
+    calc(((var(--posy, 50%) - 50%) * -1.1) + 48%);
+  filter: brightness(0.95) contrast(0.85) saturate(0);
+  mix-blend-mode: soft-light;
+  background-blend-mode: multiply;
+}
+
+/* --- GALLERY HOLO: full-art holo variant --- */
+.ticket-poke-shine[data-effect="poke-gallery-holo"] {
+  --space: 5%;
+  --angle: -22deg;
+
+  background-image:
+    repeating-linear-gradient(
+      var(--angle),
+      rgba(174,102,202,0.75) calc(var(--space) * 1),
+      rgba(228,77,72,0.75) calc(var(--space) * 2),
+      rgba(216,197,55,0.75) calc(var(--space) * 3),
+      rgba(124,201,62,0.75) calc(var(--space) * 4),
+      rgba(80,177,170,0.75) calc(var(--space) * 5),
+      rgba(136,160,255,0.75) calc(var(--space) * 6),
+      rgba(176,105,204,0.75) calc(var(--space) * 7)
+    );
+
+  background-blend-mode: color-dodge;
+  background-size: 200% 400%, 300%, 200%;
+  background-position: 0% calc(var(--posy, 50%) * 1),
+    var(--posx, 50%) var(--posy, 50%);
+  filter: brightness(0.92) contrast(1.66) saturate(1.06);
+}
+
+.ticket-poke-shine[data-effect="poke-gallery-holo"]::after {
+  background-image: radial-gradient(
+    farthest-corner ellipse at calc(((var(--mx, 50%)) * 0.5) + 25%)
+      calc(((var(--my, 50%)) * 0.5) + 25%),
+    rgb(255,255,255) 5%,
+    rgba(55,0,55,0.6) 25%,
+    rgb(55,55,55) 90%
+  );
+  background-position: center;
+  background-size: 200% 200%;
+  filter: brightness(0.76) contrast(0.92) saturate(1.04);
+  mix-blend-mode: hard-light;
+}
+
+/* --- GALLERY V: full-art V variant --- */
+.ticket-poke-shine[data-effect="poke-gallery-v"],
+.ticket-poke-shine[data-effect="poke-gallery-v"]::after {
+  --space: 5%;
+  --angle: 133deg;
+
+  background-image:
+    url("https://res.cloudinary.com/simey/image/upload/Dev/PokemonCards/illusion.webp"),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255,119,115) calc(var(--space) * 1),
+      rgba(255,237,95,1) calc(var(--space) * 2),
+      rgba(168,255,95,1) calc(var(--space) * 3),
+      rgba(131,255,247,1) calc(var(--space) * 4),
+      rgba(120,148,255,1) calc(var(--space) * 5),
+      rgb(216,117,255) calc(var(--space) * 6),
+      rgb(255,119,115) calc(var(--space) * 7)
+    ),
+    repeating-linear-gradient(
+      var(--angle),
+      #0e152e 0%, hsl(180,10%,60%) 3.8%, hsl(180,29%,66%) 4.5%,
+      hsl(180,10%,60%) 5.2%, #0e152e 10%, #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--mx, 50%) var(--my, 50%),
+      rgba(0,0,0,0.1) 12%, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.25) 120%
+    );
+
+  background-blend-mode: exclusion, hue, hard-light;
+  background-size: 74%, 230% 760%, 340%, 230%;
+  background-position:
+    44% 48%,
+    10% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * 0.84) + 43%) calc(((var(--posy, 50%) - 50%) * 0.84) + 54%),
+    calc(((var(--posx, 50%) - 50%) * 0.66) + 58%) calc(((var(--posy, 50%) - 50%) * 0.66) + 45%);
+  filter: brightness(0.86) contrast(1.56) saturate(1.02);
+}
+
+.ticket-poke-shine[data-effect="poke-gallery-v"]::after {
+  background-size: 82%, 210% 430%, 220%, 245%;
+  background-position:
+    57% 53%,
+    14% var(--posy, 50%),
+    calc(((var(--posx, 50%) - 50%) * -0.74) + 61%) calc(((var(--posy, 50%) - 50%) * -0.74) + 41%),
+    calc(((var(--posx, 50%) - 50%) * 0.56) + 38%) calc(((var(--posy, 50%) - 50%) * 0.56) + 62%);
+  filter: brightness(0.82) contrast(1.72) saturate(0.96);
+  mix-blend-mode: exclusion;
+}

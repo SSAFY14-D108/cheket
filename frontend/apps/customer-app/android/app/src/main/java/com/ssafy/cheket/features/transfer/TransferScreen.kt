@@ -236,12 +236,14 @@ fun TransferScreen(
 
                     viewModel.submitTransfer(
                         ticketId = ticketId,
-                        onSuccess = { id ->
+                        onSuccess = { id, txId ->
                             NavParams.transferFailureReason = ""
+                            NavParams.transferTransactionId = txId ?: 0L
                             onTransferComplete(id)
                         },
                         onFailure = { id, message ->
                             NavParams.transferFailureReason = message
+                            NavParams.transferTransactionId = 0L
                             onTransferFailed(id)
                         },
                     )

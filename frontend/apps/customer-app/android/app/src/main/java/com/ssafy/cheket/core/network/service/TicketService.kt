@@ -30,7 +30,7 @@ interface TicketService {
     suspend fun transferTicket(
         @Path("ticketId") ticketId: Long,
         @Body request: TransferRequest,
-    ): ApiResponse<Unit>
+    ): ApiResponse<TxIdResponse>
 
     @POST("api/v1/tickets/{ticketId}/qr")
     suspend fun generateQr(@Path("ticketId") ticketId: Long): ApiResponse<QrResponse>

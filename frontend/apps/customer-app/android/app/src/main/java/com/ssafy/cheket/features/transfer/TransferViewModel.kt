@@ -39,7 +39,7 @@ class TransferViewModel(
 
     fun submitTransfer(
         ticketId: String,
-        onSuccess: (String) -> Unit,
+        onSuccess: (String, Long?) -> Unit,
         onFailure: (String, String) -> Unit,
     ) {
         val state = _uiState.value
@@ -69,8 +69,8 @@ class TransferViewModel(
             result
                 .onSuccess { response ->
                     Log.d(TAG, "submitTransfer() statusCode=${response.httpStatusCode}")
-                    if (response.httpStatusCode == 200) {
-                        onSuccess(ticketId)
+                    if (response.httpStatusCode in 200..299) {
+                        onSuccess(ticketId, response.data?.txId)
                     } else {
                         onFailure(ticketId, response.responseMessage ?: "양도에 실패했습니다.")
                     }

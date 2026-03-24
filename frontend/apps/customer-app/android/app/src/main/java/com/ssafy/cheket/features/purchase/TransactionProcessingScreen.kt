@@ -82,14 +82,14 @@ fun TransactionProcessingScreen(
         (context.applicationContext as CheketApplication).appContainer.walletService
     }
 
-    LaunchedEffect(txId) {
-        if (txId <= 0L) {
-            Log.w(TAG, "Invalid txId=$txId, skipping polling")
-            return@LaunchedEffect
-        }
-        Log.d(TAG, "Starting TX polling for txId=$txId, type=$txType")
+            LaunchedEffect(txId) {
+                if (txId <= 0L) {
+                    Log.w(TAG, "Invalid txId=$txId, skipping polling")
+                    return@LaunchedEffect
+                }
+                Log.d(TAG, "Starting TX polling for txId=$txId, type=$txType")
 
-        while (currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED) {
+                while (currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED) {
             delay(1500L)
             try {
                 val response = walletService.getTransactionStatus(txId)
@@ -623,6 +623,7 @@ private fun TxInfoRow(
 private fun txTypeLabel(type: String): String = when (type) {
     "TICKET_PURCHASE" -> "티켓 구매"
     "RESALE_LIST" -> "리세일 등록"
+    "RESALE_CANCEL" -> "판매 등록 취소"
     "RESALE_PURCHASE" -> "리세일 구매"
     "TRANSFER" -> "티켓 양도"
     "REFUND" -> "환불"

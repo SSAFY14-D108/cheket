@@ -77,7 +77,7 @@ class MockInterceptor : Interceptor {
             method == "POST" && path.matches(Regex(".*/sessions/\\d+/seats")) -> ok("좌석 선점 완료")
             method == "GET" && path.endsWith("/tickets/upcoming") -> upcomingTicketsV2()
             method == "GET" && path.endsWith("/tickets/collection") -> collectionTickets()
-            method == "POST" && path.matches(Regex(".*/tickets/\\d+/transfer")) -> ok("양도 완료")
+            method == "POST" && path.matches(Regex(".*/tickets/\\d+/transfer")) -> wrapTx(2101, "양도 요청이 접수되었습니다.")
             method == "POST" && path.matches(Regex(".*/tickets/\\d+/qr")) -> qrCode()
             method == "POST" && path.matches(Regex(".*/tickets/\\d+/refund")) -> ok("환불 완료")
 
@@ -93,11 +93,11 @@ class MockInterceptor : Interceptor {
             method == "GET" && path.endsWith("/wallets/transactions") -> walletTransactions()
 
             // ── Resale ──
-            method == "GET" && path.matches(Regex(".*/resales/\\d+")) -> resaleTickets()
+            method == "GET" && path.matches(Regex(".*/resales/shows/\\d+")) -> resaleTickets()
             method == "GET" && path.endsWith("/resales") -> resaleShows()
-            method == "POST" && path.matches(Regex(".*/resales/\\d+/purchase")) -> ok("2차 거래 티켓 구매 완료")
-            method == "POST" && path.matches(Regex(".*/resales/\\d+")) -> ok("2차 거래 등록 완료")
-            method == "DELETE" && path.matches(Regex(".*/resales/\\d+")) -> ok("2차 거래 등록 취소 완료")
+            method == "POST" && path.matches(Regex(".*/tickets/\\d+/resales")) -> wrapTx(2201, "2차 판매 등록 요청이 접수되었습니다.", 201)
+            method == "POST" && path.matches(Regex(".*/resales/\\d+")) -> wrapTx(2202, "2차 거래 구매 요청이 접수되었습니다.")
+            method == "DELETE" && path.matches(Regex(".*/resales/\\d+")) -> wrapTx(2203, "2차 거래 등록 취소 요청이 접수되었습니다.")
 
             else -> null
         }
@@ -225,6 +225,10 @@ class MockInterceptor : Interceptor {
     // ══════════════════════════════════════════
 
     private fun purchase() = wrap("""{"txId":1001}""")
+
+    private fun wrapTx(txId: Long, message: String, statusCode: Int = 200) = """
+        {"httpStatusCode":$statusCode,"responseMessage":"$message","data":{"txId":$txId}}
+    """.trimIndent()
 
     private fun upcomingTickets() = wrap("""[
         {"ticketId":1,"numbering":1,"posterUrl":"$P/aespa.webp","show":{"showId":1,"name":"AESPA WORLD TOUR 2026","date":"2026-04-12","venue":"올림픽체조경기장, 서울"},"price":140000,"seatId":6,"sectionName":"가","seatNo":"B-1","grade":"R석","status":"UPCOMING"},
