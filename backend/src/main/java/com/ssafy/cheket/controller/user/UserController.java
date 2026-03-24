@@ -1,6 +1,7 @@
 package com.ssafy.cheket.controller.user;
 
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.notification.response.GetNotificationsResponse;
 import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -74,5 +77,14 @@ public class UserController {
         @AuthenticationPrincipal Long userId) {
         userService.saveFcmToken(userId, request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "FCM 토큰이 정상적으로 저장되었습니다.", null));
+    }
+
+    @GetMapping("/notifications")
+    @Operation(summary = "알림 내역 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetNotificationsResponse>>> getNotifications(
+        @AuthenticationPrincipal Long userId) {
+        List<GetNotificationsResponse> response = userService.getNotifications(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 내역 조회에 성공했습니다.", response));
     }
 }

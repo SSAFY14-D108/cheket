@@ -58,8 +58,14 @@ public class NotificationServiceImpl implements NotificationService {
         String finalMessage = NotificationTemplateUtil.replaceVariables(template.getMessage(),
             getVariablesOrEmpty(request.getVariables()));
 
+        Long showId = null;
+        if (data != null && data.containsKey("showId")) {
+            showId = Long.valueOf(data.get("showId"));
+        }
+
         Notification notification = Notification.builder().title(request.getTitle()).message(finalMessage)
-            .userId(request.getUserId()).notificationMessageId(template.getId()).build();
+            .userId(request.getUserId()).notificationMessageId(template.getId()).type(request.getType()).showId(showId)
+            .build();
 
         Notification savedNotification = notificationRepository.save(notification);
 
