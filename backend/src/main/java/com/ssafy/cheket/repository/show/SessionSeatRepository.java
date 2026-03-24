@@ -2,6 +2,7 @@ package com.ssafy.cheket.repository.show;
 
 import com.ssafy.cheket.dto.show.response.SeatRowDto;
 import com.ssafy.cheket.entity.show.SessionSeat;
+import com.ssafy.cheket.repository.show.projection.HeldSeatLockProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -68,4 +69,15 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
 
     // 특정 회차의 모든 좌석 조회 (배치 민팅 시 사용)
     List<SessionSeat> findBySessionId(Long sessionId);
+
+    @Query(value = """
+        select
+            ss.id as sessionSeatId,
+            ss.session_id as sessionId,
+            s.show_id as showId
+        from session_seats ss
+        join sessions s on s.id = ss.session_id
+        where ss.status = 'HELD'
+        """, nativeQuery = true)
+    List<HeldSeatLockProjection> findHeldSeatLockTargets();
 }
