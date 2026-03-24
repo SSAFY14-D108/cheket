@@ -87,4 +87,13 @@ public class UserController {
         List<GetNotificationsResponse> response = userService.getNotifications(userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 내역 조회에 성공했습니다.", response));
     }
+
+    @PatchMapping("/notifications/{notificationId}")
+    @Operation(summary = "알림 읽음 처리")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> readNotification(@AuthenticationPrincipal Long userId,
+        @PathVariable Long notificationId) {
+        userService.readNotification(userId, notificationId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 읽음 처리에 성공했습니다.", null));
+    }
 }

@@ -24,4 +24,6 @@ public interface UserService {
     void saveFcmToken(Long userId, SaveFcmTokenRequest request);
 
     List<GetNotificationsResponse> getNotifications(Long userId);
+
+    void readNotification(Long userId, Long notificationId);
 }
