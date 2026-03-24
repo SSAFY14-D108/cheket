@@ -1,8 +1,9 @@
 import unittest
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from app.scoring import compute_artist_bonus, compute_timing_bonus
-from app.schemas import ArtistPreference, CandidateShow, RecommendationItem, RecommendationRequest, TagWeight
+from app.schemas import ArtistPreference, CandidateShow, RecommendationItem, RecommendationRequest
 from app.service import get_recommendations, rerank_with_artist_diversity
 
 
@@ -19,9 +20,9 @@ class RecommendationServiceTest(unittest.TestCase):
 
     def test_rerank_with_artist_diversity_moves_duplicate_artist_down(self) -> None:
         candidates = {
-            1: CandidateShow(showId=1, artist="IU", title="A", tags=[]),
-            2: CandidateShow(showId=2, artist="IU", title="B", tags=[]),
-            3: CandidateShow(showId=3, artist="AKMU", title="C", tags=[]),
+            1: CandidateShow(showId=1, artist="IU", title="A"),
+            2: CandidateShow(showId=2, artist="IU", title="B"),
+            3: CandidateShow(showId=3, artist="AKMU", title="C"),
         }
         recommendations = [
             RecommendationItem(showId=1, score=0.41, reason="same artist"),
@@ -37,8 +38,6 @@ class RecommendationServiceTest(unittest.TestCase):
         today = date.today()
         payload = RecommendationRequest(
             userId=1,
-            userEmbedding=[],
-            userProfile=[],
             artistPreferences=[],
             recentKeywords=[],
             candidates=[
@@ -46,7 +45,6 @@ class RecommendationServiceTest(unittest.TestCase):
                     showId=10,
                     artist="Artist A",
                     title="Open Now",
-                    tags=[],
                     showStartDate=str(today + timedelta(days=3)),
                     ticketingState="IN_PROGRESS",
                     showState="UPCOMING",
@@ -55,7 +53,6 @@ class RecommendationServiceTest(unittest.TestCase):
                     showId=20,
                     artist="Artist B",
                     title="Later Show",
-                    tags=[],
                     showStartDate=str(today + timedelta(days=40)),
                     ticketingState="BEFORE_OPEN",
                     showState="UPCOMING",
@@ -68,34 +65,6 @@ class RecommendationServiceTest(unittest.TestCase):
         self.assertEqual(response.recommendations[0].show_id, 10)
         self.assertIn("예매", response.recommendations[0].reason)
 
-    def test_get_recommendations_uses_tag_similarity(self) -> None:
-        payload = RecommendationRequest(
-            userId=1,
-            userEmbedding=[],
-            userProfile=[TagWeight(tagId=1, weight=1.0, name="록")],
-            artistPreferences=[],
-            recentKeywords=[],
-            candidates=[
-                CandidateShow(
-                    showId=100,
-                    artist="Band A",
-                    title="Rock Show",
-                    tags=[TagWeight(tagId=1, weight=1.0, name="록")],
-                ),
-                CandidateShow(
-                    showId=200,
-                    artist="Band B",
-                    title="Ballad Show",
-                    tags=[TagWeight(tagId=2, weight=1.0, name="발라드")],
-                ),
-            ],
-        )
-
-        response = get_recommendations(payload)
-
-        self.assertEqual(response.recommendations[0].show_id, 100)
-        self.assertIn("태그", response.recommendations[0].reason)
-
     def test_compute_artist_bonus_ignores_generic_artist_label(self) -> None:
         bonus = compute_artist_bonus(
             candidate_artist="기타",
@@ -104,36 +73,74 @@ class RecommendationServiceTest(unittest.TestCase):
 
         self.assertEqual(bonus, 0.0)
 
-    def test_get_recommendations_explains_agency_and_segment_match(self) -> None:
+    @patch("app.service.generate_embedding")
+    @patch("app.service.generate_embeddings")
+    def test_get_recommendations_generates_embeddings_from_text(
+        self,
+        mock_generate_embeddings,
+        mock_generate_embedding,
+    ) -> None:
+        mock_generate_embedding.return_value = [1.0, 0.0]
+        mock_generate_embeddings.return_value = [[1.0, 0.0], [0.0, 1.0]]
+
         payload = RecommendationRequest(
             userId=1,
-            userEmbedding=[],
-            userProfile=[
-                TagWeight(tagId=11, weight=1.0, category="AGENCY", name="HYBE"),
-                TagWeight(tagId=12, weight=1.0, category="ARTIST_SEGMENT", name="MALE_IDOL"),
-            ],
+            userProfileText="BTS 콘서트와 HYBE 선호",
             artistPreferences=[],
             recentKeywords=[],
             candidates=[
-                CandidateShow(
-                    showId=300,
-                    artist="BTS",
-                    title="BTS Special Stage",
-                    tags=[
-                        TagWeight(tagId=11, weight=1.0, category="AGENCY", name="HYBE"),
-                        TagWeight(tagId=12, weight=1.0, category="ARTIST_SEGMENT", name="MALE_IDOL"),
-                    ],
-                    ticketingState="IN_PROGRESS",
-                    showState="UPCOMING",
-                    showStartDate=str(date.today() + timedelta(days=5)),
-                )
+                CandidateShow(showId=1, artist="BTS", title="BTS Live", embeddingText="BTS HYBE 콘서트"),
+                CandidateShow(showId=2, artist="Jazz Band", title="Jazz Night", embeddingText="재즈 공연"),
             ],
         )
 
         response = get_recommendations(payload)
 
-        self.assertIn("같은 소속사", response.recommendations[0].reason)
-        self.assertIn("남자 아이돌", response.recommendations[0].reason)
+        self.assertEqual(response.recommendations[0].show_id, 1)
+        mock_generate_embedding.assert_called_once()
+        mock_generate_embeddings.assert_called_once()
+
+    @patch("app.service.generate_embedding")
+    @patch("app.service.generate_embeddings")
+    def test_get_recommendations_prefers_same_artist_signal(
+        self,
+        mock_generate_embeddings,
+        mock_generate_embedding,
+    ) -> None:
+        mock_generate_embedding.return_value = [1.0, 0.0]
+        mock_generate_embeddings.return_value = [[1.0, 0.0], [0.0, 1.0]]
+
+        payload = RecommendationRequest(
+            userId=1,
+            userProfileText="BTS 월드투어 콘서트",
+            artistPreferences=[ArtistPreference(artist="BTS", weight=2.0)],
+            recentKeywords=["월드투어"],
+            candidates=[
+                CandidateShow(
+                    showId=100,
+                    artist="BTS",
+                    title="BTS Special Stage",
+                    embeddingText="BTS 월드투어 콘서트",
+                    ticketingState="IN_PROGRESS",
+                    showState="UPCOMING",
+                    showStartDate=str(date.today() + timedelta(days=5)),
+                ),
+                CandidateShow(
+                    showId=200,
+                    artist="Jazz Band",
+                    title="Jazz Night",
+                    embeddingText="재즈 공연",
+                    ticketingState="IN_PROGRESS",
+                    showState="UPCOMING",
+                    showStartDate=str(date.today() + timedelta(days=5)),
+                ),
+            ],
+        )
+
+        response = get_recommendations(payload)
+
+        self.assertEqual(response.recommendations[0].show_id, 100)
+        self.assertIn("동일 아티스트", response.recommendations[0].reason)
 
 
 if __name__ == "__main__":
