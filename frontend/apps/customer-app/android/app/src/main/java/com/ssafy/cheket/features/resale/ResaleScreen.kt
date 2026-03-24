@@ -80,7 +80,7 @@ import com.ssafy.cheket.ui.theme.OnBackground
 import kotlinx.coroutines.launch
 
 private val SearchBackground = Color(0xFFF3F4F6)
-private val ActiveChipBackground = Color(0xFFEEF1F0)
+private val ActiveChipBackground = Color(0xFFDCE5E1)
 private val PriceTextColor = Color(0xFF2B2B2B)
 private val ResetButtonBackground = Color(0xFFF1F3F5)
 private val RegionButtonBackground = Color(0xFFF4F5F6)
@@ -441,7 +441,7 @@ private fun RegionChip(
             text = region,
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = OnBackground,
+            color = if (selected) Color(0xFF1F3A33) else OnBackground,
             maxLines = 1,
         )
     }
