@@ -25,13 +25,17 @@ function useNativeTiltBridge() {
     const handler = (e: Event) => {
       const { tiltX, tiltY } = (e as CustomEvent).detail
 
-      // tiltX: 앞뒤 (-15~15), tiltY: 좌우 (-15~15) → CSS 0~100%
-      const mx = ((tiltY + 15) / 30 * 100)
-      const my = ((tiltX + 15) / 30 * 100)
-      const rx = (0.5 - my / 100) * 10
-      const ry = (mx / 100 - 0.5) * 10
+      // tiltX: 앞뒤 (-15~15), tiltY: 좌우 (-15~15) → CSS 30~70% (이펙트 은은하게)
+      const mx = 30 + ((tiltY + 15) / 30 * 40)
+      const my = 30 + ((tiltX + 15) / 30 * 40)
+      const rx = (0.5 - my / 100) * 5
+      const ry = (mx / 100 - 0.5) * 5
 
-      // 모든 .ticket-holo-tilt 요소에 CSS 변수 적용
+      // 카드 기울기 (자이로 — 크게)
+      const cardRx = rx * 4
+      const cardRy = ry * 4
+
+      // 모든 .ticket-holo-tilt 요소에 CSS 변수 + 카드 transform 적용
       document.querySelectorAll('.ticket-holo-tilt').forEach((host) => {
         const el = host as HTMLElement
         el.style.setProperty('--mx', `${mx}%`)
@@ -40,6 +44,9 @@ function useNativeTiltBridge() {
         el.style.setProperty('--ry', `${ry}deg`)
         el.style.setProperty('--posx', `${mx}%`)
         el.style.setProperty('--posy', `${my}%`)
+        // 카드 자체를 기울이기
+        el.style.transform = `perspective(800px) rotateX(${cardRx}deg) rotateY(${cardRy}deg)`
+        el.style.transition = 'transform 0.1s ease-out'
       })
 
       // 홀로 레이어에도 적용
@@ -227,9 +234,8 @@ function getTicketEffect(ticketId: string, apiEffect?: string | null): EffectTyp
     const lower = apiEffect.toLowerCase().replace(/\s+/g, '-')
     if ((HOLO_VARIANTS as readonly string[]).includes(lower)) return lower as EffectType
   }
-  // fallback: ticket ID 기반 랜덤
-  const num = Number(ticketId.replace(/\D/g, '')) || 0
-  return HOLO_VARIANTS[num % HOLO_VARIANTS.length]
+  // fallback: 매핑 안 되면 이펙트 없음
+  return 'none'
 }
 
 function getTicketNumberValue(ticketId: string) {
@@ -657,6 +663,9 @@ function CollectibleTicketCard({
       host.style.setProperty('--posy', `${my}%`)
       host.style.setProperty('--dx', `${dx}%`)
       host.style.setProperty('--dy', `${dy}%`)
+      // 터치로 카드 기울이기 (크게)
+      host.style.transform = `perspective(800px) rotateX(${rx * 4}deg) rotateY(${ry * 4}deg)`
+      host.style.transition = 'transform 0.05s ease-out'
       if (!live) return
       live.style.setProperty('--mx', `${mx}%`)
       live.style.setProperty('--my', `${my}%`)
@@ -742,6 +751,8 @@ function CollectibleTicketCard({
                   host.style.setProperty('--posy', '50%')
                   host.style.setProperty('--dx', '0%')
                   host.style.setProperty('--dy', '0%')
+                  host.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg)'
+                  host.style.transition = 'transform 0.3s ease-out'
                 }
                 const layer = holoLayerRef.current
                 if (!layer) return
