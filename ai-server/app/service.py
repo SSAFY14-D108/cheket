@@ -63,17 +63,29 @@ def get_recommendations(payload: RecommendationRequest) -> RecommendationRespons
 
 
 def enrich_embeddings(payload: RecommendationRequest) -> tuple[list[float], dict[int, list[float]]]:
-    user_embedding = generate_embedding(payload.user_profile_text) if payload.user_profile_text else []
+    user_embedding = payload.user_embedding or []
+    if not user_embedding and payload.user_profile_text:
+        user_embedding = generate_embedding(payload.user_profile_text)
 
-    candidates_to_embed = [candidate for candidate in payload.candidates if candidate.embedding_text]
+    candidate_embeddings = {
+        candidate.show_id: candidate.embedding
+        for candidate in payload.candidates
+        if candidate.embedding
+    }
+
+    candidates_to_embed = [
+        candidate
+        for candidate in payload.candidates
+        if not candidate.embedding and candidate.embedding_text
+    ]
     if not candidates_to_embed:
-        return user_embedding, {}
+        return user_embedding, candidate_embeddings
 
     embeddings = generate_embeddings([candidate.embedding_text for candidate in candidates_to_embed if candidate.embedding_text])
-    candidate_embeddings = {
+    candidate_embeddings.update({
         candidate.show_id: embedding
         for candidate, embedding in zip(candidates_to_embed, embeddings, strict=False)
-    }
+    })
     return user_embedding, candidate_embeddings
 
 

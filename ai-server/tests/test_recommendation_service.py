@@ -142,6 +142,31 @@ class RecommendationServiceTest(unittest.TestCase):
         self.assertEqual(response.recommendations[0].show_id, 100)
         self.assertIn("동일 아티스트", response.recommendations[0].reason)
 
+    @patch("app.service.generate_embedding")
+    @patch("app.service.generate_embeddings")
+    def test_get_recommendations_uses_precomputed_embeddings_when_present(
+        self,
+        mock_generate_embeddings,
+        mock_generate_embedding,
+    ) -> None:
+        payload = RecommendationRequest(
+            userId=1,
+            userEmbedding=[1.0, 0.0],
+            userProfileText="이 텍스트는 사용되지 않아야 함",
+            artistPreferences=[],
+            recentKeywords=[],
+            candidates=[
+                CandidateShow(showId=1, artist="BTS", title="BTS Live", embedding=[1.0, 0.0]),
+                CandidateShow(showId=2, artist="Jazz Band", title="Jazz Night", embedding=[0.0, 1.0]),
+            ],
+        )
+
+        response = get_recommendations(payload)
+
+        self.assertEqual(response.recommendations[0].show_id, 1)
+        mock_generate_embedding.assert_not_called()
+        mock_generate_embeddings.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
