@@ -18,7 +18,6 @@ import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.ForbiddenException;
 import com.ssafy.cheket.exception.common.GoneException;
 import com.ssafy.cheket.exception.common.NotFoundException;
-import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.entity.show.Seat;
 import com.ssafy.cheket.repository.queue.QueueRepository;
 import com.ssafy.cheket.entity.show.SeatGrade;
@@ -33,18 +32,13 @@ import com.ssafy.cheket.repository.ticket.projection.UpcomingTicketProjection;
 import com.ssafy.cheket.repository.ticket.projection.UsedAndExpiredTicketProjection;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
-import com.ssafy.cheket.repository.wallet.WalletRepository;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
-import com.ssafy.cheket.service.blockchain.BlockchainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-
-import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -65,12 +59,10 @@ public class TicketServiceImpl implements TicketService {
     private final SeatRepository seatRepository;
     private final SeatGradeRepository seatGradeRepository;
     private final QueueRepository queueRepository;
-    private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final WalletService walletService;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
-    private final BlockchainService blockchainService;
 
     // ========== 티켓 구매 ==========
 
@@ -147,7 +139,9 @@ public class TicketServiceImpl implements TicketService {
 
         // ③ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE).amount(0L)
-            .description("티켓 구매 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
+            .description("요청 접수 — 티켓 구매 대기 (userId=%d, showId=%d, sessionId=%d, seats=%d)".formatted(userId, showId,
+                sessionId, seats.size()))
+            .txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
         transactionRepository.save(transaction);
 
         log.info("[티켓 구매] PENDING 생성 — txId={}", transaction.getId());
@@ -183,7 +177,7 @@ public class TicketServiceImpl implements TicketService {
     // 티켓 환불
     @Override
     @Transactional
-    public void refundTicket(Long userId, Long ticketId) {
+    public Long refundTicket(Long userId, Long ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
 
         if (!ticket.getUserId().equals(userId)) {
@@ -228,10 +222,9 @@ public class TicketServiceImpl implements TicketService {
             throw new ConflictException("환불 가능한 기간이 아닙니다.");
         }
 
-        User owner = userRepository.findByIdAndDeletedAtIsNull(ticket.getUserId())
-            .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
-        var ownerWallet = walletRepository.findById(owner.getWalletId())
-            .orElseThrow(() -> new NotFoundException("지갑을 찾을 수 없습니다."));
+        if (session.getOnChainSessionId() == null || ticket.getTicketNftId() == null) {
+            throw new ConflictException("온체인 환불 대상 정보를 찾을 수 없습니다.");
+        }
 
         Seat seat = seatRepository.findById(sessionSeat.getSeatId())
             .orElseThrow(() -> new NotFoundException("좌석을 찾을 수 없습니다."));
@@ -240,50 +233,29 @@ public class TicketServiceImpl implements TicketService {
 
         long expectedRefundAmount = (long) seatGrade.getPrice() * targetPolicy.getRefundRate() / 100;
 
-        BigInteger onChainSessionId = BigInteger.valueOf(session.getOnChainSessionId());
-        BigInteger onChainTicketNftId = BigInteger.valueOf(ticket.getTicketNftId());
-        String ownerAddress = ownerWallet.getAddress();
+        sessionSeat.setStatus(SeatStatus.PENDING_TX);
+        sessionSeatRepository.save(sessionSeat);
 
-        try {
-            // 환불 전 온체인 소유자 검증 (현재 소유자 -> 서버측 변경 시도 전 체크)
-            String currentOnChainOwner = blockchainService.getTicketNFT().ownerOf(onChainTicketNftId).send();
-            if (!currentOnChainOwner.equalsIgnoreCase(ownerAddress)) {
-                throw new ConflictException("온체인 티켓 소유자가 환불 요청자와 일치하지 않습니다.");
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND)
+            .amount(expectedRefundAmount)
+            .description("요청 접수 — 티켓 환불 대기 (userId=%d, ticketId=%d, expectedRefund=%d SSF)"
+                .formatted(ticket.getUserId(), ticketId, expectedRefundAmount))
+            .txStatus(Transaction.TxStatus.PENDING).buyerId(ticket.getUserId()).build();
+        transactionRepository.save(transaction);
+
+        Long txId = transaction.getId();
+        Long onChainSessionId = session.getOnChainSessionId();
+        Long onChainTicketNftId = ticket.getTicketNftId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainRefund(txId, userId, ticketId, onChainSessionId, onChainTicketNftId,
+                    expectedRefundAmount);
             }
+        });
 
-            // Settlement.refund()로 환불 실행 (환불 금액 지급 + NFT 소유권 회수)
-            TransactionReceipt refundReceipt = blockchainService.getSettlement()
-                .refund(onChainSessionId, ownerAddress, onChainTicketNftId).send();
-
-            // 온체인 NFT 소유자 검증 (서버 운영자 지갑으로 이전됐는지 확인)
-            String newOnChainOwner = blockchainService.getTicketNFT().ownerOf(onChainTicketNftId).send();
-            if (!newOnChainOwner.equalsIgnoreCase(blockchainService.getPlatformWalletAddress())) {
-                throw new ConflictException("환불 후 NFT 소유권 이전이 완료되지 않았습니다.");
-            }
-
-            long refundedAmount = expectedRefundAmount;
-            var refundedEvents = com.ssafy.cheket.blockchain.contract.Settlement.getRefundedEvents(refundReceipt);
-            if (!refundedEvents.isEmpty() && refundedEvents.get(0).amount != null) {
-                refundedAmount = refundedEvents.get(0).amount.longValue();
-            }
-
-            Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND)
-                .amount(refundedAmount).description("티켓 환불 완료").txHash(refundReceipt.getTransactionHash())
-                .txStatus(Transaction.TxStatus.CONFIRMED)
-                .blockNumber(refundReceipt.getBlockNumber() != null ? refundReceipt.getBlockNumber().longValue() : null)
-                .buyerId(ticket.getUserId()).build();
-            transactionRepository.save(transaction);
-
-            ticketRepository.delete(ticket);
-
-            // SessionSeat 상태 복구
-            sessionSeat.setStatus(SeatStatus.AVAILABLE);
-            sessionSeatRepository.save(sessionSeat);
-        } catch (ConflictException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BlockchainException("티켓 환불 처리 중 오류가 발생했습니다: " + e.getMessage());
-        }
+        return txId;
     }
 
     // 보관 목록 조회
@@ -369,7 +341,9 @@ public class TicketServiceImpl implements TicketService {
         // ========== ④ Transaction PENDING 생성 ==========
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.TRANSFER) // 양도 타입
             .amount(0L) // 무료 양도
-            .description("양도 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(senderUserId) // 보내는 사람
+            .description("요청 접수 — 티켓 양도 대기 (ticketId=%d, senderUserId=%d, receiverUserId=%d)".formatted(ticketId,
+                senderUserId, receiver.getId()))
+            .txStatus(Transaction.TxStatus.PENDING).sellerId(senderUserId) // 보내는 사람
             .buyerId(receiver.getId()) // 받는 사람
             .build();
         transactionRepository.save(transaction);
@@ -456,10 +430,13 @@ public class TicketServiceImpl implements TicketService {
 
         // ⑤ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CREATE)
-            .amount((long) resalePrice).description("리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(userId) // 등록하는
-                                                                                                                         // 사람
-                                                                                                                         // =
-                                                                                                                         // 판매자
+            .amount((long) resalePrice)
+            .description("요청 접수 — 리세일 등록 대기 (ticketId=%d, price=%d SSF, sellerUserId=%d)".formatted(ticketId,
+                resalePrice, userId))
+            .txStatus(Transaction.TxStatus.PENDING).sellerId(userId) // 등록하는
+                                                                     // 사람
+                                                                     // =
+                                                                     // 판매자
             .build();
         transactionRepository.save(transaction);
 
