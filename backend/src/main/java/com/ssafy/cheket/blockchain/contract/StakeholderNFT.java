@@ -31,19 +31,13 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
 
 /**
- * <p>
- * Auto generated code.
- * <p>
- * <strong>Do not modify!</strong>
- * <p>
- * Please use the <a href="https://docs.web3j.io/command_line.html">web3j
- * command line tools</a>, or the
- * org.web3j.codegen.SolidityFunctionWrapperGenerator in the <a href=
- * "https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen
- * module</a> to update.
+ * <p>Auto generated code.
+ * <p><strong>Do not modify!</strong>
+ * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * <a href="https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen module</a> to update.
  *
- * <p>
- * Generated with web3j version 4.12.3.
+ * <p>Generated with web3j version 4.12.3.
  */
 @SuppressWarnings("rawtypes")
 public class StakeholderNFT extends Contract {
@@ -89,62 +83,51 @@ public class StakeholderNFT extends Contract {
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
-    public static final Event APPROVAL_EVENT = new Event("Approval",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
-        }, new TypeReference<Address>(true) {
-        }, new TypeReference<Uint256>(true) {
-        }));;
+    public static final Event APPROVAL_EVENT = new Event("Approval", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}));
+    ;
 
-    public static final Event APPROVALFORALL_EVENT = new Event("ApprovalForAll",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
-        }, new TypeReference<Address>(true) {
-        }, new TypeReference<Bool>() {
-        }));;
+    public static final Event APPROVALFORALL_EVENT = new Event("ApprovalForAll", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Bool>() {}));
+    ;
 
-    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
-        }, new TypeReference<Address>(true) {
-        }));;
+    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}));
+    ;
 
-    public static final Event STAKEHOLDERMINTED_EVENT = new Event("StakeholderMinted",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {
-        }, new TypeReference<Address>(true) {
-        }, new TypeReference<Utf8String>() {
-        }, new TypeReference<Uint256>() {
-        }, new TypeReference<Uint256>() {
-        }));;
+    public static final Event STAKEHOLDERMINTED_EVENT = new Event("StakeholderMinted", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Utf8String>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
+    ;
 
-    public static final Event TRANSFER_EVENT = new Event("Transfer",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
-        }, new TypeReference<Address>(true) {
-        }, new TypeReference<Uint256>(true) {
-        }));;
+    public static final Event TRANSFER_EVENT = new Event("Transfer", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}));
+    ;
 
     @Deprecated
-    protected StakeholderNFT(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
-        BigInteger gasLimit) {
+    protected StakeholderNFT(String contractAddress, Web3j web3j, Credentials credentials,
+            BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     protected StakeholderNFT(String contractAddress, Web3j web3j, Credentials credentials,
-        ContractGasProvider contractGasProvider) {
+            ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     @Deprecated
-    protected StakeholderNFT(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        BigInteger gasPrice, BigInteger gasLimit) {
+    protected StakeholderNFT(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
-    protected StakeholderNFT(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        ContractGasProvider contractGasProvider) {
+    protected StakeholderNFT(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVAL_EVENT,
-            transactionReceipt);
+    public static List<ApprovalEventResponse> getApprovalEvents(
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVAL_EVENT, transactionReceipt);
         ArrayList<ApprovalEventResponse> responses = new ArrayList<ApprovalEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             ApprovalEventResponse typedResponse = new ApprovalEventResponse();
@@ -172,15 +155,15 @@ public class StakeholderNFT extends Contract {
     }
 
     public Flowable<ApprovalEventResponse> approvalEventFlowable(DefaultBlockParameter startBlock,
-        DefaultBlockParameter endBlock) {
+            DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(APPROVAL_EVENT));
         return approvalEventFlowable(filter);
     }
 
-    public static List<ApprovalForAllEventResponse> getApprovalForAllEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVALFORALL_EVENT,
-            transactionReceipt);
+    public static List<ApprovalForAllEventResponse> getApprovalForAllEvents(
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVALFORALL_EVENT, transactionReceipt);
         ArrayList<ApprovalForAllEventResponse> responses = new ArrayList<ApprovalForAllEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             ApprovalForAllEventResponse typedResponse = new ApprovalForAllEventResponse();
@@ -207,19 +190,17 @@ public class StakeholderNFT extends Contract {
         return web3j.ethLogFlowable(filter).map(log -> getApprovalForAllEventFromLog(log));
     }
 
-    public Flowable<ApprovalForAllEventResponse> approvalForAllEventFlowable(DefaultBlockParameter startBlock,
-        DefaultBlockParameter endBlock) {
+    public Flowable<ApprovalForAllEventResponse> approvalForAllEventFlowable(
+            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(APPROVALFORALL_EVENT));
         return approvalForAllEventFlowable(filter);
     }
 
     public static List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(
-        TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT,
-            transactionReceipt);
-        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(
-            valueList.size());
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT, transactionReceipt);
+        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             OwnershipTransferredEventResponse typedResponse = new OwnershipTransferredEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -239,23 +220,22 @@ public class StakeholderNFT extends Contract {
         return typedResponse;
     }
 
-    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(EthFilter filter) {
+    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
+            EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getOwnershipTransferredEventFromLog(log));
     }
 
     public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
-        DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(OWNERSHIPTRANSFERRED_EVENT));
         return ownershipTransferredEventFlowable(filter);
     }
 
     public static List<StakeholderMintedEventResponse> getStakeholderMintedEvents(
-        TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(STAKEHOLDERMINTED_EVENT,
-            transactionReceipt);
-        ArrayList<StakeholderMintedEventResponse> responses = new ArrayList<StakeholderMintedEventResponse>(
-            valueList.size());
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(STAKEHOLDERMINTED_EVENT, transactionReceipt);
+        ArrayList<StakeholderMintedEventResponse> responses = new ArrayList<StakeholderMintedEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             StakeholderMintedEventResponse typedResponse = new StakeholderMintedEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -281,20 +261,21 @@ public class StakeholderNFT extends Contract {
         return typedResponse;
     }
 
-    public Flowable<StakeholderMintedEventResponse> stakeholderMintedEventFlowable(EthFilter filter) {
+    public Flowable<StakeholderMintedEventResponse> stakeholderMintedEventFlowable(
+            EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getStakeholderMintedEventFromLog(log));
     }
 
-    public Flowable<StakeholderMintedEventResponse> stakeholderMintedEventFlowable(DefaultBlockParameter startBlock,
-        DefaultBlockParameter endBlock) {
+    public Flowable<StakeholderMintedEventResponse> stakeholderMintedEventFlowable(
+            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(STAKEHOLDERMINTED_EVENT));
         return stakeholderMintedEventFlowable(filter);
     }
 
-    public static List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(TRANSFER_EVENT,
-            transactionReceipt);
+    public static List<TransferEventResponse> getTransferEvents(
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             TransferEventResponse typedResponse = new TransferEventResponse();
@@ -322,240 +303,244 @@ public class StakeholderNFT extends Contract {
     }
 
     public Flowable<TransferEventResponse> transferEventFlowable(DefaultBlockParameter startBlock,
-        DefaultBlockParameter endBlock) {
+            DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(TRANSFER_EVENT));
         return transferEventFlowable(filter);
     }
 
     public RemoteFunctionCall<TransactionReceipt> approve(String to, BigInteger tokenId) {
-        final Function function = new Function(FUNC_APPROVE,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to),
-                new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(
+                FUNC_APPROVE, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to), 
+                new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<BigInteger> balanceOf(String owner) {
-        final Function function = new Function(FUNC_BALANCEOF,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
-            }));
+        final Function function = new Function(FUNC_BALANCEOF, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteFunctionCall<String> getApproved(BigInteger tokenId) {
-        final Function function = new Function(FUNC_GETAPPROVED,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }));
+        final Function function = new Function(FUNC_GETAPPROVED, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
-    public RemoteFunctionCall<Tuple4<String, String, BigInteger, BigInteger>> getStakeholder(BigInteger tokenId) {
-        final Function function = new Function(FUNC_GETSTAKEHOLDER,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }, new TypeReference<Utf8String>() {
-            }, new TypeReference<Uint256>() {
-            }, new TypeReference<Uint256>() {
-            }));
+    public RemoteFunctionCall<Tuple4<String, String, BigInteger, BigInteger>> getStakeholder(
+            BigInteger tokenId) {
+        final Function function = new Function(FUNC_GETSTAKEHOLDER, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
         return new RemoteFunctionCall<Tuple4<String, String, BigInteger, BigInteger>>(function,
-            new Callable<Tuple4<String, String, BigInteger, BigInteger>>() {
-                @Override
-                public Tuple4<String, String, BigInteger, BigInteger> call() throws Exception {
-                    List<Type> results = executeCallMultipleValueReturn(function);
-                    return new Tuple4<String, String, BigInteger, BigInteger>((String) results.get(0).getValue(),
-                        (String) results.get(1).getValue(), (BigInteger) results.get(2).getValue(),
-                        (BigInteger) results.get(3).getValue());
-                }
-            });
+                new Callable<Tuple4<String, String, BigInteger, BigInteger>>() {
+                    @Override
+                    public Tuple4<String, String, BigInteger, BigInteger> call() throws Exception {
+                        List<Type> results = executeCallMultipleValueReturn(function);
+                        return new Tuple4<String, String, BigInteger, BigInteger>(
+                                (String) results.get(0).getValue(), 
+                                (String) results.get(1).getValue(), 
+                                (BigInteger) results.get(2).getValue(), 
+                                (BigInteger) results.get(3).getValue());
+                    }
+                });
     }
 
     public RemoteFunctionCall<Boolean> isApprovedForAll(String owner, String operator) {
-        final Function function = new Function(FUNC_ISAPPROVEDFORALL,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner),
-                new org.web3j.abi.datatypes.Address(160, operator)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {
-            }));
+        final Function function = new Function(FUNC_ISAPPROVEDFORALL, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner), 
+                new org.web3j.abi.datatypes.Address(160, operator)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
     public RemoteFunctionCall<TransactionReceipt> mint(String to, String role, BigInteger shareBps,
-        BigInteger eventNftId) {
-        final Function function = new Function(FUNC_MINT,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to),
-                new org.web3j.abi.datatypes.Utf8String(role), new org.web3j.abi.datatypes.generated.Uint256(shareBps),
-                new org.web3j.abi.datatypes.generated.Uint256(eventNftId)),
-            Collections.<TypeReference<?>>emptyList());
+            BigInteger eventNftId) {
+        final Function function = new Function(
+                FUNC_MINT, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to), 
+                new org.web3j.abi.datatypes.Utf8String(role), 
+                new org.web3j.abi.datatypes.generated.Uint256(shareBps), 
+                new org.web3j.abi.datatypes.generated.Uint256(eventNftId)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<String> name() {
-        final Function function = new Function(FUNC_NAME, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
-            }));
+        final Function function = new Function(FUNC_NAME, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> owner() {
-        final Function function = new Function(FUNC_OWNER, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }));
+        final Function function = new Function(FUNC_OWNER, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> ownerOf(BigInteger tokenId) {
-        final Function function = new Function(FUNC_OWNEROF,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }));
+        final Function function = new Function(FUNC_OWNEROF, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<TransactionReceipt> renounceOwnership() {
-        final Function function = new Function(FUNC_RENOUNCEOWNERSHIP, Arrays.<Type>asList(),
-            Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(
+                FUNC_RENOUNCEOWNERSHIP, 
+                Arrays.<Type>asList(), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to, BigInteger tokenId) {
-        final Function function = new Function(FUNC_safeTransferFrom,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
-                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to,
+            BigInteger tokenId) {
+        final Function function = new Function(
+                FUNC_safeTransferFrom, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
+                new org.web3j.abi.datatypes.Address(160, to), 
+                new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to, BigInteger tokenId,
-        byte[] data) {
-        final Function function = new Function(FUNC_safeTransferFrom,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
-                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(tokenId),
-                new org.web3j.abi.datatypes.DynamicBytes(data)),
-            Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to,
+            BigInteger tokenId, byte[] data) {
+        final Function function = new Function(
+                FUNC_safeTransferFrom, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
+                new org.web3j.abi.datatypes.Address(160, to), 
+                new org.web3j.abi.datatypes.generated.Uint256(tokenId), 
+                new org.web3j.abi.datatypes.DynamicBytes(data)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> setApprovalForAll(String operator, Boolean approved) {
-        final Function function = new Function(FUNC_SETAPPROVALFORALL,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, operator),
-                new org.web3j.abi.datatypes.Bool(approved)),
-            Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> setApprovalForAll(String operator,
+            Boolean approved) {
+        final Function function = new Function(
+                FUNC_SETAPPROVALFORALL, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, operator), 
+                new org.web3j.abi.datatypes.Bool(approved)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<Tuple4<String, String, BigInteger, BigInteger>> stakeholders(BigInteger param0) {
-        final Function function = new Function(FUNC_STAKEHOLDERS,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }, new TypeReference<Utf8String>() {
-            }, new TypeReference<Uint256>() {
-            }, new TypeReference<Uint256>() {
-            }));
+    public RemoteFunctionCall<Tuple4<String, String, BigInteger, BigInteger>> stakeholders(
+            BigInteger param0) {
+        final Function function = new Function(FUNC_STAKEHOLDERS, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
         return new RemoteFunctionCall<Tuple4<String, String, BigInteger, BigInteger>>(function,
-            new Callable<Tuple4<String, String, BigInteger, BigInteger>>() {
-                @Override
-                public Tuple4<String, String, BigInteger, BigInteger> call() throws Exception {
-                    List<Type> results = executeCallMultipleValueReturn(function);
-                    return new Tuple4<String, String, BigInteger, BigInteger>((String) results.get(0).getValue(),
-                        (String) results.get(1).getValue(), (BigInteger) results.get(2).getValue(),
-                        (BigInteger) results.get(3).getValue());
-                }
-            });
+                new Callable<Tuple4<String, String, BigInteger, BigInteger>>() {
+                    @Override
+                    public Tuple4<String, String, BigInteger, BigInteger> call() throws Exception {
+                        List<Type> results = executeCallMultipleValueReturn(function);
+                        return new Tuple4<String, String, BigInteger, BigInteger>(
+                                (String) results.get(0).getValue(), 
+                                (String) results.get(1).getValue(), 
+                                (BigInteger) results.get(2).getValue(), 
+                                (BigInteger) results.get(3).getValue());
+                    }
+                });
     }
 
     public RemoteFunctionCall<Boolean> supportsInterface(byte[] interfaceId) {
-        final Function function = new Function(FUNC_SUPPORTSINTERFACE,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes4(interfaceId)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {
-            }));
+        final Function function = new Function(FUNC_SUPPORTSINTERFACE, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes4(interfaceId)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
     public RemoteFunctionCall<String> symbol() {
-        final Function function = new Function(FUNC_SYMBOL, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
-            }));
+        final Function function = new Function(FUNC_SYMBOL, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> tokenURI(BigInteger tokenId) {
-        final Function function = new Function(FUNC_TOKENURI,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
-            }));
+        final Function function = new Function(FUNC_TOKENURI, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<BigInteger> totalSupply() {
-        final Function function = new Function(FUNC_TOTALSUPPLY, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
-            }));
+        final Function function = new Function(FUNC_TOTALSUPPLY, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> transferFrom(String from, String to, BigInteger tokenId) {
-        final Function function = new Function(FUNC_TRANSFERFROM,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
-                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
-            Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> transferFrom(String from, String to,
+            BigInteger tokenId) {
+        final Function function = new Function(
+                FUNC_TRANSFERFROM, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
+                new org.web3j.abi.datatypes.Address(160, to), 
+                new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<TransactionReceipt> transferOwnership(String newOwner) {
-        final Function function = new Function(FUNC_TRANSFEROWNERSHIP,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)),
-            Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(
+                FUNC_TRANSFEROWNERSHIP, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     @Deprecated
-    public static StakeholderNFT load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
-        BigInteger gasLimit) {
+    public static StakeholderNFT load(String contractAddress, Web3j web3j, Credentials credentials,
+            BigInteger gasPrice, BigInteger gasLimit) {
         return new StakeholderNFT(contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     @Deprecated
-    public static StakeholderNFT load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        BigInteger gasPrice, BigInteger gasLimit) {
+    public static StakeholderNFT load(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
         return new StakeholderNFT(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
     public static StakeholderNFT load(String contractAddress, Web3j web3j, Credentials credentials,
-        ContractGasProvider contractGasProvider) {
+            ContractGasProvider contractGasProvider) {
         return new StakeholderNFT(contractAddress, web3j, credentials, contractGasProvider);
     }
 
-    public static StakeholderNFT load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        ContractGasProvider contractGasProvider) {
+    public static StakeholderNFT load(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
         return new StakeholderNFT(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
     public static RemoteCall<StakeholderNFT> deploy(Web3j web3j, Credentials credentials,
-        ContractGasProvider contractGasProvider) {
-        return deployRemoteCall(StakeholderNFT.class, web3j, credentials, contractGasProvider, getDeploymentBinary(),
-            "");
+            ContractGasProvider contractGasProvider) {
+        return deployRemoteCall(StakeholderNFT.class, web3j, credentials, contractGasProvider, getDeploymentBinary(), "");
     }
 
-    public static RemoteCall<StakeholderNFT> deploy(Web3j web3j, TransactionManager transactionManager,
-        ContractGasProvider contractGasProvider) {
-        return deployRemoteCall(StakeholderNFT.class, web3j, transactionManager, contractGasProvider,
-            getDeploymentBinary(), "");
-    }
-
-    @Deprecated
-    public static RemoteCall<StakeholderNFT> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice,
-        BigInteger gasLimit) {
-        return deployRemoteCall(StakeholderNFT.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(),
-            "");
+    public static RemoteCall<StakeholderNFT> deploy(Web3j web3j,
+            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+        return deployRemoteCall(StakeholderNFT.class, web3j, transactionManager, contractGasProvider, getDeploymentBinary(), "");
     }
 
     @Deprecated
-    public static RemoteCall<StakeholderNFT> deploy(Web3j web3j, TransactionManager transactionManager,
-        BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(StakeholderNFT.class, web3j, transactionManager, gasPrice, gasLimit,
-            getDeploymentBinary(), "");
+    public static RemoteCall<StakeholderNFT> deploy(Web3j web3j, Credentials credentials,
+            BigInteger gasPrice, BigInteger gasLimit) {
+        return deployRemoteCall(StakeholderNFT.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(), "");
+    }
+
+    @Deprecated
+    public static RemoteCall<StakeholderNFT> deploy(Web3j web3j,
+            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+        return deployRemoteCall(StakeholderNFT.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(), "");
     }
 
     public static void linkLibraries(List<Contract.LinkReference> references) {
