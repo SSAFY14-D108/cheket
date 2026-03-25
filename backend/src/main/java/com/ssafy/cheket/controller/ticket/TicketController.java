@@ -97,8 +97,8 @@ public class TicketController {
         @PathVariable Long ticketId
     ) {
         QrTokenResponse response = qrTokenService.generateQrToken(userId, ticketId);
-        return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(200, "QR 토큰이 발급되었습니다.", response));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.ok(201, "QR 토큰이 발급되었습니다.", response));
     }
 
     @PostMapping("/tickets/check-in")
