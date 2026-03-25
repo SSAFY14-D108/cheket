@@ -5,6 +5,7 @@ import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.ticket.response.CheckInResponse;
 import com.ssafy.cheket.dto.ticket.response.QrTokenResponse;
 import com.ssafy.cheket.entity.ticket.Ticket;
+import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.BadRequestException;
@@ -48,8 +49,7 @@ public class QrTokenServiceImpl implements QrTokenService {
     public QrTokenResponse generateQrToken(Long userId, Long ticketId) {
 
         // 1. 티켓 존재 여부 확인
-        Ticket ticket = ticketRepository.findById(ticketId)
-            .orElseThrow(() -> new NotFoundException("티켓을 찾을 수 없습니다."));
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("티켓을 찾을 수 없습니다."));
 
         // 2. 본인 티켓인지 확인 — 타인의 티켓으로 QR 발급 방지
         if (!ticket.getUserId().equals(userId)) {
@@ -65,10 +65,8 @@ public class QrTokenServiceImpl implements QrTokenService {
         String qrToken = jwtTokenProvider.generateQrToken(ticketId, userId);
 
         // 5. Redis에 저장 — 기존 토큰 덮어쓰기 (매번 새로 발급)
-        //    TTL 30초 후 자동 삭제 → 검증 시 Redis에 없으면 만료 처리
-        qrTokenRedisRepository.save(
-            ticketId, qrToken, Duration.ofSeconds(QR_TOKEN_EXPIRY_SECONDS)
-        );
+        // TTL 30초 후 자동 삭제 → 검증 시 Redis에 없으면 만료 처리
+        qrTokenRedisRepository.save(ticketId, qrToken, Duration.ofSeconds(QR_TOKEN_EXPIRY_SECONDS));
 
         // 6. 응답 — 프론트에서 이 qrToken 문자열로 QR 코드 이미지 생성
         return new QrTokenResponse(qrToken, QR_TOKEN_EXPIRY_SECONDS);
@@ -113,8 +111,7 @@ public class QrTokenServiceImpl implements QrTokenService {
         qrTokenRedisRepository.delete(ticketId);
 
         // ── 3단계: DB에서 티켓 조회 ──
-        Ticket ticket = ticketRepository.findById(ticketId)
-            .orElseThrow(() -> new NotFoundException("티켓을 찾을 수 없습니다."));
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("티켓을 찾을 수 없습니다."));
 
         if (ticket.getCheckedInAt() != null) {
             throw new BadRequestException("이미 입장 처리된 티켓입니다.");
@@ -131,46 +128,38 @@ public class QrTokenServiceImpl implements QrTokenService {
         CheckInTicketProjection dbInfo = ticketRepository.findCheckInInfoByTicketId(ticketId);
         verifyTicketInfoConsistency(onChainTicket, dbInfo);
 
-        // ── 7단계: DB 체크인 기록 ──
+        // ── 7단계: DB 체크인 기록 + 티켓 상태 USED 변경 ──
         ticket.setCheckedInAt(LocalDateTime.now());
+        ticket.setResaleStatus(ResaleStatus.USED);
         ticketRepository.save(ticket);
 
         // ── 8단계: 온체인 체크인 (VALID → USED) ──
         executeOnChainCheckIn(ticket);
 
         // ── 9단계: 응답 (온체인 좌석 정보 기반) ──
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
-        return new CheckInResponse(
-            true,
-            ticket.getId(),
-            user.getUsername(),
-            dbInfo != null ? dbInfo.getShowTitle() : null,
-            onChainTicket.section,                                    // 온체인 구역
-            onChainTicket.row + "열 " + onChainTicket.seat + "번",    // 온체인 열+좌석
-            onChainTicket.grade,                                      // 온체인 등급
-            ticket.getCheckedInAt().toString()
-        );
+        return new CheckInResponse(true, ticket.getId(), user.getUsername(),
+            dbInfo != null ? dbInfo.getShowTitle() : null, onChainTicket.section, // 온체인 구역
+            onChainTicket.row + "열 " + onChainTicket.seat + "번", // 온체인 열+좌석
+            onChainTicket.grade, // 온체인 등급
+            ticket.getCheckedInAt().toString());
     }
 
     // ===== private 메서드: 온체인 검증 =====
 
     /**
-     * 블록체인에서 NFT 소유자 조회 → 사용자 지갑 주소와 비교
-     * DB를 신뢰하지 않고 체인에서 직접 확인 → 블록체인의 핵심 가치
+     * 블록체인에서 NFT 소유자 조회 → 사용자 지갑 주소와 비교 DB를 신뢰하지 않고 체인에서 직접 확인 → 블록체인의 핵심 가치
      */
     private void verifyOnChainOwnership(Ticket ticket, Long userId) {
         try {
             BigInteger tokenId = BigInteger.valueOf(ticket.getTicketNftId());
 
             // 블록체인에서 NFT 소유자 주소 조회 (view 함수, 가스비 0)
-            String onChainOwner = blockchainService.getTicketNFT()
-                .ownerOf(tokenId).send();
+            String onChainOwner = blockchainService.getTicketNFT().ownerOf(tokenId).send();
 
             // 사용자의 지갑 주소 조회 (DB → User → Wallet)
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+            User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
             Wallet wallet = walletRepository.findById(user.getWalletId())
                 .orElseThrow(() -> new NotFoundException("지갑 정보를 찾을 수 없습니다."));
 
@@ -190,23 +179,21 @@ public class QrTokenServiceImpl implements QrTokenService {
     }
 
     /**
-     * 온체인에서 티켓 전체 정보 조회 (상태 + 좌석 정보)
-     * getTicket() 1번 호출로 status, section, row, seat, grade 모두 확인
+     * 온체인에서 티켓 전체 정보 조회 (상태 + 좌석 정보) getTicket() 1번 호출로 status, section, row, seat,
+     * grade 모두 확인
      */
     private TicketNFT.TicketInfo getOnChainTicketInfo(Ticket ticket) {
         try {
             BigInteger tokenId = BigInteger.valueOf(ticket.getTicketNftId());
-            TicketNFT.TicketInfo info = blockchainService.getTicketNFT()
-                .getTicket(tokenId).send();
+            TicketNFT.TicketInfo info = blockchainService.getTicketNFT().getTicket(tokenId).send();
 
             // 상태 검증: 0 = VALID만 입장 가능
             if (info.status.intValue() != 0) {
-                throw new BadRequestException(
-                    "온체인 티켓 상태가 유효하지 않습니다. (상태: " + info.status + ")");
+                throw new BadRequestException("온체인 티켓 상태가 유효하지 않습니다. (상태: " + info.status + ")");
             }
 
-            log.info("온체인 티켓 정보 조회 성공 — ticketNftId: {}, section: {}, row: {}, seat: {}",
-                tokenId, info.section, info.row, info.seat);
+            log.info("온체인 티켓 정보 조회 성공 — ticketNftId: {}, section: {}, row: {}, seat: {}", tokenId, info.section,
+                info.row, info.seat);
 
             return info;
 
@@ -219,8 +206,7 @@ public class QrTokenServiceImpl implements QrTokenService {
     }
 
     /**
-     * 온체인 좌석 정보와 DB 좌석 정보 비교
-     * 불일치 시 → DB 조작 가능성 → 입장 거부
+     * 온체인 좌석 정보와 DB 좌석 정보 비교 불일치 시 → DB 조작 가능성 → 입장 거부
      */
     private void verifyTicketInfoConsistency(TicketNFT.TicketInfo onChain, CheckInTicketProjection db) {
         if (db == null) {
@@ -229,15 +215,13 @@ public class QrTokenServiceImpl implements QrTokenService {
 
         // 온체인 구역명과 DB 구역명 비교
         if (!onChain.section.equals(db.getSectionName())) {
-            log.error("좌석 정보 불일치 — 온체인 section: {}, DB section: {}",
-                onChain.section, db.getSectionName());
+            log.error("좌석 정보 불일치 — 온체인 section: {}, DB section: {}", onChain.section, db.getSectionName());
             throw new BadRequestException("온체인과 DB의 좌석 정보가 일치하지 않습니다.");
         }
 
         // 온체인 등급과 DB 등급 비교
         if (!onChain.grade.equals(db.getGrade())) {
-            log.error("좌석 정보 불일치 — 온체인 grade: {}, DB grade: {}",
-                onChain.grade, db.getGrade());
+            log.error("좌석 정보 불일치 — 온체인 grade: {}, DB grade: {}", onChain.grade, db.getGrade());
             throw new BadRequestException("온체인과 DB의 좌석 정보가 일치하지 않습니다.");
         }
 
@@ -245,10 +229,9 @@ public class QrTokenServiceImpl implements QrTokenService {
     }
 
     /**
-     * 온체인 체크인 — TicketNFT.checkIn(tokenId) 호출
-     * VALID → USED 상태 변경 (블록체인에 영구 기록)
-     * 3회 재시도 + 2초 대기 (기존 BlockchainAsyncWorker 패턴과 동일)
-     * 모두 실패해도 DB 체크인은 이미 완료 → 로그만 남기고 진행
+     * 온체인 체크인 — TicketNFT.checkIn(tokenId) 호출 VALID → USED 상태 변경 (블록체인에 영구 기록) 3회
+     * 재시도 + 2초 대기 (기존 BlockchainAsyncWorker 패턴과 동일) 모두 실패해도 DB 체크인은 이미 완료 → 로그만 남기고
+     * 진행
      */
     private void executeOnChainCheckIn(Ticket ticket) {
         BigInteger tokenId = BigInteger.valueOf(ticket.getTicketNftId());
@@ -257,16 +240,14 @@ public class QrTokenServiceImpl implements QrTokenService {
         for (int attempt = 1; attempt <= maxRetry; attempt++) {
             try {
                 // 온체인 checkIn TX 전송 (onlyOwner → 플랫폼 지갑으로 서명)
-                blockchainService.getTicketNFT()
-                    .checkIn(tokenId).send();
+                blockchainService.getTicketNFT().checkIn(tokenId).send();
 
                 log.info("온체인 체크인 완료 — ticketNftId: {}", tokenId);
                 return; // 성공 시 즉시 종료
 
             } catch (Exception e) {
                 if (attempt < maxRetry) {
-                    log.warn("온체인 체크인 실패 {}/{}회, 2초 후 재시도 — ticketNftId: {}",
-                        attempt, maxRetry, tokenId);
+                    log.warn("온체인 체크인 실패 {}/{}회, 2초 후 재시도 — ticketNftId: {}", attempt, maxRetry, tokenId);
                     try {
                         Thread.sleep(2000);
                     } catch (InterruptedException ie) {
@@ -275,8 +256,8 @@ public class QrTokenServiceImpl implements QrTokenService {
                     }
                 } else {
                     // 3회 모두 실패 — DB 체크인은 유지 (최종 일관성)
-                    log.error("온체인 체크인 {}회 모두 실패 (DB 체크인은 유지) — ticketId: {}, ticketNftId: {}, error: {}",
-                        maxRetry, ticket.getId(), tokenId, e.getMessage());
+                    log.error("온체인 체크인 {}회 모두 실패 (DB 체크인은 유지) — ticketId: {}, ticketNftId: {}, error: {}", maxRetry,
+                        ticket.getId(), tokenId, e.getMessage());
                 }
             }
         }
