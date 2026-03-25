@@ -52,4 +52,12 @@ interface ShowService {
     /** 검색 키워드 저장 (AI 추천용) */
     @POST("api/v1/shows/search")
     suspend fun saveSearchKeyword(@Body request: SaveSearchKeywordRequest): ApiResponse<Unit>
+
+    /** 계약 승인 */
+    @POST("api/v1/shows/contracts/{showId}/approve")
+    suspend fun approveContract(@Path("showId") showId: Long): ApiResponse<Unit>
+
+    /** 계약 거절 */
+    @POST("api/v1/shows/contracts/{showId}/reject")
+    suspend fun rejectContract(@Path("showId") showId: Long): ApiResponse<Unit>
 }

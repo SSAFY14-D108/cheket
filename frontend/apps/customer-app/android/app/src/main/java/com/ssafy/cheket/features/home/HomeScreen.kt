@@ -85,6 +85,7 @@ fun HomeScreen(
     appContainer: AppContainer,
     onShowClick: (String) -> Unit = {},
     onMyPage: () -> Unit = {},
+    onNotificationClick: () -> Unit = {},
     onSeatMapTest: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
@@ -111,7 +112,7 @@ fun HomeScreen(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.height(32.dp),
                     )
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = onNotificationClick) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
                             contentDescription = "알림",
