@@ -11,7 +11,7 @@ public interface TicketService {
     Long purchaseTickets(Long userId, Long showId, Long sessionId, String seatAccessToken, List<Long> sessionSeatIds);
 
     // 티켓 환불
-    void refundTicket(Long userId, Long ticketId);
+    Long refundTicket(Long userId, Long ticketId);
 
     // 볼 예정인 티켓 조회
     List<GetUpcomingTicketResponse> getUpcomingTickets(Long id);

@@ -44,9 +44,11 @@ public class TicketController {
     @PostMapping("/tickets/{ticketId}/refund")
     @Operation(summary = "티켓 환불")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<Void>> refund(@AuthenticationPrincipal Long userId, @PathVariable Long ticketId) {
-        ticketService.refundTicket(userId, ticketId);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "티켓 환불에 성공했습니다.", null));
+    public ResponseEntity<ApiResponse<TxIdResponse>> refund(@AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId) {
+        Long txId = ticketService.refundTicket(userId, ticketId);
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "티켓 환불 요청이 접수되었습니다.", new TxIdResponse(txId)));
     }
 
     @GetMapping("/tickets/upcoming")
