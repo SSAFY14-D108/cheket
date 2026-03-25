@@ -38,9 +38,12 @@ class HomeViewModel(
     }
 
     private fun load() {
-        // 1. 배너 (AI 추천 — API 미구현이므로 샘플)
+        // 1. 배너 (추천 API 시도 후 실패 시 랭킹 fallback)
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(bannerSlides = sampleBannerSlides())
+            showRepository.getBannerSlides().collect {
+                Log.d(TAG, "getBannerSlides() received ${it.size} items")
+                _uiState.value = _uiState.value.copy(bannerSlides = it)
+            }
         }
 
         // 2. 랭킹 (인기순 top 5)
@@ -78,22 +81,6 @@ class HomeViewModel(
             }
         }
     }
-
-    /**
-     * AI 추천 공연 배너 — 샘플 데이터
-     * TODO: GET /api/v1/shows/recommendations API 구현 후 교체
-     */
-    private fun sampleBannerSlides(): List<BannerSlide> = listOf(
-        BannerSlide(
-            id = "rec_1",
-            showId = "12",
-            image = "https://picsum.photos/seed/concert1/800/600",
-            title = "AI가 추천하는 공연",
-            subtitle = "나의 취향을 분석한 맞춤 추천",
-            venue = "취향 기반 AI 추천",
-            dates = "좋아할 만한 공연을 모아봤어요",
-        ),
-    )
 
     companion object {
         private const val TAG = "HomeViewModel"

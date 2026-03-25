@@ -76,8 +76,20 @@ class ShowRepositoryImpl(
 
     override fun getBannerSlides(): Flow<List<BannerSlide>> = flow {
         Log.d(TAG, "getBannerSlides()")
-        // TODO: 배너 슬라이드 전용 API 없음
-        emit(emptyList())
+        val slides = try {
+            val response = showService.getRecommendations(size = 5, excludeLiked = false)
+            Log.d(TAG, "getBannerSlides() recommendations statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
+            val recommended = response.data?.shows?.map(::mapRecommendationToBannerSlide).orEmpty()
+            if (recommended.isNotEmpty()) {
+                recommended
+            } else {
+                buildRankingBannerSlides()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getBannerSlides() recommendations failed, falling back to ranking", e)
+            buildRankingBannerSlides()
+        }
+        emit(slides)
     }
 
     override fun getCategories(): Flow<List<CategoryIcon>> = flow {
@@ -228,6 +240,50 @@ class ShowRepositoryImpl(
         } catch (e: Exception) {
             Log.e(TAG, "getLikedShows() error", e)
             emptyList()
+        }
+    }
+
+    private suspend fun buildRankingBannerSlides(): List<BannerSlide> {
+        val response = showService.getShows(sort = "POPULAR", page = 0, size = 5)
+        Log.d(TAG, "buildRankingBannerSlides() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
+        return response.data?.shows?.mapIndexed { index, dto ->
+            BannerSlide(
+                id = "ranking_${dto.showId}",
+                showId = dto.showId.toString(),
+                image = dto.posterUrl,
+                title = dto.title,
+                subtitle = "랭킹 ${index + 1}위 공연",
+                venue = dto.venue,
+                dates = buildBannerDateLabel(dto.show?.showStartDate, dto.show?.showEndDate),
+            )
+        }.orEmpty()
+    }
+
+    private fun mapRecommendationToBannerSlide(dto: com.ssafy.cheket.core.network.dto.RecommendedShowDto): BannerSlide =
+        BannerSlide(
+            id = "recommendation_${dto.showId}",
+            showId = dto.showId.toString(),
+            image = dto.posterUrl,
+            title = dto.title,
+            subtitle = dto.reason ?: "AI가 추천한 공연",
+            venue = buildBannerVenueLabel(dto.artist, dto.venue),
+            dates = buildBannerDateLabel(dto.show?.showStartDate, dto.show?.showEndDate),
+        )
+
+    private fun buildBannerVenueLabel(artist: String?, venue: String): String {
+        return if (!artist.isNullOrBlank()) {
+            "$artist · $venue"
+        } else {
+            venue
+        }
+    }
+
+    private fun buildBannerDateLabel(startDate: String?, endDate: String?): String {
+        if (startDate.isNullOrBlank()) return ""
+        return if (!endDate.isNullOrBlank() && endDate != startDate) {
+            "$startDate ~ $endDate"
+        } else {
+            startDate
         }
     }
 
