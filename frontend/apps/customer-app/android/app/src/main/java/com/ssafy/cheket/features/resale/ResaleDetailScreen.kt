@@ -323,6 +323,14 @@ fun ResaleDetailScreen(
                             } else {
                                 purchaseError = "구매 응답에 txId가 없습니다."
                             }
+                        } catch (e: retrofit2.HttpException) {
+                            val errorBody = e.response()?.errorBody()?.string()
+                            val msg = try {
+                                org.json.JSONObject(errorBody ?: "").optString("errorMessage", "구매에 실패했습니다.")
+                            } catch (_: Exception) { "구매에 실패했습니다. (${e.code()})" }
+                            Log.e(TAG, "purchaseResale() failed: $msg", e)
+                            isPurchasing = false
+                            purchaseError = msg
                         } catch (e: Exception) {
                             Log.e(TAG, "purchaseResale() failed", e)
                             isPurchasing = false

@@ -12,6 +12,8 @@ import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.network.safeCall
 import com.ssafy.cheket.core.network.service.TicketService
 import com.ssafy.cheket.core.repository.TicketRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +23,8 @@ data class QrCheckinUiState(
     val ticket: Ticket? = null,
     val title: String = "",
     val seatLabel: String = "",
-    val qrData: String? = null,
-    val expiresAt: String? = null,
+    val qrData: String? = null,       // QR 코드에 담을 JWT 토큰
+    val expiresIn: Int = 0,           // 남은 초
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
@@ -35,6 +37,7 @@ class QrCheckinViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(QrCheckinUiState())
     val uiState: StateFlow<QrCheckinUiState> = _uiState.asStateFlow()
+    private var countdownJob: Job? = null
 
     init {
         loadTicket()
@@ -45,8 +48,7 @@ class QrCheckinViewModel(
         val ticketIdLong = ticketId.toLongOrNull()
         if (ticketIdLong == null) {
             _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                isRefreshing = false,
+                isLoading = false, isRefreshing = false,
                 errorMessage = "잘못된 티켓 정보입니다.",
             )
             return
@@ -59,46 +61,53 @@ class QrCheckinViewModel(
                 errorMessage = null,
             )
 
-            val result = safeCall { ticketService.generateQr(ticketIdLong) }
+            val result = safeCall { ticketService.generateQrToken(ticketIdLong) }
 
             result
                 .onSuccess { response ->
                     val data = response.data
-                    Log.d(TAG, "refreshQr() statusCode=${response.httpStatusCode}, hasData=${data != null}")
+                    Log.d(TAG, "refreshQr() statusCode=${response.httpStatusCode}, expiresIn=${data?.expiresIn}")
 
                     if (response.httpStatusCode in 200..299 && data != null) {
-                        val currentTicket = _uiState.value.ticket
                         _uiState.value = _uiState.value.copy(
-                            title = data.title.ifBlank { currentTicket?.showName.orEmpty() },
-                            seatLabel = listOf(data.sectionName, data.seatNo).filter { it.isNotBlank() }.joinToString(" "),
-                            qrData = data.qrData,
-                            expiresAt = data.expiresAt,
+                            qrData = data.qrToken,
+                            expiresIn = data.expiresIn,
                             isLoading = false,
                             isRefreshing = false,
                             errorMessage = null,
                         )
+                        startCountdown(data.expiresIn)
                     } else {
                         _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            isRefreshing = false,
+                            isLoading = false, isRefreshing = false,
                             errorMessage = response.responseMessage ?: "QR 코드를 불러오지 못했습니다.",
                         )
                     }
                 }
                 .onFailure { throwable ->
-                    val rawMessage = throwable.message ?: "QR 코드를 불러오지 못했습니다."
-                    val message = if (rawMessage.contains("HTTP 404")) {
-                        "백엔드에 QR 코드 API가 아직 연결되지 않았습니다."
-                    } else {
-                        rawMessage
-                    }
-                    Log.e(TAG, "refreshQr() failed: $message", throwable)
+                    val msg = throwable.message ?: "QR 코드를 불러오지 못했습니다."
+                    Log.e(TAG, "refreshQr() failed: $msg", throwable)
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        errorMessage = message,
+                        isLoading = false, isRefreshing = false,
+                        errorMessage = msg,
                     )
                 }
+        }
+    }
+
+    private fun startCountdown(seconds: Int) {
+        countdownJob?.cancel()
+        countdownJob = viewModelScope.launch {
+            var remaining = seconds
+            while (remaining > 0) {
+                _uiState.value = _uiState.value.copy(expiresIn = remaining)
+                delay(1000)
+                remaining--
+            }
+            // 만료 → 자동 갱신
+            _uiState.value = _uiState.value.copy(expiresIn = 0)
+            Log.d(TAG, "QR expired, auto-refreshing")
+            refreshQr()
         }
     }
 
@@ -127,6 +136,11 @@ class QrCheckinViewModel(
                 )
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        countdownJob?.cancel()
     }
 
     companion object {

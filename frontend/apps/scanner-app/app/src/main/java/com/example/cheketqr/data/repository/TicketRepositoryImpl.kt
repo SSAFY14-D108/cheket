@@ -1,35 +1,35 @@
-﻿package com.example.cheketqr.data.repository
+package com.example.cheketqr.data.repository
 
-import com.example.cheketqr.data.model.VerifyQrRequest
+import com.example.cheketqr.data.model.CheckInRequest
 import com.example.cheketqr.data.network.ScannerApiService
+import com.example.cheketqr.domain.repository.CheckInResult
 import com.example.cheketqr.domain.repository.TicketRepository
-import com.example.cheketqr.domain.repository.VerifyTicketResult
 import java.io.IOException
 
 class TicketRepositoryImpl(
-    private val apiService: ScannerApiService
+    private val apiService: ScannerApiService,
 ) : TicketRepository {
 
-    override suspend fun verifyTicket(ticketId: Long, qrToken: String): VerifyTicketResult {
+    override suspend fun checkIn(qrToken: String): CheckInResult {
         return try {
-            val response = apiService.verifyTicket(ticketId, VerifyQrRequest(qrToken))
+            val response = apiService.checkIn(CheckInRequest(qrToken))
             val body = response.body()
 
             if (response.isSuccessful && body?.data != null) {
-                VerifyTicketResult.Success(
-                    message = body.responseMessage ?: "Entry approved.",
-                    data = body.data
+                CheckInResult.Success(
+                    message = body.responseMessage ?: "입장이 승인되었습니다.",
+                    data = body.data,
                 )
             } else {
-                VerifyTicketResult.Failure(
-                    message = body?.errorMessage ?: "Verification failed. (${response.code()})",
-                    statusCode = body?.httpStatusCode ?: response.code()
+                CheckInResult.Failure(
+                    message = body?.errorMessage ?: "체크인에 실패했습니다. (${response.code()})",
+                    statusCode = body?.httpStatusCode ?: response.code(),
                 )
             }
         } catch (_: IOException) {
-            VerifyTicketResult.Failure("Please check your network connection.")
+            CheckInResult.Failure("네트워크 연결을 확인해주세요.")
         } catch (e: Exception) {
-            VerifyTicketResult.Failure(e.message ?: "Unknown error occurred.")
+            CheckInResult.Failure(e.message ?: "알 수 없는 오류가 발생했습니다.")
         }
     }
 }

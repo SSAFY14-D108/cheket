@@ -34,7 +34,7 @@ interface TicketService {
     ): ApiResponse<TxIdResponse>
 
     @POST("api/v1/tickets/{ticketId}/qr")
-    suspend fun generateQr(@Path("ticketId") ticketId: Long): ApiResponse<QrResponse>
+    suspend fun generateQrToken(@Path("ticketId") ticketId: Long): ApiResponse<QrTokenResponse>
 
     @POST("api/v1/tickets/{ticketId}/refund")
     suspend fun refundTicket(@Path("ticketId") ticketId: Long): ApiResponse<Unit>

@@ -1,9 +1,9 @@
-﻿package com.example.cheketqr.presentation.scanner
+package com.example.cheketqr.presentation.scanner
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cheketqr.data.model.VerifyTicketData
-import com.example.cheketqr.domain.repository.VerifyTicketResult
+import com.example.cheketqr.data.model.CheckInResponse
+import com.example.cheketqr.domain.repository.CheckInResult
 import com.example.cheketqr.domain.usecase.VerifyQrUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,22 +15,22 @@ data class ScannerUiState(
     val hasCameraPermission: Boolean = false,
     val isVerifying: Boolean = false,
     val isScannerEnabled: Boolean = true,
-    val resultDialog: ScanResultDialogState? = null
+    val resultDialog: ScanResultDialogState? = null,
 )
 
 sealed interface ScanResultDialogState {
     data class Success(
         val message: String,
-        val data: VerifyTicketData
+        val data: CheckInResponse,
     ) : ScanResultDialogState
 
     data class Failure(
-        val message: String
+        val message: String,
     ) : ScanResultDialogState
 }
 
 class ScannerViewModel(
-    private val verifyQrUseCase: VerifyQrUseCase
+    private val verifyQrUseCase: VerifyQrUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScannerUiState())
@@ -46,34 +46,30 @@ class ScannerViewModel(
             return
         }
 
-        _uiState.update {
-            it.copy(
-                isScannerEnabled = false,
-                isVerifying = true
-            )
-        }
-
-        val ticketId = parseTicketId(rawQrValue)
-        if (ticketId == null) {
-            showFailure("Invalid QR format.")
+        // QR 토큰은 JWT 문자열 — 그대로 check-in API에 전달
+        if (rawQrValue.isBlank()) {
+            showFailure("빈 QR 코드입니다.")
             return
         }
 
+        _uiState.update {
+            it.copy(isScannerEnabled = false, isVerifying = true)
+        }
+
         viewModelScope.launch {
-            when (val result = verifyQrUseCase(ticketId, rawQrValue)) {
-                is VerifyTicketResult.Success -> {
+            when (val result = verifyQrUseCase(rawQrValue)) {
+                is CheckInResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isVerifying = false,
                             resultDialog = ScanResultDialogState.Success(
                                 message = result.message,
-                                data = result.data
-                            )
+                                data = result.data,
+                            ),
                         )
                     }
                 }
-
-                is VerifyTicketResult.Failure -> {
+                is CheckInResult.Failure -> {
                     showFailure(result.message)
                 }
             }
@@ -85,7 +81,7 @@ class ScannerViewModel(
             it.copy(
                 resultDialog = null,
                 isScannerEnabled = true,
-                isVerifying = false
+                isVerifying = false,
             )
         }
     }
@@ -94,13 +90,8 @@ class ScannerViewModel(
         _uiState.update {
             it.copy(
                 isVerifying = false,
-                resultDialog = ScanResultDialogState.Failure(message)
+                resultDialog = ScanResultDialogState.Failure(message),
             )
         }
-    }
-
-    private fun parseTicketId(rawQrValue: String): Long? {
-        val ticket = rawQrValue.substringBefore(':', missingDelimiterValue = "")
-        return ticket.toLongOrNull()
     }
 }

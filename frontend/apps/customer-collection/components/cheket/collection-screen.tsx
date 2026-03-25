@@ -31,9 +31,9 @@ function useNativeTiltBridge() {
       const rx = (0.5 - my / 100) * 5
       const ry = (mx / 100 - 0.5) * 5
 
-      // 카드 기울기 (자이로 — 크게)
-      const cardRx = rx * 4
-      const cardRy = ry * 4
+      // 카드 기울기 (자이로 — 매우 크게)
+      const cardRx = rx * 12
+      const cardRy = ry * 12
 
       // 모든 .ticket-holo-tilt 요소에 CSS 변수 + 카드 transform 적용
       document.querySelectorAll('.ticket-holo-tilt').forEach((host) => {
@@ -663,8 +663,8 @@ function CollectibleTicketCard({
       host.style.setProperty('--posy', `${my}%`)
       host.style.setProperty('--dx', `${dx}%`)
       host.style.setProperty('--dy', `${dy}%`)
-      // 터치로 카드 기울이기 (크게)
-      host.style.transform = `perspective(800px) rotateX(${rx * 4}deg) rotateY(${ry * 4}deg)`
+      // 터치로 카드 기울이기 (적당히)
+      host.style.transform = `perspective(800px) rotateX(${rx * 2}deg) rotateY(${ry * 2}deg)`
       host.style.transition = 'transform 0.05s ease-out'
       if (!live) return
       live.style.setProperty('--mx', `${mx}%`)

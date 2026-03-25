@@ -1,19 +1,19 @@
-﻿package com.example.cheketqr.domain.repository
+package com.example.cheketqr.domain.repository
 
-import com.example.cheketqr.data.model.VerifyTicketData
+import com.example.cheketqr.data.model.CheckInResponse
 
-sealed interface VerifyTicketResult {
+sealed interface CheckInResult {
     data class Success(
         val message: String,
-        val data: VerifyTicketData
-    ) : VerifyTicketResult
+        val data: CheckInResponse,
+    ) : CheckInResult
 
     data class Failure(
         val message: String,
-        val statusCode: Int? = null
-    ) : VerifyTicketResult
+        val statusCode: Int? = null,
+    ) : CheckInResult
 }
 
 interface TicketRepository {
-    suspend fun verifyTicket(ticketId: Long, qrToken: String): VerifyTicketResult
+    suspend fun checkIn(qrToken: String): CheckInResult
 }

@@ -4,18 +4,30 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
-import com.example.cheketqr.ui.theme.CheketQRTheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import com.example.cheketqr.data.network.TokenStore
+import com.example.cheketqr.presentation.login.LoginScreen
 import com.example.cheketqr.presentation.scanner.ScannerRoute
+import com.example.cheketqr.ui.theme.CheketQRTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TokenStore.init(this)
         enableEdgeToEdge()
         setContent {
             CheketQRTheme {
-                ScannerRoute(modifier = Modifier.fillMaxSize())
+                var isLoggedIn by remember { mutableStateOf(TokenStore.isLoggedIn) }
+
+                if (isLoggedIn) {
+                    ScannerRoute(modifier = Modifier.fillMaxSize())
+                } else {
+                    LoginScreen(
+                        onLoginSuccess = { isLoggedIn = true },
+                    )
+                }
             }
         }
     }
