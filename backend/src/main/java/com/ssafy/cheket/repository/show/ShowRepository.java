@@ -59,8 +59,8 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
           )
         order by s.reservationStartDate asc, s.id desc
         """)
-    List<Show> findRecommendationCandidates(@Param("userId") Long userId,
-        @Param("excludeLiked") boolean excludeLiked, @Param("now") LocalDateTime now);
+    List<Show> findRecommendationCandidates(@Param("userId") Long userId, @Param("excludeLiked") boolean excludeLiked,
+        @Param("now") LocalDateTime now);
 
     // 인기순(예매수)
     @EntityGraph(attributePaths = {"venue"})

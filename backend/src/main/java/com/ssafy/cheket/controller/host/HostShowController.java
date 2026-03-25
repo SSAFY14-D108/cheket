@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -36,6 +37,17 @@ public class HostShowController {
         @RequestPart(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
         CreateShowResponse response = hostShowService.createShow(hostId, request, posterImage, descriptionImages);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "공연 등록 완료", response));
+    }
+
+    @PostMapping("/{showId}/contracts/confirm")
+    @Operation(summary = "공연 최종 등록 (StakeholderNFT 발행)", description = "이해관계자 전원 승인 확인 후 StakeholderNFT 온체인 발행."
+        + " 전원 APPROVED가 아니면 400 에러 반환.")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> confirmShow(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        Long txId = hostShowService.confirmShow(hostId, showId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.ok(201, "최종 등록 완료 — StakeholderNFT 발행 진행 중", Map.of("showId", showId, "txId", txId)));
     }
 
     @PatchMapping(value = "/{showId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

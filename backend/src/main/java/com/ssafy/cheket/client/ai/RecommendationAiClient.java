@@ -3,6 +3,7 @@ package com.ssafy.cheket.client.ai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.cheket.client.ai.dto.RecommendationRequestPayload;
 import com.ssafy.cheket.client.ai.dto.RecommendationResponsePayload;
+import com.ssafy.cheket.exception.common.AiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -24,28 +25,23 @@ public class RecommendationAiClient {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
     private final ObjectMapper objectMapper;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(5))
-        .build();
+    private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
-    @Value("${ai.server.base-url:http://127.0.0.1:8001}")
+    @Value("${ai.server.base-url")
     private String baseUrl;
 
     public RecommendationResponsePayload recommend(RecommendationRequestPayload payload) {
         try {
             byte[] requestBody = objectMapper.writeValueAsBytes(payload);
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/api/v1/recommendations"))
-                .timeout(REQUEST_TIMEOUT)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
-                .build();
+            HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + "/api/v1/recommendations"))
+                .timeout(REQUEST_TIMEOUT).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody)).build();
 
             HttpResponse<String> response = httpClient.send(request,
                 HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("AI recommendation request failed: " + response.statusCode());
+                throw new AiException("AI 서버 오류 입니다.");
             }
 
             return objectMapper.readValue(response.body(), RecommendationResponsePayload.class);
@@ -53,7 +49,7 @@ public class RecommendationAiClient {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new IllegalStateException("AI recommendation request failed", e);
+            throw new AiException("AI 서버 오류 입니다.");
         }
     }
 }

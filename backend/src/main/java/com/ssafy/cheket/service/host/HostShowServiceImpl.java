@@ -227,8 +227,8 @@ public class HostShowServiceImpl implements HostShowService {
             .showStartDate(request.showStartDate()).showEndDate(request.showEndDate())
             .reservationStartDate(request.reservationStartDate()).reservationEndDate(request.reservationEndDate())
             .playtime(request.playtime()).description(request.description()).purchaseLimit(request.purchaseLimit())
-            .artist(request.artist()).platformFeeBps(800).platformWallet(platformWallet).status(ShowStatus.DRAFT)
-            .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+            .artist(request.artist()).platformFeeBps(800).platformWallet(platformWallet)
+            .status(ShowStatus.PENDING_CONTRACT).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 
         show = showRepository.save(show);
         Long showId = show.getId();
@@ -263,7 +263,8 @@ public class HostShowServiceImpl implements HostShowService {
             refundPolicyRepository.save(refundPolicy);
         }
 
-        // 7. ⑥ stakeholders 저장 + StakeholderNFT 온체인 발행
+        // 7. ⑥ stakeholders 저장 (온체인 발행은 최종 등록(confirm) 시 수행)
+        // 이해관계자 전원 승인 후 주최자가 최종 등록해야 StakeholderNFT 발행됨
         List<Stakeholder> savedStakeholders = new ArrayList<>();
 
         for (AddShowRequest.StakeholderInfo info : request.stakeholders()) {
@@ -282,12 +283,13 @@ public class HostShowServiceImpl implements HostShowService {
             }
 
             Stakeholder stakeholder = Stakeholder.builder().showId(showId).userId(userId).hostId(stakeholderHostId)
-                .role(role).shareBps(info.shareBps()).build();
+                .role(role).shareBps(info.shareBps()).approvalStatus(ApprovalStatus.PENDING).build();
 
             stakeholder = stakeholderRepository.save(stakeholder);
             savedStakeholders.add(stakeholder);
         }
 
+        // 이해관계자들에게 승인 요청 알림 발송
         List<Long> targetUserIds = savedStakeholders.stream().map(Stakeholder::getUserId).filter(Objects::nonNull)
             .distinct().toList();
 
@@ -295,27 +297,10 @@ public class HostShowServiceImpl implements HostShowService {
             notificationService.sendRequestCreate(userId, showId);
         }
 
-        // 플랫폼도 Stakeholder로 추가 (800 bps = 8%)
+        // 플랫폼도 Stakeholder로 추가 (800 bps = 8%, 승인 불필요 → APPROVED)
         Stakeholder platformStakeholder = Stakeholder.builder().showId(showId).role(StakeholderRole.ORGANIZER)
-            .shareBps(800).build();
-        platformStakeholder = stakeholderRepository.save(platformStakeholder);
-        savedStakeholders.add(platformStakeholder);
-
-        // StakeholderNFT 온체인 발행 — 비동기 처리
-        // Transaction PENDING 생성 후, 커밋 완료 시 afterCommit에서 비동기 민팅 시작
-        List<Long> stakeholderIds = savedStakeholders.stream().map(Stakeholder::getId).toList();
-
-        Transaction tx = Transaction.builder().type(Transaction.TransactionType.STAKEHOLDER_MINT).amount(0L)
-            .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
-        tx = transactionRepository.save(tx);
-        Long txId = tx.getId();
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                blockchainAsyncWorker.processOnChainStakeholderMint(txId, stakeholderIds, platformWallet);
-            }
-        });
+            .shareBps(800).approvalStatus(ApprovalStatus.APPROVED).approvedAt(LocalDateTime.now()).build();
+        stakeholderRepository.save(platformStakeholder);
 
         // 8. ⑦ show_images 저장 (설명 이미지)
         if (descriptionImages != null && !descriptionImages.isEmpty()) {
@@ -339,7 +324,7 @@ public class HostShowServiceImpl implements HostShowService {
         }
         sessionSeatRepository.saveAll(sessionSeats);
 
-        return new CreateShowResponse(showId, txId);
+        return new CreateShowResponse(showId);
     }
 
     @Override
@@ -347,8 +332,8 @@ public class HostShowServiceImpl implements HostShowService {
     public void deleteShow(Long hostId, Long showId) {
         // 1. 공연 존재 + 권한 확인
         Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
-        if (show.getStatus() != ShowStatus.DRAFT) {
-            throw new BadRequestException("임시저장 상태의 공연만 삭제할 수 있습니다.");
+        if (show.getStatus() != ShowStatus.DRAFT && show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("임시저장 또는 계약 대기 상태의 공연만 삭제할 수 있습니다.");
         }
         if (!show.getHost().getId().equals(hostId)) {
             throw new ForbiddenException("본인이 등록한 공연만 삭제할 수 있습니다.");
@@ -381,8 +366,8 @@ public class HostShowServiceImpl implements HostShowService {
 
         // 1. 공연 존재 + 권한 확인
         Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
-        if (show.getStatus() != ShowStatus.DRAFT) {
-            throw new BadRequestException("임시저장 상태의 공연만 수정할 수 있습니다.");
+        if (show.getStatus() != ShowStatus.DRAFT && show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("임시저장 또는 계약 대기 상태의 공연만 수정할 수 있습니다.");
         }
         if (!show.getHost().getId().equals(hostId))
             throw new ForbiddenException("본인이 등록한 공연만 수정할 수 있습니다.");
@@ -583,6 +568,73 @@ public class HostShowServiceImpl implements HostShowService {
 
             return new GetApprovalListResponse(userType, userId, username, approvalStatus, determinedAt);
         }).toList();
+    }
+
+    /**
+     * 주최자 최종 등록 — 이해관계자 전원 승인 확인 후 StakeholderNFT 온체인 발행
+     *
+     * [선행 조건] ① 본인 공연인지 확인 ② DRAFT 상태인지 확인 (이미 민팅된 공연은 중복 발행 불가) ③ 이해관계자 전원
+     * APPROVED인지 확인 (PENDING/REJECTED 있으면 거부)
+     *
+     * [처리 흐름] 전원 승인 → Transaction(STAKEHOLDER_MINT) PENDING 생성 → afterCommit에서 비동기
+     * StakeholderNFT 발행
+     *
+     * @return 생성된 Transaction ID (프론트에서 폴링으로 상태 추적)
+     */
+    @Override
+    @Transactional
+    public Long confirmShow(Long hostId, Long showId) {
+        // 1. 공연 존재 + 권한 확인
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (!show.getHost().getId().equals(hostId)) {
+            throw new ForbiddenException("본인이 등록한 공연만 최종 등록할 수 있습니다.");
+        }
+        if (show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("계약 대기(PENDING_CONTRACT) 상태의 공연만 최종 등록할 수 있습니다.");
+        }
+
+        // 2. 이해관계자 전원 승인 확인 (플랫폼 제외한 실제 계약 대상만)
+        List<Stakeholder> contractTargets = stakeholderRepository.findContractTargetsByShowId(showId);
+        if (contractTargets.isEmpty()) {
+            throw new BadRequestException("등록된 이해관계자가 없습니다.");
+        }
+
+        List<Stakeholder> notApproved = contractTargets.stream()
+            .filter(s -> s.getApprovalStatus() != ApprovalStatus.APPROVED).toList();
+        if (!notApproved.isEmpty()) {
+            long pendingCount = notApproved.stream()
+                .filter(s -> s.getApprovalStatus() == ApprovalStatus.PENDING || s.getApprovalStatus() == null).count();
+            long rejectedCount = notApproved.stream().filter(s -> s.getApprovalStatus() == ApprovalStatus.REJECTED)
+                .count();
+            throw new BadRequestException(
+                "이해관계자 전원 승인이 필요합니다. (미응답: " + pendingCount + "명, 거절: " + rejectedCount + "명)");
+        }
+
+        // 3. 상태 변경: PENDING_CONTRACT → DRAFT (이제 민팅 스케줄러 대상이 됨)
+        show.setStatus(ShowStatus.DRAFT);
+        show.setUpdatedAt(LocalDateTime.now());
+
+        // 4. 플랫폼 지갑 주소 추출
+        Credentials credentials = Credentials.create(platformPrivateKey);
+        String platformWallet = credentials.getAddress();
+
+        // 5. StakeholderNFT 온체인 발행 — 비동기 처리
+        List<Long> stakeholderIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getId)
+            .toList();
+
+        Transaction tx = Transaction.builder().type(Transaction.TransactionType.STAKEHOLDER_MINT).amount(0L)
+            .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
+        tx = transactionRepository.save(tx);
+        Long txId = tx.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainStakeholderMint(txId, stakeholderIds, platformWallet);
+            }
+        });
+
+        return txId;
     }
 
     private ShowItem toShowItem(Show s) {

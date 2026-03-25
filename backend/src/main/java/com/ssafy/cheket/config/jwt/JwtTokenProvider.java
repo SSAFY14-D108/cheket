@@ -82,4 +82,24 @@ public class JwtTokenProvider {
         Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
         return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
+
+    // QR 전용 토큰 생성 — 입장 검증용 (만료: 30초)
+    // Access Token과 구분하기 위해 "type" 클레임 추가
+    public String generateQrToken(Long ticketId, Long userId) {
+        Date now = new Date();
+        return Jwts.builder().subject(String.valueOf(ticketId)) // 토큰의 주체 = 티켓 ID
+            .claim("userId", userId) // 티켓 소유자 ID (소유권 검증용)
+            .claim("type", "QR_TOKEN") // 토큰 유형 (Access Token과 구분)
+            .issuedAt(now) // 발급 시간
+            .expiration(new Date(now.getTime() + 30_000)) // 30초 후 만료
+            .signWith(secretKey) // 동일한 비밀키로 서명
+            .compact();
+    }
+
+    // QR 토큰에서 Claims 파싱 — ticketId, userId, type 추출용
+    // 서명 검증 + 만료 확인을 동시에 수행 (실패 시 예외 발생)
+    public Claims parseQrToken(String qrToken) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(qrToken).getPayload();
+    }
+
 }

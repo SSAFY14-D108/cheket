@@ -61,10 +61,7 @@ public class RecommendationEmbeddingStore {
             return List.of();
         }
 
-        int dimension = embeddings.values().stream()
-            .findFirst()
-            .map(List::size)
-            .orElse(0);
+        int dimension = embeddings.values().stream().findFirst().map(List::size).orElse(0);
         if (dimension == 0) {
             return List.of();
         }
@@ -97,16 +94,12 @@ public class RecommendationEmbeddingStore {
     }
 
     private boolean tableExists(String tableName) {
-        Integer count = jdbcTemplate.queryForObject(
-            """
-                select count(*)
-                from information_schema.tables
-                where table_schema = database()
-                  and table_name = ?
-                """,
-            Integer.class,
-            tableName
-        );
+        Integer count = jdbcTemplate.queryForObject("""
+            select count(*)
+            from information_schema.tables
+            where table_schema = database()
+              and table_name = ?
+            """, Integer.class, tableName);
         return count != null && count > 0;
     }
 

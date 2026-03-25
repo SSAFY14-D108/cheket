@@ -17,7 +17,6 @@ import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
 import com.ssafy.cheket.exception.common.NotFoundException;
-import com.ssafy.cheket.exception.common.UnauthorizedException;
 import com.ssafy.cheket.repository.show.*;
 import com.ssafy.cheket.repository.show.projection.HeldSeatLockProjection;
 import com.ssafy.cheket.repository.show.projection.PurchaseSessionSeatProjection;
@@ -231,19 +230,15 @@ public class ShowServiceImpl implements ShowService {
 
     @Override
     public GetRecommendationsResponse getRecommendations(Long userId) {
-        if (userId == null) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
-
         LocalDateTime now = LocalDateTime.now();
         List<Show> likedShows = limitSignals(likeRepository.findLikedShowsByUserId(userId));
         List<Show> purchasedShows = limitSignals(ticketRepository.findPurchasedShowsByUserId(userId));
         List<String> recentKeywords = getRecentKeywords(userId);
 
-        int candidateLimit = clamp(DEFAULT_RECOMMENDATION_SIZE * 10, DEFAULT_RECOMMENDATION_SIZE, CANDIDATE_FETCH_LIMIT);
+        int candidateLimit = clamp(DEFAULT_RECOMMENDATION_SIZE * 10, DEFAULT_RECOMMENDATION_SIZE,
+            CANDIDATE_FETCH_LIMIT);
         List<Show> candidates = showRepository.findRecommendationCandidates(userId, DEFAULT_EXCLUDE_LIKED, now).stream()
-            .limit(candidateLimit)
-            .toList();
+            .limit(candidateLimit).toList();
 
         if (candidates.isEmpty()) {
             return new GetRecommendationsResponse(List.of());
@@ -255,7 +250,8 @@ public class ShowServiceImpl implements ShowService {
         List<RecommendedShowItem> recommendations;
         try {
             RecommendationResponsePayload response = recommendationAiClient.recommend(payload);
-            recommendations = mergeAiRecommendations(response.recommendations(), candidates, DEFAULT_RECOMMENDATION_SIZE);
+            recommendations = mergeAiRecommendations(response.recommendations(), candidates,
+                DEFAULT_RECOMMENDATION_SIZE);
         } catch (RuntimeException e) {
             recommendations = buildLocalFallbackRecommendations(likedShows, purchasedShows, recentKeywords, candidates,
                 DEFAULT_RECOMMENDATION_SIZE);
@@ -488,18 +484,14 @@ public class ShowServiceImpl implements ShowService {
             embeddingSignals.add(new RecommendationEmbeddingStore.WeightedShowSignal(show.getId(), 1.0));
         }
 
-        Map<Long, List<Double>> candidateEmbeddings = recommendationEmbeddingStore.findEmbeddingsByShowIds(
-            candidates.stream().map(Show::getId).toList()
-        );
+        Map<Long, List<Double>> candidateEmbeddings = recommendationEmbeddingStore
+            .findEmbeddingsByShowIds(candidates.stream().map(Show::getId).toList());
 
-        return new RecommendationRequestPayload(
-            userId,
+        return new RecommendationRequestPayload(userId,
             recommendationEmbeddingStore.buildWeightedUserEmbedding(embeddingSignals),
             buildUserProfileText(likedShows, purchasedShows, recentKeywords),
-            buildArtistPreferences(likedShows, purchasedShows),
-            recentKeywords,
-            candidates.stream().map(show -> toCandidatePayload(show, candidateEmbeddings)).toList()
-        );
+            buildArtistPreferences(likedShows, purchasedShows), recentKeywords,
+            candidates.stream().map(show -> toCandidatePayload(show, candidateEmbeddings)).toList());
     }
 
     private List<Show> limitSignals(List<Show> shows) {
@@ -532,8 +524,7 @@ public class ShowServiceImpl implements ShowService {
         }
 
         return artistWeights.entrySet().stream()
-            .map(entry -> new ArtistPreferencePayload(entry.getKey(), entry.getValue()))
-            .toList();
+            .map(entry -> new ArtistPreferencePayload(entry.getKey(), entry.getValue())).toList();
     }
 
     private void addArtistPreferenceWeight(Map<String, Double> artistWeights, String artist, double delta) {
@@ -562,17 +553,9 @@ public class ShowServiceImpl implements ShowService {
     }
 
     private CandidateShowPayload toCandidatePayload(Show show, Map<Long, List<Double>> candidateEmbeddings) {
-        return new CandidateShowPayload(
-            show.getId(),
-            show.getArtist(),
-            show.getTitle(),
-            show.getVenue().getName(),
-            candidateEmbeddings.getOrDefault(show.getId(), List.of()),
-            buildEmbeddingText(show),
-            computeTicketingState(show),
-            computeShowState(show),
-            show.getShowStartDate().toLocalDate().toString()
-        );
+        return new CandidateShowPayload(show.getId(), show.getArtist(), show.getTitle(), show.getVenue().getName(),
+            candidateEmbeddings.getOrDefault(show.getId(), List.of()), buildEmbeddingText(show),
+            computeTicketingState(show), computeShowState(show), show.getShowStartDate().toLocalDate().toString());
     }
 
     private String buildEmbeddingText(Show show) {
@@ -584,39 +567,34 @@ public class ShowServiceImpl implements ShowService {
         parts.add("설명: " + show.getDescription());
         parts.add("공연장: " + show.getVenue().getName());
         parts.add("지역: " + show.getVenue().getRegion().getName());
-        if (show.getHost() != null && show.getHost().getCompanyName() != null && !show.getHost().getCompanyName().isBlank()) {
+        if (show.getHost() != null && show.getHost().getCompanyName() != null
+            && !show.getHost().getCompanyName().isBlank()) {
             parts.add("주최사: " + show.getHost().getCompanyName());
         }
         return String.join(" / ", parts);
     }
 
-    private List<RecommendedShowItem> mergeAiRecommendations(List<RecommendationItemPayload> aiItems, List<Show> candidates,
-        int size) {
+    private List<RecommendedShowItem> mergeAiRecommendations(List<RecommendationItemPayload> aiItems,
+        List<Show> candidates, int size) {
         Map<Long, Show> showById = candidates.stream().collect(Collectors.toMap(Show::getId, show -> show));
-        return aiItems.stream()
-            .map(item -> {
-                Show show = showById.get(item.showId());
-                if (show == null) {
-                    return null;
-                }
-                return toRecommendedShowItem(show, item.score());
-            })
-            .filter(item -> item != null)
-            .limit(size)
-            .toList();
+        return aiItems.stream().map(item -> {
+            Show show = showById.get(item.showId());
+            if (show == null) {
+                return null;
+            }
+            return toRecommendedShowItem(show, item.score());
+        }).filter(item -> item != null).limit(size).toList();
     }
 
-    private List<RecommendedShowItem> buildLocalFallbackRecommendations(List<Show> likedShows, List<Show> purchasedShows,
-        List<String> recentKeywords, List<Show> candidates, int size) {
+    private List<RecommendedShowItem> buildLocalFallbackRecommendations(List<Show> likedShows,
+        List<Show> purchasedShows, List<String> recentKeywords, List<Show> candidates, int size) {
         Map<String, Double> tokenWeights = buildInterestTokenWeights(likedShows, purchasedShows);
         Map<String, Double> artistWeights = buildArtistWeightMap(likedShows, purchasedShows);
 
         return candidates.stream()
             .map(show -> computeLocalRecommendation(show, tokenWeights, artistWeights, recentKeywords))
-            .sorted(Comparator.comparing(LocalRecommendation::score).reversed())
-            .limit(size)
-            .map(result -> toRecommendedShowItem(result.show(), result.score()))
-            .toList();
+            .sorted(Comparator.comparing(LocalRecommendation::score).reversed()).limit(size)
+            .map(result -> toRecommendedShowItem(result.show(), result.score())).toList();
     }
 
     private Map<String, Double> buildInterestTokenWeights(List<Show> likedShows, List<Show> purchasedShows) {
@@ -676,8 +654,7 @@ public class ShowServiceImpl implements ShowService {
         }
 
         Set<String> candidateTokens = extractMeaningfulTokens(buildEmbeddingText(show));
-        double matchedWeight = candidateTokens.stream()
-            .mapToDouble(token -> tokenWeights.getOrDefault(token, 0.0))
+        double matchedWeight = candidateTokens.stream().mapToDouble(token -> tokenWeights.getOrDefault(token, 0.0))
             .sum();
         return Math.min(matchedWeight / 12.0, 0.42);
     }
@@ -810,21 +787,13 @@ public class ShowServiceImpl implements ShowService {
     }
 
     private RecommendedShowItem toRecommendedShowItem(Show show, double score) {
-        return new RecommendedShowItem(
-            show.getId(),
-            show.getTitle(),
-            show.getPosterUrl(),
-            show.getVenue().getName(),
-            show.getPurchaseLimit(),
-            show.getVenue().getRegion().getName(),
-            new RecommendedShowItem.ShowPeriod(show.getShowStartDate().toLocalDate(), show.getShowEndDate().toLocalDate()),
+        return new RecommendedShowItem(show.getId(), show.getTitle(), show.getPosterUrl(), show.getVenue().getName(),
+            show.getPurchaseLimit(), show.getVenue().getRegion().getName(),
+            new RecommendedShowItem.ShowPeriod(show.getShowStartDate().toLocalDate(),
+                show.getShowEndDate().toLocalDate()),
             new RecommendedShowItem.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
-            show.getStatus().name(),
-            show.getArtist(),
-            computeTicketingState(show),
-            computeShowState(show),
-            roundScore(score)
-        );
+            show.getStatus().name(), show.getArtist(), computeTicketingState(show), computeShowState(show),
+            roundScore(score));
     }
 
     private double roundScore(double score) {

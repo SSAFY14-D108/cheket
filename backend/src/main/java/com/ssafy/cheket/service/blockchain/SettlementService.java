@@ -50,18 +50,15 @@ public interface SettlementService {
     /**
      * 특정 회차 1건 즉시 정산 (수동 API용)
      *
-     * 공연 ID + 회차 ID를 지정해서 단일 회차만 정산
-     * 특정 회차만 긴급 정산하거나 테스트할 때 사용
+     * 공연 ID + 회차 ID를 지정해서 단일 회차만 정산 특정 회차만 긴급 정산하거나 테스트할 때 사용
      *
-     * [사전 검증]
-     * - 공연/회차 존재 여부
-     * - EventNFT 발행(민팅) 완료 여부
-     * - onChainSessionId 존재 여부
-     * - 온체인 이중 정산 방지 (isFinalized 체크)
-     * - 예치금 존재 여부
+     * [사전 검증] - 공연/회차 존재 여부 - EventNFT 발행(민팅) 완료 여부 - onChainSessionId 존재 여부 - 온체인
+     * 이중 정산 방지 (isFinalized 체크) - 예치금 존재 여부
      *
-     * @param showId 공연 ID
-     * @param sessionId 회차 ID
+     * @param showId
+     *            공연 ID
+     * @param sessionId
+     *            회차 ID
      */
     void finalizeBySessionId(Long showId, Long sessionId);
 

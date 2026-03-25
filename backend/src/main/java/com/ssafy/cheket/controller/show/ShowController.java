@@ -87,8 +87,7 @@ public class ShowController {
     @Operation(summary = "추천 공연 조회")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<GetRecommendationsResponse>> getRecommendations(
-        @AuthenticationPrincipal Long userId
-    ) {
+        @AuthenticationPrincipal Long userId) {
         GetRecommendationsResponse response = showService.getRecommendations(userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "추천 공연 조회 완료", response));
     }

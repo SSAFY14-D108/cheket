@@ -28,4 +28,6 @@ public interface HostShowService {
         List<MultipartFile> descriptionImages);
 
     List<GetApprovalListResponse> getContracts(Long hostId, Long showId);
+
+    Long confirmShow(Long hostId, Long showId);
 }
