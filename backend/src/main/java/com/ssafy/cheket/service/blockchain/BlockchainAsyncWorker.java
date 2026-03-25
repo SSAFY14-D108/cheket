@@ -410,16 +410,14 @@ public class BlockchainAsyncWorker {
     /**
      * 블록체인 환불 처리 — @Async로 별도 스레드에서 실행
      *
-     * [흐름]
-     * ① 환불 대상(ticket/seat/user) 재검증 + 온체인 소유자 검증
-     * ② 사용자 키로 TicketNFT.setApprovalForAll(Settlement, true) — NFT 회수 허락
-     * ③ Settlement.refund() 호출 — 온체인에서 환불액 계산 + SSF 전송 + NFT 회수
-     * ④ 온체인 NFT 회수 검증
-     * ⑤ Transaction/Ticket/Seat 상태 반영
+     * [흐름] ① 환불 대상(ticket/seat/user) 재검증 + 온체인 소유자 검증 ② 사용자 키로
+     * TicketNFT.setApprovalForAll(Settlement, true) — NFT 회수 허락 ③
+     * Settlement.refund() 호출 — 온체인에서 환불액 계산 + SSF 전송 + NFT 회수 ④ 온체인 NFT 회수 검증 ⑤
+     * Transaction/Ticket/Seat 상태 반영
      */
     @Async
-    public void processOnChainRefund(Long txId, Long userId, Long ticketId,
-        Long onChainSessionId, Long onChainTicketNftId) {
+    public void processOnChainRefund(Long txId, Long userId, Long ticketId, Long onChainSessionId,
+        Long onChainTicketNftId) {
         log.info("[티켓 환불 비동기] 시작 — txId={}, ticketId={}, userId={}", txId, ticketId, userId);
 
         Long sessionSeatId = null;
@@ -461,7 +459,8 @@ public class BlockchainAsyncWorker {
                 throw new BlockchainException("온체인 티켓 소유자가 환불 요청자와 일치하지 않습니다.");
             }
 
-            // ========== ② TicketNFT.setApprovalForAll(Settlement, true) — 사용자 키로 대리 서명 ==========
+            // ========== ② TicketNFT.setApprovalForAll(Settlement, true) — 사용자 키로 대리 서명
+            // ==========
             Credentials ownerCredentials = WalletUtils.loadCredentials(keystorePassword,
                 new File(keystoreDirectory + "/" + ownerWallet.getKeystoreFilename()));
 
@@ -470,8 +469,8 @@ public class BlockchainAsyncWorker {
 
             String settlementAddress = blockchainService.getSettlement().getContractAddress();
 
-            tx.setDescription("전자서명 처리 중 — NFT 환불 승인 (ticketId=%d, nftId=%d, userId=%d)".formatted(
-                ticketId, onChainTicketNftId, userId));
+            tx.setDescription("전자서명 처리 중 — NFT 환불 승인 (ticketId=%d, nftId=%d, userId=%d)".formatted(ticketId,
+                onChainTicketNftId, userId));
             transactionRepository.save(tx);
             log.info("[티켓 환불 비동기] NFT approve 전송 중 — Settlement={}", settlementAddress);
 
@@ -493,8 +492,8 @@ public class BlockchainAsyncWorker {
             // ========== ③ Settlement.refund() 호출 ==========
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
-            tx.setDescription("블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, approveTxHash=%s)"
-                .formatted(ticketId, onChainTicketNftId, approveTx.getTransactionHash()));
+            tx.setDescription("블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, approveTxHash=%s)".formatted(ticketId,
+                onChainTicketNftId, approveTx.getTransactionHash()));
             transactionRepository.save(tx);
             log.info("[티켓 환불 비동기] Transaction → SUBMITTED");
 
@@ -522,8 +521,8 @@ public class BlockchainAsyncWorker {
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(
                 refundReceipt.getBlockNumber() != null ? refundReceipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 환불 완료 (ticketId=%d, nftId=%d, refunded=%d SSF, txHash=%s)"
-                .formatted(ticketId, onChainTicketNftId, refundedAmount, txHash));
+            tx.setDescription("블록체인 확정 — 환불 완료 (ticketId=%d, nftId=%d, refunded=%d SSF, txHash=%s)".formatted(ticketId,
+                onChainTicketNftId, refundedAmount, txHash));
             transactionRepository.save(tx);
 
             ticketRepository.delete(ticket);
@@ -687,7 +686,8 @@ public class BlockchainAsyncWorker {
      * 티켓 번호 생성 (고유 식별자) QR 코드나 앱에서 표시용 (DB id보다 사용자 친화적)
      */
     /**
-     * Keep local wallet balance in sync with on-chain state after balance-changing transactions.
+     * Keep local wallet balance in sync with on-chain state after balance-changing
+     * transactions.
      */
     private void syncWalletBalanceFromChain(Wallet wallet) {
         try {

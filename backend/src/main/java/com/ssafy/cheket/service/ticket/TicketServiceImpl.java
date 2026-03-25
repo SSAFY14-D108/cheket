@@ -177,8 +177,7 @@ public class TicketServiceImpl implements TicketService {
     // ========== 티켓 환불 ==========
 
     /**
-     * 티켓 환불 — 검증 + PENDING 생성 + 즉시 응답
-     * 블록체인 처리는 BlockchainAsyncWorker가 별도 스레드에서 담당
+     * 티켓 환불 — 검증 + PENDING 생성 + 즉시 응답 블록체인 처리는 BlockchainAsyncWorker가 별도 스레드에서 담당
      */
     @Override
     @Transactional
@@ -186,8 +185,7 @@ public class TicketServiceImpl implements TicketService {
         log.info("[티켓 환불] 요청 — userId={}, ticketId={}", userId, ticketId);
 
         // ① 유효성 검증
-        Ticket ticket = ticketRepository.findById(ticketId)
-            .orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
 
         if (!ticket.getUserId().equals(userId)) {
             throw new ForbiddenException("본인 소유 티켓만 환불할 수 있습니다.");
@@ -245,14 +243,9 @@ public class TicketServiceImpl implements TicketService {
         sessionSeatRepository.save(sessionSeat);
 
         // ④ Transaction PENDING 생성 (환불 금액은 온체인에서 결정)
-        Transaction transaction = Transaction.builder()
-            .type(Transaction.TransactionType.REFUND)
-            .amount(0L)
-            .description("요청 접수 — 티켓 환불 대기 (ticketId=%d, userId=%d, nftId=%d)"
-                .formatted(ticketId, userId, ticket.getTicketNftId()))
-            .txStatus(Transaction.TxStatus.PENDING)
-            .buyerId(userId)
-            .build();
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND).amount(0L).description(
+            "요청 접수 — 티켓 환불 대기 (ticketId=%d, userId=%d, nftId=%d)".formatted(ticketId, userId, ticket.getTicketNftId()))
+            .txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
         transactionRepository.save(transaction);
 
         log.info("[티켓 환불] PENDING 생성 — txId={}", transaction.getId());
@@ -265,8 +258,8 @@ public class TicketServiceImpl implements TicketService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                blockchainAsyncWorker.processOnChainRefund(txId, userId, ticketId,
-                    onChainSessionId, onChainTicketNftId);
+                blockchainAsyncWorker.processOnChainRefund(txId, userId, ticketId, onChainSessionId,
+                    onChainTicketNftId);
             }
         });
 
