@@ -5,6 +5,7 @@ import com.ssafy.cheket.config.jwt.JwtTokenProvider;
 import com.ssafy.cheket.dto.ticket.response.CheckInResponse;
 import com.ssafy.cheket.dto.ticket.response.QrTokenResponse;
 import com.ssafy.cheket.entity.ticket.Ticket;
+import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
 import com.ssafy.cheket.exception.common.BadRequestException;
@@ -127,8 +128,9 @@ public class QrTokenServiceImpl implements QrTokenService {
         CheckInTicketProjection dbInfo = ticketRepository.findCheckInInfoByTicketId(ticketId);
         verifyTicketInfoConsistency(onChainTicket, dbInfo);
 
-        // ── 7단계: DB 체크인 기록 ──
+        // ── 7단계: DB 체크인 기록 + 티켓 상태 USED 변경 ──
         ticket.setCheckedInAt(LocalDateTime.now());
+        ticket.setResaleStatus(ResaleStatus.USED);
         ticketRepository.save(ticket);
 
         // ── 8단계: 온체인 체크인 (VALID → USED) ──

@@ -64,7 +64,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows/venue").permitAll()
                 .requestMatchers("/api/v1/shows/{showId}/refund").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/shows/upcoming").permitAll()
-                .requestMatchers("/api/v1/minting/**").permitAll() // 민팅 테스트 API (운영 시 제거)
+                .requestMatchers("/api/v1/blockchain/**").permitAll() // 블록체인 테스트/관리 API (운영 시 제거)
                 .requestMatchers("/api/v1/users/notifications/test").permitAll()
                 // 나머지는 인증 필수
                 .anyRequest().authenticated())

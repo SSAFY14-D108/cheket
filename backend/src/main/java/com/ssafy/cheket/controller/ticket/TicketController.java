@@ -89,7 +89,7 @@ public class TicketController {
             .body(ApiResponse.ok(201, "리세일 등록 요청이 접수되었습니다.", new TxIdResponse(txId)));
     }
 
-    @PostMapping("/tickets/{ticketId}/qr-token")
+    @PostMapping("/tickets/{ticketId}/qr")
     @Operation(summary = "QR 입장 토큰 발급", description = "티켓 입장용 QR 코드 데이터를 발급 (30초 유효)")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<QrTokenResponse>> generateQrToken(@AuthenticationPrincipal Long userId,

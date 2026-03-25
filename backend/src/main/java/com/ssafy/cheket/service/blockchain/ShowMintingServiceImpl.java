@@ -12,6 +12,7 @@ import com.ssafy.cheket.entity.show.SessionSeat;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.enums.ShowStatus;
 import com.ssafy.cheket.exception.common.BlockchainException;
+import com.ssafy.cheket.service.ipfs.PinataService;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.RefundPolicyRepository;
 import com.ssafy.cheket.repository.show.SeatGradeRepository;
@@ -55,6 +56,7 @@ import java.util.stream.Collectors;
 public class ShowMintingServiceImpl implements ShowMintingService {
 
     private final BlockchainService blockchainService;
+    private final PinataService pinataService;
     private final ShowRepository showRepository;
     private final SessionRepository sessionRepository;
     private final SessionSeatRepository sessionSeatRepository;
@@ -168,24 +170,27 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         log.info("[공연 {}] DRAFT → MINTING 상태 전이", showId);
 
         try {
-            // ========== ② EventNFT 발행 ==========
+            // ========== ② 포스터 + 메타데이터 IPFS 업로드 ==========
+            uploadToIpfs(show);
+
+            // ========== ③ EventNFT 발행 ==========
             BigInteger onChainEventId = mintEventNft(show);
 
-            // ========== ③ 회차별 addSession ==========
+            // ========== ④ 회차별 addSession ==========
             List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
             for (Session session : sessions) {
                 addSessionOnChain(session, onChainEventId);
             }
 
-            // ========== ④ 환불 정책 온체인 등록 ==========
+            // ========== ⑤ 환불 정책 온체인 등록 ==========
             setRefundPolicyOnChain(show, onChainEventId);
 
-            // ========== ⑤ TicketNFT 배치 발행 ==========
+            // ========== ⑥ TicketNFT 배치 발행 ==========
             for (Session session : sessions) {
                 batchMintTicketsForSession(show, session, onChainEventId);
             }
 
-            // ========== ⑥ MINTING → MINTED ==========
+            // ========== ⑦ MINTING → MINTED ==========
             show.setStatus(ShowStatus.MINTED);
             showRepository.save(show);
             log.info("[공연 {}] MINTING → MINTED 상태 전이 완료", showId);
@@ -199,7 +204,58 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         }
     }
 
-    // ========== private 메서드 (온체인 TX 처리) ==========
+    // ========== private 메서드 ==========
+
+    /**
+     * 포스터 이미지 + 메타데이터 JSON을 IPFS에 업로드
+     *
+     * [처리 흐름] ① S3에 있는 포스터 이미지 → Pinata로 IPFS 업로드 → posterIpfsCid 저장 ② 공연 메타데이터
+     * JSON 생성 (NFT 표준 형식) → IPFS 업로드 → metadataIpfsCid 저장 ③ metadataIpfsCid는 이후
+     * EventNFT.createEvent()에 전달되어 온체인에 영구 기록
+     *
+     * [이미 업로드된 경우] metadataIpfsCid가 이미 있으면 스킵 (재시도 시 중복 업로드 방지)
+     */
+    private void uploadToIpfs(Show show) {
+        // 이미 IPFS 업로드 완료된 경우 스킵 (민팅 재시도 시 중복 방지)
+        if (show.getMetadataIpfsCid() != null && !show.getMetadataIpfsCid().isEmpty()) {
+            log.info("[공연 {}] IPFS 이미 업로드됨 — metadataCID={}", show.getId(), show.getMetadataIpfsCid());
+            return;
+        }
+
+        try {
+            // ① 포스터 이미지 → IPFS 업로드
+            String posterCid = null;
+            if (show.getPosterUrl() != null && !show.getPosterUrl().isEmpty()) {
+                posterCid = pinataService.uploadFileFromUrl(show.getPosterUrl(), "show_" + show.getId() + "_poster");
+                show.setPosterIpfsCid(posterCid);
+                log.info("[공연 {}] 포스터 IPFS 업로드 완료 — CID={}", show.getId(), posterCid);
+            }
+
+            // ② 메타데이터 JSON → IPFS 업로드 (ERC-721 표준 형식)
+            Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+            metadata.put("name", show.getTitle());
+            metadata.put("description", show.getDescription() != null ? show.getDescription() : "");
+            metadata.put("image", posterCid != null ? pinataService.getIpfsUri(posterCid) : "");
+
+            Map<String, Object> attributes = new java.util.LinkedHashMap<>();
+            attributes.put("artist", show.getArtist() != null ? show.getArtist() : "");
+            attributes.put("venue", show.getVenue() != null ? show.getVenue().getName() : "");
+            attributes.put("showStartDate", show.getShowStartDate() != null ? show.getShowStartDate().toString() : "");
+            attributes.put("showEndDate", show.getShowEndDate() != null ? show.getShowEndDate().toString() : "");
+            attributes.put("playtime", show.getPlaytime() != null ? show.getPlaytime() : 0);
+            metadata.put("attributes", attributes);
+
+            String metadataCid = pinataService.uploadJson(metadata, "show_" + show.getId() + "_metadata");
+            show.setMetadataIpfsCid(metadataCid);
+            showRepository.save(show);
+
+            log.info("[공연 {}] 메타데이터 IPFS 업로드 완료 — CID={}", show.getId(), metadataCid);
+
+        } catch (Exception e) {
+            // IPFS 업로드 실패해도 민팅은 진행 (메타데이터는 선택적)
+            log.warn("[공연 {}] IPFS 업로드 실패 — 빈 metadataCID로 민팅 진행: {}", show.getId(), e.getMessage());
+        }
+    }
 
     private BigInteger mintEventNft(Show show) throws Exception {
         List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(show.getId());

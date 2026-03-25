@@ -107,7 +107,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         for (SessionSeat seat : seats) {
-            if (seat.getStatus() != SeatStatus.AVAILABLE) {
+            if (seat.getStatus() != SeatStatus.AVAILABLE && seat.getStatus() != SeatStatus.HELD) {
                 throw new ConflictException("이미 판매된 좌석입니다: sessionSeatId=" + seat.getId());
             }
             if (seat.getOnChainTicketNftId() == null) {
