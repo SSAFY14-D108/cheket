@@ -410,8 +410,8 @@ public class BlockchainAsyncWorker {
     /**
      * 블록체인 환불 처리 — @Async로 별도 스레드에서 실행
      *
-     * [흐름] ① 환불 대상(ticket/seat/user) 재검증 ② 온체인 소유자 검증 ③ Settlement.refund() 호출 ④
-     * 온체인 NFT 회수 검증 ⑤ Transaction/Ticket/Seat 상태 반영
+     * [흐름] ① 환불 대상(ticket/seat/user) 재검증 ② 온체인 소유자 검증 ③ 사용자 키로 Settlement approve ④
+     * Settlement.refund() 호출 ⑤ 온체인 NFT 회수 검증 ⑥ Transaction/Ticket/Seat 상태 반영
      */
     @Async
     public void processOnChainRefund(Long txId, Long userId, Long ticketId, Long onChainSessionId,
@@ -424,6 +424,7 @@ public class BlockchainAsyncWorker {
             tx.setDescription("검증 중 — 환불 대상 소유권 확인 (ticketId=%d, userId=%d, nftId=%d)".formatted(ticketId, userId,
                 onChainTicketNftId));
             transactionRepository.save(tx);
+
             Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new BlockchainException("환불 대상 티켓을 찾을 수 없습니다."));
 
@@ -455,15 +456,49 @@ public class BlockchainAsyncWorker {
                 throw new BlockchainException("온체인 티켓 소유자가 환불 요청자와 일치하지 않습니다.");
             }
 
+            // ========== ③ 사용자 키로 Settlement approve ==========
+            // 환불은 사용자 소유 NFT를 Settlement가 회수해야 하므로
+            // refund 전에 먼저 operator 승인을 해준다.
+            Credentials ownerCredentials = WalletUtils.loadCredentials(keystorePassword,
+                new File(keystoreDirectory + "/" + ownerWallet.getKeystoreFilename()));
+
+            RawTransactionManager ownerTxManager = new RawTransactionManager(blockchainService.getWeb3j(),
+                ownerCredentials, blockchainService.getChainId());
+
+            String settlementAddress = blockchainService.getSettlement().getContractAddress();
+
+            tx.setDescription("전자서명 처리 중 — NFT 환불 승인 (ticketId=%d, nftId=%d, userId=%d)".formatted(ticketId,
+                onChainTicketNftId, userId));
+            transactionRepository.save(tx);
+
+            EthSendTransaction approveTx = sendSetApprovalForAllTransaction(ownerTxManager,
+                blockchainService.getTicketNFT().getContractAddress(), settlementAddress);
+
+            if (approveTx.hasError()) {
+                throw new BlockchainException("환불용 NFT approve 실패: " + approveTx.getError().getMessage());
+            }
+
+            waitForTransaction(approveTx.getTransactionHash());
+
+            boolean approvedForSettlement = isApprovedForAll(ownerAddress, settlementAddress);
+            if (!approvedForSettlement) {
+                throw new BlockchainException("Settlement에 대한 NFT 전송 권한 승인이 완료되지 않았습니다.");
+            }
+
+            // ========== ④ Settlement.refund() 호출 ==========
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
-            tx.setDescription("블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, sessionId=%d, expectedRefund=%d SSF)"
-                .formatted(ticketId, onChainTicketNftId, onChainSessionId, expectedRefundAmount));
+            tx.setTxHash(approveTx.getTransactionHash());
+            tx.setDescription(
+                "블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, sessionId=%d, approveTxHash=%s, expectedRefund=%d SSF)"
+                    .formatted(ticketId, onChainTicketNftId, onChainSessionId, approveTx.getTransactionHash(),
+                        expectedRefundAmount));
             transactionRepository.save(tx);
 
             TransactionReceipt refundReceipt = blockchainService.getSettlement()
                 .refund(sessionIdValue, ownerAddress, ticketNftIdValue).send();
             String txHash = refundReceipt.getTransactionHash();
 
+            // ========== ⑤ 온체인 NFT 회수 검증 ==========
             String newOnChainOwner = blockchainService.getTicketNFT().ownerOf(ticketNftIdValue).send();
             if (!newOnChainOwner.equalsIgnoreCase(blockchainService.getPlatformWalletAddress())) {
                 throw new BlockchainException("환불 후 NFT 소유권 이전이 완료되지 않았습니다.");
@@ -475,6 +510,7 @@ public class BlockchainAsyncWorker {
                 refundedAmount = refundedEvents.get(0).amount.longValue();
             }
 
+            // ========== ⑥ Transaction/Ticket/Seat 상태 반영 ==========
             tx.setAmount(refundedAmount);
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
@@ -495,6 +531,28 @@ public class BlockchainAsyncWorker {
             restoreRefundSeatToSold(sessionSeatId, txId);
             updateTransactionFailed(txId, "티켓 환불 실패 — 블록체인 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
         }
+    }
+
+    /**
+     * TicketNFT.setApprovalForAll(operator, true) TX 전송
+     */
+    private EthSendTransaction sendSetApprovalForAllTransaction(RawTransactionManager txManager,
+        String nftContractAddress, String operatorAddress) throws Exception {
+        Function approveFunction = new Function("setApprovalForAll",
+            Arrays.asList(new Address(operatorAddress), new Bool(true)), Collections.emptyList());
+
+        String encodedApprove = FunctionEncoder.encode(approveFunction);
+
+        return txManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000), nftContractAddress,
+            encodedApprove, BigInteger.ZERO);
+    }
+
+    /**
+     * owner가 operator에게 전체 NFT 이동 권한을 줬는지 확인
+     */
+    private boolean isApprovedForAll(String ownerAddress, String operatorAddress) throws Exception {
+        return Boolean.TRUE
+            .equals(blockchainService.getTicketNFT().isApprovedForAll(ownerAddress, operatorAddress).send());
     }
 
     // ==================== StakeholderNFT 발행 ====================
