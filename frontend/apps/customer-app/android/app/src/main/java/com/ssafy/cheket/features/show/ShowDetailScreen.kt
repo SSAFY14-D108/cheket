@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.show
+﻿package com.ssafy.cheket.features.show
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,10 +46,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 // ── v0 Design Tokens ──
-private val V0Background = Color(0xFFF8F8F8)  // bg-gray-50
+private val V0Background = Background
 private val V0Card = Color(0xFFFFFFFF)
 private val V0TextPrimary = Color(0xFF111111)
-private val V0TextMuted = Color(0xFF5C7A73)
+private val V0TextMuted = Color(0xFF667085)
 private val V0TextSub = Color(0xFF9CA3AF)
 private val V0IconGray = Color(0xFF6B7280)
 private val V0WishlistBadgeBg = Color(0xFF9AA4B2)  // gray badge, NOT green

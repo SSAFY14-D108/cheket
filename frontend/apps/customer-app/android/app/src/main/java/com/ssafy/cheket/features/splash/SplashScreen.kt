@@ -20,11 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ssafy.cheket.R
+import com.ssafy.cheket.ui.theme.Background
 import kotlinx.coroutines.delay
 
-private val SplashBg = Color(0xFFFAFAFA)
-private val GlowGreen = Color(0xFF00C598)
-private val GlowCyan = Color(0xFFABFEFF)
+private val SplashBg = Background
+private val GlowGreen = Color(0xFF6C7FFF)
+private val GlowCyan = Color(0xFFD7E3FF)
 private val SubtitleColor = Color(0xFF9CA3AF)
 
 @Composable

@@ -1,22 +1,23 @@
-package com.ssafy.cheket.features.home
+﻿package com.ssafy.cheket.features.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -33,8 +34,11 @@ import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,23 +67,25 @@ import com.ssafy.cheket.core.model.OpenScheduleItem
 import com.ssafy.cheket.core.model.RankingItem
 import com.ssafy.cheket.core.model.ResaleItem
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
+import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.Black
 import com.ssafy.cheket.ui.theme.Primary
 import com.ssafy.cheket.ui.theme.White
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-private val V0Background = Color(0xFFFCFCFC)
+private val V0Background = Background
 private val V0Card = Color(0xFFFFFFFF)
 private val V0TextPrimary = Color(0xFF111111)
-private val V0TextMuted = Color(0xFF5C7A73)
+private val V0TextMuted = Color(0xFF667085)
 private val V0TextSub = Color(0xFF9CA3AF)
-private val V0ActiveFilterBg = Color(0xFFEEF2F1)
+private val V0ActiveFilterBg = Color(0xFFE8EEF9)
 private val V0SectionDivider = Color(0xFFF3F4F6)
 private val V0Gray500 = Color(0xFF6B7280)
 private val V0Gray900 = Color(0xFF111827)
 private val V0Red500 = Color(0xFFEF4444)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     appContainer: AppContainer,
@@ -94,24 +100,17 @@ fun HomeScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(V0Card)
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            TopAppBar(
+                windowInsets = WindowInsets.statusBars,
+                title = {
                     Image(
                         painter = painterResource(id = R.drawable.cheket_logo2),
                         contentDescription = "CHEKET",
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.height(32.dp),
                     )
+                },
+                actions = {
                     IconButton(onClick = onNotificationClick) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
@@ -119,15 +118,16 @@ fun HomeScreen(
                             tint = V0TextPrimary,
                         )
                     }
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = V0Card),
+            )
         },
         containerColor = V0Background,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF9FAFB))
+                .background(V0Background)
                 .padding(innerPadding),
         ) {
             item {
@@ -623,7 +623,7 @@ private fun ResaleDiscountSection(
     if (discounted.isEmpty()) return
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "타임 세일", onMore = {})
+        HomeSectionHeader(title = "핫한 리세일", onMore = {})
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -678,7 +678,7 @@ private fun ResaleDiscountSection(
                                 tint = V0TextMuted,
                             )
                             Text(
-                                text = "2차 거래",
+                                text = "2차 거래소",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = V0TextMuted,
@@ -701,7 +701,7 @@ private fun ResaleDiscountSection(
                             modifier = Modifier.padding(top = 2.dp),
                         )
                         Text(
-                            text = "${item.seatLabel} · ${item.grade}",
+                            text = "${item.seatLabel} 쨌 ${item.grade}",
                             fontSize = 12.sp,
                             color = V0Gray500,
                         )
@@ -729,3 +729,6 @@ private fun ResaleDiscountSection(
         }
     }
 }
+
+
+

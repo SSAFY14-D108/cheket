@@ -14,11 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,10 +39,11 @@ import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.TicketCardItem
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.core.ui.component.gradientBorder
+import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.MutedForeground
 
-private val V0Background = Color(0xFFF9FAFB)
-private val V0ActiveFilterBg = Color(0xFFEEF2F1)
+private val V0Background = Background
+private val V0ActiveFilterBg = Color(0xFFE8EEF9)
 private val V0ActiveFilterText = Color(0xFF111111)
 private val V0ForegroundText = Color(0xFF111111)
 
@@ -74,18 +71,7 @@ fun MyTicketsScreen(
 
     Scaffold(
         topBar = {
-            AppHeader(
-                title = "내 티켓",
-                actions = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "알림",
-                            tint = Color(0xFF24332F),
-                        )
-                    }
-                },
-            )
+            AppHeader(title = "내 티켓")
         },
     ) { innerPadding ->
         Column(

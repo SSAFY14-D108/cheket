@@ -292,7 +292,7 @@ private fun CalendarCard(
                                                 .clip(CircleShape)
                                                 .then(
                                                     if (hasShow) Modifier.background(
-                                                        Color(0xFFEEF2F1)
+                                                        PrimaryLight
                                                     )
                                                     else Modifier
                                                 ),

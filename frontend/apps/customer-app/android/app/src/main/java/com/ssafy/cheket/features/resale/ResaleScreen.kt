@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
@@ -37,7 +36,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -152,19 +150,10 @@ fun ResaleScreen(
             AppHeader(
                 title = "2차 거래소",
                 actions = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TutorialHelpButton(
-                            tutorialId = TutorialId.RESALE_LIST,
-                            tint = HeaderIconTint,
-                        )
-                        IconButton(onClick = {}) {
-                            Icon(
-                                imageVector = Icons.Outlined.Notifications,
-                                contentDescription = "알림",
-                                tint = HeaderIconTint,
-                            )
-                        }
-                    }
+                    TutorialHelpButton(
+                        tutorialId = TutorialId.RESALE_LIST,
+                        tint = HeaderIconTint,
+                    )
                 },
             )
         },

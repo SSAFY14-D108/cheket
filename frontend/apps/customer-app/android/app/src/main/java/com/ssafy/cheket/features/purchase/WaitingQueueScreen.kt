@@ -44,7 +44,7 @@ private val TrackStroke = Color(0xFFE5E7EB)
 private val ProgressTrackBg = Color(0xFFEEF1F4)
 private val V0Fg = Color(0xFF111111)
 private val V0Muted = Color(0xFF6B7280)
-private val V0GradientBg = Color(0xFFF9FAFB)
+private val V0GradientBg = Background
 
 private const val FALLBACK_POLLING_INTERVAL = 3
 private const val FALLBACK_ESTIMATED_WAIT = 30L

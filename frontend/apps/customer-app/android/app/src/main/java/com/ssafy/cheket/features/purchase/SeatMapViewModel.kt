@@ -121,8 +121,12 @@ class SeatMapViewModel(
                         venue = d.venue,
                         region = d.region,
                         poster = d.posterUrl,
-                        status = if (d.status == "SOLD_OUT") com.ssafy.cheket.core.model.ShowStatus.SOLD_OUT
-                        else com.ssafy.cheket.core.model.ShowStatus.ON_SALE,
+                        status = when (d.status) {
+                            "UPCOMING" -> com.ssafy.cheket.core.model.ShowStatus.UPCOMING
+                            "SOLD_OUT" -> com.ssafy.cheket.core.model.ShowStatus.SOLD_OUT
+                            "COMPLETED" -> com.ssafy.cheket.core.model.ShowStatus.COMPLETED
+                            else -> com.ssafy.cheket.core.model.ShowStatus.ON_SALE
+                        },
                         maxPerUser = 4,
                         grades = d.grade.map { g ->
                             com.ssafy.cheket.core.model.Grade(

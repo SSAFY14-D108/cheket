@@ -41,10 +41,10 @@ private const val TAG = "TxProcessingScreen"
 // v0 colors
 private val V0Fg = Color(0xFF111111)
 private val V0Muted = Color(0xFF6B7280)
-private val V0GradientBg = Color(0xFFF9FAFB)
+private val V0GradientBg = Background
 private val ProgressBlue = Color(0xFF3B82F6)
 private val ProgressTrack = Color(0xFFE5E7EB)
-private val ConfirmedGreen = Color(0xFF10B981)
+private val ConfirmedGreen = Color(0xFF4B6CB7)
 private val FailedRed = Color(0xFFF87171)
 
 /**
