@@ -67,6 +67,11 @@ import com.ssafy.cheket.features.resale.ResaleListScreen
 import com.ssafy.cheket.features.resale.ResaleTicketsScreen
 import com.ssafy.cheket.features.purchase.SeatMapScreen
 import com.ssafy.cheket.features.purchase.TransactionProcessingScreen
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import com.ssafy.cheket.features.notification.ContractApprovalScreen
+import com.ssafy.cheket.features.notification.NotificationScreen
 import com.ssafy.cheket.features.show.ShowDateSelectionScreen
 
 object Routes {
@@ -113,6 +118,8 @@ object Routes {
     const val RESALE_TICKETS = "resale_tickets/{showId}"
     const val SEAT_MAP = "seat_map/{showId}/{sessionId}"
     const val TX_PROCESSING = "tx_processing/{txId}/{txType}"
+    const val NOTIFICATIONS = "notifications"
+    const val CONTRACT_APPROVAL = "contract_approval/{showId}/{requestType}"
 
     // Helper functions for building routes with args
     fun showDetail(showId: String) = "show_detail/$showId"
@@ -133,6 +140,7 @@ object Routes {
     fun resaleTickets(showId: String) = "resale_tickets/$showId"
     fun seatMap(showId: String, sessionId: String = "") = "seat_map/$showId/$sessionId"
     fun txProcessing(txId: Long = 0, txType: String = "TICKET_PURCHASE") = "tx_processing/$txId/$txType"
+    fun contractApproval(showId: Long, requestType: String) = "contract_approval/$showId/$requestType"
 }
 
 val bottomTabRoutes = listOf(
@@ -189,6 +197,23 @@ fun AppNavGraph(
     val currentRoute = navBackStackEntry?.destination?.route
     var splashDone by remember { mutableStateOf(false) }
     val showBottomBar = splashDone && currentRoute in bottomTabRoutes
+
+    // FCM 딥링크 처리 — 알림 탭 시 해당 화면으로 이동
+    val activity = LocalContext.current as? MainActivity
+    val pendingNotif = activity?.pendingNotification?.collectAsState()?.value
+    LaunchedEffect(pendingNotif, splashDone) {
+        if (pendingNotif != null && splashDone) {
+            val dummyDto = com.ssafy.cheket.core.network.dto.NotificationDto(
+                id = pendingNotif.notificationId ?: 0,
+                message = "",
+                type = pendingNotif.type,
+                isRead = false,
+                showId = pendingNotif.showId,
+            )
+            navigateForNotification(navController, dummyDto)
+            activity.consumeNotification()
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -263,6 +288,7 @@ fun AppNavGraph(
                     appContainer = appContainer,
                     onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
                     onMyPage = { navController.navigate(Routes.MY_PAGE) },
+                    onNotificationClick = { navController.navigate(Routes.NOTIFICATIONS) },
                     onSeatMapTest = { showId -> navController.navigate(Routes.seatMap(showId)) },
                 )
             }
@@ -736,6 +762,73 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
+
+            // ── Notifications ──
+            slideComposable(Routes.NOTIFICATIONS) {
+                NotificationScreen(
+                    onNotificationClick = { notification ->
+                        navigateForNotification(navController, notification)
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            slideComposable(
+                route = Routes.CONTRACT_APPROVAL,
+                arguments = listOf(
+                    navArgument("showId") { type = NavType.LongType },
+                    navArgument("requestType") { type = NavType.StringType },
+                ),
+            ) { backStackEntry ->
+                val showId = backStackEntry.arguments?.getLong("showId") ?: 0L
+                val requestType = backStackEntry.arguments?.getString("requestType") ?: "RQ_CREATE"
+                ContractApprovalScreen(
+                    showId = showId,
+                    requestType = requestType,
+                    onDone = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
+    }
+}
+
+/**
+ * 알림 타입별 대응 화면으로 네비게이션.
+ *
+ * | 타입 | 대응 화면 |
+ * |------|----------|
+ * | SHOW_START | 내 티켓 목록 |
+ * | SETTLEMENT | 지갑 내역 |
+ * | APPROVED | 공연 상세 (showId) |
+ * | REJECTED | 공연 상세 (showId) |
+ * | RESALE | 내 티켓 목록 |
+ * | RQ_CREATE | 계약 승인/거절 화면 |
+ * | RQ_UPDATE | 계약 승인/거절 화면 |
+ */
+private fun navigateForNotification(
+    navController: androidx.navigation.NavController,
+    notification: com.ssafy.cheket.core.network.dto.NotificationDto,
+) {
+    when (notification.type) {
+        "SHOW_START" -> navController.navigate(Routes.MY_TICKETS)
+        "SETTLEMENT" -> navController.navigate(Routes.WALLET_HISTORY)
+        "APPROVED", "REJECTED" -> {
+            val showId = notification.showId
+            if (showId != null) {
+                navController.navigate(Routes.showDetail(showId.toString()))
+            } else {
+                navController.navigate(Routes.HOME)
+            }
+        }
+        "RESALE" -> navController.navigate(Routes.MY_TICKETS)
+        "RQ_CREATE" -> {
+            val showId = notification.showId ?: 0L
+            navController.navigate(Routes.contractApproval(showId, "RQ_CREATE"))
+        }
+        "RQ_UPDATE" -> {
+            val showId = notification.showId ?: 0L
+            navController.navigate(Routes.contractApproval(showId, "RQ_UPDATE"))
+        }
+        else -> navController.navigate(Routes.HOME)
     }
 }

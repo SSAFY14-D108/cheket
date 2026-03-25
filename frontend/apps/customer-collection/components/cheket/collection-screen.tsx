@@ -225,7 +225,7 @@ function getTicketEffect(ticketId: string, apiEffect?: string | null): EffectTyp
     if (mapped) return mapped
     // EffectType으로 직접 매치되는 경우 (예: 'gold-foil' 그대로)
     const lower = apiEffect.toLowerCase().replace(/\s+/g, '-')
-    if (HOLO_VARIANTS.includes(lower as EffectType)) return lower as EffectType
+    if ((HOLO_VARIANTS as readonly string[]).includes(lower)) return lower as EffectType
   }
   // fallback: ticket ID 기반 랜덤
   const num = Number(ticketId.replace(/\D/g, '')) || 0
