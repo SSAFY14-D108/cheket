@@ -528,9 +528,17 @@ public class HostShowServiceImpl implements HostShowService {
 
     // 공연 별 스마트컨트랙트 승인/거절 내역 조회
     @Override
-    public List<GetApprovalListResponse> getContracts(Long hostId, Long showId) {
+    public List<GetApprovalListResponse> getContracts(Long loginId, String role, Long showId) {
         Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
-        if (!show.getHost().getId().equals(hostId))
+        boolean canAccess = false;
+        if ("ROLE_HOST".equals(role)) {
+            canAccess = show.getHost().getId().equals(loginId)
+                || stakeholderRepository.findByShowIdAndHostId(showId, loginId).isPresent();
+        } else if ("ROLE_USER".equals(role)) {
+            canAccess = stakeholderRepository.existsByShowIdAndUserId(showId, loginId);
+        }
+
+        if (!canAccess)
             throw new ForbiddenException("본인이 등록한 공연만 조회할 수 있습니다.");
 
         List<Stakeholder> stakeholders = stakeholderRepository.findContractTargetsByShowId(showId);
