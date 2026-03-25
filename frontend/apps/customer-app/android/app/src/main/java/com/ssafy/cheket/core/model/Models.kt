@@ -1,7 +1,7 @@
 package com.ssafy.cheket.core.model
 
 enum class TicketStatus { AVAILABLE, LISTED, SOLD, USED, EXPIRED }
-enum class ShowStatus { ON_SALE, SOLD_OUT }
+enum class ShowStatus { UPCOMING, ON_SALE, SOLD_OUT, COMPLETED }
 enum class SeatStatus { AVAILABLE, LOCKED, SOLD }
 
 enum class TxType { PURCHASE, RESALE_LIST, RESALE_BUY, TRANSFER }

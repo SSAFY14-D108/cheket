@@ -3,6 +3,8 @@ package com.ssafy.cheket.core.ui.component
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,8 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.OnBackground
-import com.ssafy.cheket.ui.theme.Surface
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +31,7 @@ fun AppHeader(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
+        windowInsets = WindowInsets.statusBars,
         title = {
             Text(
                 text = title,
@@ -59,6 +62,6 @@ fun AppHeader(
             }
         },
         actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Background),
     )
 }

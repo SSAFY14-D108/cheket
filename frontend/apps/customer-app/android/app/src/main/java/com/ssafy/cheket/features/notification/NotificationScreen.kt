@@ -1,4 +1,4 @@
-package com.ssafy.cheket.features.notification
+﻿package com.ssafy.cheket.features.notification
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,16 +36,16 @@ import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.ui.theme.*
 
 /**
- * 알림 타입별 아이콘 + 색상 매핑
+ * ?뚮┝ ??낅퀎 ?꾩씠肄?+ ?됱긽 留ㅽ븨
  */
 private fun notificationIcon(type: String): Pair<ImageVector, Color> = when (type) {
-    "SHOW_START" -> Icons.Outlined.Event to Color(0xFF3B82F6)           // 파랑
-    "SETTLEMENT" -> Icons.Outlined.AccountBalanceWallet to Color(0xFF10B981) // 초록
-    "APPROVED" -> Icons.Outlined.CheckCircle to Color(0xFF10B981)        // 초록
-    "REJECTED" -> Icons.Outlined.Cancel to Color(0xFFEF4444)             // 빨강
-    "RESALE" -> Icons.Outlined.Sell to Color(0xFFF59E0B)                 // 노랑
-    "RQ_CREATE" -> Icons.Outlined.Description to Color(0xFF8B5CF6)       // 보라
-    "RQ_UPDATE" -> Icons.Outlined.EditNote to Color(0xFF8B5CF6)          // 보라
+    "SHOW_START" -> Icons.Outlined.Event to Color(0xFF3B82F6)           // ?뚮옉
+    "SETTLEMENT" -> Icons.Outlined.AccountBalanceWallet to Primary
+    "APPROVED" -> Icons.Outlined.CheckCircle to Primary
+    "REJECTED" -> Icons.Outlined.Cancel to Color(0xFFEF4444)             // 鍮④컯
+    "RESALE" -> Icons.Outlined.Sell to Color(0xFFF59E0B)                 // ?몃옉
+    "RQ_CREATE" -> Icons.Outlined.Description to Color(0xFF8B5CF6)       // 蹂대씪
+    "RQ_UPDATE" -> Icons.Outlined.EditNote to Color(0xFF8B5CF6)          // 蹂대씪
     else -> Icons.Outlined.Notifications to MutedForeground
 }
 
@@ -60,7 +60,7 @@ fun NotificationScreen(
     var isRefreshing by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { AppHeader(title = "알림", onBack = onBack) },
+        topBar = { AppHeader(title = "?뚮┝", onBack = onBack) },
     ) { innerPadding ->
         when {
             uiState.isLoading && uiState.notifications.isEmpty() -> {
@@ -77,7 +77,7 @@ fun NotificationScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     EmptyState(
-                        title = "오류가 발생했습니다",
+                        title = "?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎",
                         description = uiState.error ?: "",
                     )
                 }
@@ -88,8 +88,8 @@ fun NotificationScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     EmptyState(
-                        title = "아직 알림이 없습니다",
-                        description = "새로운 알림이 도착하면 여기에 표시됩니다",
+                        title = "?꾩쭅 ?뚮┝???놁뒿?덈떎",
+                        description = "새로운 알림이 도착하면 이곳에서 바로 확인할 수 있어요.",
                     )
                 }
             }
@@ -144,7 +144,7 @@ private fun NotificationItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        // 아이콘
+        // ?꾩씠肄?
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -160,7 +160,7 @@ private fun NotificationItem(
             )
         }
 
-        // 메시지
+        // 硫붿떆吏
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = notification.message,
@@ -179,7 +179,7 @@ private fun NotificationItem(
             )
         }
 
-        // 읽지 않은 표시
+        // ?쎌? ?딆? ?쒖떆
         if (!notification.isRead) {
             Box(
                 modifier = Modifier
@@ -193,12 +193,13 @@ private fun NotificationItem(
 }
 
 private fun notificationTypeLabel(type: String): String = when (type) {
-    "SHOW_START" -> "공연 알림"
-    "SETTLEMENT" -> "정산 완료"
-    "APPROVED" -> "계약 승인"
-    "REJECTED" -> "계약 거절"
-    "RESALE" -> "리세일 알림"
-    "RQ_CREATE" -> "공연 등록 승인 요청"
-    "RQ_UPDATE" -> "공연 수정 승인 요청"
-    else -> "알림"
+    "SHOW_START" -> "怨듭뿰 ?뚮┝"
+    "SETTLEMENT" -> "?뺤궛 ?꾨즺"
+    "APPROVED" -> "怨꾩빟 ?뱀씤"
+    "REJECTED" -> "怨꾩빟 嫄곗젅"
+    "RESALE" -> "由ъ꽭???뚮┝"
+    "RQ_CREATE" -> "怨듭뿰 ?깅줉 ?뱀씤 ?붿껌"
+    "RQ_UPDATE" -> "怨듭뿰 ?섏젙 ?뱀씤 ?붿껌"
+    else -> "?뚮┝"
 }
+

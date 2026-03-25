@@ -21,7 +21,7 @@ data class ShowSummaryDto(
     @SerializedName("region") val region: String,
     @SerializedName("show") val show: ShowPeriodDto? = null,
     @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
-    @SerializedName("status") val status: String,
+    @SerializedName(value = "status", alternate = ["showStatus", "ticketingState", "showState"]) val status: String,
 )
 
 data class ShowPeriodDto(
@@ -46,7 +46,7 @@ data class ShowDetailDto(
     @SerializedName("show") val show: ShowPeriodDto? = null,
     @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
     @SerializedName("region") val region: String,
-    @SerializedName("status") val status: String,
+    @SerializedName(value = "status", alternate = ["showStatus", "ticketingState", "showState"]) val status: String,
     @SerializedName("isLiked") val isLiked: Boolean,
     @SerializedName("likeCount") val likeCount: Int,
     @SerializedName("grade") val grade: List<GradeDto>,
@@ -128,7 +128,7 @@ data class RecommendedShowDto(
     @SerializedName("region") val region: String,
     @SerializedName("show") val show: ShowPeriodDto? = null,
     @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
-    @SerializedName("status") val status: String,
+    @SerializedName(value = "status", alternate = ["showStatus", "ticketingState", "showState"]) val status: String,
     @SerializedName("artist") val artist: String? = null,
     @SerializedName("ticketingState") val ticketingState: String? = null,
     @SerializedName("showState") val showState: String? = null,

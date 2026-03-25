@@ -80,8 +80,12 @@ class PaymentViewModel(
                             venue = detail.venue,
                             region = detail.region,
                             poster = detail.posterUrl,
-                            status = if (detail.status == "SOLD_OUT") ShowStatus.SOLD_OUT
-                            else ShowStatus.ON_SALE,
+                            status = when (detail.status) {
+                                "UPCOMING" -> ShowStatus.UPCOMING
+                                "SOLD_OUT" -> ShowStatus.SOLD_OUT
+                                "COMPLETED" -> ShowStatus.COMPLETED
+                                else -> ShowStatus.ON_SALE
+                            },
                             maxPerUser = 4,
                             grades = detail.grade.map { g ->
                                 com.ssafy.cheket.core.model.Grade(

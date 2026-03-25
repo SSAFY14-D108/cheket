@@ -1,12 +1,9 @@
-﻿package com.ssafy.cheket.features.shows
+package com.ssafy.cheket.features.shows
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,18 +11,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,20 +27,19 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,8 +55,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
@@ -79,13 +71,22 @@ import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.ShowCardItem
-import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.BorderColor
 import com.ssafy.cheket.ui.theme.MutedForeground
 import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+
+private val FilterBarBackground = Color(0xFFF4F6F5)
+private val FilterChipBackground = Color(0xFFFFFFFF)
+private val FilterChipBorder = Color(0xFFE5E7EB)
+private val FilterSelectedText = Color(0xFF111827)
+private val FilterSelectedChip = Color(0xFFF3F4F6)
+private val RegionChipSelected = Color(0xFF111827)
+private val RegionChipSelectedText = Color(0xFFFFFFFF)
+private val RegionChipDefault = Color(0xFFF7F7F6)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,9 +98,10 @@ fun ShowsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
-    var isSearchFocused by remember { mutableStateOf(false) }
     var isRegionSheetOpen by remember { mutableStateOf(false) }
+    var isSortMenuOpen by remember { mutableStateOf(false) }
     var pendingRegions by remember { mutableStateOf(uiState.selectedRegions) }
+    var isSearchMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -152,16 +154,34 @@ fun ShowsScreen(
     }
 
     Scaffold(
+        containerColor = Background,
         topBar = {
-            Surface(shadowElevation = 1.dp) {
-                Column(modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                color = Background,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                ) {
                     AppHeader(
-                        title = "공연 목록",
+                        title = "공연",
                         actions = {
-                            IconButton(onClick = {}) {
+                            IconButton(
+                                onClick = {
+                                    if (isSearchMode) {
+                                        viewModel.onSearchChange("")
+                                        viewModel.onSearchSubmit()
+                                        focusManager.clearFocus()
+                                    }
+                                    isSearchMode = !isSearchMode
+                                },
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Notifications,
-                                    contentDescription = "알림",
+                                    imageVector = if (isSearchMode) Icons.Default.Close else Icons.Default.Search,
+                                    contentDescription = if (isSearchMode) "검색 닫기" else "검색",
                                     tint = Color(0xFF24332F),
                                 )
                             }
@@ -171,185 +191,65 @@ fun ShowsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(top = 8.dp, bottom = 8.dp),
-                    ) {
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    )
+                    {
+                        if (isSearchMode) {
+                            SearchField(
+                                query = uiState.searchQuery,
+                                onValueChange = viewModel::onSearchChange,
+                                onSubmit = {
+                                    viewModel.onSearchSubmit()
+                                    focusManager.clearFocus()
+                                },
+                                onClear = {
+                                    viewModel.onSearchChange("")
+                                    viewModel.onSearchSubmit()
+                                },
+                            )
+                        }
+
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.White)
-                                    .gradientBorder(RoundedCornerShape(20.dp))
-                                    .padding(1.5.dp),
-                            ) {
-                                BasicTextField(
-                                    value = uiState.searchQuery,
-                                    onValueChange = viewModel::onSearchChange,
-                                    singleLine = true,
-                                    textStyle = TextStyle(
-                                        fontSize = 14.sp,
-                                        color = OnBackground,
-                                    ),
-                                    cursorBrush = SolidColor(Primary),
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                    keyboardActions = KeyboardActions(
-                                        onSearch = {
-                                            viewModel.onSearchSubmit()
-                                            focusManager.clearFocus()
-                                        },
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 38.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(Color(0xFFF7F8F7))
-                                        .onFocusChanged { isSearchFocused = it.isFocused },
-                                    decorationBox = { innerTextField ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        ) {
-                                            if (!isSearchFocused) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Search,
-                                                    contentDescription = null,
-                                                    tint = MutedForeground,
-                                                    modifier = Modifier.size(20.dp),
-                                                )
-                                            }
+                            SortDropdownButton(
+                                selectedSort = uiState.sortBy,
+                                expanded = isSortMenuOpen,
+                                onExpandedChange = { isSortMenuOpen = it },
+                                onSortChange = {
+                                    viewModel.onSortChange(it)
+                                    isSortMenuOpen = false
+                                },
+                            )
+                            RegionSummaryButton(
+                                summary = regionSummaryText(uiState.selectedRegions),
+                                hasSelection = uiState.selectedRegions.isNotEmpty(),
+                                onClick = {
+                                    pendingRegions = uiState.selectedRegions
+                                    isRegionSheetOpen = true
+                                },
+                            )
 
-                                            Box(
-                                                modifier = Modifier.weight(1f),
-                                                contentAlignment = Alignment.CenterStart,
-                                            ) {
-                                                if (uiState.searchQuery.isEmpty()) {
-                                                    Text(
-                                                        text = "공연명, 아티스트, 장소 검색",
-                                                        fontSize = 14.sp,
-                                                        color = MutedForeground,
-                                                    )
-                                                }
-                                                innerTextField()
-                                            }
-
-                                            if (uiState.searchQuery.isNotEmpty()) {
-                                                IconButton(
-                                                    onClick = {
-                                                        viewModel.onSearchChange("")
-                                                        viewModel.onSearchSubmit()
-                                                    },
-                                                    modifier = Modifier.size(20.dp),
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Close,
-                                                        contentDescription = "검색어 지우기",
-                                                        tint = MutedForeground,
-                                                        modifier = Modifier.size(16.dp),
-                                                    )
-                                                }
-                                            } else {
-                                                Spacer(modifier = Modifier.width(2.dp))
-                                            }
-                                        }
-                                    },
-                                )
-                            }
-
-                            AnimatedVisibility(
-                                visible = isSearchFocused,
-                                enter = fadeIn() + scaleIn(),
-                                exit = fadeOut() + scaleOut(),
-                            ) {
-                                IconButton(
-                                    onClick = {
-                                        viewModel.onSearchSubmit()
-                                        focusManager.clearFocus()
-                                    },
-                                    modifier = Modifier.size(36.dp),
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        contentColor = Color(0xFF24332F),
-                                    ),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = "검색",
-                                        tint = Color(0xFF24332F),
-                                        modifier = Modifier.size(20.dp),
+                            if (viewModel.hasActiveFilters()) {
+                                TextButton(onClick = viewModel::resetFilters) {
+                                    Text(
+                                        text = "필터 초기화",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MutedForeground,
                                     )
                                 }
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            SortOption.entries.forEach { sort ->
-                                val selected = uiState.sortBy == sort
-                                Text(
-                                    text = sort.label,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (selected) Color(0xFF111111) else MutedForeground,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .clickable { viewModel.onSortChange(sort) }
-                                        .then(
-                                            if (selected) {
-                                                Modifier
-                                                    .shadow(1.dp, RoundedCornerShape(18.dp))
-                                                    .background(Color(0xFFE9EFEC))
-                                            } else {
-                                                Modifier.background(Color.Transparent)
-                                            }
-                                        )
-                                        .padding(vertical = 10.dp)
-                                        .wrapContentWidth(Alignment.CenterHorizontally),
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-                        RegionSummaryButton(
-                            summary = regionSummaryText(uiState.selectedRegions),
-                            hasSelection = uiState.selectedRegions.isNotEmpty(),
-                            onClick = {
-                                pendingRegions = uiState.selectedRegions
-                                isRegionSheetOpen = true
-                            },
+                        FilterSummaryRow(
+                            totalCount = uiState.totalElements,
+                            selectedRegions = uiState.selectedRegions,
+                            selectedSort = uiState.sortBy.label,
                         )
-
-                        if (viewModel.hasActiveFilters()) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .clickable { viewModel.resetFilters() }
-                                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = MutedForeground,
-                                )
-                                Text(
-                                    text = "필터 초기화",
-                                    fontSize = 12.sp,
-                                    color = MutedForeground,
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -363,67 +263,58 @@ fun ShowsScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "총 ${uiState.totalElements}개의 공연",
-                    fontSize = 12.sp,
-                    color = MutedForeground,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            if (uiState.shows.isEmpty() && !uiState.isLoading) {
+                EmptyState(
+                    title = "공연을 찾을 수 없어요",
+                    description = "검색어나 지역 필터를 바꿔서 다시 찾아보세요.",
+                    modifier = Modifier.fillMaxSize(),
                 )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    itemsIndexed(uiState.shows, key = { index, show -> "${show.id}_$index" }) { _, show ->
+                        ShowCardItem(show = show, onClick = { onShowClick(show.id) })
+                    }
 
-                if (uiState.shows.isEmpty() && !uiState.isLoading) {
-                    EmptyState(
-                        title = "공연을 찾을 수 없어요",
-                        description = "검색어나 지역 필터를 바꿔서 다시 찾아보세요.",
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        state = listState,
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        itemsIndexed(uiState.shows, key = { index, show -> "${show.id}_$index" }) { _, show ->
-                            ShowCardItem(show = show, onClick = { onShowClick(show.id) })
-                        }
-
-                        if (uiState.isLoadingMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 12.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.5.dp,
-                                        color = Primary,
-                                    )
-                                }
+                    if (uiState.isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.5.dp,
+                                    color = Primary,
+                                )
                             }
                         }
+                    }
 
-                        if (
-                            uiState.shows.isNotEmpty() &&
-                            !uiState.isLoading &&
-                            !uiState.isLoadingMore &&
-                            !uiState.hasMore
-                        ) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp, bottom = 24.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "더 이상 공연이 없습니다",
-                                        fontSize = 12.sp,
-                                        color = MutedForeground,
-                                    )
-                                }
+                    if (
+                        uiState.shows.isNotEmpty() &&
+                        !uiState.isLoading &&
+                        !uiState.isLoadingMore &&
+                        !uiState.hasMore
+                    ) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "더 이상 공연이 없습니다",
+                                    fontSize = 12.sp,
+                                    color = MutedForeground,
+                                )
                             }
                         }
                     }
@@ -434,15 +325,148 @@ fun ShowsScreen(
 }
 
 @Composable
+private fun SearchField(
+    query: String,
+    onValueChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val searchBorderBrush = remember {
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFD9EFE9),
+                Color(0xFFE4E7FB),
+            ),
+        )
+    }
+
+    BasicTextField(
+        value = query,
+        onValueChange = onValueChange,
+        singleLine = true,
+        textStyle = TextStyle(
+            fontSize = 15.sp,
+            color = OnBackground,
+        ),
+        cursorBrush = SolidColor(Primary),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
+            .border(BorderStroke(1.dp, searchBorderBrush), RoundedCornerShape(24.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MutedForeground,
+                    modifier = Modifier.size(18.dp),
+                )
+
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "공연명, 아티스트, 장소 검색",
+                            fontSize = 14.sp,
+                            color = MutedForeground,
+                        )
+                    }
+                    innerTextField()
+                }
+
+                if (query.isNotEmpty()) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "검색어 지우기",
+                        tint = MutedForeground,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable(onClick = onClear),
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun SortDropdownButton(
+    selectedSort: SortOption,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSortChange: (SortOption) -> Unit,
+) {
+    Box {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(FilterSelectedChip)
+                .border(1.dp, FilterChipBorder, RoundedCornerShape(20.dp))
+                .clickable { onExpandedChange(!expanded) }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = selectedSort.label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = FilterSelectedText,
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MutedForeground,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+            modifier = Modifier.background(Color.White),
+        ) {
+            SortOption.entries.forEach { sort ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = sort.label,
+                            fontSize = 13.sp,
+                            fontWeight = if (sort == selectedSort) FontWeight.SemiBold else FontWeight.Normal,
+                            color = OnBackground,
+                        )
+                    },
+                    onClick = { onSortChange(sort) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun RegionSummaryButton(
     summary: String,
     hasSelection: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
+            .then(modifier)
             .clip(RoundedCornerShape(20.dp))
-            .background(if (hasSelection) Color(0xFFEEF2F1) else Color(0xFFF7F8F7))
+            .background(FilterChipBackground)
+            .border(1.dp, FilterChipBorder, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -452,21 +476,40 @@ private fun RegionSummaryButton(
             text = "지역",
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF111111),
-        )
-        Text(
-            text = summary,
-            fontSize = 12.sp,
-            fontWeight = if (hasSelection) FontWeight.Medium else FontWeight.Normal,
-            color = MutedForeground,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            color = FilterSelectedText,
         )
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = null,
             tint = MutedForeground,
             modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun FilterSummaryRow(
+    totalCount: Int,
+    selectedRegions: List<RegionOption>,
+    selectedSort: String,
+) {
+    val regionText = if (selectedRegions.isEmpty()) "전체 지역" else regionSummaryText(selectedRegions)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "$regionText · $selectedSort",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF35584F),
+        )
+        Text(
+            text = "총 ${totalCount}개",
+            fontSize = 12.sp,
+            color = MutedForeground,
         )
     }
 }
@@ -577,7 +620,7 @@ private fun RegionSheetChip(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) Color(0xFFDCE5E1) else Color(0xFFF7F8F7))
+            .background(if (selected) RegionChipSelected else RegionChipDefault)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center,
@@ -586,7 +629,7 @@ private fun RegionSheetChip(
             text = label,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) Color(0xFF1F3A33) else OnBackground,
+            color = if (selected) RegionChipSelectedText else OnBackground,
         )
     }
 }

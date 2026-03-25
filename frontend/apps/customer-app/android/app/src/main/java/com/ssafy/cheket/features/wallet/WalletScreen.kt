@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -97,13 +96,6 @@ fun WalletScreen(
                 onBack = onBack,
                 actions = {
                     TutorialHelpButton(tutorialId = TutorialId.WALLET, tint = WalletIconTint)
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "알림",
-                            tint = WalletIconTint,
-                        )
-                    }
                 },
             )
         },

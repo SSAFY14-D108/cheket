@@ -7,6 +7,7 @@ import com.ssafy.cheket.core.repository.ShowPage
 import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -17,6 +18,36 @@ class ShowRepositoryImpl(
     private val showService: ShowService,
 ) : ShowRepository {
 
+    private fun mapShowStatus(
+        status: String?,
+        showStartDate: String? = null,
+        showEndDate: String? = null,
+        reservationStartDate: String? = null,
+        reservationEndDate: String? = null,
+    ): ShowStatus {
+        if (status == "SOLD_OUT") return ShowStatus.SOLD_OUT
+        if (status == "COMPLETED") return ShowStatus.COMPLETED
+
+        val now = LocalDateTime.now()
+        val today = now.toLocalDate()
+        val reservationStart = reservationStartDate.parseDateTimeOrNull()
+        val reservationEnd = reservationEndDate.parseDateTimeOrNull()
+        val showStart = showStartDate.parseDateOrNull()
+        val showEnd = showEndDate.parseDateOrNull() ?: showStart
+
+        if (showEnd != null && showEnd.isBefore(today)) return ShowStatus.COMPLETED
+        if (reservationStart != null && now.isBefore(reservationStart)) return ShowStatus.UPCOMING
+        if (reservationEnd != null && now.isAfter(reservationEnd)) {
+            return if (showEnd != null && !showEnd.isBefore(today)) {
+                ShowStatus.SOLD_OUT
+            } else {
+                ShowStatus.COMPLETED
+            }
+        }
+
+        return if (status == "UPCOMING") ShowStatus.UPCOMING else ShowStatus.ON_SALE
+    }
+
     private fun mapSummaryToShow(dto: com.ssafy.cheket.core.network.dto.ShowSummaryDto): Show =
         Show(
             id = dto.showId.toString(),
@@ -25,7 +56,13 @@ class ShowRepositoryImpl(
             venue = dto.venue,
             region = dto.region,
             poster = dto.posterUrl,
-            status = if (dto.status == "SOLD_OUT") ShowStatus.SOLD_OUT else ShowStatus.ON_SALE,
+            status = mapShowStatus(
+                status = dto.status,
+                showStartDate = dto.show?.showStartDate,
+                showEndDate = dto.show?.showEndDate,
+                reservationStartDate = dto.reservation?.startDate,
+                reservationEndDate = dto.reservation?.endDate,
+            ),
             maxPerUser = dto.purchaseLimit ?: 4,
             grades = emptyList(),
             openDate = dto.reservation?.startDate,
@@ -170,7 +207,13 @@ class ShowRepositoryImpl(
                     venue = dto.venue,
                     region = dto.region,
                     poster = dto.posterUrl,
-                    status = if (dto.status == "SOLD_OUT") ShowStatus.SOLD_OUT else ShowStatus.ON_SALE,
+                    status = mapShowStatus(
+                        status = dto.status,
+                        showStartDate = dto.show?.showStartDate,
+                        showEndDate = dto.show?.showEndDate,
+                        reservationStartDate = dto.reservation?.startDate,
+                        reservationEndDate = dto.reservation?.endDate,
+                    ),
                     maxPerUser = dto.purchaseLimit ?: 4,
                     openDate = dto.reservation?.startDate,
                     reservationEndDate = dto.reservation?.endDate,
@@ -275,6 +318,24 @@ class ShowRepositoryImpl(
             "$artist · $venue"
         } else {
             venue
+        }
+    }
+
+    private fun String?.parseDateTimeOrNull(): LocalDateTime? {
+        if (this.isNullOrBlank()) return null
+        return try {
+            LocalDateTime.parse(this, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun String?.parseDateOrNull(): LocalDate? {
+        if (this.isNullOrBlank()) return null
+        return try {
+            LocalDate.parse(this)
+        } catch (_: Exception) {
+            null
         }
     }
 
