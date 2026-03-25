@@ -60,8 +60,7 @@ public class SettlementServiceImpl implements SettlementService {
             try {
                 Show show = showRepository.findById(session.getShowId()).orElse(null);
                 if (show == null) {
-                    log.warn("[정산] 회차 {} 공연 없음 → 스킵 (showId={})",
-                        session.getId(), session.getShowId());
+                    log.warn("[정산] 회차 {} 공연 없음 → 스킵 (showId={})", session.getId(), session.getShowId());
                     continue;
                 }
 
@@ -85,8 +84,7 @@ public class SettlementServiceImpl implements SettlementService {
                 settledSessionIds.add(session.getId());
 
             } catch (Exception e) {
-                log.error("[정산] 회차 {} 최종 실패 — {}: {}",
-                    session.getId(), e.getClass().getSimpleName(), e.getMessage());
+                log.error("[정산] 회차 {} 최종 실패 — {}: {}", session.getId(), e.getClass().getSimpleName(), e.getMessage());
             }
         }
 
@@ -127,8 +125,7 @@ public class SettlementServiceImpl implements SettlementService {
                 settledSessionIds.add(session.getId());
 
             } catch (Exception e) {
-                log.error("[정산] 회차 {} 최종 실패 — {}: {}",
-                    session.getId(), e.getClass().getSimpleName(), e.getMessage());
+                log.error("[정산] 회차 {} 최종 실패 — {}: {}", session.getId(), e.getClass().getSimpleName(), e.getMessage());
             }
         }
 
@@ -138,56 +135,45 @@ public class SettlementServiceImpl implements SettlementService {
     @Override
     public void finalizeBySessionId(Long showId, Long sessionId) {
         Show show = showRepository.findById(showId)
-            .orElseThrow(() -> new NotFoundException(
-                "공연을 찾을 수 없습니다: " + showId));
+            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
 
         if (show.getEventNftId() == null) {
             throw new BlockchainException("민팅되지 않은 공연입니다.");
         }
 
         Session session = sessionRepository.findById(sessionId)
-            .orElseThrow(() -> new NotFoundException(
-                "회차를 찾을 수 없습니다: " + sessionId));
+            .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다: " + sessionId));
 
         if (!session.getShowId().equals(showId)) {
-            throw new BlockchainException(
-                "회차 " + sessionId + "는 공연 " + showId
-                    + "에 속하지 않습니다.");
+            throw new BlockchainException("회차 " + sessionId + "는 공연 " + showId + "에 속하지 않습니다.");
         }
 
         if (session.getOnChainSessionId() == null) {
-            throw new BlockchainException(
-                "온체인에 등록되지 않은 회차입니다.");
+            throw new BlockchainException("온체인에 등록되지 않은 회차입니다.");
         }
 
         // 종료 여부 확인 (sessionStartTime + playtime < now)
-        LocalDateTime sessionEndTime = session.getSessionStartTime()
-            .plusMinutes(show.getPlaytime());
+        LocalDateTime sessionEndTime = session.getSessionStartTime().plusMinutes(show.getPlaytime());
         if (sessionEndTime.isAfter(LocalDateTime.now())) {
             throw new BlockchainException("아직 종료되지 않은 회차입니다.");
         }
 
         try {
             boolean isFinalized = blockchainService.getSettlement()
-                .isSessionFinalized(BigInteger.valueOf(
-                    session.getOnChainSessionId()))
-                .send();
+                .isSessionFinalized(BigInteger.valueOf(session.getOnChainSessionId())).send();
             if (isFinalized) {
                 throw new BlockchainException("이미 정산된 회차입니다.");
             }
 
             BigInteger deposits = blockchainService.getSettlement()
-                .getSessionDeposits(BigInteger.valueOf(
-                    session.getOnChainSessionId()))
-                .send();
+                .getSessionDeposits(BigInteger.valueOf(session.getOnChainSessionId())).send();
             if (deposits.compareTo(BigInteger.ZERO) == 0) {
                 throw new BlockchainException("예치금이 없는 회차입니다.");
             }
         } catch (BlockchainException e) {
             throw e;
         } catch (Exception e) {
-            throw new BlockchainException(
-                "온체인 조회 실패: " + e.getMessage());
+            throw new BlockchainException("온체인 조회 실패: " + e.getMessage());
         }
 
         finalizeSession(session, show);
@@ -209,12 +195,10 @@ public class SettlementServiceImpl implements SettlementService {
                 // 비즈니스 예외 (stakeholder 없음, 분배율 오류 등)는 재시도 불필요
                 throw e;
             } catch (Exception e) {
-                log.warn("[정산] 회차 {} 재시도 {}/{} — {}",
-                    session.getId(), attempt, MAX_RETRY, e.getMessage());
+                log.warn("[정산] 회차 {} 재시도 {}/{} — {}", session.getId(), attempt, MAX_RETRY, e.getMessage());
                 if (attempt == MAX_RETRY) {
                     throw new BlockchainException(
-                        "정산 " + MAX_RETRY + "회 재시도 실패 — sessionId="
-                            + session.getId() + ": " + e.getMessage());
+                        "정산 " + MAX_RETRY + "회 재시도 실패 — sessionId=" + session.getId() + ": " + e.getMessage());
                 }
             }
         }
@@ -235,18 +219,14 @@ public class SettlementServiceImpl implements SettlementService {
         // 이해관계자 존재 여부 검증
         List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(show.getId());
         if (stakeholders.isEmpty()) {
-            throw new BlockchainException(
-                "이해관계자가 등록되지 않은 공연입니다: showId=" + show.getId());
+            throw new BlockchainException("이해관계자가 등록되지 않은 공연입니다: showId=" + show.getId());
         }
 
         // 분배율 합계 검증 (10000 bps = 100%)
-        int totalBps = stakeholders.stream()
-            .mapToInt(Stakeholder::getShareBps)
-            .sum();
+        int totalBps = stakeholders.stream().mapToInt(Stakeholder::getShareBps).sum();
         if (totalBps != 10000) {
             throw new BlockchainException(
-                "이해관계자 분배율 합계가 100%가 아닙니다: "
-                    + totalBps + " bps (showId=" + show.getId() + ")");
+                "이해관계자 분배율 합계가 100%가 아닙니다: " + totalBps + " bps (showId=" + show.getId() + ")");
         }
 
         try {
@@ -277,8 +257,7 @@ public class SettlementServiceImpl implements SettlementService {
      *
      * 해당 공연의 모든 이해관계자(Stakeholder)마다 1건씩 기록 → 같은 txHash지만, 누구에게 분배됐는지 개별 추적 가능
      */
-    private void saveSettlementHistory(Show show, Session session, String txHash,
-        List<Stakeholder> stakeholders) {
+    private void saveSettlementHistory(Show show, Session session, String txHash, List<Stakeholder> stakeholders) {
 
         for (Stakeholder stakeholder : stakeholders) {
             Settlement settlement = Settlement.builder().showId(show.getId()).sessionId(session.getId())

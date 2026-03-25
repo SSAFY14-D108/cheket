@@ -40,15 +40,14 @@ public class HostShowController {
     }
 
     @PostMapping("/{showId}/contracts/confirm")
-    @Operation(summary = "공연 최종 등록 (StakeholderNFT 발행)",
-        description = "이해관계자 전원 승인 확인 후 StakeholderNFT 온체인 발행."
-            + " 전원 APPROVED가 아니면 400 에러 반환.")
+    @Operation(summary = "공연 최종 등록 (StakeholderNFT 발행)", description = "이해관계자 전원 승인 확인 후 StakeholderNFT 온체인 발행."
+        + " 전원 APPROVED가 아니면 400 에러 반환.")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Map<String, Long>>> confirmShow(@AuthenticationPrincipal Long hostId,
-                                                                      @PathVariable Long showId) {
+        @PathVariable Long showId) {
         Long txId = hostShowService.confirmShow(hostId, showId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "최종 등록 완료 — StakeholderNFT 발행 진행 중",
-            Map.of("showId", showId, "txId", txId)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.ok(201, "최종 등록 완료 — StakeholderNFT 발행 진행 중", Map.of("showId", showId, "txId", txId)));
     }
 
     @PatchMapping(value = "/{showId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -106,7 +105,5 @@ public class HostShowController {
         return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.ok(200, "공연 스마트컨트랙트의 승인/거절에 관해 조회 성공했습니다.", response));
     }
-
-
 
 }

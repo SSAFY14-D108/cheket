@@ -69,3 +69,7 @@ cloud:
 
 firebase:
     config-path: ${FIREBASE_CONFIG_PATH}
+
+ai:
+    server:
+        base-url: ${AI_SERVER_URL}

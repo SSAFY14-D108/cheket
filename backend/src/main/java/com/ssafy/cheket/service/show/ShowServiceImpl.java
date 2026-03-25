@@ -1,14 +1,18 @@
 package com.ssafy.cheket.service.show;
 
+import com.ssafy.cheket.client.ai.RecommendationAiClient;
+import com.ssafy.cheket.client.ai.dto.ArtistPreferencePayload;
+import com.ssafy.cheket.client.ai.dto.CandidateShowPayload;
+import com.ssafy.cheket.client.ai.dto.RecommendationItemPayload;
+import com.ssafy.cheket.client.ai.dto.RecommendationRequestPayload;
+import com.ssafy.cheket.client.ai.dto.RecommendationResponsePayload;
 import com.ssafy.cheket.config.s3.S3Uploader;
 import com.ssafy.cheket.dto.show.request.PurchaseSessionSeatRequest;
-import com.ssafy.cheket.dto.show.response.*;
-import com.ssafy.cheket.entity.show.*;
-import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.dto.show.request.SaveSearchKeywordRequest;
 import com.ssafy.cheket.dto.show.response.*;
 import com.ssafy.cheket.entity.show.*;
 import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.SeatStatus;
 import com.ssafy.cheket.enums.ShowSort;
 import com.ssafy.cheket.exception.common.BadRequestException;
 import com.ssafy.cheket.exception.common.ConflictException;
@@ -29,11 +33,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,6 +53,11 @@ public class ShowServiceImpl implements ShowService {
     private static final Duration SEAT_LOCK_TTL = Duration.ofMinutes(5L);
     private static final String SEAT_LOCK_PREFIX = "seat-lock";
     private static final long HELD_CLEANUP_DELAY_MS = 30_000L;
+    private static final int RECENT_KEYWORD_LIMIT = 5;
+    private static final int USER_SIGNAL_SHOW_LIMIT = 10;
+    private static final int CANDIDATE_FETCH_LIMIT = 100;
+    private static final int DEFAULT_RECOMMENDATION_SIZE = 10;
+    private static final boolean DEFAULT_EXCLUDE_LIKED = false;
 
     private final ShowRepository showRepository;
     private final LikeRepository likeRepository;
@@ -60,6 +72,8 @@ public class ShowServiceImpl implements ShowService {
     private final SearchHistoryRepository searchHistoryRepository;
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final RecommendationEmbeddingStore recommendationEmbeddingStore;
+    private final RecommendationAiClient recommendationAiClient;
     private final S3Uploader s3Uploader;
     private final StringRedisTemplate redisTemplate;
 
@@ -212,6 +226,38 @@ public class ShowServiceImpl implements ShowService {
             .toList();
 
         return new GetUpcomingResponse(items);
+    }
+
+    @Override
+    public GetRecommendationsResponse getRecommendations(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        List<Show> likedShows = limitSignals(likeRepository.findLikedShowsByUserId(userId));
+        List<Show> purchasedShows = limitSignals(ticketRepository.findPurchasedShowsByUserId(userId));
+        List<String> recentKeywords = getRecentKeywords(userId);
+
+        int candidateLimit = clamp(DEFAULT_RECOMMENDATION_SIZE * 10, DEFAULT_RECOMMENDATION_SIZE,
+            CANDIDATE_FETCH_LIMIT);
+        List<Show> candidates = showRepository.findRecommendationCandidates(userId, DEFAULT_EXCLUDE_LIKED, now).stream()
+            .limit(candidateLimit).toList();
+
+        if (candidates.isEmpty()) {
+            return new GetRecommendationsResponse(List.of());
+        }
+
+        RecommendationRequestPayload payload = buildRecommendationRequest(userId, likedShows, purchasedShows,
+            recentKeywords, candidates);
+
+        List<RecommendedShowItem> recommendations;
+        try {
+            RecommendationResponsePayload response = recommendationAiClient.recommend(payload);
+            recommendations = mergeAiRecommendations(response.recommendations(), candidates,
+                DEFAULT_RECOMMENDATION_SIZE);
+        } catch (RuntimeException e) {
+            recommendations = buildLocalFallbackRecommendations(likedShows, purchasedShows, recentKeywords, candidates,
+                DEFAULT_RECOMMENDATION_SIZE);
+        }
+
+        return new GetRecommendationsResponse(recommendations);
     }
 
     @Override
@@ -428,6 +474,332 @@ public class ShowServiceImpl implements ShowService {
         return normalized;
     }
 
+    private RecommendationRequestPayload buildRecommendationRequest(Long userId, List<Show> likedShows,
+        List<Show> purchasedShows, List<String> recentKeywords, List<Show> candidates) {
+        List<RecommendationEmbeddingStore.WeightedShowSignal> embeddingSignals = new ArrayList<>();
+        for (Show show : purchasedShows) {
+            embeddingSignals.add(new RecommendationEmbeddingStore.WeightedShowSignal(show.getId(), 2.0));
+        }
+        for (Show show : likedShows) {
+            embeddingSignals.add(new RecommendationEmbeddingStore.WeightedShowSignal(show.getId(), 1.0));
+        }
+
+        Map<Long, List<Double>> candidateEmbeddings = recommendationEmbeddingStore
+            .findEmbeddingsByShowIds(candidates.stream().map(Show::getId).toList());
+
+        return new RecommendationRequestPayload(userId,
+            recommendationEmbeddingStore.buildWeightedUserEmbedding(embeddingSignals),
+            buildUserProfileText(likedShows, purchasedShows, recentKeywords),
+            buildArtistPreferences(likedShows, purchasedShows), recentKeywords,
+            candidates.stream().map(show -> toCandidatePayload(show, candidateEmbeddings)).toList());
+    }
+
+    private List<Show> limitSignals(List<Show> shows) {
+        return shows.stream().limit(USER_SIGNAL_SHOW_LIMIT).toList();
+    }
+
+    private List<String> getRecentKeywords(Long userId) {
+        LinkedHashSet<String> deduplicated = new LinkedHashSet<>();
+        for (SearchHistory searchHistory : searchHistoryRepository.findTop10ByUser_IdOrderByCreatedAtDesc(userId)) {
+            String keyword = searchHistory.getKeyword();
+            if (keyword == null || keyword.isBlank()) {
+                continue;
+            }
+            deduplicated.add(keyword.trim());
+            if (deduplicated.size() >= RECENT_KEYWORD_LIMIT) {
+                break;
+            }
+        }
+        return List.copyOf(deduplicated);
+    }
+
+    private List<ArtistPreferencePayload> buildArtistPreferences(List<Show> likedShows, List<Show> purchasedShows) {
+        Map<String, Double> artistWeights = new LinkedHashMap<>();
+
+        for (Show show : purchasedShows) {
+            addArtistPreferenceWeight(artistWeights, show.getArtist(), 2.0);
+        }
+        for (Show show : likedShows) {
+            addArtistPreferenceWeight(artistWeights, show.getArtist(), 1.0);
+        }
+
+        return artistWeights.entrySet().stream()
+            .map(entry -> new ArtistPreferencePayload(entry.getKey(), entry.getValue())).toList();
+    }
+
+    private void addArtistPreferenceWeight(Map<String, Double> artistWeights, String artist, double delta) {
+        if (artist == null || artist.isBlank()) {
+            return;
+        }
+        artistWeights.merge(artist.trim(), delta, Double::sum);
+    }
+
+    private String buildUserProfileText(List<Show> likedShows, List<Show> purchasedShows, List<String> recentKeywords) {
+        List<String> parts = new ArrayList<>();
+
+        for (Show show : purchasedShows) {
+            String text = buildEmbeddingText(show);
+            parts.add(text);
+            parts.add(text);
+        }
+        for (Show show : likedShows) {
+            parts.add(buildEmbeddingText(show));
+        }
+        if (!recentKeywords.isEmpty()) {
+            parts.add("최근 검색어: " + String.join(", ", recentKeywords));
+        }
+
+        return String.join(" || ", parts);
+    }
+
+    private CandidateShowPayload toCandidatePayload(Show show, Map<Long, List<Double>> candidateEmbeddings) {
+        return new CandidateShowPayload(show.getId(), show.getArtist(), show.getTitle(), show.getVenue().getName(),
+            candidateEmbeddings.getOrDefault(show.getId(), List.of()), buildEmbeddingText(show),
+            computeTicketingState(show), computeShowState(show), show.getShowStartDate().toLocalDate().toString());
+    }
+
+    private String buildEmbeddingText(Show show) {
+        List<String> parts = new ArrayList<>();
+        parts.add("제목: " + show.getTitle());
+        if (show.getArtist() != null && !show.getArtist().isBlank()) {
+            parts.add("아티스트: " + show.getArtist());
+        }
+        parts.add("설명: " + show.getDescription());
+        parts.add("공연장: " + show.getVenue().getName());
+        parts.add("지역: " + show.getVenue().getRegion().getName());
+        if (show.getHost() != null && show.getHost().getCompanyName() != null
+            && !show.getHost().getCompanyName().isBlank()) {
+            parts.add("주최사: " + show.getHost().getCompanyName());
+        }
+        return String.join(" / ", parts);
+    }
+
+    private List<RecommendedShowItem> mergeAiRecommendations(List<RecommendationItemPayload> aiItems,
+        List<Show> candidates, int size) {
+        Map<Long, Show> showById = candidates.stream().collect(Collectors.toMap(Show::getId, show -> show));
+        return aiItems.stream().map(item -> {
+            Show show = showById.get(item.showId());
+            if (show == null) {
+                return null;
+            }
+            return toRecommendedShowItem(show, item.score());
+        }).filter(item -> item != null).limit(size).toList();
+    }
+
+    private List<RecommendedShowItem> buildLocalFallbackRecommendations(List<Show> likedShows,
+        List<Show> purchasedShows, List<String> recentKeywords, List<Show> candidates, int size) {
+        Map<String, Double> tokenWeights = buildInterestTokenWeights(likedShows, purchasedShows);
+        Map<String, Double> artistWeights = buildArtistWeightMap(likedShows, purchasedShows);
+
+        return candidates.stream()
+            .map(show -> computeLocalRecommendation(show, tokenWeights, artistWeights, recentKeywords))
+            .sorted(Comparator.comparing(LocalRecommendation::score).reversed()).limit(size)
+            .map(result -> toRecommendedShowItem(result.show(), result.score())).toList();
+    }
+
+    private Map<String, Double> buildInterestTokenWeights(List<Show> likedShows, List<Show> purchasedShows) {
+        Map<String, Double> weights = new HashMap<>();
+
+        for (Show show : purchasedShows) {
+            addWeightedTokens(weights, show, 2.0);
+        }
+        for (Show show : likedShows) {
+            addWeightedTokens(weights, show, 1.0);
+        }
+
+        return weights;
+    }
+
+    private Map<String, Double> buildArtistWeightMap(List<Show> likedShows, List<Show> purchasedShows) {
+        Map<String, Double> artistWeights = new HashMap<>();
+        for (Show show : purchasedShows) {
+            mergeNormalizedWeight(artistWeights, show.getArtist(), 2.0);
+        }
+        for (Show show : likedShows) {
+            mergeNormalizedWeight(artistWeights, show.getArtist(), 1.0);
+        }
+        return artistWeights;
+    }
+
+    private void addWeightedTokens(Map<String, Double> weights, Show show, double multiplier) {
+        for (String token : extractMeaningfulTokens(buildEmbeddingText(show))) {
+            weights.merge(token, multiplier, Double::sum);
+        }
+    }
+
+    private void mergeNormalizedWeight(Map<String, Double> weights, String rawValue, double delta) {
+        String normalized = normalizeText(rawValue);
+        if (!normalized.isBlank()) {
+            weights.merge(normalized, delta, Double::sum);
+        }
+    }
+
+    private LocalRecommendation computeLocalRecommendation(Show show, Map<String, Double> tokenWeights,
+        Map<String, Double> artistWeights, List<String> recentKeywords) {
+        double textScore = computeTextSimilarity(tokenWeights, show);
+        double artistScore = computeArtistMatchScore(artistWeights, show.getArtist());
+        double searchScore = computeKeywordMatchScore(recentKeywords, show);
+        double freshnessScore = computeFreshnessScore(computeTicketingState(show), computeShowState(show));
+        double timingScore = computeTimingScore(show);
+
+        double finalScore = Math.min(textScore + artistScore + searchScore + freshnessScore + timingScore, 1.0);
+        String reason = buildLocalReason(show, textScore, artistScore, searchScore, freshnessScore, timingScore,
+            tokenWeights.isEmpty() && artistWeights.isEmpty() && recentKeywords.isEmpty());
+        return new LocalRecommendation(show, roundScore(finalScore), reason);
+    }
+
+    private double computeTextSimilarity(Map<String, Double> tokenWeights, Show show) {
+        if (tokenWeights.isEmpty()) {
+            return 0.0;
+        }
+
+        Set<String> candidateTokens = extractMeaningfulTokens(buildEmbeddingText(show));
+        double matchedWeight = candidateTokens.stream().mapToDouble(token -> tokenWeights.getOrDefault(token, 0.0))
+            .sum();
+        return Math.min(matchedWeight / 12.0, 0.42);
+    }
+
+    private double computeArtistMatchScore(Map<String, Double> artistWeights, String artist) {
+        String normalizedArtist = normalizeText(artist);
+        if (normalizedArtist.isBlank()) {
+            return 0.0;
+        }
+        double weight = artistWeights.getOrDefault(normalizedArtist, 0.0);
+        return Math.min(weight / 2.0, 1.0) * 0.38;
+    }
+
+    private double computeKeywordMatchScore(List<String> recentKeywords, Show show) {
+        if (recentKeywords.isEmpty()) {
+            return 0.0;
+        }
+
+        String candidateText = normalizeText(buildEmbeddingText(show));
+        for (String keyword : recentKeywords) {
+            String normalizedKeyword = normalizeText(keyword);
+            if (!normalizedKeyword.isBlank() && candidateText.contains(normalizedKeyword)) {
+                return 0.10;
+            }
+        }
+        return 0.0;
+    }
+
+    private double computeFreshnessScore(String ticketingState, String showState) {
+        if ("UPCOMING".equals(showState) && "IN_PROGRESS".equals(ticketingState)) {
+            return 0.10;
+        }
+        if ("UPCOMING".equals(showState) && "BEFORE_OPEN".equals(ticketingState)) {
+            return 0.06;
+        }
+        if ("ONGOING".equals(showState)) {
+            return 0.04;
+        }
+        return 0.0;
+    }
+
+    private double computeTimingScore(Show show) {
+        if (!"UPCOMING".equals(computeShowState(show))) {
+            return 0.0;
+        }
+
+        long daysUntilShow = Duration.between(LocalDateTime.now(), show.getShowStartDate()).toDays();
+        if (daysUntilShow < 0) {
+            return 0.0;
+        }
+        if (daysUntilShow <= 7) {
+            return 0.08;
+        }
+        if (daysUntilShow <= 14) {
+            return 0.05;
+        }
+        if (daysUntilShow <= 30) {
+            return 0.03;
+        }
+        return 0.0;
+    }
+
+    private String buildLocalReason(Show show, double textScore, double artistScore, double searchScore,
+        double freshnessScore, double timingScore, boolean coldStart) {
+        List<String> reasons = new ArrayList<>();
+
+        if (artistScore >= 0.25) {
+            reasons.add("동일 아티스트 선호가 반영됨");
+        }
+        if (textScore >= 0.20) {
+            reasons.add("좋아요/구매 이력과 설명 맥락이 유사함");
+        }
+        if (searchScore > 0.0) {
+            reasons.add("최근 검색어와 관련됨");
+        }
+        if (freshnessScore >= 0.06) {
+            reasons.add("현재 예매 가능 상태");
+        } else if (timingScore >= 0.05) {
+            reasons.add("공연 일정이 가까움");
+        }
+
+        if (reasons.isEmpty() && coldStart) {
+            return "사용자 이력이 부족해 현재 예매 가능한 공연을 추천합니다.";
+        }
+        if (reasons.isEmpty()) {
+            return "기본 추천 로직으로 선정된 공연";
+        }
+
+        return String.join(" + ", reasons);
+    }
+
+    private Set<String> extractMeaningfulTokens(String rawText) {
+        Set<String> tokens = new HashSet<>();
+        for (String token : normalizeText(rawText).split("[^\\p{IsAlphabetic}\\p{IsDigit}]+")) {
+            if (token.isBlank() || token.length() < 2 || token.chars().allMatch(Character::isDigit)) {
+                continue;
+            }
+            tokens.add(token);
+        }
+        return tokens;
+    }
+
+    private String normalizeText(String rawText) {
+        if (rawText == null) {
+            return "";
+        }
+        return rawText.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String computeShowState(Show show) {
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(show.getShowStartDate())) {
+            return "UPCOMING";
+        }
+        if (now.isAfter(show.getShowEndDate())) {
+            return "ENDED";
+        }
+        return "ONGOING";
+    }
+
+    private String computeTicketingState(Show show) {
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(show.getReservationStartDate())) {
+            return "BEFORE_OPEN";
+        }
+        if (now.isAfter(show.getReservationEndDate())) {
+            return "CLOSED";
+        }
+        return "IN_PROGRESS";
+    }
+
+    private RecommendedShowItem toRecommendedShowItem(Show show, double score) {
+        return new RecommendedShowItem(show.getId(), show.getTitle(), show.getPosterUrl(), show.getVenue().getName(),
+            show.getPurchaseLimit(), show.getVenue().getRegion().getName(),
+            new RecommendedShowItem.ShowPeriod(show.getShowStartDate().toLocalDate(),
+                show.getShowEndDate().toLocalDate()),
+            new RecommendedShowItem.ReservationPeriod(show.getReservationStartDate(), show.getReservationEndDate()),
+            show.getStatus().name(), show.getArtist(), computeTicketingState(show), computeShowState(show),
+            roundScore(score));
+    }
+
+    private double roundScore(double score) {
+        return Math.round(score * 10000.0) / 10000.0;
+    }
+
     private ShowItem toShowItem(Show s) {
         return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
             s.getVenue().getRegion().getName(),
@@ -438,6 +810,9 @@ public class ShowServiceImpl implements ShowService {
 
     private record SectionGroup(Long sectionId, String sectionName, String gradeName, Integer price, String colorCode,
         List<SeatItemResponse> seats) {
+    }
+
+    private record LocalRecommendation(Show show, double score, String reason) {
     }
 
     private int clamp(int v, int min, int max) {

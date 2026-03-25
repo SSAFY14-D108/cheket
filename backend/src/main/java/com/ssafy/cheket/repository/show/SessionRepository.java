@@ -50,8 +50,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
           AND TIMESTAMPADD(MINUTE, sh.playtime, s.session_start_time) < :now
         ORDER BY s.session_date ASC
         """, nativeQuery = true)
-    List<Session> findCompletedSessionsByShowId(@Param("showId") Long showId,
-                                                @Param("now") LocalDateTime now);
+    List<Session> findCompletedSessionsByShowId(@Param("showId") Long showId, @Param("now") LocalDateTime now);
 
     /**
      * 전체 공연 중 종료된 회차 조회 (onChainSessionId 있고, sessionStartTime + playtime < now)

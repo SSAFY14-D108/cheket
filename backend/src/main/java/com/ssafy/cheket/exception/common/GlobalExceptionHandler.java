@@ -45,6 +45,25 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.fail(HttpStatus.CONFLICT.value(), e.getMessage()));
     }
 
+    // 410 Gone - 인증 만료
+    @ExceptionHandler(GoneException.class)
+    public ResponseEntity<ApiResponse<Void>> handleGone(GoneException e) {
+        return ResponseEntity.status(HttpStatus.GONE).body(ApiResponse.fail(HttpStatus.GONE.value(), e.getMessage()));
+    }
+
+    // 429 Too Many Requests - 너무 잦은 요청으로 인한 오류
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTooManyRequests(TooManyRequestsException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(ApiResponse.fail(HttpStatus.TOO_MANY_REQUESTS.value(), e.getMessage()));
+    }
+
+    @ExceptionHandler(BlockchainException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBlockchainException(BlockchainException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
         String errorMessage = "유효성 검사 실패";
@@ -56,36 +75,24 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.fail(HttpStatus.BAD_REQUEST.value(), errorMessage));
     }
 
+    @ExceptionHandler({AiException.class, SmsSendFailedException.class})
+    public ResponseEntity<ApiResponse<Void>> handleAiException(AiException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
+    }
+
+    // 502 Bad Gateway
+    public ResponseEntity<ApiResponse<Void>> handleSmsSendFailed(SmsSendFailedException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
+    }
+
     // 500 Internal Server Error - 서버 오류
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         e.printStackTrace(); // 콘솔에 에러 출력
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ApiResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
-    }
-
-    // 429 Too Many Requests - 너무 잦은 요청으로 인한 오류
-    @ExceptionHandler(TooManyRequestsException.class)
-    public ResponseEntity<ApiResponse<Void>> handleTooManyRequests(TooManyRequestsException e) {
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-            .body(ApiResponse.fail(HttpStatus.TOO_MANY_REQUESTS.value(), e.getMessage()));
-    }
-
-    // 502 Bad Gateway
-    @ExceptionHandler(SmsSendFailedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleSmsSendFailed(SmsSendFailedException e) {
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
-    }
-    @ExceptionHandler(BlockchainException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBlockchainException(BlockchainException e) {
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-            .body(ApiResponse.fail(HttpStatus.BAD_GATEWAY.value(), e.getMessage()));
-    }
-    // 410 Gone - 인증 만료
-    @ExceptionHandler(GoneException.class)
-    public ResponseEntity<ApiResponse<Void>> handleGone(GoneException e) {
-        return ResponseEntity.status(HttpStatus.GONE).body(ApiResponse.fail(HttpStatus.GONE.value(), e.getMessage()));
     }
 
 }
