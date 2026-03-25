@@ -28,4 +28,6 @@ public interface StakeholderRepository extends JpaRepository<Stakeholder, Long> 
     @Modifying
     @Query("DELETE FROM Stakeholder s WHERE s.showId = :showId")
     void deleteAllByShowId(Long showId);
+
+    boolean existsByShowIdAndUserId(Long showId, Long loginId);
 }
