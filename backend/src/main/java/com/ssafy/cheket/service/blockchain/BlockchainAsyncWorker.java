@@ -274,13 +274,12 @@ public class BlockchainAsyncWorker {
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] 완료 — txId={}, {}매, {} SSF", txId, seats.size(), totalPrice);
 
+        } catch (BlockchainException e) {
+            log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
-            // ========== ⑥ 실패: 좌석 상태 유지 + Transaction FAILED ==========
-            // 좌석을 AVAILABLE로 복원하지 않음 — 관리자가 수동 처리
-            // 성공한 좌석: SOLD 유지 (온체인 구매 완료)
-            // 실패한 좌석: PENDING_TX 유지 (관리자 확인 필요)
-            log.error("[티켓 구매 비동기] 실패 — txId={}, 관리자 확인 필요", txId, e);
-            updateTransactionFailed(txId, "구매 실패 — 관리자에게 문의해주세요.");
+            log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "티켓 구매 실패 — " + e.getMessage());
         }
     }
 
@@ -397,12 +396,12 @@ public class BlockchainAsyncWorker {
             log.info("[양도 비동기] 완료 — txId={}, ticketId={}, sender={} → receiver={}", txId, ticketId, senderUserId,
                 receiverUserId);
 
-        } catch (Exception e) {
-            // ========== ⑤ 실패 처리 ==========
-            // 양도 실패해도 티켓은 보내는 사람에게 그대로 남음 (온체인 revert)
-            // DB도 Ticket.userId 변경 전에 에러 발생 시 원래 상태 유지
+        } catch (BlockchainException e) {
             log.error("[양도 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "양도 실패 — 블록체인 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+            updateTransactionFailed(txId, e.getMessage());
+        } catch (Exception e) {
+            log.error("[양도 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "양도 실패 — " + e.getMessage());
         }
     }
 
@@ -534,10 +533,14 @@ public class BlockchainAsyncWorker {
 
             log.info("[티켓 환불 비동기] 완료 — txId={}, ticketId={}, refunded={} SSF", txId, ticketId, refundedAmount);
 
+        } catch (BlockchainException e) {
+            log.error("[티켓 환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
+            restoreRefundSeatToSold(sessionSeatId, txId);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[티켓 환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
             restoreRefundSeatToSold(sessionSeatId, txId);
-            updateTransactionFailed(txId, "티켓 환불 실패 — 블록체인 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+            updateTransactionFailed(txId, "티켓 환불 실패 — " + e.getMessage());
         }
     }
 
@@ -647,9 +650,12 @@ public class BlockchainAsyncWorker {
             transactionRepository.save(tx);
             log.info("[StakeholderNFT 발행 비동기] 완료 — txId={}, {}건", txId, stakeholders.size());
 
+        } catch (BlockchainException e) {
+            log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "공연 등록 실패 — 블록체인에 수익 분배 계약을 등록하지 못했습니다.");
+            updateTransactionFailed(txId, "공연 등록 실패 — " + e.getMessage());
         }
     }
 
@@ -732,6 +738,22 @@ public class BlockchainAsyncWorker {
             }
         } catch (Exception e) {
             log.error("[환불 비동기] 좌석 상태 복원 실패 — txId={}, sessionSeatId={}", txId, sessionSeatId, e);
+        }
+    }
+
+    /**
+     * 리세일 등록 실패 시 Ticket.resaleStatus → AVAILABLE 복원
+     */
+    private void restoreResaleTicketToAvailable(Long ticketId) {
+        try {
+            Ticket ticket = ticketRepository.findById(ticketId).orElse(null);
+            if (ticket != null && ticket.getResaleStatus() == ResaleStatus.LISTED) {
+                ticket.setResaleStatus(ResaleStatus.AVAILABLE);
+                ticketRepository.save(ticket);
+                log.info("[리세일 등록 비동기] Ticket resaleStatus AVAILABLE 복원 — ticketId={}", ticketId);
+            }
+        } catch (Exception e) {
+            log.error("[리세일 등록 비동기] Ticket 복원 실패 — ticketId={}", ticketId, e);
         }
     }
 
@@ -849,22 +871,14 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 등록 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
+        } catch (BlockchainException e) {
+            log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
+            restoreResaleTicketToAvailable(ticketId);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
-
-            // 실패 시 Ticket.resaleStatus → AVAILABLE 복원
-            try {
-                Ticket ticket = ticketRepository.findById(ticketId).orElseThrow();
-                if (ticket.getResaleStatus() == ResaleStatus.LISTED) {
-                    ticket.setResaleStatus(ResaleStatus.AVAILABLE);
-                    ticketRepository.save(ticket);
-                    log.info("[리세일 등록 비동기] Ticket resaleStatus AVAILABLE 복원 — ticketId={}", ticketId);
-                }
-            } catch (Exception restoreErr) {
-                log.error("[리세일 등록 비동기] Ticket 복원 실패 — ticketId={}", ticketId, restoreErr);
-            }
-
-            updateTransactionFailed(txId, "리세일 등록 실패 — 블록체인에 NFT를 예치하지 못했습니다. 다시 시도해주세요.");
+            restoreResaleTicketToAvailable(ticketId);
+            updateTransactionFailed(txId, "리세일 등록 실패 — " + e.getMessage());
         }
     }
 
@@ -925,9 +939,12 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 취소 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
+        } catch (BlockchainException e) {
+            log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "리세일 취소 실패 — 블록체인에서 NFT를 반환하지 못했습니다. 다시 시도해주세요.");
+            updateTransactionFailed(txId, "리세일 취소 실패 — " + e.getMessage());
         }
     }
 
@@ -1048,9 +1065,12 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 구매 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
+        } catch (BlockchainException e) {
+            log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "리세일 구매 실패 — 블록체인 처리 중 오류가 발생했습니다. 잔액을 확인해주세요.");
+            updateTransactionFailed(txId, "리세일 구매 실패 — " + e.getMessage());
         }
     }
 
