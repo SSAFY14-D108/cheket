@@ -47,6 +47,7 @@ import org.web3j.tx.RawTransactionManager;
 
 import java.io.File;
 import java.math.BigInteger;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -520,6 +521,8 @@ public class BlockchainAsyncWorker {
                 .formatted(ticketId, onChainTicketNftId, refundedAmount, txHash));
             transactionRepository.save(tx);
 
+            syncWalletBalanceFromChain(ownerWallet);
+
             ticketRepository.delete(ticket);
 
             sessionSeat.setStatus(SeatStatus.AVAILABLE);
@@ -672,6 +675,20 @@ public class BlockchainAsyncWorker {
     /**
      * 티켓 번호 생성 (고유 식별자) QR 코드나 앱에서 표시용 (DB id보다 사용자 친화적)
      */
+    /**
+     * Keep local wallet balance in sync with on-chain state after balance-changing transactions.
+     */
+    private void syncWalletBalanceFromChain(Wallet wallet) {
+        try {
+            int onChainBalance = blockchainService.getSsfBalance(wallet.getAddress()).intValue();
+            wallet.setCtkBalance(onChainBalance);
+            wallet.setBalanceSyncedAt(LocalDateTime.now());
+            walletRepository.save(wallet);
+        } catch (Exception e) {
+            log.warn("[잔액 동기화] walletId={} on-chain sync failed", wallet.getId(), e);
+        }
+    }
+
     private String generateTicketNumber() {
         return "TKT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
