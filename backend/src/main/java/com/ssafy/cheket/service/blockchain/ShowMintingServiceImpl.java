@@ -333,7 +333,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
         for (RefundPolicy policy : policies) {
             daysArray.add(BigInteger.valueOf(policy.getDaysRemaining()));
-            rateBpsArray.add(BigInteger.valueOf(policy.getRefundRate()));
+            rateBpsArray.add(BigInteger.valueOf(policy.getRefundRate() * 100L));
         }
 
         log.info("[공연 {}] 환불 정책 온체인 등록 — {}건", show.getId(), policies.size());
