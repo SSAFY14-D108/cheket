@@ -1,5 +1,6 @@
 package com.ssafy.cheket.repository.ticket;
 
+import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.ticket.Ticket;
 import com.ssafy.cheket.repository.ticket.projection.CheckInTicketProjection;
 import com.ssafy.cheket.repository.ticket.projection.UpcomingTicketProjection;
@@ -133,6 +134,17 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT COUNT(t) FROM Ticket t " + "JOIN SessionSeat ss ON t.sessionSeatId = ss.id "
         + "WHERE t.userId = :userId AND ss.sessionId = :sessionId")
     long countByUserIdAndSessionId(@Param("userId") Long userId, @Param("sessionId") Long sessionId);
+
+    @Query("""
+            select sh
+            from Ticket t
+            join SessionSeat ss on ss.id = t.sessionSeatId
+            join Session s on s.id = ss.sessionId
+            join Show sh on sh.id = s.showId
+            where t.userId = :userId
+            order by t.createdAt desc
+        """)
+    List<Show> findPurchasedShowsByUserId(@Param("userId") Long userId);
 
     // 체크인 시 좌석 + 공연 정보 조회
     @Query("""

@@ -83,6 +83,15 @@ public class ShowController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "오픈 예정 공연 5개 조회 완료", response));
     }
 
+    @GetMapping("/recommendations")
+    @Operation(summary = "추천 공연 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetRecommendationsResponse>> getRecommendations(
+        @AuthenticationPrincipal Long userId) {
+        GetRecommendationsResponse response = showService.getRecommendations(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "추천 공연 조회 완료", response));
+    }
+
     @PostMapping("/{showId}/sessions/{sessionId}/seats")
     @Operation(summary = "좌석 선점(결제하기 버튼)")
     @SecurityRequirement(name = "bearerAuth")

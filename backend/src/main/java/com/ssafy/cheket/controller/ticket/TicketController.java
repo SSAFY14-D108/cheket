@@ -92,24 +92,18 @@ public class TicketController {
     @PostMapping("/tickets/{ticketId}/qr-token")
     @Operation(summary = "QR 입장 토큰 발급", description = "티켓 입장용 QR 코드 데이터를 발급 (30초 유효)")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<QrTokenResponse>> generateQrToken(
-        @AuthenticationPrincipal Long userId,
-        @PathVariable Long ticketId
-    ) {
+    public ResponseEntity<ApiResponse<QrTokenResponse>> generateQrToken(@AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId) {
         QrTokenResponse response = qrTokenService.generateQrToken(userId, ticketId);
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(201, "QR 토큰이 발급되었습니다.", response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "QR 토큰이 발급되었습니다.", response));
     }
 
     @PostMapping("/tickets/check-in")
     @Operation(summary = "QR 입장 검증 + 체크인", description = "검증 앱에서 QR 스캔 후 온체인 소유권 검증 + 체크인 처리")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(
-        @RequestBody CheckInRequest request
-    ) {
+    public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(@RequestBody CheckInRequest request) {
         CheckInResponse response = qrTokenService.verifyAndCheckIn(request.qrToken());
-        return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(200, "입장이 확인되었습니다.", response));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "입장이 확인되었습니다.", response));
     }
 
 }
