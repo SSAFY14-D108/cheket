@@ -15,6 +15,7 @@ class CandidateShow(CamelModel):
     artist: str
     title: str
     venue: str | None = None
+    embedding: list[float] = Field(default_factory=list)
     embedding_text: str | None = Field(default=None, alias="embeddingText")
     ticketing_state: str | None = Field(default=None, alias="ticketingState")
     show_state: str | None = Field(default=None, alias="showState")
@@ -23,6 +24,7 @@ class CandidateShow(CamelModel):
 
 class RecommendationRequest(CamelModel):
     user_id: int = Field(..., alias="userId")
+    user_embedding: list[float] = Field(default_factory=list, alias="userEmbedding")
     user_profile_text: str | None = Field(default=None, alias="userProfileText")
     artist_preferences: list[ArtistPreference] = Field(default_factory=list, alias="artistPreferences")
     recent_keywords: list[str] = Field(default_factory=list, alias="recentKeywords")
