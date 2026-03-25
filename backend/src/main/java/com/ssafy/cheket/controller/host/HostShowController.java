@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,8 +84,10 @@ public class HostShowController {
     @Operation(summary = "공연 상세 조회")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<GetHostShowDetailResponse>> getHostShowDetail(
-        @AuthenticationPrincipal Long hostId, @PathVariable Long showId) {
-        GetHostShowDetailResponse response = hostShowService.getHostShowDetail(hostId, showId);
+        @AuthenticationPrincipal Long loginId, Authentication authentication, @PathVariable Long showId) {
+        String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+            .orElse(null);
+        GetHostShowDetailResponse response = hostShowService.getHostShowDetail(loginId, role, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 상세 조회 완료", response));
     }
 

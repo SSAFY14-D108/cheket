@@ -17,7 +17,7 @@ public interface HostShowService {
 
     GetShowListResponse<ShowItem> getMyShows(Long hostId, int page, int size);
 
-    GetHostShowDetailResponse getHostShowDetail(Long hostId, Long showId);
+    GetHostShowDetailResponse getHostShowDetail(Long loginId, String role, Long showId);
 
     CreateShowResponse createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages);

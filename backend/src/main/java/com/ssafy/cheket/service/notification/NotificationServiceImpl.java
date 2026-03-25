@@ -48,6 +48,7 @@ public class NotificationServiceImpl implements NotificationService {
         createNotification(request, Map.of());
     }
 
+    @Override
     public void createNotification(CreateNotificationRequest request, Map<String, String> data) {
         User user = userRepository.findByIdAndDeletedAtIsNull(request.getUserId())
             .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));

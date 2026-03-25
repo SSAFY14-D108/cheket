@@ -1,6 +1,8 @@
 package com.ssafy.cheket.controller.user;
 
 import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.notification.request.CreateNotificationRequest;
+import com.ssafy.cheket.dto.notification.request.TestNotificationRequest;
 import com.ssafy.cheket.dto.notification.response.GetNotificationsResponse;
 import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
@@ -8,6 +10,7 @@ import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
+import com.ssafy.cheket.service.notification.NotificationService;
 import com.ssafy.cheket.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -25,6 +28,7 @@ import java.util.List;
 @RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
+    private final NotificationService notificationService;
 
     @PostMapping
     @Operation(summary = "회원가입") // Swagger 문서 자동 생성
@@ -95,5 +99,16 @@ public class UserController {
         @PathVariable Long notificationId) {
         userService.readNotification(userId, notificationId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 읽음 처리에 성공했습니다.", null));
+    }
+
+    @PostMapping("/notifications/test")
+    @Operation(summary = "알림 테스트용 수동 알림 발송")
+    public ResponseEntity<ApiResponse<Void>> sendTestNotification(@RequestBody TestNotificationRequest request) {
+        CreateNotificationRequest createRequest = CreateNotificationRequest.builder().userId(request.userId())
+            .type(request.type()).title(request.title()).variables(request.variables()).build();
+
+        notificationService.createNotification(createRequest, request.data());
+
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "테스트 알림 발송 완료", null));
     }
 }
