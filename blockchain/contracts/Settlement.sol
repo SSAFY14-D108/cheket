@@ -69,7 +69,9 @@ interface ISettlementTicketNFT {
     function getPrice(uint256 tokenId) external view returns (uint256);
 
     // 티켓 정보 조회 (eventId 가져오기 위해)
-    function getTicket(uint256 tokenId) external view returns (
+    // → TicketNFT의 tickets public mapping 자동 getter 사용
+    // → getTicket()은 struct 반환이라 ABI 불일치 발생하므로 tickets() 사용
+    function tickets(uint256 tokenId) external view returns (
         uint256 eventId,
         uint256 sessionId,
         string memory section,
@@ -80,6 +82,9 @@ interface ISettlementTicketNFT {
         uint8 status,
         uint256 mintedAt
     );
+
+    // NFT 소유자 조회 (환불 시 소유자 검증용)
+    function ownerOf(uint256 tokenId) external view returns (address);
 
     // 티켓 상태를 REFUNDED로 변경
     // 3 = TicketStatus.REFUNDED
@@ -449,14 +454,22 @@ contract Settlement is Ownable {
         // "eventNFTAddress에 있는 컨트랙트를 ISettlementEventNFT 인터페이스로 사용하겠다"
         ISettlementTicketNFT ticketNFT = ISettlementTicketNFT(ticketNFTAddress);
 
-        // ========== ❶ on-chain에서 티켓 가격 조회 ==========
+        // ========== ❶ 티켓 소유자 검증 ==========
+        require(ticketNFT.ownerOf(tokenId) == buyer, "Buyer is not ticket owner");
+        // 실제 NFT 소유자가 환불 요청자와 일치하는지 온체인 검증
+        // → Escrow에 예치된 티켓 환불 시도 차단 (소유자가 Escrow이므로 revert)
+
+        // ========== ❷ on-chain에서 티켓 가격 조회 ==========
         uint256 ticketPrice = ticketNFT.getPrice(tokenId);
         // TicketNFT.tickets[tokenId].price를 직접 읽음
         // 백엔드가 가격을 파라미터로 넘기지 않음 → 조작 불가
 
-        (uint256 eventId, , , , , , , , ) = ticketNFT.getTicket(tokenId);
+        (uint256 eventId, uint256 ticketSessionId, , , , , , , ) = ticketNFT.tickets(tokenId);
         // eventId를 가져와서 환불 정책 조회에 사용
-        // 나머지 값은 필요 없으므로 , 로 생략 (Solidity 구문)
+
+        // 전달된 sessionId와 티켓의 실제 sessionId 일치 검증
+        // 불일치 시 잘못된 session의 deposit이 차감되는 것 방지
+        require(ticketSessionId == sessionId, "Session mismatch");
 
         // ========== ❷ on-chain에서 회차 정보 조회 ==========
         (, uint256 sessionTimestamp, , ) = eventNFT.getSession(sessionId);
