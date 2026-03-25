@@ -274,13 +274,12 @@ public class BlockchainAsyncWorker {
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] 완료 — txId={}, {}매, {} SSF", txId, seats.size(), totalPrice);
 
+        } catch (BlockchainException e) {
+            log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
-            // ========== ⑥ 실패: 좌석 상태 유지 + Transaction FAILED ==========
-            // 좌석을 AVAILABLE로 복원하지 않음 — 관리자가 수동 처리
-            // 성공한 좌석: SOLD 유지 (온체인 구매 완료)
-            // 실패한 좌석: PENDING_TX 유지 (관리자 확인 필요)
-            log.error("[티켓 구매 비동기] 실패 — txId={}, 관리자 확인 필요", txId, e);
-            updateTransactionFailed(txId, "구매 실패 — 관리자에게 문의해주세요.");
+            log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "티켓 구매 실패 — " + e.getMessage());
         }
     }
 
@@ -397,12 +396,12 @@ public class BlockchainAsyncWorker {
             log.info("[양도 비동기] 완료 — txId={}, ticketId={}, sender={} → receiver={}", txId, ticketId, senderUserId,
                 receiverUserId);
 
-        } catch (Exception e) {
-            // ========== ⑤ 실패 처리 ==========
-            // 양도 실패해도 티켓은 보내는 사람에게 그대로 남음 (온체인 revert)
-            // DB도 Ticket.userId 변경 전에 에러 발생 시 원래 상태 유지
+        } catch (BlockchainException e) {
             log.error("[양도 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "양도 실패 — 블록체인 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+            updateTransactionFailed(txId, e.getMessage());
+        } catch (Exception e) {
+            log.error("[양도 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, "양도 실패 — " + e.getMessage());
         }
     }
 
@@ -411,20 +410,20 @@ public class BlockchainAsyncWorker {
     /**
      * 블록체인 환불 처리 — @Async로 별도 스레드에서 실행
      *
-     * [흐름] ① 환불 대상(ticket/seat/user) 재검증 ② 온체인 소유자 검증 ③ 사용자 키로 Settlement approve ④
-     * Settlement.refund() 호출 ⑤ 온체인 NFT 회수 검증 ⑥ Transaction/Ticket/Seat 상태 반영
+     * [흐름] ① 환불 대상(ticket/seat/user) 재검증 + 온체인 소유자 검증 ② 사용자 키로
+     * TicketNFT.setApprovalForAll(Settlement, true) — NFT 회수 허락 ③
+     * Settlement.refund() 호출 — 온체인에서 환불액 계산 + SSF 전송 + NFT 회수 ④ 온체인 NFT 회수 검증 ⑤
+     * Transaction/Ticket/Seat 상태 반영
      */
     @Async
     public void processOnChainRefund(Long txId, Long userId, Long ticketId, Long onChainSessionId,
-        Long onChainTicketNftId, long expectedRefundAmount) {
-        log.info("[환불 비동기] 시작 — txId={}, ticketId={}, userId={}", txId, ticketId, userId);
+        Long onChainTicketNftId) {
+        log.info("[티켓 환불 비동기] 시작 — txId={}, ticketId={}, userId={}", txId, ticketId, userId);
 
         Long sessionSeatId = null;
         try {
+            // ========== ① 환불 대상 재검증 + 지갑 로드 ==========
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("검증 중 — 환불 대상 소유권 확인 (ticketId=%d, userId=%d, nftId=%d)".formatted(ticketId, userId,
-                onChainTicketNftId));
-            transactionRepository.save(tx);
 
             Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new BlockchainException("환불 대상 티켓을 찾을 수 없습니다."));
@@ -449,17 +448,19 @@ public class BlockchainAsyncWorker {
                 .orElseThrow(() -> new BlockchainException("사용자 지갑을 찾을 수 없습니다."));
             String ownerAddress = ownerWallet.getAddress();
 
+            log.info("[티켓 환불 비동기] 사용자 지갑 로드 — userId={}, address={}", userId, ownerAddress);
+
             BigInteger sessionIdValue = BigInteger.valueOf(onChainSessionId);
             BigInteger ticketNftIdValue = BigInteger.valueOf(onChainTicketNftId);
 
+            // 온체인 소유자 검증
             String currentOnChainOwner = blockchainService.getTicketNFT().ownerOf(ticketNftIdValue).send();
             if (!currentOnChainOwner.equalsIgnoreCase(ownerAddress)) {
                 throw new BlockchainException("온체인 티켓 소유자가 환불 요청자와 일치하지 않습니다.");
             }
 
-            // ========== ③ 사용자 키로 Settlement approve ==========
-            // 환불은 사용자 소유 NFT를 Settlement가 회수해야 하므로
-            // refund 전에 먼저 operator 승인을 해준다.
+            // ========== ② TicketNFT.setApprovalForAll(Settlement, true) — 사용자 키로 대리 서명
+            // ==========
             Credentials ownerCredentials = WalletUtils.loadCredentials(keystorePassword,
                 new File(keystoreDirectory + "/" + ownerWallet.getKeystoreFilename()));
 
@@ -471,68 +472,74 @@ public class BlockchainAsyncWorker {
             tx.setDescription("전자서명 처리 중 — NFT 환불 승인 (ticketId=%d, nftId=%d, userId=%d)".formatted(ticketId,
                 onChainTicketNftId, userId));
             transactionRepository.save(tx);
+            log.info("[티켓 환불 비동기] NFT approve 전송 중 — Settlement={}", settlementAddress);
 
             EthSendTransaction approveTx = sendSetApprovalForAllTransaction(ownerTxManager,
                 blockchainService.getTicketNFT().getContractAddress(), settlementAddress);
 
             if (approveTx.hasError()) {
-                throw new BlockchainException("환불용 NFT approve 실패: " + approveTx.getError().getMessage());
+                throw new BlockchainException("NFT approve 실패: " + approveTx.getError().getMessage());
             }
 
             waitForTransaction(approveTx.getTransactionHash());
+            log.info("[티켓 환불 비동기] NFT approve 블록 확정 완료");
 
             boolean approvedForSettlement = isApprovedForAll(ownerAddress, settlementAddress);
             if (!approvedForSettlement) {
                 throw new BlockchainException("Settlement에 대한 NFT 전송 권한 승인이 완료되지 않았습니다.");
             }
 
-            // ========== ④ Settlement.refund() 호출 ==========
+            // ========== ③ Settlement.refund() 호출 ==========
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
-            tx.setDescription(
-                "블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, sessionId=%d, approveTxHash=%s, expectedRefund=%d SSF)"
-                    .formatted(ticketId, onChainTicketNftId, onChainSessionId, approveTx.getTransactionHash(),
-                        expectedRefundAmount));
+            tx.setDescription("블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, approveTxHash=%s)".formatted(ticketId,
+                onChainTicketNftId, approveTx.getTransactionHash()));
             transactionRepository.save(tx);
+            log.info("[티켓 환불 비동기] Transaction → SUBMITTED");
 
             TransactionReceipt refundReceipt = blockchainService.getSettlement()
                 .refund(sessionIdValue, ownerAddress, ticketNftIdValue).send();
             String txHash = refundReceipt.getTransactionHash();
+            log.info("[티켓 환불 비동기] Settlement.refund 블록 확정 — txHash={}", txHash);
 
-            // ========== ⑤ 온체인 NFT 회수 검증 ==========
+            // ========== ④ 온체인 NFT 회수 검증 ==========
             String newOnChainOwner = blockchainService.getTicketNFT().ownerOf(ticketNftIdValue).send();
             if (!newOnChainOwner.equalsIgnoreCase(blockchainService.getPlatformWalletAddress())) {
                 throw new BlockchainException("환불 후 NFT 소유권 이전이 완료되지 않았습니다.");
             }
 
-            long refundedAmount = expectedRefundAmount;
+            // 온체인 이벤트에서 실제 환불 금액 추출 (온체인이 source of truth)
+            long refundedAmount = 0;
             var refundedEvents = com.ssafy.cheket.blockchain.contract.Settlement.getRefundedEvents(refundReceipt);
             if (!refundedEvents.isEmpty() && refundedEvents.get(0).amount != null) {
                 refundedAmount = refundedEvents.get(0).amount.longValue();
             }
 
-            // ========== ⑥ Transaction/Ticket/Seat 상태 반영 ==========
+            // ========== ⑤ Transaction/Ticket/Seat 상태 반영 ==========
             tx.setAmount(refundedAmount);
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(
                 refundReceipt.getBlockNumber() != null ? refundReceipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 티켓 환불 완료 (ticketId=%d, nftId=%d, refunded=%d SSF, txHash=%s)"
-                .formatted(ticketId, onChainTicketNftId, refundedAmount, txHash));
+            tx.setDescription("블록체인 확정 — 환불 완료 (ticketId=%d, nftId=%d, refunded=%d SSF, txHash=%s)".formatted(ticketId,
+                onChainTicketNftId, refundedAmount, txHash));
             transactionRepository.save(tx);
-
-            syncWalletBalanceFromChain(ownerWallet);
 
             ticketRepository.delete(ticket);
 
             sessionSeat.setStatus(SeatStatus.AVAILABLE);
             sessionSeatRepository.save(sessionSeat);
 
-            log.info("[환불 비동기] 완료 — txId={}, ticketId={}, refunded={}", txId, ticketId, refundedAmount);
-        } catch (Exception e) {
-            log.error("[환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
+            log.info("[티켓 환불 비동기] 완료 — txId={}, ticketId={}, refunded={} SSF", txId, ticketId, refundedAmount);
+
+        } catch (BlockchainException e) {
+            log.error("[티켓 환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
             restoreRefundSeatToSold(sessionSeatId, txId);
-            updateTransactionFailed(txId, "티켓 환불 실패 — 블록체인 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
+            updateTransactionFailed(txId, e.getMessage());
+        } catch (Exception e) {
+            log.error("[티켓 환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
+            restoreRefundSeatToSold(sessionSeatId, txId);
+            updateTransactionFailed(txId, "티켓 환불 실패 — " + e.getMessage());
         }
     }
 
@@ -642,9 +649,12 @@ public class BlockchainAsyncWorker {
             transactionRepository.save(tx);
             log.info("[StakeholderNFT 발행 비동기] 완료 — txId={}, {}건", txId, stakeholders.size());
 
+        } catch (BlockchainException e) {
+            log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "공연 등록 실패 — 블록체인에 수익 분배 계약을 등록하지 못했습니다.");
+            updateTransactionFailed(txId, "공연 등록 실패 — " + e.getMessage());
         }
     }
 
@@ -676,7 +686,8 @@ public class BlockchainAsyncWorker {
      * 티켓 번호 생성 (고유 식별자) QR 코드나 앱에서 표시용 (DB id보다 사용자 친화적)
      */
     /**
-     * Keep local wallet balance in sync with on-chain state after balance-changing transactions.
+     * Keep local wallet balance in sync with on-chain state after balance-changing
+     * transactions.
      */
     private void syncWalletBalanceFromChain(Wallet wallet) {
         try {
@@ -727,6 +738,22 @@ public class BlockchainAsyncWorker {
             }
         } catch (Exception e) {
             log.error("[환불 비동기] 좌석 상태 복원 실패 — txId={}, sessionSeatId={}", txId, sessionSeatId, e);
+        }
+    }
+
+    /**
+     * 리세일 등록 실패 시 Ticket.resaleStatus → AVAILABLE 복원
+     */
+    private void restoreResaleTicketToAvailable(Long ticketId) {
+        try {
+            Ticket ticket = ticketRepository.findById(ticketId).orElse(null);
+            if (ticket != null && ticket.getResaleStatus() == ResaleStatus.LISTED) {
+                ticket.setResaleStatus(ResaleStatus.AVAILABLE);
+                ticketRepository.save(ticket);
+                log.info("[리세일 등록 비동기] Ticket resaleStatus AVAILABLE 복원 — ticketId={}", ticketId);
+            }
+        } catch (Exception e) {
+            log.error("[리세일 등록 비동기] Ticket 복원 실패 — ticketId={}", ticketId, e);
         }
     }
 
@@ -844,22 +871,14 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 등록 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
+        } catch (BlockchainException e) {
+            log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
+            restoreResaleTicketToAvailable(ticketId);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
-
-            // 실패 시 Ticket.resaleStatus → AVAILABLE 복원
-            try {
-                Ticket ticket = ticketRepository.findById(ticketId).orElseThrow();
-                if (ticket.getResaleStatus() == ResaleStatus.LISTED) {
-                    ticket.setResaleStatus(ResaleStatus.AVAILABLE);
-                    ticketRepository.save(ticket);
-                    log.info("[리세일 등록 비동기] Ticket resaleStatus AVAILABLE 복원 — ticketId={}", ticketId);
-                }
-            } catch (Exception restoreErr) {
-                log.error("[리세일 등록 비동기] Ticket 복원 실패 — ticketId={}", ticketId, restoreErr);
-            }
-
-            updateTransactionFailed(txId, "리세일 등록 실패 — 블록체인에 NFT를 예치하지 못했습니다. 다시 시도해주세요.");
+            restoreResaleTicketToAvailable(ticketId);
+            updateTransactionFailed(txId, "리세일 등록 실패 — " + e.getMessage());
         }
     }
 
@@ -920,9 +939,12 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 취소 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
+        } catch (BlockchainException e) {
+            log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "리세일 취소 실패 — 블록체인에서 NFT를 반환하지 못했습니다. 다시 시도해주세요.");
+            updateTransactionFailed(txId, "리세일 취소 실패 — " + e.getMessage());
         }
     }
 
@@ -1043,9 +1065,12 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 구매 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
+        } catch (BlockchainException e) {
+            log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
+            updateTransactionFailed(txId, e.getMessage());
         } catch (Exception e) {
             log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "리세일 구매 실패 — 블록체인 처리 중 오류가 발생했습니다. 잔액을 확인해주세요.");
+            updateTransactionFailed(txId, "리세일 구매 실패 — " + e.getMessage());
         }
     }
 

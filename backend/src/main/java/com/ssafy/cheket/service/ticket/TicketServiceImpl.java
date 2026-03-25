@@ -174,11 +174,18 @@ public class TicketServiceImpl implements TicketService {
         }
     }
 
-    // 티켓 환불
+    // ========== 티켓 환불 ==========
+
+    /**
+     * 티켓 환불 — 검증 + PENDING 생성 + 즉시 응답 블록체인 처리는 BlockchainAsyncWorker가 별도 스레드에서 담당
+     */
     @Override
     @Transactional
     public Long refundTicket(Long userId, Long ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
+        log.info("[티켓 환불] 요청 — userId={}, ticketId={}", userId, ticketId);
+
+        // ① 유효성 검증
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("존재하지 않는 티켓입니다."));
 
         if (!ticket.getUserId().equals(userId)) {
             throw new ForbiddenException("본인 소유 티켓만 환불할 수 있습니다.");
@@ -189,18 +196,27 @@ public class TicketServiceImpl implements TicketService {
         }
 
         if (ticket.getResaleStatus() == ResaleStatus.USED || ticket.getResaleStatus() == ResaleStatus.EXPIRED) {
-            throw new NotFoundException("유효하지 않은 티켓입니다.");
+            throw new ConflictException("이미 사용되었거나 만료된 티켓입니다.");
+        }
+
+        if (ticket.getTicketNftId() == null) {
+            throw new ConflictException("온체인 티켓이 없는 좌석입니다.");
         }
 
         SessionSeat sessionSeat = sessionSeatRepository.findById(ticket.getSessionSeatId())
-            .orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
+            .orElseThrow(() -> new NotFoundException("좌석 정보를 찾을 수 없습니다."));
         if (sessionSeat.getStatus() != SeatStatus.SOLD) {
             throw new ConflictException("환불 가능한 좌석 상태가 아닙니다.");
         }
 
         Session session = sessionRepository.findById(sessionSeat.getSessionId())
-            .orElseThrow(() -> new NotFoundException("유효하지 않은 티켓입니다."));
+            .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다."));
 
+        if (session.getOnChainSessionId() == null) {
+            throw new ConflictException("아직 민팅되지 않은 회차입니다.");
+        }
+
+        // ② 환불 정책 검증
         List<RefundPolicy> refundPolicies = refundPolicyRepository
             .findByShowIdOrderByDaysRemainingDesc(session.getShowId());
         if (refundPolicies.isEmpty()) {
@@ -222,27 +238,19 @@ public class TicketServiceImpl implements TicketService {
             throw new ConflictException("환불 가능한 기간이 아닙니다.");
         }
 
-        if (session.getOnChainSessionId() == null || ticket.getTicketNftId() == null) {
-            throw new ConflictException("온체인 환불 대상 정보를 찾을 수 없습니다.");
-        }
-
-        Seat seat = seatRepository.findById(sessionSeat.getSeatId())
-            .orElseThrow(() -> new NotFoundException("좌석을 찾을 수 없습니다."));
-        SeatGrade seatGrade = seatGradeRepository.findByShowIdAndSectionId(session.getShowId(), seat.getSectionId())
-            .orElseThrow(() -> new NotFoundException("좌석 등급을 찾을 수 없습니다."));
-
-        long expectedRefundAmount = (long) seatGrade.getPrice() * targetPolicy.getRefundRate() / 100;
-
+        // ③ 좌석 → PENDING_TX
         sessionSeat.setStatus(SeatStatus.PENDING_TX);
         sessionSeatRepository.save(sessionSeat);
 
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND)
-            .amount(expectedRefundAmount)
-            .description("요청 접수 — 티켓 환불 대기 (userId=%d, ticketId=%d, expectedRefund=%d SSF)"
-                .formatted(ticket.getUserId(), ticketId, expectedRefundAmount))
-            .txStatus(Transaction.TxStatus.PENDING).buyerId(ticket.getUserId()).build();
+        // ④ Transaction PENDING 생성 (환불 금액은 온체인에서 결정)
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND).amount(0L).description(
+            "요청 접수 — 티켓 환불 대기 (ticketId=%d, userId=%d, nftId=%d)".formatted(ticketId, userId, ticket.getTicketNftId()))
+            .txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
         transactionRepository.save(transaction);
 
+        log.info("[티켓 환불] PENDING 생성 — txId={}", transaction.getId());
+
+        // ⑤ afterCommit에서 @Async 시작
         Long txId = transaction.getId();
         Long onChainSessionId = session.getOnChainSessionId();
         Long onChainTicketNftId = ticket.getTicketNftId();
@@ -250,8 +258,8 @@ public class TicketServiceImpl implements TicketService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                blockchainAsyncWorker.processOnChainRefund(txId, userId, ticketId, onChainSessionId, onChainTicketNftId,
-                    expectedRefundAmount);
+                blockchainAsyncWorker.processOnChainRefund(txId, userId, ticketId, onChainSessionId,
+                    onChainTicketNftId);
             }
         });
 
