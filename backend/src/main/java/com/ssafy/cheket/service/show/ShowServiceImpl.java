@@ -73,6 +73,7 @@ public class ShowServiceImpl implements ShowService {
     private final SearchHistoryRepository searchHistoryRepository;
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final RecommendationEmbeddingStore recommendationEmbeddingStore;
     private final RecommendationAiClient recommendationAiClient;
     private final S3Uploader s3Uploader;
     private final StringRedisTemplate redisTemplate;
@@ -479,12 +480,25 @@ public class ShowServiceImpl implements ShowService {
 
     private RecommendationRequestPayload buildRecommendationRequest(Long userId, List<Show> likedShows,
         List<Show> purchasedShows, List<String> recentKeywords, List<Show> candidates) {
+        List<RecommendationEmbeddingStore.WeightedShowSignal> embeddingSignals = new ArrayList<>();
+        for (Show show : purchasedShows) {
+            embeddingSignals.add(new RecommendationEmbeddingStore.WeightedShowSignal(show.getId(), 2.0));
+        }
+        for (Show show : likedShows) {
+            embeddingSignals.add(new RecommendationEmbeddingStore.WeightedShowSignal(show.getId(), 1.0));
+        }
+
+        Map<Long, List<Double>> candidateEmbeddings = recommendationEmbeddingStore.findEmbeddingsByShowIds(
+            candidates.stream().map(Show::getId).toList()
+        );
+
         return new RecommendationRequestPayload(
             userId,
+            recommendationEmbeddingStore.buildWeightedUserEmbedding(embeddingSignals),
             buildUserProfileText(likedShows, purchasedShows, recentKeywords),
             buildArtistPreferences(likedShows, purchasedShows),
             recentKeywords,
-            candidates.stream().map(this::toCandidatePayload).toList()
+            candidates.stream().map(show -> toCandidatePayload(show, candidateEmbeddings)).toList()
         );
     }
 
@@ -547,12 +561,13 @@ public class ShowServiceImpl implements ShowService {
         return String.join(" || ", parts);
     }
 
-    private CandidateShowPayload toCandidatePayload(Show show) {
+    private CandidateShowPayload toCandidatePayload(Show show, Map<Long, List<Double>> candidateEmbeddings) {
         return new CandidateShowPayload(
             show.getId(),
             show.getArtist(),
             show.getTitle(),
             show.getVenue().getName(),
+            candidateEmbeddings.getOrDefault(show.getId(), List.of()),
             buildEmbeddingText(show),
             computeTicketingState(show),
             computeShowState(show),

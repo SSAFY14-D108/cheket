@@ -7,6 +7,8 @@ import java.util.List;
 public record RecommendationRequestPayload(
     @JsonProperty("userId")
     Long userId,
+    @JsonProperty("userEmbedding")
+    List<Double> userEmbedding,
     @JsonProperty("userProfileText")
     String userProfileText,
     @JsonProperty("artistPreferences")

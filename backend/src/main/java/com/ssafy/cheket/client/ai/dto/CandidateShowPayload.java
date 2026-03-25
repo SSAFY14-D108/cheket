@@ -2,6 +2,8 @@ package com.ssafy.cheket.client.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 public record CandidateShowPayload(
     @JsonProperty("showId")
     Long showId,
@@ -11,6 +13,8 @@ public record CandidateShowPayload(
     String title,
     @JsonProperty("venue")
     String venue,
+    @JsonProperty("embedding")
+    List<Double> embedding,
     @JsonProperty("embeddingText")
     String embeddingText,
     @JsonProperty("ticketingState")
