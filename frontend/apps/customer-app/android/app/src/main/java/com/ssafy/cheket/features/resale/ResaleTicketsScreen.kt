@@ -64,6 +64,7 @@ fun ResaleTicketsScreen(
     var selectedTicket by remember { mutableStateOf<ResaleTicketUiItem?>(null) }
     var showPurchaseConfirm by remember { mutableStateOf(false) }
     var isPurchasing by remember { mutableStateOf(false) }
+    var purchaseErrorMsg by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -299,11 +300,18 @@ fun ResaleTicketsScreen(
                     onClick = {
                         showPurchaseConfirm = false
                         isPurchasing = true
-                        viewModel.purchaseResale(selectedTicket!!.ticketId) { txId ->
-                            isPurchasing = false
-                            selectedTicket = null
-                            onTxProcessing(txId, "RESALE_PURCHASE")
-                        }
+                        viewModel.purchaseResale(
+                            ticketId = selectedTicket!!.ticketId,
+                            onSuccess = { txId ->
+                                isPurchasing = false
+                                selectedTicket = null
+                                onTxProcessing(txId, "RESALE_PURCHASE")
+                            },
+                            onError = { msg ->
+                                isPurchasing = false
+                                purchaseErrorMsg = msg
+                            },
+                        )
                     },
                 ) {
                     Text("구매", color = Primary, fontWeight = FontWeight.Bold)
@@ -312,6 +320,20 @@ fun ResaleTicketsScreen(
             dismissButton = {
                 TextButton(onClick = { showPurchaseConfirm = false }) {
                     Text("취소", color = MutedForeground)
+                }
+            },
+        )
+    }
+
+    // 구매 에러 다이얼로그
+    purchaseErrorMsg?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { purchaseErrorMsg = null },
+            title = { Text("구매 실패", fontWeight = FontWeight.Bold) },
+            text = { Text(msg, fontSize = 14.sp, lineHeight = 20.sp) },
+            confirmButton = {
+                TextButton(onClick = { purchaseErrorMsg = null }) {
+                    Text("확인", color = Primary, fontWeight = FontWeight.Bold)
                 }
             },
         )

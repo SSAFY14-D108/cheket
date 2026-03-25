@@ -1,17 +1,22 @@
-﻿package com.example.cheketqr.data.network
+package com.example.cheketqr.data.network
 
 import com.example.cheketqr.data.model.ApiEnvelope
-import com.example.cheketqr.data.model.VerifyQrRequest
-import com.example.cheketqr.data.model.VerifyTicketData
+import com.example.cheketqr.data.model.CheckInRequest
+import com.example.cheketqr.data.model.CheckInResponse
+import com.example.cheketqr.data.model.HostLoginRequest
+import com.example.cheketqr.data.model.HostLoginResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
-import retrofit2.http.Path
 
 interface ScannerApiService {
-    @POST("/api/v1/hosts/tickets/{ticketId}/verify")
-    suspend fun verifyTicket(
-        @Path("ticketId") ticketId: Long,
-        @Body request: VerifyQrRequest
-    ): Response<ApiEnvelope<VerifyTicketData>>
+    @POST("/api/v1/hosts/auth/login")
+    suspend fun hostLogin(
+        @Body request: HostLoginRequest,
+    ): Response<ApiEnvelope<HostLoginResponse>>
+
+    @POST("/api/v1/tickets/check-in")
+    suspend fun checkIn(
+        @Body request: CheckInRequest,
+    ): Response<ApiEnvelope<CheckInResponse>>
 }

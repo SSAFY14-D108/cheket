@@ -1,12 +1,14 @@
-﻿package com.example.cheketqr.data.network
+package com.example.cheketqr.data.network
 
-import com.example.cheketqr.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object NetworkModule {
+
+    private const val BASE_URL = "https://j14d108.p.ssafy.io"
 
     fun provideApiService(): ScannerApiService {
         val logging = HttpLoggingInterceptor().apply {
@@ -14,12 +16,15 @@ object NetworkModule {
         }
 
         val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(AuthInterceptor(BuildConfig.ACCESS_TOKEN))
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(AuthInterceptor())
             .addInterceptor(logging)
             .build()
 
         val retrofit = Retrofit.Builder()
-            .baseUrl(BuildConfig.BASE_URL)
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

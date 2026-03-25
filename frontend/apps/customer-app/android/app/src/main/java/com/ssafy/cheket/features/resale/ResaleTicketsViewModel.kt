@@ -104,7 +104,7 @@ class ResaleTicketsViewModel(
     }
 
     /** 리세일 티켓 구매 */
-    fun purchaseResale(ticketId: Long, onSuccess: (txId: Long) -> Unit) {
+    fun purchaseResale(ticketId: Long, onSuccess: (txId: Long) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
                 Log.d(TAG, "purchaseResale() ticketId=$ticketId")
@@ -115,9 +115,18 @@ class ResaleTicketsViewModel(
                     onSuccess(txId)
                 } else {
                     Log.e(TAG, "purchaseResale() no txId in response")
+                    onError("구매 응답에 txId가 없습니다.")
                 }
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val msg = try {
+                    org.json.JSONObject(errorBody ?: "").optString("errorMessage", "구매에 실패했습니다.")
+                } catch (_: Exception) { "구매에 실패했습니다. (${e.code()})" }
+                Log.e(TAG, "purchaseResale() failed: $msg", e)
+                onError(msg)
             } catch (e: Exception) {
                 Log.e(TAG, "purchaseResale() failed", e)
+                onError(e.message ?: "구매 처리 중 오류가 발생했습니다.")
             }
         }
     }

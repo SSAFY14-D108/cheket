@@ -46,13 +46,9 @@ data class PurchaseResponse(
     @SerializedName("txId") val txId: Long,
 )
 
-data class QrResponse(
-    @SerializedName("qrData") val qrData: String,
-    @SerializedName("expiresAt") val expiresAt: String,
-    @SerializedName("ticketId") val ticketId: Long,
-    @SerializedName("title") val title: String,
-    @SerializedName("sectionName") val sectionName: String,
-    @SerializedName("seatNo") val seatNo: String,
+data class QrTokenResponse(
+    @SerializedName("qrToken") val qrToken: String,
+    @SerializedName("expiresIn") val expiresIn: Int, // 만료까지 남은 초
 )
 
 // ── Ticket List ──

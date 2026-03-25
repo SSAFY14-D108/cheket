@@ -1,11 +1,16 @@
 package com.ssafy.cheket
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import com.ssafy.cheket.ui.theme.CheketTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,10 +29,19 @@ class MainActivity : ComponentActivity() {
         _pendingNotification.value = null
     }
 
+    // Android 13+ 알림 권한 요청
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        Log.d(TAG, "POST_NOTIFICATIONS permission: $granted")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate()")
         enableEdgeToEdge()
+        requestNotificationPermission()
+
         val app = application as CheketApplication
         val appContainer = app.appContainer
         val isAlreadyLoggedIn = app.authDataStore.isLoggedIn()
@@ -69,6 +83,16 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra("notification_type")
         intent.removeExtra("notification_id")
         intent.removeExtra("show_id")
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     companion object {

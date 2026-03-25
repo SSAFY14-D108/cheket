@@ -130,7 +130,7 @@ private fun ScanGuideOverlay(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Center QR code in the frame",
+            text = "QR 코드를 프레임에 맞춰주세요",
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
@@ -163,13 +163,13 @@ private fun PermissionGuide(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Camera permission is required.",
+            text = "카메라 권한이 필요합니다.",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onRequestPermission) {
-            Text("Allow permission")
+            Text("권한 허용")
         }
     }
 }
@@ -181,15 +181,14 @@ private fun ResultDialog(
 ) {
     val (title, message, containerColor) = when (state) {
         is ScanResultDialogState.Success -> Triple(
-            "SUCCESS",
+            "입장 승인",
             state.message,
-            Color(0xFF1B5E20)
+            Color(0xFF1B5E20),
         )
-
         is ScanResultDialogState.Failure -> Triple(
-            "FAILED",
+            "입장 실패",
             state.message,
-            Color(0xFFB71C1C)
+            Color(0xFFB71C1C),
         )
     }
 
@@ -227,11 +226,18 @@ private fun ResultDialog(
                 if (state is ScanResultDialogState.Success) {
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
-                        text = "${state.data.title}\nSeat: ${state.data.seatNo}\nOwner: ${state.data.ownerName}",
+                        text = buildString {
+                            state.data.showTitle?.let { appendLine(it) }
+                            state.data.sectionName?.let { append("$it ") }
+                            state.data.seatNo?.let { appendLine(it) }
+                            state.data.grade?.let { appendLine("등급: $it") }
+                            state.data.userName?.let { appendLine("입장자: $it") }
+                            state.data.checkedInAt?.let { appendLine("체크인: $it") }
+                        }.trimEnd(),
                         color = Color.White,
                         fontSize = 18.sp,
                         lineHeight = 28.sp,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
 

@@ -72,16 +72,7 @@ fun QrCheckinScreen(
     viewModel: QrCheckinViewModel = viewModel(factory = QrCheckinViewModel.factory(ticketId)),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var remainingSeconds by remember(uiState.expiresAt) {
-        mutableIntStateOf(calculateRemainingSeconds(uiState.expiresAt))
-    }
-
-    LaunchedEffect(uiState.expiresAt) {
-        while (remainingSeconds > 0) {
-            delay(1000)
-            remainingSeconds = calculateRemainingSeconds(uiState.expiresAt)
-        }
-    }
+    val remainingSeconds = uiState.expiresIn
 
     Scaffold(
         topBar = {
@@ -212,13 +203,11 @@ fun QrCheckinScreen(
                     textAlign = TextAlign.Center,
                 )
 
-                formatExpiry(uiState.expiresAt)?.let { expiresAt ->
-                    Text(
-                        text = "만료 시각 $expiresAt",
-                        fontSize = 12.sp,
-                        color = SubText,
-                    )
-                }
+                Text(
+                    text = "30초마다 자동으로 새 QR이 발급됩니다.",
+                    fontSize = 12.sp,
+                    color = SubText,
+                )
             }
 
             uiState.errorMessage?.let { message ->
@@ -295,52 +284,41 @@ private fun TokenMatrixCode(
     payload: String,
     modifier: Modifier = Modifier,
 ) {
-    val gridSize = 21
-    val cells = remember(payload) {
-        val random = Random(payload.hashCode())
-        Array(gridSize) { row ->
-            BooleanArray(gridSize) { col ->
-                val isFinderArea = (row < 3 && col < 3) ||
-                    (row < 3 && col >= gridSize - 3) ||
-                    (row >= gridSize - 3 && col < 3)
-                if (isFinderArea) true else random.nextBoolean()
-            }
+    val matrix = remember(payload) {
+        try {
+            val writer = com.google.zxing.qrcode.QRCodeWriter()
+            writer.encode(payload, com.google.zxing.BarcodeFormat.QR_CODE, 256, 256)
+        } catch (e: Exception) {
+            null
         }
     }
 
-    Canvas(modifier = modifier.clip(RoundedCornerShape(8.dp)).background(White)) {
-        val padding = 8.dp.toPx()
-        val drawableArea = size.minDimension - padding * 2
-        val drawCellSize = drawableArea / gridSize
+    if (matrix != null) {
+        Canvas(modifier = modifier.clip(RoundedCornerShape(8.dp)).background(White)) {
+            val padding = 8.dp.toPx()
+            val drawableArea = size.minDimension - padding * 2
+            val cellWidth = drawableArea / matrix.width
+            val cellHeight = drawableArea / matrix.height
 
-        for (row in 0 until gridSize) {
-            for (col in 0 until gridSize) {
-                if (cells[row][col]) {
-                    drawRect(
-                        color = Color.Black,
-                        topLeft = Offset(padding + col * drawCellSize, padding + row * drawCellSize),
-                        size = Size(drawCellSize, drawCellSize),
-                    )
+            for (y in 0 until matrix.height) {
+                for (x in 0 until matrix.width) {
+                    if (matrix.get(x, y)) {
+                        drawRect(
+                            color = Color.Black,
+                            topLeft = Offset(padding + x * cellWidth, padding + y * cellHeight),
+                            size = Size(cellWidth, cellHeight),
+                        )
+                    }
                 }
             }
         }
+    } else {
+        Box(
+            modifier = modifier.clip(RoundedCornerShape(8.dp)).background(CardBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("QR 생성 실패", fontSize = 12.sp, color = MutedForeground)
+        }
     }
 }
 
-private fun calculateRemainingSeconds(expiresAt: String?): Int {
-    if (expiresAt.isNullOrBlank()) return 0
-
-    return runCatching {
-        val expireTime = LocalDateTime.parse(expiresAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        Duration.between(LocalDateTime.now(), expireTime).seconds.coerceAtLeast(0).toInt()
-    }.getOrDefault(0)
-}
-
-private fun formatExpiry(expiresAt: String?): String? {
-    if (expiresAt.isNullOrBlank()) return null
-
-    return runCatching {
-        LocalDateTime.parse(expiresAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            .format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss"))
-    }.getOrNull()
-}

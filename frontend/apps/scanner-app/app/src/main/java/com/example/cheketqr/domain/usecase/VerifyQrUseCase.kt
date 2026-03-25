@@ -1,12 +1,12 @@
-﻿package com.example.cheketqr.domain.usecase
+package com.example.cheketqr.domain.usecase
 
+import com.example.cheketqr.domain.repository.CheckInResult
 import com.example.cheketqr.domain.repository.TicketRepository
-import com.example.cheketqr.domain.repository.VerifyTicketResult
 
 class VerifyQrUseCase(
-    private val repository: TicketRepository
+    private val repository: TicketRepository,
 ) {
-    suspend operator fun invoke(ticketId: Long, qrToken: String): VerifyTicketResult {
-        return repository.verifyTicket(ticketId, qrToken)
+    suspend operator fun invoke(qrToken: String): CheckInResult {
+        return repository.checkIn(qrToken)
     }
 }
