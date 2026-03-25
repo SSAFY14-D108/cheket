@@ -27,7 +27,7 @@ public interface HostShowService {
     void updateShow(Long hostId, Long showId, UpdateShowRequest request, MultipartFile posterImage,
         List<MultipartFile> descriptionImages);
 
-    List<GetApprovalListResponse> getContracts(Long hostId, Long showId);
+    List<GetApprovalListResponse> getContracts(Long loginId, String role, Long showId);
 
     Long confirmShow(Long hostId, Long showId);
 }

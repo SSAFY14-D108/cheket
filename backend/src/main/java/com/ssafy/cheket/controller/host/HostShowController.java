@@ -103,9 +103,11 @@ public class HostShowController {
     @GetMapping("/{showId}/contracts")
     @Operation(summary = "공연 별 스마트컨트랙트 승인/거절 내역 조회")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<List<GetApprovalListResponse>>> getContracts(@AuthenticationPrincipal Long hostId,
-        @PathVariable Long showId) {
-        List<GetApprovalListResponse> response = hostShowService.getContracts(hostId, showId);
+    public ResponseEntity<ApiResponse<List<GetApprovalListResponse>>> getContracts(
+        @AuthenticationPrincipal Long loginId, Authentication authentication, @PathVariable Long showId) {
+        String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+            .orElse(null);
+        List<GetApprovalListResponse> response = hostShowService.getContracts(loginId, role, showId);
         return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.ok(200, "공연 스마트컨트랙트의 승인/거절에 관해 조회 성공했습니다.", response));
     }
