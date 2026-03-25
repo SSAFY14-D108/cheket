@@ -7,6 +7,10 @@ import com.ssafy.cheket.dto.ticket.request.TransferTicketRequest;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 import com.ssafy.cheket.dto.common.TxIdResponse;
+import com.ssafy.cheket.dto.ticket.request.CheckInRequest;
+import com.ssafy.cheket.dto.ticket.response.CheckInResponse;
+import com.ssafy.cheket.dto.ticket.response.QrTokenResponse;
+import com.ssafy.cheket.service.ticket.QrTokenService;
 import com.ssafy.cheket.service.ticket.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,6 +28,7 @@ import java.util.List;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final QrTokenService qrTokenService;
 
     @PostMapping("/shows/{showId}/sessions/{sessionId}/purchase")
     @Operation(summary = "티켓 구매", description = "선택한 좌석에 대해 SSF 결제 + NFT 소유권 이전")
@@ -82,6 +87,29 @@ public class TicketController {
         Long txId = ticketService.createResale(userId, ticketId, request.resalePrice());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.ok(201, "리세일 등록 요청이 접수되었습니다.", new TxIdResponse(txId)));
+    }
+
+    @PostMapping("/tickets/{ticketId}/qr-token")
+    @Operation(summary = "QR 입장 토큰 발급", description = "티켓 입장용 QR 코드 데이터를 발급 (30초 유효)")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<QrTokenResponse>> generateQrToken(
+        @AuthenticationPrincipal Long userId,
+        @PathVariable Long ticketId
+    ) {
+        QrTokenResponse response = qrTokenService.generateQrToken(userId, ticketId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.ok(201, "QR 토큰이 발급되었습니다.", response));
+    }
+
+    @PostMapping("/tickets/check-in")
+    @Operation(summary = "QR 입장 검증 + 체크인", description = "검증 앱에서 QR 스캔 후 온체인 소유권 검증 + 체크인 처리")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(
+        @RequestBody CheckInRequest request
+    ) {
+        CheckInResponse response = qrTokenService.verifyAndCheckIn(request.qrToken());
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(200, "입장이 확인되었습니다.", response));
     }
 
 }
