@@ -409,7 +409,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
                 int startSeatNum = startSeat.getColNum();
                 int count = batch.size();
 
-                log.info("[공연 {}][회차 {}] 배치 발행: " + "{}구역 {}열 {}번~{}번 ({}개)", show.getId(), session.getId(),
+                log.info("[공연 {}][회차 {}] 배치 발행: {} {}열 {}번~{}번 ({}개)", show.getId(), session.getId(),
                     section.getSectionName(), firstSeat.getRowNum(), startSeatNum, startSeatNum + count - 1, count);
 
                 TransactionReceipt receipt = blockchainService.getTicketNFT()
