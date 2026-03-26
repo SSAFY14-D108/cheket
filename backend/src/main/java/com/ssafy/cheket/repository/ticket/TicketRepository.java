@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
@@ -167,4 +168,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         where t.id = :ticketId
         """)
     CheckInTicketProjection findCheckInInfoByTicketId(@Param("ticketId") Long ticketId);
+
+    // 온체인 NFT ID로 티켓 조회 - 온체인/DB 동기화 시 사용
+    Optional<Ticket> findByTicketNftId(Long ticketNftId);
 }

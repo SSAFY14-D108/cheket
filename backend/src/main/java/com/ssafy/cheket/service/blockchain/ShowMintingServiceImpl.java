@@ -427,7 +427,16 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
                     for (int j = 0; j < batch.size(); j++) {
                         SessionSeat ss = batch.get(j);
-                        ss.setOnChainTicketNftId(startTokenId.longValue() + j);
+                        long tokenId = startTokenId.longValue() + j;
+                        ss.setOnChainTicketNftId(tokenId);
+
+                        // 티켓 NFT에 공연 메타데이터 CID 설정 (IPFS 포스터/공연 정보 조회용)
+                        if (show.getMetadataIpfsCid() != null && !show.getMetadataIpfsCid().isEmpty()) {
+                            blockchainService.getTicketNFT()
+                                .setTicketTokenURI(BigInteger.valueOf(tokenId), "ipfs://" + show.getMetadataIpfsCid())
+                                .send();
+                            log.info("[공연 {}] 티켓 tokenURI 설정 완료 — tokenId={}", show.getId(), tokenId);
+                        }
                     }
                     sessionSeatRepository.saveAll(batch);
                 }

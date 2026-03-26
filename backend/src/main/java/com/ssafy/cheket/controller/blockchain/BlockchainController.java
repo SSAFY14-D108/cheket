@@ -126,6 +126,15 @@ public class BlockchainController {
         return ResponseEntity.ok(mintingService.getUserOwnedTickets(userId));
     }
 
+    // ========== 온체인/DB 동기화 ==========
+
+    @PostMapping("/sync/show/{showId}")
+    @Operation(summary = "[동기화] 공연 온체인/DB 동기화", description = "공연의 모든 좌석에 대해 온체인 NFT 소유자와 DB 상태를 비교하고 불일치 시 DB를 교정")
+    public ResponseEntity<Map<String, Object>> syncShowWithOnChain(@PathVariable Long showId) {
+        log.info("[동기화 API] 공연 동기화 요청 — showId={}", showId);
+        return ResponseEntity.ok(mintingService.syncShowWithOnChain(showId));
+    }
+
     // ========== 테스트 유틸 ==========
 
     @GetMapping("/test/available-seats/{showId}")

@@ -5,6 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 // → ERC-721 NFT 표준 구현체
 // → ownerOf(), transferFrom(), _safeMint() 등 제공
 
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+// → tokenURI() 기능 추가 — IPFS 메타데이터 CID 저장/조회
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 // → onlyOwner modifier 제공
 // → 배포한 사람(플랫폼 지갑)만 특정 함수 호출 가능
@@ -34,8 +37,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * 100개씩 묶어서 1 TX로 처리
  * SSAFY 네트워크 gasPrice=0이므로 비용 부담 없음
  */
-contract TicketNFT is ERC721, Ownable {
+contract TicketNFT is ERC721, ERC721URIStorage, Ownable {
     // is ERC721 = ERC721을 상속 (Java의 extends)
+    // is ERC721URIStorage = tokenURI 기능 추가 (IPFS 메타데이터)
     // is Ownable = Ownable을 상속 (onlyOwner 사용 가능)
     // Solidity는 다중 상속 가능
 
@@ -580,8 +584,6 @@ contract TicketNFT is ERC721, Ownable {
         TicketStatus newStatus      // EXPIRED(2) 또는 REFUNDED(3)만 가능
     ) external onlyAuthorized {
         // onlyAuthorized: owner(플랫폼) 또는 Settlement(authorizedCallers) 호출 가능
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        // 존재하지 않는 토큰의 기본 status가 0(VALID)이라 통과되는 버그 방지
         require(
             newStatus == TicketStatus.EXPIRED || newStatus == TicketStatus.REFUNDED,
             "Invalid status"
@@ -596,30 +598,47 @@ contract TicketNFT is ERC721, Ownable {
     }
 
     /**
-     * @notice 환불/만료된 티켓을 다시 판매할 수 있도록 VALID로 리셋
-     *
-     * [왜 필요한가?]
-     * 환불 시: Settlement.refund() → 티켓 REFUNDED + NFT 플랫폼으로 회수
-     * 같은 좌석 재구매 시: PurchaseRouter가 같은 NFT를 다시 판매
-     * → 하지만 온체인 상태가 REFUNDED인 채로 남아있으면
-     * → 이후 환불/입장 시 "Ticket not valid" 에러
-     *
-     * [허용 전이]
-     * REFUNDED(3) → VALID(0) ✅ (환불 후 재판매)
-     * EXPIRED(2) → VALID(0) ✅ (만료 후 재판매)
-     * VALID/USED → VALID ❌ (불필요하거나 부정)
+     * @notice 환불/만료된 티켓을 VALID로 리셋 (재판매용)
+     * REFUNDED/EXPIRED → VALID ✅ (재판매 가능)
+     * VALID → 스킵 ✅ (새 티켓 첫 구매 시)
+     * USED → VALID ❌ (부정 방지)
      *
      * [호출 시점]
      * PurchaseRouter.purchaseTicket() 내부에서 NFT 이전 전에 호출
      */
     function resetTicketStatus(uint256 tokenId) external onlyAuthorized {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        // VALID이면 이미 정상 상태 → 스킵 (새 티켓 첫 구매 시)
+        if (tickets[tokenId].status == TicketStatus.VALID) return;
         require(
             tickets[tokenId].status == TicketStatus.REFUNDED ||
             tickets[tokenId].status == TicketStatus.EXPIRED,
             "Cannot reset: not refunded or expired"
         );
         tickets[tokenId].status = TicketStatus.VALID;
+    }
+
+    /**
+     * @notice 티켓 NFT에 메타데이터 URI 설정 (IPFS CID)
+     * 민팅 후 백엔드에서 호출하여 공연 메타데이터 CID를 설정
+     * Blockscout/지갑에서 tokenURI()로 조회 시 포스터/공연 정보 표시
+     */
+    function setTicketTokenURI(uint256 tokenId, string memory uri) external onlyAuthorized {
+        _setTokenURI(tokenId, uri);
+    }
+
+    // ========== ERC721URIStorage override (다중 상속 충돌 해결) ==========
+
+    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721URIStorage) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
     }
 
     // ========== 조회 함수 (view = 가스비 0, 무료 호출) ==========

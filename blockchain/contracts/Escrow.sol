@@ -12,50 +12,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 // → ERC-721 NFT(TicketNFT)의 인터페이스
 // → transferFrom(), ownerOf() 등 호출 가능
 
-// TicketNFT 커스텀 함수 인터페이스 (리세일 시 필요)
-interface IEscrowTicketNFT {
-    // 티켓 가격 on-chain 조회 (가격 상한 기준)
-    function getPrice(uint256 tokenId) external view returns (uint256);
-
-    // 티켓 정보 조회 (eventId, sessionId 가져오기 위해)
-    // → TicketNFT의 tickets public mapping 자동 getter 사용
-    function tickets(uint256 tokenId) external view returns (
-        uint256 eventId,
-        uint256 sessionId,
-        string memory section,
-        uint256 row,
-        uint256 seat,
-        string memory grade,
-        uint256 price,
-        uint8 status,
-        uint256 mintedAt
-    );
-
-    // 1인당 보유 수 업데이트 (리세일 시 판매자 -1, 구매자 +1)
-    function updateWalletTicketCount(
-        uint256 eventId,
-        uint256 sessionId,
-        address from,
-        address to
-    ) external;
-
-    // NFT 소유권 이전
-    function transferFrom(address from, address to, uint256 tokenId) external;
-}
-
-// EventNFT에서 리세일 가격 상한 조회용 인터페이스
-interface IEscrowEventNFT {
-    function getEventInfo(uint256 eventId) external view returns (
-        string memory metadataCID,
-        uint256 totalSupply,
-        uint256 maxPerWallet,
-        uint256 resaleCapBps,
-        uint256 bookingStartTime,
-        uint256 bookingEndTime,
-        bool isActive
-    );
-}
-
 /**
  * @title Escrow (리세일 전용 — 기획안 5.7, 7.6)
  * @notice 리세일 시 SSF와 TicketNFT를 동시에 예치하고 원자적으로 정산
@@ -115,12 +71,8 @@ contract Escrow is Ownable {
 
     // SSF 토큰 컨트랙트
     IERC20 public ssfToken;
-    // TicketNFT 컨트랙트 (ERC-721 표준 인터페이스)
+    // TicketNFT 컨트랙트
     IERC721 public ticketNFT;
-    // TicketNFT 컨트랙트 주소 (커스텀 함수 호출용)
-    address public ticketNFTAddress;
-    // EventNFT 컨트랙트 주소 (resaleCapBps on-chain 조회용)
-    address public eventNFTAddress;
 
     // ========== 거래(Deal) 구조체 ==========
 
@@ -247,20 +199,11 @@ contract Escrow is Ownable {
         require(_ssfToken != address(0), "Invalid SSF");
         require(_ticketNFT != address(0), "Invalid TicketNFT");
         ssfToken = IERC20(_ssfToken);
+        // "이 주소의 컨트랙트를 ERC-20으로 취급"
+        // → ssfToken.transfer(), ssfToken.transferFrom() 호출 가능
         ticketNFT = IERC721(_ticketNFT);
-        ticketNFTAddress = _ticketNFT;
-        // ticketNFT: ERC-721 표준 인터페이스 (transferFrom, ownerOf)
-        // ticketNFTAddress: 커스텀 함수 호출용 (getPrice, updateWalletTicketCount)
-    }
-
-    /**
-     * @notice EventNFT 주소 설정 (배포 후 1회)
-     * resaleCapBps를 on-chain에서 직접 읽기 위해 필요
-     * → 백엔드가 파라미터로 전달하면 조작 가능 → on-chain 조회로 강제
-     */
-    function setEventNFT(address _eventNFT) external onlyOwner {
-        require(_eventNFT != address(0), "Invalid EventNFT");
-        eventNFTAddress = _eventNFT;
+        // "이 주소의 컨트랙트를 ERC-721로 취급"
+        // → ticketNFT.transferFrom(), ticketNFT.ownerOf() 호출 가능
     }
 
     // ========== 리세일 등록 (판매자 → NFT 예치) ==========
@@ -298,75 +241,77 @@ contract Escrow is Ownable {
      * @param seller 판매자 지갑
      * @param ticketId TicketNFT tokenId
      * @param ssfAmount 리세일 희망 가격 (SSF)
+     * @param originalPrice 원가 (TicketNFT.price, 가격 상한 기준)
+     * @param resaleCapBps 가격 상한 (EventNFT.resaleCapBps)
      * @param deadline 거래 만료 시각 (unix timestamp)
      * @return dealId 생성된 거래 ID
-     *
-     * originalPrice, resaleCapBps는 on-chain에서 직접 조회 (파라미터 제거)
      */
     function createDeal(
         address seller,
         uint256 ticketId,
         uint256 ssfAmount,
+        uint256 originalPrice,
+        uint256 resaleCapBps,
         uint256 deadline
     ) external onlyOwner returns (uint256) {
         // onlyOwner = 플랫폼(백엔드)만 호출 가능
         require(seller != address(0), "Invalid seller");
         require(!isEscrowed[ticketId], "Already escrowed");
+        // 같은 티켓이 이미 Escrow에 있으면 중복 등록 방지
         require(ssfAmount > 0, "Price must be > 0");
         require(deadline > block.timestamp, "Deadline must be future");
-        require(eventNFTAddress != address(0), "EventNFT not set");
+        // deadline이 현재보다 과거이면 안 됨
+        // block.timestamp = 현재 블록 시각
 
-        IEscrowTicketNFT ticket = IEscrowTicketNFT(ticketNFTAddress);
-
-        // ========== on-chain에서 원가 + 가격 상한 직접 조회 (조작 불가) ==========
-        // [기존 문제] 백엔드가 originalPrice, resaleCapBps를 파라미터로 전달
-        //            → 백엔드가 값을 조작하면 가격 상한 우회 가능
-        // [수정] 컨트랙트가 TicketNFT, EventNFT에서 직접 읽음 → 조작 불가
-
-        uint256 originalPrice = ticket.getPrice(ticketId);
-        // TicketNFT.price: MINTED 이후 변경 불가한 on-chain 값
-
-        (uint256 eventId, , , , , , , , ) = ticket.tickets(ticketId);
-        // eventId를 가져와서 EventNFT에서 resaleCapBps 조회
-
-        (, , , uint256 resaleCapBps, , , ) = IEscrowEventNFT(eventNFTAddress).getEventInfo(eventId);
-        // EventNFT.resaleCapBps: MINTED 이후 변경 불가한 on-chain 값
+        // ========== 가격 상한 검증 (컨트랙트 레벨 강제) ==========
 
         uint256 maxPrice = (originalPrice * resaleCapBps) / 10000;
+        // 예: 50,000 × 10000 / 10000 = 50,000 (원가 이하)
+        // 예: 50,000 × 5000 / 10000 = 25,000 (원가 50% 이하)
         require(ssfAmount <= maxPrice, "Exceeds resale cap");
-        // 가격 상한 컨트랙트 레벨 강제 — on-chain 값 기준이므로 우회 불가
+        // 희망 가격이 상한을 초과하면 revert
+        // → 암표 방지: "정가 이상으로 팔 수 없음"
 
         // ========== TicketNFT를 Escrow에 예치 ==========
 
-        ticket.transferFrom(seller, address(this), ticketId);
+        ticketNFT.transferFrom(seller, address(this), ticketId);
         // seller → Escrow 컨트랙트로 NFT 전송
+        // address(this) = 이 Escrow 컨트랙트 자신의 주소
+        //
+        // ERC721 내부:
+        //   _owners[ticketId] = Escrow주소 (소유자 변경)
+        //   _balances[seller] -= 1
+        //   _balances[Escrow] += 1
+        //
         // 사전 조건: 판매자가 approve(Escrow, ticketId) 해놔야 함
-
-        // ========== walletTicketCount 갱신 (판매자 -1) ==========
-        // NFT가 Escrow에 보관되므로 판매자 카운트를 감소
-        // Escrow(address(0) 아님)로 이동하지만, Escrow는 "사용자"가 아니므로
-        // from=seller, to=address(0)으로 처리 (seller만 -1, Escrow는 카운트 불필요)
-        (, uint256 sessionId, , , , , , , ) = ticket.tickets(ticketId);
-        ticket.updateWalletTicketCount(eventId, sessionId, seller, address(0));
+        // → Custodial: 백엔드가 판매자 Keystore로 대리 서명
 
         // ========== Deal 생성 ==========
 
         uint256 dealId = _nextDealId++;
+        // 현재 값 사용 후 +1 (0, 1, 2, 3...)
 
         deals[dealId] = Deal({
             seller: seller,
-            buyer: address(0),
+            buyer: address(0),        // 아직 구매자 없음 (비어있음)
             ticketId: ticketId,
             ssfAmount: ssfAmount,
             originalPrice: originalPrice,
             deadline: deadline,
             status: DealStatus.AWAITING_BUYER
+            // 구매자 대기 상태로 시작
         });
 
         ticketDeal[ticketId] = dealId;
+        // "이 티켓은 현재 dealId번 거래에 연결되어 있다"
+        // → 같은 티켓으로 다른 Deal 생성 방지
+
         isEscrowed[ticketId] = true;
+        // "이 티켓은 현재 Escrow에 보관 중이다"
 
         emit DealCreated(dealId, seller, ticketId, ssfAmount, deadline);
+        // 로그: "거래 #0 생성: 판매자 0xAAA, 티켓 #42, 가격 45,000 SSF"
+        // 백엔드 Event Listener → Resale DB 레코드 생성 (ACTIVE)
 
         return dealId;
     }
@@ -433,22 +378,37 @@ contract Escrow is Ownable {
         // ========== ❶ SSF: 구매자 → 판매자 직접 전송 (전액, 수수료 없음) ==========
 
         bool success = ssfToken.transferFrom(buyer, deal.seller, deal.ssfAmount);
+        // transferFrom(from, to, amount)
+        //   from: buyer (구매자)
+        //   to: deal.seller (판매자)
+        //   amount: deal.ssfAmount (리세일 가격)
+        //
         // SSF가 Escrow를 거치지 않고 구매자 → 판매자로 직접 전송
+        // → Escrow에 돈이 잠기지 않음 (즉시 정산)
+        //
+        // [기획안 5.8]
         // "판매 대금 전액 → 판매자 (플랫폼 수수료 없음)"
+        //
         // 사전 조건: 구매자가 SSF.approve(Escrow, ssfAmount) 해놔야 함
         require(success, "SSF transfer failed");
 
         // ========== ❷ TicketNFT: Escrow → 구매자 ==========
 
-        IEscrowTicketNFT ticket = IEscrowTicketNFT(ticketNFTAddress);
-        ticket.transferFrom(address(this), buyer, deal.ticketId);
-        // Escrow가 NFT 소유자이므로 approve 불필요
+        ticketNFT.transferFrom(address(this), buyer, deal.ticketId);
+        // Escrow 컨트랙트 → 구매자로 NFT 전송
+        // address(this) = 이 Escrow 컨트랙트 (현재 NFT 소유자)
+        //
+        // ERC721 내부:
+        //   _owners[ticketId] = buyer (소유자: Escrow → 구매자)
+        //   _balances[Escrow] -= 1
+        //   _balances[buyer] += 1
+        //
+        // Escrow가 NFT 소유자이므로 approve 불필요 (자기 NFT를 보내는 것)
 
-        // ========== ❸ walletTicketCount 갱신 (구매자 +1) ==========
-        // createDeal에서 판매자 -1 처리함
-        // 여기서는 구매자 +1만 처리 (from=address(0), to=buyer)
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(deal.ticketId);
-        ticket.updateWalletTicketCount(eventId, sessionId, address(0), buyer);
+        // ========== 원자적 보장 ==========
+        // ❶ 또는 ❷ 중 하나라도 실패 → 전부 revert
+        // → 상태 변경(SETTLED)도 취소됨
+        // → "돈은 냈는데 티켓 못 받음" 불가능
 
         emit DealSettled(dealId, buyer, deal.seller, deal.ticketId, deal.ssfAmount);
         // 로그: "거래 #0 정산: 구매자 0xBBB, 판매자 0xAAA, 티켓 #42, 45,000 SSF"
@@ -480,16 +440,13 @@ contract Escrow is Ownable {
         // SETTLED/CANCELLED/EXPIRED → 이미 끝난 거래 → 취소 불가
 
         deal.status = DealStatus.CANCELLED;
+        // AWAITING_BUYER → CANCELLED
         isEscrowed[deal.ticketId] = false;
+        // 이 티켓은 더 이상 Escrow에 없음
 
         // TicketNFT: Escrow → 판매자 반환
-        IEscrowTicketNFT ticket = IEscrowTicketNFT(ticketNFTAddress);
-        ticket.transferFrom(address(this), deal.seller, deal.ticketId);
-
-        // walletTicketCount 복원 (판매자 +1)
-        // createDeal에서 판매자 -1 했으므로 취소 시 +1 복원
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(deal.ticketId);
-        ticket.updateWalletTicketCount(eventId, sessionId, address(0), deal.seller);
+        ticketNFT.transferFrom(address(this), deal.seller, deal.ticketId);
+        // Escrow가 NFT 소유자이므로 approve 불필요
 
         emit DealCancelled(dealId, deal.ticketId);
         // 로그: "거래 #0 취소: 티켓 #42 판매자에게 반환"
@@ -532,16 +489,13 @@ contract Escrow is Ownable {
         // deadline 전이면 revert → 아직 구매 가능한 상태
 
         deal.status = DealStatus.EXPIRED;
+        // AWAITING_BUYER → EXPIRED
         isEscrowed[deal.ticketId] = false;
+        // 이 티켓은 더 이상 Escrow에 없음
 
         // TicketNFT: Escrow → 판매자 반환
-        IEscrowTicketNFT ticket = IEscrowTicketNFT(ticketNFTAddress);
-        ticket.transferFrom(address(this), deal.seller, deal.ticketId);
-
-        // walletTicketCount 복원 (판매자 +1)
-        // createDeal에서 판매자 -1 했으므로 만료 시 +1 복원
-        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(deal.ticketId);
-        ticket.updateWalletTicketCount(eventId, sessionId, address(0), deal.seller);
+        ticketNFT.transferFrom(address(this), deal.seller, deal.ticketId);
+        // 판매자에게 NFT 돌려줌
 
         emit DealExpiredRefund(dealId, deal.buyer, deal.seller, deal.ticketId);
         // 로그: "거래 #0 만료: 티켓 #42 판매자에게 반환"

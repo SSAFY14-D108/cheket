@@ -87,4 +87,11 @@ public interface MintingService {
      * @return 회차별 랜덤 AVAILABLE 좌석 목록
      */
     Map<String, Object> getAvailableSeats(Long showId, int count);
+
+    // ========== 온체인/DB 동기화 ==========
+
+    /**
+     * 공연의 모든 좌석에 대해 온체인 NFT 소유자와 DB 상태를 비교하고 불일치 시 DB를 교정
+     */
+    Map<String, Object> syncShowWithOnChain(Long showId);
 }

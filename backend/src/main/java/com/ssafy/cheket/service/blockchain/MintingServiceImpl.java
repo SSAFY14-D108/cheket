@@ -370,4 +370,83 @@ public class MintingServiceImpl implements MintingService {
         result.put("sessions", sessionList);
         return result;
     }
+
+    // ========== 온체인/DB 동기화 ==========
+
+    @Override
+    public Map<String, Object> syncShowWithOnChain(Long showId) {
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
+
+        List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+        int totalChecked = 0;
+        int mismatched = 0;
+        int synced = 0;
+        List<Map<String, Object>> issues = new ArrayList<>();
+
+        for (Session session : sessions) {
+            List<SessionSeat> seats = sessionSeatRepository.findBySessionId(session.getId());
+
+            for (SessionSeat seat : seats) {
+                if (seat.getOnChainTicketNftId() == null)
+                    continue;
+                totalChecked++;
+
+                try {
+                    String onChainOwner = blockchainService.getTicketNFT()
+                        .ownerOf(BigInteger.valueOf(seat.getOnChainTicketNftId())).send();
+
+                    String platformAddress = blockchainService.getPlatformWalletAddress();
+                    String escrowAddress = blockchainService.getEscrow().getContractAddress();
+
+                    // DB 상태와 온체인 소유자 비교
+                    boolean isMismatch = false;
+
+                    if (seat.getStatus() == SeatStatus.AVAILABLE || seat.getStatus() == SeatStatus.PENDING_TX) {
+                        // DB: 미판매 → 온체인: 플랫폼 소유여야 함
+                        if (!onChainOwner.equalsIgnoreCase(platformAddress)) {
+                            isMismatch = true;
+                            // 온체인에서 누군가 소유 중 → DB를 SOLD로 변경
+                            if (!onChainOwner.equalsIgnoreCase(escrowAddress)) {
+                                seat.setStatus(SeatStatus.SOLD);
+                                sessionSeatRepository.save(seat);
+                                synced++;
+                            }
+                        }
+                    } else if (seat.getStatus() == SeatStatus.SOLD) {
+                        // DB: 판매됨 → 온체인: 사용자 소유여야 함 (플랫폼이면 환불된 것)
+                        if (onChainOwner.equalsIgnoreCase(platformAddress)) {
+                            isMismatch = true;
+                            seat.setStatus(SeatStatus.AVAILABLE);
+                            sessionSeatRepository.save(seat);
+                            synced++;
+                        }
+                    }
+
+                    if (isMismatch) {
+                        mismatched++;
+                        Map<String, Object> issue = new HashMap<>();
+                        issue.put("seatId", seat.getId());
+                        issue.put("nftId", seat.getOnChainTicketNftId());
+                        issue.put("dbStatus", seat.getStatus().name());
+                        issue.put("onChainOwner", onChainOwner);
+                        issues.add(issue);
+                    }
+                } catch (Exception e) {
+                    log.error("[동기화] nftId={} 조회 실패", seat.getOnChainTicketNftId(), e);
+                }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("showId", showId);
+        result.put("showTitle", show.getTitle());
+        result.put("totalChecked", totalChecked);
+        result.put("mismatched", mismatched);
+        result.put("synced", synced);
+        result.put("issues", issues);
+
+        log.info("[동기화] showId={} — 검사 {}건, 불일치 {}건, 교정 {}건", showId, totalChecked, mismatched, synced);
+        return result;
+    }
 }
