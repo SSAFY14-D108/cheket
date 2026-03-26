@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/password").permitAll()
                 .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/users/email").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/hosts").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/hosts/auth/login").permitAll() // 주최측 로그인
                 .requestMatchers(HttpMethod.POST, "/api/v1/hosts/auth/logout").authenticated() // 주최측 로그아웃
