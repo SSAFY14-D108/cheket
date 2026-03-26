@@ -6,6 +6,7 @@ import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.SessionSeat;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.ticket.Ticket;
+import com.ssafy.cheket.entity.ticket.TicketTransfer;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
@@ -23,6 +24,7 @@ import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
+import com.ssafy.cheket.repository.ticket.TicketTransferRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.repository.resale.ResaleEntityRepository;
@@ -83,7 +85,7 @@ public class BlockchainAsyncWorker {
     private final TransactionRepository transactionRepository;
     private final ShowRepository showRepository;
     private final SessionRepository sessionRepository;
-
+    private final TicketTransferRepository ticketTransferRepository;
     private final NotificationService notificationService;
 
     @Value("${wallet.keystore.password}")
@@ -391,6 +393,15 @@ public class BlockchainAsyncWorker {
             tx.setDescription("블록체인 확정 — 양도 완료 (ticketId=%d, nftId=%d, fromUserId=%d, toUserId=%d, txHash=%s)"
                 .formatted(ticketId, onChainTicketNftId, senderUserId, receiverUserId, txHash));
             transactionRepository.save(tx);
+
+            TicketTransfer ticketTransfer = TicketTransfer.builder()
+                .fromUserId(senderUserId)
+                .toUserId(receiverUserId)
+                .ticketId(ticketId)
+                .txHash(txHash)
+                .build();
+            ticketTransferRepository.save(ticketTransfer);
+
             log.info("[양도 비동기] Transaction → CONFIRMED — txId={}", txId);
 
             log.info("[양도 비동기] 완료 — txId={}, ticketId={}, sender={} → receiver={}", txId, ticketId, senderUserId,
