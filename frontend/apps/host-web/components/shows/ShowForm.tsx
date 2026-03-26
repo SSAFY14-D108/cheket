@@ -280,8 +280,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   return (
     <>
       <main className="min-h-svh bg-white pb-20">
-        <div className="mx-auto max-w-[72rem] px-6 py-5">
-          <div className="sticky top-0 z-40 mb-5 rounded-[1.5rem] border border-black/8 bg-white/92 px-4 py-4 shadow-sm backdrop-blur">
+        <div className="mx-auto max-w-6xl px-6 py-5">
+          <div className="sticky top-0 z-40 mb-5 rounded-3xl border border-black/8 bg-white/92 px-4 py-4 shadow-sm backdrop-blur">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
                 <Link
@@ -290,7 +290,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                       ? `/shows/${initialData.showId}`
                       : "/mypage"
                   }
-                  className="flex size-10 items-center justify-center rounded-full border border-black/10 bg-white transition-colors hover:bg-black/[0.03]"
+                  className="flex size-10 items-center justify-center rounded-full border border-black/10 bg-white transition-colors hover:bg-black/3"
                   aria-label="이전으로 이동"
                 >
                   <ArrowLeft className="size-4" />
@@ -321,7 +321,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                       >
                         {current}. {label}
                       </span>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/6">
                         <div
                           className={`${past ? "w-full bg-black/35" : active ? "w-full bg-black" : "w-0 bg-transparent"} h-full transition-all duration-500 ease-out`}
                         />
@@ -367,8 +367,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
           </div>
 
           {step === 1 ? (
-            <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-4">
-              <Card className="rounded-[2rem] border-black/8 bg-white py-0 shadow-sm">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+              <Card className="rounded-4xl border-black/8 bg-white py-0 shadow-sm">
                 <div className="border-b border-black/8 px-6 pb-3 pt-5">
                   <h2 className="text-xl font-semibold tracking-[-0.03em] text-black">
                     기본 정보
@@ -390,7 +390,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                       </Label>
                       <label
                         htmlFor="poster-upload"
-                        className={`group relative flex aspect-[3/4] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[1.5rem] border-2 border-dashed transition-colors ${!posterPreview && showStep1Errors ? "border-destructive bg-destructive/5 hover:bg-destructive/10" : "border-black/10 bg-black/[0.02] hover:bg-black/[0.04]"}`}
+                        className={`group relative flex aspect-3/4 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed transition-colors ${!posterPreview && showStep1Errors ? "border-destructive bg-destructive/5 hover:bg-destructive/10" : "border-black/10 bg-black/2 hover:bg-black/4"}`}
                       >
                         {posterPreview ? (
                           <>
@@ -454,7 +454,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                         </Label>
                         <Input
                           placeholder="공연명을 입력해 주세요"
-                          className={`h-14 rounded-2xl px-4 text-lg font-bold ${!title.trim() && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-black/[0.02]"}`}
+                          className={`h-14 rounded-2xl px-4 text-lg font-bold ${!title.trim() && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-black/2"}`}
                           value={title}
                           onChange={(event) => setTitle(event.target.value)}
                         />
@@ -469,7 +469,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                         </Label>
                         <Input
                           placeholder="표기할 아티스트 또는 주최명을 입력해 주세요"
-                          className={`h-14 rounded-2xl px-4 text-lg font-bold ${!artistName.trim() && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-black/[0.02]"}`}
+                          className={`h-14 rounded-2xl px-4 text-lg font-bold ${!artistName.trim() && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-black/2"}`}
                           value={artistName}
                           onChange={(event) =>
                             setArtistName(event.target.value)
@@ -488,7 +488,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                         <Input
                           type="number"
                           placeholder="예: 120"
-                          className={`h-14 rounded-2xl px-4 text-lg font-bold ${(!playtime.trim() || Number(playtime) <= 0) && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-black/[0.02]"}`}
+                          className={`h-14 rounded-2xl px-4 text-lg font-bold ${(!playtime.trim() || Number(playtime) <= 0) && showStep1Errors ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "bg-black/2"}`}
                           value={playtime}
                           onChange={(event) => setPlaytime(event.target.value)}
                         />
@@ -498,7 +498,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                   </div>
                 </div>
               </Card>
-              <Card className="rounded-[2rem] border-black/8 bg-white py-0 shadow-sm">
+              <Card className="rounded-4xl border-black/8 bg-white py-0 shadow-sm">
                 <div className="border-b border-black/8 px-6 py-4">
                   <h2 className="text-xl font-semibold tracking-[-0.03em] text-black">
                     상세 소개
@@ -528,7 +528,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                       />
                       <div className="grid grid-cols-2 gap-3 pt-1">
                         <div
-                          className="group flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-[1.25rem] border-2 border-dashed bg-black/[0.02] text-muted-foreground transition-colors hover:bg-black/[0.04]"
+                          className="group flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-black/2 text-muted-foreground transition-colors hover:bg-black/4"
                           onClick={() =>
                             document
                               .getElementById("description-image-upload")
@@ -545,7 +545,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                         {descriptionImagePreviews.map((preview, index) => (
                           <div
                             key={preview + index}
-                            className="group relative aspect-square overflow-hidden rounded-[1.25rem] border bg-black/[0.02] shadow-sm"
+                            className="group relative aspect-square overflow-hidden rounded-2xl border bg-black/2 shadow-sm"
                           >
                             <Image
                               src={preview}
@@ -579,7 +579,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                         공연 설명 <span className="text-destructive">*</span>
                       </Label>
                       <div
-                        className={`rounded-[1.5rem] border shadow-sm [&_.tiptap]:h-90 [&_.tiptap]:overflow-y-auto [&_.tiptap]:p-6 [&_.tiptap]:text-[15px] [&_.tiptap]:leading-relaxed ${!description.trim() && showStep1Errors ? "border-destructive bg-destructive/5" : "border-black/8"}`}
+                        className={`rounded-3xl border shadow-sm [&_.tiptap]:h-90 [&_.tiptap]:overflow-y-auto [&_.tiptap]:p-6 [&_.tiptap]:text-[15px] [&_.tiptap]:leading-relaxed ${!description.trim() && showStep1Errors ? "border-destructive bg-destructive/5" : "border-black/8"}`}
                       >
                         <DescriptionEditor
                           value={description}
@@ -594,7 +594,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
           ) : null}
 
           {step === 2 && !isContentOnlyEdit ? (
-            <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-6">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
               <SettingsCardBasic
                 venueId={venueId}
                 venues={venues}
@@ -614,7 +614,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                 onRemoveSession={removeSession}
                 onUpdateSession={updateSession}
               />
-              <Card className="rounded-[2rem] border-black/8 bg-white py-0 shadow-sm">
+              <Card className="rounded-4xl border-black/8 bg-white py-0 shadow-sm">
                 <div className="border-b border-black/8 px-6 py-4">
                   <h2 className="text-xl font-semibold tracking-[-0.03em] text-black">
                     예매 일정
