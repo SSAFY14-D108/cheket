@@ -191,7 +191,7 @@ public class BlockchainAsyncWorker {
             String lastTxHash = null;
             TransactionReceipt receipt = null;
 
-            // 성공한 좌석 추적 (실패 시 전체 환불용)
+            // 성공한 좌석 추적
             List<PurchasedSeatInfo> purchasedSeats = new ArrayList<>();
 
             for (int i = 0; i < seats.size(); i++) {

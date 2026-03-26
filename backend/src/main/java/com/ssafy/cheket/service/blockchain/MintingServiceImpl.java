@@ -378,7 +378,7 @@ public class MintingServiceImpl implements MintingService {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
 
-        List<Session> sessions = sessionRepository.findByShowId(showId);
+        List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
         int totalChecked = 0;
         int mismatched = 0;
         int synced = 0;

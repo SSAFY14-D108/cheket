@@ -681,6 +681,14 @@ public class TicketNFT extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
+    public RemoteFunctionCall<TransactionReceipt> setTicketTokenURI(BigInteger tokenId, String uri) {
+        final Function function = new Function("setTicketTokenURI",
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId),
+                new org.web3j.abi.datatypes.Utf8String(uri)),
+            Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
+    }
+
     public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to, BigInteger tokenId) {
         final Function function = new Function(FUNC_safeTransferFrom,
             Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
