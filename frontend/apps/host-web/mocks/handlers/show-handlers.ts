@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw"
 import {
   getNextShowId,
+  getShowContractsSnapshot,
   getShowDetailSnapshot,
   getVenueAddress,
   mockEventStore,
@@ -178,6 +179,26 @@ export const showHandlers = [
       {
         httpStatusCode: 200,
         responseMessage: "공연 상세 조회 성공",
+        data: snapshot,
+      },
+      { status: 200 }
+    )
+  }),
+  http.get("*/api/v1/hosts/shows/:showId/contracts", async ({ request, params }) => {
+    if (!isAuthorized(request)) {
+      return createUnauthorizedResponse()
+    }
+
+    const snapshot = getShowContractsSnapshot(params.showId)
+
+    if (!snapshot) {
+      return createNotFoundResponse()
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "공연 계약 승인 현황 조회 성공",
         data: snapshot,
       },
       { status: 200 }
@@ -396,6 +417,39 @@ export const showHandlers = [
       {
         httpStatusCode: 200,
         responseMessage: "수정이 완료되었습니다.",
+      },
+      { status: 200 }
+    )
+  }),
+  http.post("*/api/v1/hosts/shows/:showId/contracts/confirm", async ({ request, params }) => {
+    if (!isAuthorized(request)) {
+      return createUnauthorizedResponse()
+    }
+
+    const snapshot = getShowContractsSnapshot(params.showId)
+
+    if (!snapshot) {
+      return createNotFoundResponse()
+    }
+
+    const allApproved = snapshot.every(
+      (approval) => approval.approvalStatus === "APPROVED"
+    )
+
+    if (!allApproved) {
+      return HttpResponse.json(
+        {
+          httpStatusCode: 400,
+          errorMessage: "모든 이해관계자의 승인이 완료되어야 최종등록할 수 있습니다.",
+        },
+        { status: 400 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        httpStatusCode: 200,
+        responseMessage: "최종등록이 완료되었습니다.",
       },
       { status: 200 }
     )

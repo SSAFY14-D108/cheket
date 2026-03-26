@@ -6,7 +6,7 @@ import { AppFooter } from "@/components/layout/AppFooter"
 export function ConditionalFooter() {
   const pathname = usePathname()
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/signup") {
     return null
   }
 

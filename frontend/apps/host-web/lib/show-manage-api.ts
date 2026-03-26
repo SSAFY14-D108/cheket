@@ -57,6 +57,17 @@ export interface HostShowSessionInfo {
   capacity: number
 }
 
+export type HostShowContractUserType = "HOST" | "USER"
+export type HostShowContractApprovalStatus = "PENDING" | "APPROVED" | "REJECTED"
+
+export interface HostShowContractApproval {
+  userType: HostShowContractUserType
+  userId: number
+  username: string
+  approvalStatus: HostShowContractApprovalStatus
+  determinedAt?: string
+}
+
 export interface HostShowDetail {
   showId: number
   title: string
@@ -104,6 +115,14 @@ interface RawHostShowSessionInfo {
   sessionStartDate?: unknown
   sessionStartTime?: unknown
   capacity?: unknown
+}
+
+interface RawHostShowContractApproval {
+  userType?: unknown
+  userId?: unknown
+  username?: unknown
+  approvalStatus?: unknown
+  determinedAt?: unknown
 }
 
 interface RawHostShowDetail {
@@ -255,6 +274,24 @@ function normalizeShowDetail(raw: RawHostShowDetail): HostShowDetail {
   }
 }
 
+function normalizeContractApproval(
+  raw: RawHostShowContractApproval,
+): HostShowContractApproval {
+  const userType = raw.userType === "HOST" ? "HOST" : "USER"
+  const approvalStatus =
+    raw.approvalStatus === "APPROVED" || raw.approvalStatus === "REJECTED"
+      ? raw.approvalStatus
+      : "PENDING"
+
+  return {
+    userType,
+    userId: toSafeNumber(raw.userId),
+    username: toSafeString(raw.username),
+    approvalStatus,
+    determinedAt: toSafeString(raw.determinedAt, ""),
+  }
+}
+
 export interface HostShowSection {
   sectionId: number
   sectionName: string
@@ -312,12 +349,37 @@ export interface CreateShowPayload {
   descriptionImageFiles?: File[]
 }
 
+export interface UpdateShowFormPayload extends Partial<Omit<ShowFormPayload, "stakeholders">> {
+  stakeholders?: Array<{
+    role: "ORGANIZER" | "ARTIST"
+    id: number
+    name: string
+    number: string
+    shareBps: number
+  }>
+  existingDescriptionImageUrls?: string[] | null
+}
+
+export interface UpdateShowPayload {
+  show: UpdateShowFormPayload
+  posterImageFile?: File | null
+  descriptionImageFiles?: File[]
+}
+
 function buildShowDetailPath(showId: string | number) {
   return `/api/v1/hosts/shows/${showId}`
 }
 
 function buildShowMutationPath(showId: string | number) {
   return `/api/v1/hosts/shows/${showId}`
+}
+
+function buildShowContractsPath(showId: string | number) {
+  return `/api/v1/hosts/shows/${showId}/contracts`
+}
+
+function buildShowContractsConfirmPath(showId: string | number) {
+  return `/api/v1/hosts/shows/${showId}/contracts/confirm`
 }
 
 function buildTicketEffectsPath() {
@@ -343,6 +405,30 @@ export async function fetchShowDetail(showId: string | number) {
   })
 
   return normalizeShowDetail(response.data)
+}
+
+export async function fetchShowContracts(showId: string | number) {
+  const response = await apiFetch<ApiResponse<RawHostShowContractApproval[]>>(
+    buildShowContractsPath(showId),
+    {
+      method: "GET",
+    },
+  )
+
+  return Array.isArray(response.data)
+    ? response.data.map(normalizeContractApproval)
+    : []
+}
+
+export async function confirmShowContracts(showId: string | number) {
+  const response = await apiFetch<ApiMessageResponse>(
+    buildShowContractsConfirmPath(showId),
+    {
+      method: "POST",
+    },
+  )
+
+  return response
 }
 
 export async function fetchShowSections(venueId: string | number) {
@@ -395,7 +481,7 @@ export async function createShow(payload: CreateShowPayload) {
   return response.data
 }
 
-export async function updateShow(showId: string | number, payload: CreateShowPayload) {
+export async function updateShow(showId: string | number, payload: UpdateShowPayload) {
   const formData = new FormData()
 
   formData.append(

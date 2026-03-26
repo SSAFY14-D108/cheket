@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
@@ -22,6 +22,7 @@ import {
   deriveShowRangeFromSessions,
   buildUpdatePayload,
   buildValidationMessage,
+  isContentOnlyEditableStatus,
   toLocalDateTimeValue,
   toNumericString,
 } from "./showFormUtils"
@@ -43,6 +44,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const router = useRouter()
   const { toast } = useToast()
   const isEdit = mode === "edit"
+  const isContentOnlyEdit = isEdit && isContentOnlyEditableStatus(initialData?.status)
 
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [artistName, setArtistName] = useState(initialData?.artistName ?? "")
@@ -100,11 +102,11 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
         const message =
           error instanceof ApiError
             ? error.message
-            : "공연장 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+            : "怨듭뿰??紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲?? ?좎떆 ???ㅼ떆 ?쒕룄?댁＜?몄슂."
 
         setVenueLoadError(message)
         toast({
-          title: "공연장 목록 조회 실패",
+          title: "怨듭뿰??紐⑸줉 議고쉶 ?ㅽ뙣",
           description: message,
           variant: "destructive",
         })
@@ -143,8 +145,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
       toast({
-        title: "지원하지 않는 파일 형식",
-        description: "대표 포스터는 JPEG, PNG, WEBP 형식만 업로드 가능합니다.",
+        title: "吏?먰븯吏 ?딅뒗 ?뚯씪 ?뺤떇",
+        description: "????ъ뒪?곕뒗 JPEG, PNG, WEBP ?뺤떇留??낅줈??媛?ν빀?덈떎.",
         variant: "destructive",
       })
       event.target.value = ""
@@ -153,8 +155,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
     if (file.size > MAX_FILE_SIZE) {
       toast({
-        title: "파일 용량 초과",
-        description: "대표 포스터는 5MB 이하만 업로드 가능합니다.",
+        title: "?뚯씪 ?⑸웾 珥덇낵",
+        description: "????ъ뒪?곕뒗 5MB ?댄븯留??낅줈??媛?ν빀?덈떎.",
         variant: "destructive",
       })
       event.target.value = ""
@@ -166,8 +168,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
     if (nextRequestSize > MAX_TOTAL_SIZE) {
       toast({
-        title: "전체 용량 초과",
-        description: `이번 요청의 이미지 총합은 50MB를 넘을 수 없습니다. (현재 ${toRoundedMb(nextRequestSize)}MB)`,
+        title: "?꾩껜 ?⑸웾 珥덇낵",
+        description: `?대쾲 ?붿껌???대?吏 珥앺빀? 50MB瑜??섏쓣 ???놁뒿?덈떎. (?꾩옱 ${toRoundedMb(nextRequestSize)}MB)`,
         variant: "destructive",
       })
       event.target.value = ""
@@ -194,8 +196,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     const invalidTypeFiles = fileArray.filter((file) => !ALLOWED_IMAGE_TYPES.has(file.type))
     if (invalidTypeFiles.length > 0) {
       toast({
-        title: "지원하지 않는 파일 형식",
-        description: "상세 이미지는 JPEG, PNG, WEBP 형식만 업로드 가능합니다.",
+        title: "吏?먰븯吏 ?딅뒗 ?뚯씪 ?뺤떇",
+        description: "?곸꽭 ?대?吏??JPEG, PNG, WEBP ?뺤떇留??낅줈??媛?ν빀?덈떎.",
         variant: "destructive",
       })
       event.target.value = ""
@@ -205,8 +207,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     const oversizedFiles = fileArray.filter((file) => file.size > MAX_FILE_SIZE)
     if (oversizedFiles.length > 0) {
       toast({
-        title: "파일 용량 초과",
-        description: "각 상세 이미지는 5MB 이하만 업로드 가능합니다.",
+        title: "?뚯씪 ?⑸웾 珥덇낵",
+        description: "媛??곸꽭 ?대?吏??5MB ?댄븯留??낅줈??媛?ν빀?덈떎.",
         variant: "destructive",
       })
       event.target.value = ""
@@ -220,8 +222,8 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
     if (nextTotalSize > MAX_TOTAL_SIZE) {
       toast({
-        title: "전체 용량 초과",
-        description: `이번 요청의 이미지 총합은 50MB를 넘을 수 없습니다. (현재 ${toRoundedMb(nextTotalSize)}MB)`,
+        title: "?꾩껜 ?⑸웾 珥덇낵",
+        description: `?대쾲 ?붿껌???대?吏 珥앺빀? 50MB瑜??섏쓣 ???놁뒿?덈떎. (?꾩옱 ${toRoundedMb(nextTotalSize)}MB)`,
         variant: "destructive",
       })
       event.target.value = ""
@@ -383,6 +385,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const getValidationMessage = () =>
     buildValidationMessage({
       mode,
+      contentOnlyEdit: isContentOnlyEdit,
       title,
       artistName,
       playtime,
@@ -400,13 +403,17 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       refundPolicy,
       sessionInfo,
       descriptionImageFiles,
-    })
+    }, initialData)
 
   const handleSubmit = async () => {
     const validationMessage = getValidationMessage()
 
     if (validationMessage) {
-      window.alert(validationMessage)
+      toast({
+        title: "입력값을 확인해 주세요",
+        description: validationMessage,
+        variant: "destructive",
+      })
       return
     }
 
@@ -434,9 +441,9 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             refundPolicy,
             sessionInfo,
             descriptionImageFiles,
-          }, descriptionImagePreviews)
+          }, descriptionImagePreviews, initialData, { contentOnlyEdit: isContentOnlyEdit })
         )
-        window.alert(response.responseMessage || "공연이 수정되었습니다.")
+        window.alert(response.responseMessage || "공연 수정 완료")
       } else {
         const response = await createShow(
           buildCreatePayload({
@@ -469,7 +476,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
         description:
           error instanceof ApiError
             ? error.message
-            : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.",
+            : "?붿껌??泥섎━?섏? 紐삵뻽?듬땲?? ?좎떆 ???ㅼ떆 ?쒕룄?댁＜?몄슂.",
         variant: "destructive",
       })
     } finally {
@@ -479,6 +486,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
 
   return {
     isEdit,
+    isContentOnlyEdit,
     title,
     artistName,
     playtime,
@@ -529,3 +537,4 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     handleSubmit,
   }
 }
+

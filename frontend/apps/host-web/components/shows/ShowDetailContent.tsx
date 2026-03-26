@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ApiError } from "@/lib/api"
-import { fetchShowDetail, type HostShowDetail } from "@/lib/show-manage-api"
+import {
+  fetchShowContracts,
+  fetchShowDetail,
+  type HostShowContractApproval,
+  type HostShowDetail,
+} from "@/lib/show-manage-api"
 import { ShowDetailView } from "./ShowDetailView"
 
 interface ShowDetailContentProps {
@@ -12,6 +17,7 @@ interface ShowDetailContentProps {
 
 export function ShowDetailContent({ showId }: ShowDetailContentProps) {
   const [showDetail, setShowDetail] = useState<HostShowDetail | null>(null)
+  const [contractApprovals, setContractApprovals] = useState<HostShowContractApproval[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -20,10 +26,14 @@ export function ShowDetailContent({ showId }: ShowDetailContentProps) {
 
     async function loadShowDetail() {
       try {
-        const detail = await fetchShowDetail(showId)
+        const [detail, approvals] = await Promise.all([
+          fetchShowDetail(showId),
+          fetchShowContracts(showId),
+        ])
 
         if (!isCancelled) {
           setShowDetail(detail)
+          setContractApprovals(approvals)
         }
       } catch (error) {
         if (!isCancelled) {
@@ -77,5 +87,10 @@ export function ShowDetailContent({ showId }: ShowDetailContentProps) {
     )
   }
 
-  return <ShowDetailView showDetail={showDetail} />
+  return (
+    <ShowDetailView
+      showDetail={showDetail}
+      contractApprovals={contractApprovals}
+    />
+  )
 }

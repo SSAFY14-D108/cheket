@@ -12,6 +12,7 @@ interface SettingsCardSessionsProps {
   reservationEndAt: string
   showStartAt: string
   showEndAt: string
+  sessionMinDate?: Date
   showErrors?: boolean
   onAddSession: () => void
   onRemoveSession: (idx: number) => void
@@ -47,6 +48,7 @@ export function SettingsCardSessions({
   reservationEndAt,
   showStartAt,
   showEndAt,
+  sessionMinDate,
   showErrors = false,
   onAddSession,
   onRemoveSession,
@@ -110,7 +112,18 @@ export function SettingsCardSessions({
                       onUpdateSession(idx, "sessionStartTime", time)
                     }}
                     placeholder="공연 시작 날짜/시간"
-                    minDate={reservationEndAt ? new Date(reservationEndAt) : undefined}
+                    minDate={
+                      reservationEndAt
+                        ? sessionMinDate
+                          ? new Date(
+                              Math.max(
+                                new Date(reservationEndAt).getTime(),
+                                sessionMinDate.getTime()
+                              )
+                            )
+                          : new Date(reservationEndAt)
+                        : sessionMinDate
+                    }
                   />
                 </div>
 

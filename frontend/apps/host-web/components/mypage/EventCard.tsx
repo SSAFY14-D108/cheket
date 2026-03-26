@@ -26,6 +26,9 @@ const RESERVATION_BADGE_STYLES = {
   CLOSED: "border-black/10 bg-[#f7f7f8] text-black/46",
 } as const
 
+const CONTRACT_BADGE_CLASS = "border-amber-200 bg-amber-50 text-amber-700"
+const CONTRACT_REJECTED_BADGE_CLASS = "border-rose-200 bg-rose-50 text-rose-700"
+
 function formatShowPeriod(event: MyShowSummary) {
   if (event.show.showStartDate === event.show.showEndDate) {
     return event.show.showStartDate
@@ -46,6 +49,8 @@ export function EventCard({ event }: EventCardProps) {
   const reservationBadgeClass =
     RESERVATION_BADGE_STYLES[displayMeta.reservation.phase] ??
     "border-black/10 bg-white text-black/50"
+  const showPendingContractBadge = event.status === "PENDING_CONTRACT"
+  const showRejectedContractBadge = event.status === "CONTRACT_REJECTED"
 
   return (
     <article
@@ -68,12 +73,30 @@ export function EventCard({ event }: EventCardProps) {
           <h3 className="line-clamp-2 min-h-[2.6rem] text-base font-semibold leading-snug tracking-[-0.02em] text-black">
             {event.title}
           </h3>
+
           <div className="flex min-h-6 flex-wrap gap-1.5">
+            {showPendingContractBadge ? (
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${CONTRACT_BADGE_CLASS}`}
+              >
+                승인 대기중
+              </span>
+            ) : null}
+
+            {showRejectedContractBadge ? (
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${CONTRACT_REJECTED_BADGE_CLASS}`}
+              >
+                승인 거절
+              </span>
+            ) : null}
+
             <span
               className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${performanceBadgeClass}`}
             >
               {displayMeta.performance.label}
             </span>
+
             <span
               className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${reservationBadgeClass}`}
             >
@@ -94,7 +117,9 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         <div className="flex items-center justify-between border-t border-black/8 pt-3">
-          <span className="text-[13px] text-black/45">구매 제한 {event.purchaseLimit}매</span>
+          <span className="text-[13px] text-black/45">
+            구매 제한 {event.purchaseLimit}매
+          </span>
           <Link
             href={`/shows/${event.showId}/dashboard`}
             className="rounded-full bg-[#171717] px-3.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-black/85"
