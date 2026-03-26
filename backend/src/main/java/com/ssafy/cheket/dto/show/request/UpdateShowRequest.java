@@ -1,5 +1,7 @@
 package com.ssafy.cheket.dto.show.request;
 
+import com.ssafy.cheket.enums.StakeholderRole;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,7 +32,9 @@ public record UpdateShowRequest(
     // ── 환불 정책 목록 (null이면 수정 안 함) ──
     List<RefundPolicyInfo> refundPolicy,
 
-    List<String> existingDescriptionImageUrls) {
+    List<String> existingDescriptionImageUrls,
+
+    List<StakeholderInfo> stakeholders) {
 
     public record SessionInfo(LocalDateTime sessionDate, // 회차 날짜
         LocalDateTime sessionStartTime // 시작 시간
@@ -48,6 +52,9 @@ public record UpdateShowRequest(
     public record RefundPolicyInfo(Integer daysRemaining, // 남은 일수: 7
         Integer refundRate // 환불률: 100(%)
     ) {
+    }
+
+    public record StakeholderInfo(StakeholderRole role, Long id, String name, String number, Integer shareBps) {
     }
 
 }
