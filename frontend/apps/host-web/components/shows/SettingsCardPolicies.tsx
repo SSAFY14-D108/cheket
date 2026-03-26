@@ -133,10 +133,7 @@ export function SettingsCardPolicies({
     (sum, stakeholder) => sum + (Number(stakeholder.shareBps) || 0),
     0
   )
-  const editableShareBps = editableStakeholders.reduce(
-    (sum, { stakeholder }) => sum + (Number(stakeholder.shareBps) || 0),
-    0
-  )
+  const platformShareBps = Number(fixedStakeholder?.shareBps || PLATFORM_FEE_BPS)
   const remainingShareBps = PLATFORM_TOTAL_BPS - totalShareBps
   const isStakeholderShareValid = totalShareBps === PLATFORM_TOTAL_BPS
 
@@ -273,15 +270,18 @@ export function SettingsCardPolicies({
                     </p>
                   </div>
                   <div className="rounded-sm bg-background/80 px-1.5 py-1">
-                    <p className="text-[11px] leading-tight text-muted-foreground">플랫폼 수수료</p>
+                    <p className="text-[11px] leading-tight text-muted-foreground">플랫폼 비율</p>
                     <p className="text-2xl font-semibold leading-none">
-                      {PLATFORM_FEE_BPS.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
+                      {(platformShareBps / 100).toLocaleString()}<span className="text-base font-medium">%</span>
+                      <span className="ml-1 text-xs font-medium text-muted-foreground">
+                        ({platformShareBps.toLocaleString()} bps)
+                      </span>
                     </p>
                   </div>
                   <div className="rounded-sm bg-background/80 px-1.5 py-1">
-                    <p className="text-[11px] leading-tight text-muted-foreground">이해관계자 입력 합계</p>
+                    <p className="text-[11px] leading-tight text-muted-foreground">현재 입력 합계</p>
                     <p className="text-2xl font-semibold leading-none">
-                      {editableShareBps.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
+                      {totalShareBps.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
                     </p>
                   </div>
                   <div className="rounded-sm bg-background/80 px-1.5 py-1">
@@ -299,8 +299,8 @@ export function SettingsCardPolicies({
                 </div>
 
                 <div className="rounded-md border bg-background px-3 py-1.5 text-[11px] text-muted-foreground">
-                  총 정산 비율은 {(PLATFORM_TOTAL_BPS / 100).toLocaleString()}%이며 플랫폼 수수료{" "}
-                  {(PLATFORM_FEE_BPS / 100).toLocaleString()}%는 자동 고정됩니다.
+                  현재 입력 합계에는 플랫폼 비율 {(platformShareBps / 100).toLocaleString()}%가 포함되어 있으며,
+                  전체 분배 합계는 {(PLATFORM_TOTAL_BPS / 100).toLocaleString()}% 기준으로 계산됩니다.
                 </div>
 
                 {isEdit && (
@@ -349,8 +349,16 @@ export function SettingsCardPolicies({
                   {fixedStakeholder.name || FIXED_PLATFORM_STAKEHOLDER.name}
                   {fixedStakeholder.businessNo ? ` (${fixedStakeholder.businessNo})` : ""}
                 </div>
-                <div className="font-semibold">
-                  {(Number(fixedStakeholder.shareBps || PLATFORM_FEE_BPS) / 100).toLocaleString()}
+                <div className="lg:self-center">
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex h-8 w-[78px] items-center justify-end px-1 text-xs font-semibold">
+                      {(Number(fixedStakeholder.shareBps || PLATFORM_FEE_BPS) / 100).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-muted-foreground">%</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      ({Number(fixedStakeholder.shareBps || PLATFORM_FEE_BPS).toLocaleString()} bps)
+                    </span>
+                  </div>
                 </div>
                 <div className="text-center text-muted-foreground">-</div>
               </div>
