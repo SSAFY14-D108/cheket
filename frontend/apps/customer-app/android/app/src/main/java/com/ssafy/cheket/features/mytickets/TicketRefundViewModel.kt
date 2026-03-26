@@ -26,7 +26,7 @@ class TicketRefundViewModel(
 
     fun refundTicket(
         ticketId: String,
-        onSuccess: () -> Unit,
+        onSuccess: (txId: Long?) -> Unit,
         onFailure: (String) -> Unit,
     ) {
         val ticketIdLong = ticketId.toLongOrNull()
@@ -46,7 +46,9 @@ class TicketRefundViewModel(
                 .onSuccess { response ->
                     Log.d(TAG, "refundTicket() statusCode=${response.httpStatusCode}")
                     if (response.httpStatusCode == 200) {
-                        onSuccess()
+                        val txId = response.data?.txId
+                        Log.d(TAG, "refundTicket() success, txId=$txId")
+                        onSuccess(txId)
                     } else {
                         onFailure(response.responseMessage ?: "티켓 환불에 실패했습니다.")
                     }

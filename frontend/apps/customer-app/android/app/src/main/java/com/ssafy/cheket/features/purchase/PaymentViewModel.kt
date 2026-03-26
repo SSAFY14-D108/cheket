@@ -105,12 +105,12 @@ class PaymentViewModel(
                 }
             }
 
-            // CTK 잔액 조회
+            // SSF 잔액 조회
             var ctkBalance = 0
             try {
                 val balanceResponse = walletService.refreshBalance()
                 ctkBalance = balanceResponse.data?.balance ?: 0
-                Log.d(TAG, "load() — CTK balance: $ctkBalance")
+                Log.d(TAG, "load() — SSF balance: $ctkBalance")
             } catch (e: Exception) {
                 Log.e(TAG, "load() — failed to fetch balance", e)
             }

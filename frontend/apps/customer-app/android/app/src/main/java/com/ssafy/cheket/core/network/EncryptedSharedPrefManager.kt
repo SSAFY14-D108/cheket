@@ -38,7 +38,16 @@ class EncryptedSharedPrefManager(context: Context) : SecureStorage {
     }
 
     override fun clearTokens() {
-        prefs.edit().clear().apply()
+        prefs.edit().clear().commit() // commit()으로 동기 저장 — apply()는 앱 종료 시 유실될 수 있음
+    }
+
+    fun saveUserId(userId: Long) {
+        prefs.edit().putLong(KEY_USER_ID, userId).apply()
+    }
+
+    fun getUserId(): Long? {
+        val id = prefs.getLong(KEY_USER_ID, -1L)
+        return if (id == -1L) null else id
     }
 
     companion object {
@@ -46,5 +55,6 @@ class EncryptedSharedPrefManager(context: Context) : SecureStorage {
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_TOKEN_TYPE = "token_type"
         private const val KEY_ACCESS_TOKEN_EXPIRES_AT = "access_token_expires_at"
+        private const val KEY_USER_ID = "user_id"
     }
 }

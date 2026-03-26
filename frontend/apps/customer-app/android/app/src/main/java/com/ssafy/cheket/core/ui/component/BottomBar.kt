@@ -1,5 +1,8 @@
 package com.ssafy.cheket.core.ui.component
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -41,16 +44,18 @@ fun CheketBottomBar(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
 ) {
-    NavigationBar(containerColor = Surface) {
+    NavigationBar(
+        containerColor = Surface,
+    ) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigate(item.route) },
-                icon = {
-                    Icon(
-                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.label,
+                                NavigationBarItem(
+                                selected = selected,
+                        onClick = { onNavigate(item.route) },
+                        icon = {
+                            Icon(
+                                imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.label,
                         modifier = Modifier.size(20.dp),
                     )
                 },

@@ -22,6 +22,7 @@ data class TxUiItem(
     val typeLabel: String,
     val description: String,
     val amount: Long,
+    val txStatus: String? = null, // PENDING, SUBMITTED, CONFIRMED, FAILED
     val createdAt: String,      // ISO "2026-03-15T14:30:00"
     val dateLabel: String,      // "2026.03.15"
     val timeLabel: String,      // "14:30"
@@ -37,6 +38,7 @@ sealed class WalletHistoryUiState {
 
 class WalletHistoryViewModel(
     private val walletService: WalletService,
+    private val currentUserId: Long?,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WalletHistoryUiState>(WalletHistoryUiState.Loading)
@@ -53,14 +55,14 @@ class WalletHistoryViewModel(
                 val response = walletService.getTransactions()
                 val dtos = response.data ?: emptyList()
 
-                Log.d(TAG, "load() transactions=${dtos.size}")
+                Log.d(TAG, "load() transactions=${dtos.size}, currentUserId=$currentUserId")
 
                 if (dtos.isEmpty()) {
                     _uiState.value = WalletHistoryUiState.Success(grouped = emptyMap())
                     return@launch
                 }
 
-                val items = dtos.map { it.toUiItem() }
+                val items = dtos.map { it.toUiItem(currentUserId) }
                     .sortedByDescending { it.createdAt }
 
                 val grouped = items.groupBy { it.dateLabel }
@@ -81,7 +83,10 @@ class WalletHistoryViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                WalletHistoryViewModel(app.appContainer.walletService)
+                WalletHistoryViewModel(
+                    walletService = app.appContainer.walletService,
+                    currentUserId = app.authDataStore.getUserId(),
+                )
             }
         }
     }
@@ -97,7 +102,7 @@ private val TYPE_LABELS = mapOf(
     "REFUND" to "환불",
 )
 
-private fun TransactionDto.toUiItem(): TxUiItem {
+private fun TransactionDto.toUiItem(currentUserId: Long?): TxUiItem {
     // createdAt: "2026-03-15T14:30:00" 형태
     val dateLabel = try {
         createdAt.take(10).replace("-", ".")
@@ -107,12 +112,26 @@ private fun TransactionDto.toUiItem(): TxUiItem {
         createdAt.substring(11, 16)
     } catch (_: Exception) { "" }
 
+    // Determine sign based on buyerId/sellerId when userId is available
+    val resolvedAmount = if (currentUserId != null && (buyerId != null || sellerId != null)) {
+        val absAmount = kotlin.math.abs(amount)
+        when {
+            type == "CHARGE" || type == "REFUND" -> absAmount  // always income
+            buyerId == currentUserId -> -absAmount              // expense (I am buyer)
+            sellerId == currentUserId -> absAmount              // income (I am seller)
+            else -> amount                                      // fallback to raw sign
+        }
+    } else {
+        amount
+    }
+
     return TxUiItem(
         id = transactionId,
         type = type,
         typeLabel = TYPE_LABELS[type] ?: type,
         description = description ?: TYPE_LABELS[type] ?: type,
-        amount = amount,
+        amount = resolvedAmount,
+        txStatus = txStatus,
         createdAt = createdAt,
         dateLabel = dateLabel,
         timeLabel = timeLabel,

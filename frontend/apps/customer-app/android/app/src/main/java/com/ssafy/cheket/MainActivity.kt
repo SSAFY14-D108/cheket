@@ -40,12 +40,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate()")
         enableEdgeToEdge()
+        window.decorView.setBackgroundColor(android.graphics.Color.parseColor("#FAFAFA"))
         requestNotificationPermission()
 
         val app = application as CheketApplication
         val appContainer = app.appContainer
+        val hasToken = app.authDataStore.getAccessToken() != null
+        val isLoggingOut = app.authDataStore.isLoggingOut
         val isAlreadyLoggedIn = app.authDataStore.isLoggedIn()
-        Log.d(TAG, "onCreate() — appContainer=${appContainer::class.simpleName}, isLoggedIn=$isAlreadyLoggedIn")
+        Log.d(TAG, "onCreate() — isLoggedIn=$isAlreadyLoggedIn, hasToken=$hasToken, isLoggingOut=$isLoggingOut")
 
         // 앱이 꺼져 있을 때 알림 탭으로 시작된 경우
         handleNotificationIntent(intent)

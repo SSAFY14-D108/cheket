@@ -75,6 +75,7 @@ fun WithdrawScreen(
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
+                
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -106,7 +107,7 @@ fun WithdrawScreen(
                             Text("현재 잔액", fontSize = 12.sp, color = SubText)
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                "${numberFormat.format(balance)} CTK",
+                                "${numberFormat.format(balance)} SSF",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OnBackground,
@@ -126,7 +127,7 @@ fun WithdrawScreen(
                         amountError = null
                     },
                     placeholder = { Text("금액을 입력하세요", fontSize = 14.sp) },
-                    suffix = { Text("CTK", fontSize = 14.sp, color = MutedForeground) },
+                    suffix = { Text("SSF", fontSize = 14.sp, color = MutedForeground) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,

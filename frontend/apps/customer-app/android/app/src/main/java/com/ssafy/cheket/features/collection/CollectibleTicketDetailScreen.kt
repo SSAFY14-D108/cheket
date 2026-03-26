@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 
@@ -52,9 +51,7 @@ fun CollectibleTicketDetailScreen(
                 AppHeader(
                     title = "소장 티켓",
                     onBack = onBack,
-                    actions = {
-                        TutorialHelpButton(tutorialId = TutorialId.COLLECTIBLE_TICKET_DETAIL)
-                    },
+                    helpTutorialId = TutorialId.COLLECTIBLE_TICKET_DETAIL,
                 )
             },
         ) { innerPadding ->
@@ -76,14 +73,12 @@ fun CollectibleTicketDetailScreen(
             AppHeader(
                 title = "소장 티켓",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.COLLECTIBLE_TICKET_DETAIL)
-                },
+                helpTutorialId = TutorialId.COLLECTIBLE_TICKET_DETAIL,
             )
         },
         bottomBar = {
             Surface(tonalElevation = 4.dp, shadowElevation = 8.dp, color = Surface) {
-                Column(Modifier.padding(16.dp)) {
+                Column(Modifier.navigationBarsPadding().padding(16.dp)) {
                     Button(
                         onClick = { /* placeholder - share */ },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -140,7 +135,7 @@ fun CollectibleTicketDetailScreen(
                         HorizontalDivider(color = BorderColor)
                         DetailInfoRow("좌석", ticket.seatLabel)
                         DetailInfoRow("등급", ticket.grade)
-                        DetailInfoRow("관람일", ticket.attendedDate ?: ticket.showDate)
+                        DetailInfoRow("관람일", com.ssafy.cheket.core.util.DateTimeUtils.formatShowDateTime(ticket.attendedDate ?: ticket.showDate))
                         DetailInfoRow("상태", "관람 완료")
                     }
                 }
@@ -163,7 +158,7 @@ fun CollectibleTicketDetailScreen(
                     }
                 }
 
-                Spacer(Modifier.height(80.dp))
+                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -356,7 +351,7 @@ private fun DetailCardFront(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                ticket.showDate.split(" ").firstOrNull() ?: ticket.showDate,
+                com.ssafy.cheket.core.util.DateTimeUtils.formatShowDate(ticket.showDate),
                 fontSize = 11.sp,
                 color = White.copy(alpha = 0.7f),
             )
@@ -446,7 +441,7 @@ private fun DetailCardBack(ticket: com.ssafy.cheket.core.model.Ticket) {
 
             Spacer(Modifier.height(14.dp))
 
-            BackInfoRowDetail(label = "DATE", value = ticket.showDate.split(" ").firstOrNull() ?: ticket.showDate)
+            BackInfoRowDetail(label = "DATE", value = com.ssafy.cheket.core.util.DateTimeUtils.formatShowDate(ticket.showDate))
             Spacer(Modifier.height(8.dp))
             BackInfoRowDetail(label = "VENUE", value = ticket.venue)
 

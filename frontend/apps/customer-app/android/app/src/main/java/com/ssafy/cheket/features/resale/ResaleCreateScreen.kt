@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -54,7 +55,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.model.Ticket
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.BorderColor
@@ -83,8 +83,8 @@ fun ResaleCreateScreen(
     val price = priceInput.toIntOrNull()
     val isOverPrice = ticket != null && price != null && price > ticket.originalPrice
     val isValidPrice = ticket != null && price != null && price > 0 && price <= ticket.originalPrice
-    val discountPct = if (ticket != null && isValidPrice) {
-        ((ticket.originalPrice - price!!) * 100) / ticket.originalPrice
+    val discountPct = if (ticket != null && isValidPrice && ticket.originalPrice > 0) {
+        (((ticket.originalPrice - price!!).toLong() * 100L) / ticket.originalPrice.toLong()).toInt()
     } else {
         0
     }
@@ -102,15 +102,13 @@ fun ResaleCreateScreen(
             AppHeader(
                 title = "2차 판매 등록",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.RESALE_CREATE)
-                },
+                helpTutorialId = TutorialId.RESALE_CREATE,
             )
         },
         bottomBar = {
             if (ticket != null && !uiState.isLoadingTicket) {
                 Surface(tonalElevation = 4.dp, shadowElevation = 8.dp) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.navigationBarsPadding().padding(16.dp)) {
                         Button(
                             onClick = { price?.let(viewModel::submitResale) },
                             modifier = Modifier
@@ -176,6 +174,7 @@ fun ResaleCreateScreen(
                         .fillMaxSize()
                         .background(Background)
                         .padding(innerPadding)
+                        
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -200,7 +199,7 @@ fun ResaleCreateScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 placeholder = { Text("가격을 입력해주세요", color = SubText) },
-                                suffix = { Text("CTK", fontWeight = FontWeight.Bold, color = Primary) },
+                                suffix = { Text("SSF", fontWeight = FontWeight.Bold, color = Primary) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -273,9 +272,7 @@ private fun ResaleCreateSubmittedScreen(
         topBar = {
             AppHeader(
                 title = "2차 판매 요청 완료",
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.RESALE_CREATE)
-                },
+                helpTutorialId = TutorialId.RESALE_CREATE,
             )
         },
     ) { innerPadding ->
@@ -422,4 +419,4 @@ private fun NoticeText(text: String) {
     }
 }
 
-private fun Int.formatCtk(): String = "%,d CTK".format(this)
+private fun Int.formatCtk(): String = "%,d SSF".format(this)

@@ -42,6 +42,7 @@ data class Show(
     val name: String,
     val artistName: String? = null,
     val date: String,
+    val endDate: String? = null,                // 공연 종료일
     val dates: List<ShowDate> = emptyList(),
     val venue: String,
     val region: String = "",
@@ -199,7 +200,7 @@ data class TxRecord(
     val errorMessage: String? = null,
 )
 
-/** Wallet (CTK) transaction */
+/** Wallet (SSF) transaction */
 data class WalletTx(
     val id: String,
     val type: WalletTxType,

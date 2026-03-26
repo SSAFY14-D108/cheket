@@ -21,6 +21,7 @@ object NavParams {
     var sessionId: Long = 0L
     var seatAccessToken: String? = null
     var seatAccessExpiresAt: String? = null
+    var initialSortOption: String? = null // ShowsScreen 초기 정렬 (예: "OPEN_SOON")
 
     fun clearPurchase() {
         selectedSeats = emptyList()

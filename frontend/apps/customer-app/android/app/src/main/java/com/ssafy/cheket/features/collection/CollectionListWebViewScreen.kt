@@ -13,17 +13,29 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
 
 private const val TAG = "CollectionListWebView"
@@ -49,14 +61,14 @@ private class TiltSensorBridge(
     private val orientation = FloatArray(3)
 
     private var lastSendTime = 0L
-    private val sendInterval = 16L // ~60fps
+    private val sendInterval = 50L // ~20fps (성능 최적화: 60fps → 20fps)
 
     fun start() {
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
         magnetometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
         Log.d(TAG, "TiltSensor started (accel=${accelerometer != null}, mag=${magnetometer != null})")
     }
@@ -156,7 +168,9 @@ fun CollectionListWebViewScreen(
         })()
     """.trimIndent()
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = { com.ssafy.cheket.core.ui.component.AppHeader(title = "컬렉션", onBack = onBack) },
+    ) { innerPadding ->
         Box(
             Modifier
                 .fillMaxSize()
@@ -167,7 +181,7 @@ fun CollectionListWebViewScreen(
                 factory = { ctx ->
                     WebView(ctx).apply {
                         setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-                        WebView.setWebContentsDebuggingEnabled(true)
+                        WebView.setWebContentsDebuggingEnabled(true) // release 시 false로 변경
 
                         webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: WebView?, url: String?) {
@@ -222,9 +236,74 @@ fun CollectionListWebViewScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Primary)
+            // 진입 애니메이션 오버레이 — WebView 로딩을 가리고 자연스럽게 전환
+            val showOverlay = remember { mutableStateOf(true) }
+            val overlayAlpha by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (showOverlay.value) 1f else 0f,
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = 600,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+                label = "overlayFade",
+            )
+
+            // height fix 완료 후 + 최소 1.2초 보장 후 오버레이 숨김
+            LaunchedEffect(isLoading) {
+                if (!isLoading) {
+                    kotlinx.coroutines.delay(1200L) // 최소 진입 애니메이션 시간
+                    showOverlay.value = false
+                }
+            }
+
+            if (overlayAlpha > 0f) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Background.copy(alpha = overlayAlpha))
+                        .zIndex(10f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // 스피너 + 펄스 애니메이션
+                        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                        val pulseScale by infiniteTransition.animateFloat(
+                            initialValue = 0.95f,
+                            targetValue = 1.05f,
+                            animationSpec = infiniteRepeatable(
+                                animation = androidx.compose.animation.core.tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                                repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+                            ),
+                            label = "scale",
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(
+                                color = Primary,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(64.dp),
+                            )
+                        }
+
+                        Text(
+                            text = "컬렉션",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnBackground.copy(alpha = overlayAlpha),
+                        )
+                        Text(
+                            text = "컬렉션을 불러오는 중...",
+                            fontSize = 13.sp,
+                            color = MutedForeground,
+                        )
+                    }
                 }
             }
         }

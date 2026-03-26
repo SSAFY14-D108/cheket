@@ -77,6 +77,7 @@ fun SignupScreen(
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
+                
                 .verticalScroll(rememberScrollState()),
         ) {
             Row(
@@ -243,51 +244,6 @@ private fun SignupStepTwo(
             colors = signupInputColors(),
             modifier = Modifier.fillMaxWidth(),
         )
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AuthFieldShape,
-        color = Muted,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("약관 동의", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("[필수] 서비스 이용약관", fontSize = 12.sp, color = MutedForeground)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("[필수] 개인정보 수집 및 이용 동의", fontSize = 12.sp, color = MutedForeground)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("[선택] 마케팅 정보 수신 동의", fontSize = 12.sp, color = MutedForeground)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = viewModel::toggleAgreed, modifier = Modifier.size(24.dp)) {
-                    Surface(
-                        modifier = Modifier.size(22.dp),
-                        shape = CircleShape,
-                        color = if (uiState.agreedAll) OnBackground else androidx.compose.material3.MaterialTheme.colorScheme.surface,
-                        border = ButtonDefaults.outlinedButtonBorder(true),
-                    ) {
-                        if (uiState.agreedAll) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = White,
-                                    modifier = Modifier.size(14.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("약관을 모두 확인했어요", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnBackground)
-            }
-
-            uiState.errors["agreed"]?.let {
-                Text(text = it, fontSize = 12.sp, color = Danger, modifier = Modifier.padding(top = 4.dp))
-            }
-        }
     }
 
     Spacer(modifier = Modifier.height(8.dp))

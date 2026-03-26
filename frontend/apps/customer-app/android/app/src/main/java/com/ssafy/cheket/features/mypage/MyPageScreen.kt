@@ -2,6 +2,7 @@ package com.ssafy.cheket.features.mypage
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Settings
@@ -107,39 +107,14 @@ fun MyPageScreen(
     var isWithdrawing by remember { mutableStateOf(false) }
 
     if (showWithdrawWarning) {
-        AlertDialog(
-            onDismissRequest = { showWithdrawWarning = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Warning,
-                    contentDescription = null,
-                    tint = Danger,
-                    modifier = Modifier.size(28.dp),
-                )
-            },
-            title = { Text("회원 탈퇴 안내", fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    text = "탈퇴하면 보유 티켓, 지갑 정보, 찜한 공연 정보가 함께 삭제될 수 있습니다. 계속 진행하시겠어요?",
-                    lineHeight = 22.sp,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showWithdrawWarning = false
-                        showWithdrawConfirm = true
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Danger),
-                ) {
-                    Text("탈퇴 진행")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWithdrawWarning = false }) {
-                    Text("취소")
-                }
-            },
+        com.ssafy.cheket.core.ui.component.CheketDialog(
+            title = "회원 탈퇴 안내",
+            message = "탈퇴하면 보유 티켓, 지갑 정보, 찜한 공연 정보가 함께 삭제될 수 있습니다. 계속 진행하시겠어요?",
+            confirmText = "탈퇴 진행",
+            dismissText = "취소",
+            onConfirm = { showWithdrawWarning = false; showWithdrawConfirm = true },
+            onDismiss = { showWithdrawWarning = false },
+            isDanger = true,
         )
     }
 
@@ -218,8 +193,9 @@ fun MyPageScreen(
     }
 
     Scaffold(
-        topBar = { AppHeader(title = "마이") },
+        topBar = { AppHeader(title = "마이페이지") },
         containerColor = PageBackground,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { innerPadding ->
         when {
             state.isLoading -> {
@@ -236,7 +212,7 @@ fun MyPageScreen(
             state.error != null -> {
                 EmptyState(
                     title = "마이페이지를 불러오지 못했어요",
-                    description = state.error ?: "잠시 후 다시 시도해주세요.",
+                    description = "잠시 후 다시 시도해주세요.",
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
@@ -316,24 +292,8 @@ private fun ProfileHero(
             verticalAlignment = Alignment.Top,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .background(White, CircleShape)
-                        .border(1.dp, BorderColor, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = null,
-                        tint = OnBackground,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "MY PAGE",
@@ -445,7 +405,7 @@ private fun BalancePanel(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "CTK",
+                text = "SSF",
                 fontSize = 13.sp,
                 color = SecondaryText,
                 modifier = Modifier.padding(bottom = 5.dp),
@@ -636,13 +596,6 @@ private fun SecondaryActions(
             Spacer(modifier = Modifier.width(6.dp))
             Text("로그아웃", fontWeight = FontWeight.SemiBold)
         }
-
-        Text(
-            text = "회원 탈퇴",
-            fontSize = 12.sp,
-            color = MutedForeground,
-            modifier = Modifier.clickable(onClick = onWithdraw),
-        )
     }
 }
 

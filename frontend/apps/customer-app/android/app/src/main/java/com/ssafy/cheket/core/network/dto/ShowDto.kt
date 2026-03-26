@@ -53,6 +53,16 @@ data class ShowDetailDto(
     @SerializedName("refundPolicy") val refundPolicy: List<RefundPolicyDto>?,
     @SerializedName("purchaseLimit") val purchaseLimit: Int? = null,
     @SerializedName("descriptionImages") val descriptionImages: List<String>? = null,
+    @SerializedName("stakeholders") val stakeholders: List<StakeholderDto>? = null,
+    @SerializedName("playtime") val playtime: Int? = null,
+)
+
+data class StakeholderDto(
+    @SerializedName("role") val role: String,       // ORGANIZER, ARTIST
+    @SerializedName("id") val id: Long? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("number") val number: String? = null,
+    @SerializedName("shareBps") val shareBps: Int,  // 수익분배 비율 (basis points, 100 = 1%)
 )
 
 data class GradeDto(
@@ -128,7 +138,7 @@ data class RecommendedShowDto(
     @SerializedName("region") val region: String,
     @SerializedName("show") val show: ShowPeriodDto? = null,
     @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
-    @SerializedName(value = "status", alternate = ["showStatus", "ticketingState", "showState"]) val status: String,
+    @SerializedName("status") val status: String? = null,
     @SerializedName("artist") val artist: String? = null,
     @SerializedName("ticketingState") val ticketingState: String? = null,
     @SerializedName("showState") val showState: String? = null,
@@ -140,6 +150,50 @@ data class RecommendedShowDto(
 
 data class SaveSearchKeywordRequest(
     @SerializedName("keyword") val keyword: String,
+)
+
+// ── Host Show Detail (계약 승인 화면용) ──
+
+data class HostShowDetailDto(
+    @SerializedName("showId") val showId: Long,
+    @SerializedName("title") val title: String,
+    @SerializedName("posterUrl") val posterUrl: String? = null,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("artist") val artist: String? = null,
+    @SerializedName("venue") val venue: VenueDto? = null,
+    @SerializedName("show") val show: ShowPeriodDto? = null,
+    @SerializedName("reservation") val reservation: ReservationPeriodDto? = null,
+    @SerializedName("playtime") val playtime: Int? = null,
+    @SerializedName("purchaseLimit") val purchaseLimit: Int? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("grade") val grade: List<GradeDto>? = null,
+    @SerializedName("stakeholders") val stakeholders: List<StakeholderDto>? = null,
+    @SerializedName("refundPolicy") val refundPolicy: List<RefundPolicyDto>? = null,
+    @SerializedName("sessionInfo") val sessionInfo: List<SessionInfoDto>? = null,
+    @SerializedName("updatedAt") val updatedAt: String? = null,
+)
+
+data class VenueDto(
+    @SerializedName("venueId") val venueId: Long? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("address") val address: String? = null,
+)
+
+data class SessionInfoDto(
+    @SerializedName("sessionId") val sessionId: Long,
+    @SerializedName("sessionDate") val sessionDate: String,
+    @SerializedName("sessionStartTime") val sessionStartTime: String,
+    @SerializedName("capacity") val capacity: Int? = null,
+)
+
+// ── Contract Approval ──
+
+data class ContractApprovalDto(
+    @SerializedName("userType") val userType: String,         // "USER" or "HOST"
+    @SerializedName("userId") val userId: Long,
+    @SerializedName("username") val username: String,
+    @SerializedName("approvalStatus") val approvalStatus: String, // "PENDING", "APPROVED", "REJECTED"
+    @SerializedName("determinedAt") val determinedAt: String? = null,
 )
 
 // ── Liked Shows — LikedShowDto는 UserDto.kt에 정의 ──

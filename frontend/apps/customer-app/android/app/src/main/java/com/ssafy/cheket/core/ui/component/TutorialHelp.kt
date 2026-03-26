@@ -349,10 +349,10 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
         )
         TutorialId.WALLET -> TutorialContent(
             category = "WALLET",
-            title = "CTK 지갑 안내",
-            summary = "이 화면에서는 서비스 안에서 사용하는 CTK 잔액과 지갑 주소를 확인할 수 있어요.",
+            title = "SSF 지갑 안내",
+            summary = "이 화면에서는 서비스 안에서 사용하는 SSF 잔액과 지갑 주소를 확인할 수 있어요.",
             points = listOf(
-                "현재 보유 중인 CTK 잔액을 바로 확인할 수 있어요.",
+                "현재 보유 중인 SSF 잔액을 바로 확인할 수 있어요.",
                 "테스트 충전 금액은 지갑 잔액에 즉시 반영돼요.",
                 "더 자세한 사용 기록은 지갑 거래 내역 화면에서 볼 수 있어요.",
             ),
@@ -361,9 +361,9 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
         TutorialId.WALLET_HISTORY -> TutorialContent(
             category = "WALLET",
             title = "지갑 내역 안내",
-            summary = "CTK의 충전과 사용 흐름을 날짜별로 확인할 수 있는 화면이에요.",
+            summary = "SSF의 충전과 사용 흐름을 날짜별로 확인할 수 있는 화면이에요.",
             points = listOf(
-                "언제 어떤 이유로 CTK가 늘거나 줄었는지 한눈에 확인할 수 있어요.",
+                "언제 어떤 이유로 SSF가 늘거나 줄었는지 한눈에 확인할 수 있어요.",
                 "입금과 사용 내역이 날짜 기준으로 정리돼 흐름을 보기 쉬워요.",
                 "거래 금액과 시간을 같이 보면서 최근 활동을 추적할 수 있어요.",
             ),

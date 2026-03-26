@@ -15,6 +15,12 @@ class AuthAuthenticator(
     private val maxRetries = 2
 
     override fun authenticate(route: Route?, response: Response): Request? {
+        // 로그아웃 중이면 토큰 갱신 차단
+        if (authDataStore.isLoggingOut) {
+            Log.d(TAG, "authenticate() — logging out, skip refresh")
+            return null
+        }
+
         val retryCount = responseCount(response)
         Log.d(TAG, "authenticate() — retryCount=$retryCount, url=${response.request.url}")
 
@@ -36,17 +42,19 @@ class AuthAuthenticator(
             return null
         }
 
-        Log.d(TAG, "authenticate() — attempting token refresh")
+        Log.d(TAG, "authenticate() — attempting token refresh, refreshToken=${refreshToken.take(20)}...")
         val newTokens = runBlocking {
             try {
-                refreshService.reissue(ReissueRequest(refreshToken)).data?.let { response ->
+                val reissueResponse = refreshService.reissue(ReissueRequest(refreshToken))
+                Log.d(TAG, "authenticate() — reissue statusCode=${reissueResponse.httpStatusCode}, data=${reissueResponse.data != null}")
+                reissueResponse.data?.let { response ->
                     AuthTokens(
                         accessToken = response.accessToken,
                         refreshToken = response.refreshToken,
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "authenticate() — refresh failed", e)
+                Log.e(TAG, "authenticate() — refresh failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 null
             }
         }

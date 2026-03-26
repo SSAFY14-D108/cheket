@@ -27,7 +27,6 @@ import com.ssafy.cheket.core.model.TxStatus
 import com.ssafy.cheket.core.model.TxType
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 import java.text.SimpleDateFormat
@@ -45,9 +44,7 @@ fun TxHistoryScreen(
             AppHeader(
                 title = "티켓 거래 내역",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.TX_HISTORY)
-                },
+                helpTutorialId = TutorialId.TX_HISTORY,
             )
         },
     ) { innerPadding ->
@@ -149,7 +146,7 @@ private fun TxRecordItem(record: TxRecord) {
 
                     // Amount
                     if (record.amount != null) {
-                        DetailRow(label = "금액", value = "%,d CTK".format(record.amount))
+                        DetailRow(label = "금액", value = "%,d SSF".format(record.amount))
                     }
 
                     // Confirmations

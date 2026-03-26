@@ -459,7 +459,7 @@ private fun SessionCard(
                                 color = gradeColor,
                             )
                             Text(
-                                "${numberFormat.format(g.price)} CTK",
+                                "${numberFormat.format(g.price)} SSF",
                                 fontSize = 11.sp,
                                 color = gradeColor,
                             )

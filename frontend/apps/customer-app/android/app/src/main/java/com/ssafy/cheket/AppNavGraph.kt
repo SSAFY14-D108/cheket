@@ -1,11 +1,14 @@
 package com.ssafy.cheket
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -196,7 +199,8 @@ fun AppNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     var splashDone by remember { mutableStateOf(false) }
-    val showBottomBar = splashDone && currentRoute in bottomTabRoutes
+    val isKeyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val showBottomBar = splashDone && currentRoute in bottomTabRoutes && !isKeyboardOpen
 
     // FCM 딥링크 처리 — 알림 탭 시 해당 화면으로 이동
     val activity = LocalContext.current as? MainActivity
@@ -215,6 +219,48 @@ fun AppNavGraph(
         }
     }
 
+    // 401 강제 로그아웃 처리 — 토큰 만료/갱신 실패 시 로그인 화면으로 이동
+    var showSessionExpiredDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        com.ssafy.cheket.core.network.AuthEventBus.events.collect { event ->
+            when (event) {
+                is com.ssafy.cheket.core.network.AuthEvent.ForceLogout -> {
+                    // 로그인/스플래시/회원가입 화면에서는 무시
+                    val route = currentRoute
+                    if (route == Routes.LOGIN || route == Routes.SPLASH || route == Routes.SIGNUP) {
+                        android.util.Log.d("AppNavGraph", "ForceLogout ignored on auth screen: $route")
+                        return@collect
+                    }
+                    // USER_LOGOUT(사용자 직접 로그아웃)은 다이얼로그 없이 처리
+                    if (event.reason == com.ssafy.cheket.core.network.AuthLogoutReason.USER_LOGOUT) {
+                        android.util.Log.d("AppNavGraph", "ForceLogout: user logout, navigating to login")
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                        return@collect
+                    }
+                    android.util.Log.w("AppNavGraph", "ForceLogout received: reason=${event.reason}")
+                    showSessionExpiredDialog = true
+                }
+            }
+        }
+    }
+
+    if (showSessionExpiredDialog) {
+        com.ssafy.cheket.core.ui.component.CheketAlertDialog(
+            title = "로그인 만료",
+            message = "로그인 세션이 만료되었습니다.\n다시 로그인해주세요.",
+            confirmText = "로그인",
+            onConfirm = {
+                showSessionExpiredDialog = false
+                navController.navigate(Routes.LOGIN) {
+                    popUpTo(0) { inclusive = true }
+                }
+            },
+        )
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -231,11 +277,13 @@ fun AppNavGraph(
                 )
             }
         }
-    ) { innerPadding ->
+    ) { scaffoldPadding ->
         NavHost(
             navController = navController,
             startDestination = Routes.SPLASH,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier
+                .padding(bottom = scaffoldPadding.calculateBottomPadding())
+                .imePadding(),
         ) {
             // ── Splash ──
             composable(
@@ -245,12 +293,22 @@ fun AppNavGraph(
                 val scope = rememberCoroutineScope()
                 com.ssafy.cheket.features.splash.SplashScreen(
                     onSplashFinished = {
-                        val dest = if (startLoggedIn) Routes.HOME else Routes.LOGIN
-                        navController.navigate(dest) {
-                            popUpTo(Routes.SPLASH) { inclusive = true }
-                        }
-                        // 전환 애니메이션(300ms) 완료 후 바텀바 표시
                         scope.launch {
+                            val dest = if (startLoggedIn) {
+                                // 토큰 유효성 확인 — 실패하면 로그인으로
+                                try {
+                                    appContainer.userService.getUserInfo()
+                                    Routes.HOME
+                                } catch (e: Exception) {
+                                    android.util.Log.w("AppNavGraph", "Token validation failed, redirecting to login", e)
+                                    (activity?.applicationContext as? CheketApplication)?.authDataStore?.clear()
+                                    Routes.LOGIN
+                                }
+                            } else Routes.LOGIN
+
+                            navController.navigate(dest) {
+                                popUpTo(Routes.SPLASH) { inclusive = true }
+                            }
                             kotlinx.coroutines.delay(350)
                             splashDone = true
                         }
@@ -286,9 +344,21 @@ fun AppNavGraph(
             composable(Routes.HOME) {
                 HomeScreen(
                     appContainer = appContainer,
-                    onShowClick = { showId -> navController.navigate(Routes.showDetail(showId)) },
+                    onShowClick = { showId ->
+                        navController.navigate(Routes.showDetail(showId)) {
+                            launchSingleTop = false
+                            restoreState = false
+                        }
+                    },
                     onMyPage = { navController.navigate(Routes.MY_PAGE) },
                     onNotificationClick = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onOpenSoon = {
+                        NavParams.initialSortOption = "OPEN_SOON"
+                        navController.navigate(Routes.SHOWS) {
+                            popUpTo(Routes.HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
                     onSeatMapTest = { showId -> navController.navigate(Routes.seatMap(showId)) },
                 )
             }
@@ -478,11 +548,17 @@ fun AppNavGraph(
                             popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
                         }
                     },
-                    onRefundSuccess = {
-                        navController.navigate(Routes.MY_TICKETS) {
-                            popUpTo(Routes.MY_TICKETS) { inclusive = true }
-                            launchSingleTop = true
-                            restoreState = false
+                    onRefundSuccess = { txId ->
+                        if (txId != null && txId > 0) {
+                            navController.navigate(Routes.txProcessing(txId, "REFUND")) {
+                                popUpTo(Routes.ticketDetail(ticketId)) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Routes.MY_TICKETS) {
+                                popUpTo(Routes.MY_TICKETS) { inclusive = true }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
                         }
                     },
                     onBack = { navController.popBackStack() },
@@ -637,9 +713,7 @@ fun AppNavGraph(
                     onTxHistory = { navController.navigate(Routes.TX_HISTORY) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
                     onLogout = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        appContainer.authRepository.logout()
                     },
                     onWithdrawSuccess = {
                         appContainer.authRepository.logout()
@@ -684,6 +758,11 @@ fun AppNavGraph(
                 SettingsScreen(
                     userService = appContainer.userService,
                     onPasswordChange = { navController.navigate(Routes.PASSWORD_CHANGE) },
+                    onWithdraw = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }

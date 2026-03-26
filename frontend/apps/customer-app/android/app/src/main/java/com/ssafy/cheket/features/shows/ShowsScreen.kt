@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -84,7 +86,7 @@ private val FilterChipBackground = Color(0xFFFFFFFF)
 private val FilterChipBorder = Color(0xFFE5E7EB)
 private val FilterSelectedText = Color(0xFF111827)
 private val FilterSelectedChip = Color(0xFFF3F4F6)
-private val RegionChipSelected = Color(0xFF111827)
+private val RegionChipSelected = Primary
 private val RegionChipSelectedText = Color(0xFFFFFFFF)
 private val RegionChipDefault = Color(0xFFF7F7F6)
 
@@ -155,6 +157,7 @@ fun ShowsScreen(
 
     Scaffold(
         containerColor = Background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Surface(
                 color = Background,
@@ -199,6 +202,7 @@ fun ShowsScreen(
                             SearchField(
                                 query = uiState.searchQuery,
                                 onValueChange = viewModel::onSearchChange,
+                                autoFocus = true,
                                 onSubmit = {
                                     viewModel.onSearchSubmit()
                                     focusManager.clearFocus()
@@ -261,7 +265,8 @@ fun ShowsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Background)
-                .padding(innerPadding),
+                .padding(innerPadding)
+                ,
         ) {
             if (uiState.shows.isEmpty() && !uiState.isLoading) {
                 EmptyState(
@@ -274,7 +279,6 @@ fun ShowsScreen(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     itemsIndexed(uiState.shows, key = { index, show -> "${show.id}_$index" }) { _, show ->
                         ShowCardItem(show = show, onClick = { onShowClick(show.id) })
@@ -331,7 +335,15 @@ private fun SearchField(
     onSubmit: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
+    autoFocus: Boolean = false,
 ) {
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    if (autoFocus) {
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(100)
+            focusRequester.requestFocus()
+        }
+    }
     val searchBorderBrush = remember {
         Brush.linearGradient(
             colors = listOf(
@@ -357,7 +369,8 @@ private fun SearchField(
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
             .border(BorderStroke(1.dp, searchBorderBrush), RoundedCornerShape(24.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .then(if (autoFocus) Modifier.focusRequester(focusRequester) else Modifier),
         decorationBox = { innerTextField ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -385,16 +398,7 @@ private fun SearchField(
                     innerTextField()
                 }
 
-                if (query.isNotEmpty()) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "검색어 지우기",
-                        tint = MutedForeground,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clickable(onClick = onClear),
-                    )
-                }
+                // X 버튼 제거됨
             }
         },
     )
@@ -599,7 +603,7 @@ private fun RegionBottomSheet(
                 onClick = onApply,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF111111),
+                    containerColor = Primary,
                     contentColor = Color.White,
                 ),
                 shape = RoundedCornerShape(14.dp),

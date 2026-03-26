@@ -22,20 +22,21 @@ function useNativeTiltBridge() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const handler = (e: Event) => {
-      const { tiltX, tiltY } = (e as CustomEvent).detail
+    let rafId = 0
+    let pendingTilt: { tiltX: number; tiltY: number } | null = null
 
-      // tiltX: 앞뒤 (-15~15), tiltY: 좌우 (-15~15) → CSS 30~70% (이펙트 은은하게)
+    const applyTilt = () => {
+      if (!pendingTilt) return
+      const { tiltX, tiltY } = pendingTilt
+      pendingTilt = null
+
       const mx = 30 + ((tiltY + 15) / 30 * 40)
       const my = 30 + ((tiltX + 15) / 30 * 40)
       const rx = (0.5 - my / 100) * 5
       const ry = (mx / 100 - 0.5) * 5
-
-      // 카드 기울기 (자이로 — 매우 크게)
       const cardRx = rx * 12
       const cardRy = ry * 12
 
-      // 모든 .ticket-holo-tilt 요소에 CSS 변수 + 카드 transform 적용
       document.querySelectorAll('.ticket-holo-tilt').forEach((host) => {
         const el = host as HTMLElement
         el.style.setProperty('--mx', `${mx}%`)
@@ -44,12 +45,10 @@ function useNativeTiltBridge() {
         el.style.setProperty('--ry', `${ry}deg`)
         el.style.setProperty('--posx', `${mx}%`)
         el.style.setProperty('--posy', `${my}%`)
-        // 카드 자체를 기울이기
         el.style.transform = `perspective(800px) rotateX(${cardRx}deg) rotateY(${cardRy}deg)`
-        el.style.transition = 'transform 0.1s ease-out'
+        el.style.transition = 'transform 0.15s ease-out'
       })
 
-      // 홀로 레이어에도 적용
       document.querySelectorAll('.ticket-holo-front-layer').forEach((layer) => {
         const el = layer as HTMLElement
         el.style.setProperty('--mx', `${mx}%`)
@@ -61,9 +60,35 @@ function useNativeTiltBridge() {
       })
     }
 
+    const handler = (e: Event) => {
+      pendingTilt = (e as CustomEvent).detail
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(applyTilt)
+    }
+
     window.addEventListener('nativeTilt', handler)
-    return () => window.removeEventListener('nativeTilt', handler)
+    return () => {
+      window.removeEventListener('nativeTilt', handler)
+      cancelAnimationFrame(rafId)
+    }
   }, [])
+}
+
+/** ISO 날짜 → "3월 15일 (토) 19:00" 형식 */
+function formatKoreanDate(iso: string): string {
+  try {
+    const d = new Date(iso.replace(' ', 'T'))
+    if (isNaN(d.getTime())) return iso.split('T')[0]
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토']
+    const m = d.getMonth() + 1
+    const day = d.getDate()
+    const dow = dayNames[d.getDay()]
+    const h = String(d.getHours()).padStart(2, '0')
+    const min = String(d.getMinutes()).padStart(2, '0')
+    return `${m}월 ${day}일 (${dow}) ${h}:${min}`
+  } catch {
+    return iso.split('T')[0]
+  }
 }
 
 const CARD_WIDTH = 270
@@ -491,7 +516,7 @@ function TicketBack({ ticket, onFlip, numberAura }: FaceProps) {
           </div>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.28)', marginTop: 18, paddingTop: 14, display: 'grid', gap: 10 }}>
-            <BackRow label="Date" value={ticket.eventDate.split(' ')[0]} />
+            <BackRow label="Date" value={formatKoreanDate(ticket.eventDate)} />
             <BackRow label="Venue" value={ticket.venue} />
           </div>
 
@@ -1002,9 +1027,6 @@ export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) 
 
   return (
     <div className="flex flex-col bg-background text-foreground" style={{ height: '100dvh', minHeight: '100dvh' }}>
-      <header className="flex items-center justify-center border-b border-border/40 px-4 py-3">
-        <h1 className="text-base font-semibold">티켓 컬렉션</h1>
-      </header>
       <div className="flex flex-1 flex-col overflow-hidden">
         {collected.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 py-16 text-center">
@@ -1012,9 +1034,9 @@ export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) 
               <Music2 className="h-8 w-8 text-muted-foreground" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">No collected tickets yet</p>
+              <p className="font-semibold text-foreground">관람 완료된 티켓이 여기에 표시됩니다</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Tickets marked as used will appear here as collectible cards.
+                사용 완료된 티켓은 컬렉션 카드로 이곳에 추가됩니다.
               </p>
             </div>
             <p className="text-xs text-muted-foreground">앱에서 공연을 관람하면 컬렉션에 추가됩니다.</p>
@@ -1029,14 +1051,7 @@ export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) 
                       {activeTicket.eventName}
                     </h2>
                   </div>
-                  <button
-                    type="button"
-                    aria-label="Open effect settings"
-                    onClick={() => setEffectPickerOpen((prev) => !prev)}
-                    className="gradient-border-icon-button mt-0.5 h-8 w-8 text-foreground/70 transition hover:text-foreground"
-                  >
-                    <Settings2 className="h-5 w-5 stroke-[1.8]" />
-                  </button>
+                  {/* 이펙트 선택 버튼 숨김 — 티켓별 고정 이펙트 사용 */}
                 </div>
               )}
             </div>

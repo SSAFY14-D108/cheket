@@ -59,10 +59,13 @@ fun PaymentScreen(
         if (expiresAt == null) return@LaunchedEffect
         try {
             val formatter = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
-            val expireTime = java.time.LocalDateTime.parse(expiresAt, formatter)
+            // 서버 응답이 KST(Asia/Seoul)이므로 타임존을 명시하여 파싱
+            val kst = java.time.ZoneId.of("Asia/Seoul")
+            val expireInstant = java.time.LocalDateTime.parse(expiresAt, formatter)
+                .atZone(kst)
+                .toInstant()
             while (true) {
-                val now = java.time.LocalDateTime.now()
-                val diff = java.time.Duration.between(now, expireTime).seconds.toInt()
+                val diff = java.time.Duration.between(java.time.Instant.now(), expireInstant).seconds.toInt()
                 if (diff <= 0) {
                     remainingSeconds = 0
                     showExpiredDialog = true
@@ -100,43 +103,24 @@ fun PaymentScreen(
 
     // 뒤로가기 경고 모달
     if (showBackWarning) {
-        AlertDialog(
-            onDismissRequest = { showBackWarning = false },
-            title = { Text("결제를 취소하시겠습니까?", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
-            text = {
-                Text(
-                    "결제 화면을 나가면 좌석 선점이 해제되며,\n다시 대기열을 통해 진입해야 합니다.",
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = V0Muted,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showBackWarning = false
-                    onBackToShowDetail()
-                }) { Text("나가기", color = V0Red500, fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBackWarning = false }) {
-                    Text("계속 결제", color = Primary)
-                }
-            },
+        com.ssafy.cheket.core.ui.component.CheketDialog(
+            title = "결제를 취소하시겠습니까?",
+            message = "결제 화면을 나가면 좌석 선점이 해제되며,\n다시 대기열을 통해 진입해야 합니다.",
+            confirmText = "나가기",
+            dismissText = "계속 결제",
+            onConfirm = { showBackWarning = false; onBackToShowDetail() },
+            onDismiss = { showBackWarning = false },
+            isDanger = true,
         )
     }
 
     // 좌석 선점 만료 모달
     if (showExpiredDialog) {
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("결제 시간 초과", fontWeight = FontWeight.Bold) },
-            text = { Text("좌석 선점 시간이 만료되었습니다.\n공연 상세 화면으로 이동합니다.", lineHeight = 20.sp) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showExpiredDialog = false
-                    onBackToShowDetail()
-                }) { Text("확인", color = Primary) }
-            },
+        com.ssafy.cheket.core.ui.component.CheketAlertDialog(
+            title = "결제 시간 초과",
+            message = "좌석 선점 시간이 만료되었습니다.\n공연 상세 화면으로 이동합니다.",
+            confirmText = "확인",
+            onConfirm = { showExpiredDialog = false; onBackToShowDetail() },
         )
     }
 }
@@ -250,7 +234,7 @@ private fun PaymentMainContent(
                                 )
                             }
                             Text(
-                                text = "${numberFormat.format(seat.price)} CTK",
+                                text = "${numberFormat.format(seat.price)} SSF",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = V0Text,
@@ -274,7 +258,7 @@ private fun PaymentMainContent(
                             color = V0Text,
                         )
                         Text(
-                            "${numberFormat.format(uiState.totalPrice)} CTK",
+                            "${numberFormat.format(uiState.totalPrice)} SSF",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = V0Text,
@@ -282,7 +266,7 @@ private fun PaymentMainContent(
                     }
                 }
 
-                // ── 2. 보유 CTK 잔액 카드 (v0: elevated-surface or red border when insufficient) ──
+                // ── 2. 보유 SSF 잔액 카드 (v0: elevated-surface or red border when insufficient) ──
                 val balanceModifier = if (hasSufficientBalance) {
                     Modifier
                         .fillMaxWidth()
@@ -312,7 +296,7 @@ private fun PaymentMainContent(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "보유 CTK 잔액",
+                            "보유 SSF 잔액",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = V0Text,
@@ -331,7 +315,7 @@ private fun PaymentMainContent(
                             color = V0Text,
                         )
                         Text(
-                            "CTK",
+                            "SSF",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                             color = V0Muted,
@@ -351,7 +335,7 @@ private fun PaymentMainContent(
                                 modifier = Modifier.size(16.dp),
                             )
                             Text(
-                                text = "잔액이 부족해요. ${numberFormat.format(uiState.totalPrice - uiState.user.ctkBalance)} CTK 이상 충전한 뒤 다시 시도해 주세요.",
+                                text = "잔액이 부족해요. ${numberFormat.format(uiState.totalPrice - uiState.user.ctkBalance)} SSF 이상 충전한 뒤 다시 시도해 주세요.",
                                 fontSize = 12.sp,
                                 color = V0Red500,
                             )

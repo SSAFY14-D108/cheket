@@ -1,6 +1,11 @@
 package com.ssafy.cheket.features.resale
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,21 +20,21 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,13 +73,14 @@ import com.ssafy.cheket.AppContainer
 import com.ssafy.cheket.core.model.ResaleGroupItem
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.BorderColor
 import com.ssafy.cheket.ui.theme.Muted
 import com.ssafy.cheket.ui.theme.MutedForeground
 import com.ssafy.cheket.ui.theme.OnBackground
+import androidx.compose.material3.HorizontalDivider
 import kotlinx.coroutines.launch
 
 private val SearchBackground = Color(0xFFF3F4F6)
@@ -84,7 +90,6 @@ private val ResetButtonBackground = Color(0xFFF1F3F5)
 private val RegionButtonBackground = Color(0xFFF4F5F6)
 private val RegionSheetButtonBackground = Color(0xFFF7F7F7)
 private val RegionSheetHandleColor = Color(0xFF6D8780)
-private val HeaderIconTint = Color(0xFF24332F)
 
 private val ResaleRegions = listOf(
     "전체",
@@ -116,6 +121,7 @@ fun ResaleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
+    var isSearchMode by rememberSaveable { mutableStateOf(false) }
     var isRegionSheetOpen by rememberSaveable { mutableStateOf(false) }
     val appliedRegions = remember { mutableStateListOf("전체") }
     val pendingRegions = remember { mutableStateListOf("전체") }
@@ -146,14 +152,19 @@ fun ResaleScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             AppHeader(
                 title = "2차 거래소",
+                helpTutorialId = TutorialId.RESALE_LIST,
                 actions = {
-                    TutorialHelpButton(
-                        tutorialId = TutorialId.RESALE_LIST,
-                        tint = HeaderIconTint,
-                    )
+                    IconButton(onClick = { isSearchMode = !isSearchMode; if (!isSearchMode) query = "" }) {
+                        Icon(
+                            imageVector = if (isSearchMode) Icons.Outlined.Close else Icons.Outlined.Search,
+                            contentDescription = "검색",
+                            tint = OnBackground,
+                        )
+                    }
                 },
             )
         },
@@ -164,14 +175,17 @@ fun ResaleScreen(
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
+                
                 .padding(horizontal = 12.dp),
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            ResaleSearchBar(
-                query = query,
-                onQueryChange = { query = it },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            if (isSearchMode) {
+                ResaleSearchBar(
+                    query = query,
+                    onQueryChange = { query = it },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             RegionSummaryButton(
                 summary = regionSummary(appliedRegions),
                 onClick = { isRegionSheetOpen = true },
@@ -224,45 +238,34 @@ fun ResaleScreen(
             onDismissRequest = { isRegionSheetOpen = false },
             sheetState = regionSheetState,
             containerColor = Color.White,
-            dragHandle = {
-                Box(
-                    modifier = Modifier
-                        .padding(vertical = 12.dp)
-                        .width(42.dp)
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(RegionSheetHandleColor),
-                )
-            },
+            contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 18.dp),
+                    .wrapContentHeight()
+                    .padding(top = 8.dp),
             ) {
-                Text(
-                    text = "지역 선택",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = OnBackground,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "원하는 지역을 선택해서 리세일 공연을 좁혀보세요.",
-                    fontSize = 14.sp,
-                    color = MutedForeground,
-                )
-                Spacer(modifier = Modifier.height(20.dp))
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                        .padding(horizontal = 20.dp),
                 ) {
-                    ResaleRegions.chunked(4).forEach { rowRegions ->
+                    Text(
+                        text = "지역 선택",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OnBackground,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "원하는 지역을 선택해서 리세일 공연을 좁혀보세요.",
+                        fontSize = 13.sp,
+                        color = MutedForeground,
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    ResaleRegions.chunked(6).forEach { rowRegions ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -276,17 +279,22 @@ fun ResaleScreen(
                                     onClick = { toggleRegionSelection(region, pendingRegions) },
                                 )
                             }
-                            repeat(4 - rowRegions.size) {
+                            repeat(6 - rowRegions.size) {
                                 Spacer(modifier = Modifier.weight(1f))
                             }
                         }
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                HorizontalDivider(color = Color(0xFFF1F3F2))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Button(
@@ -295,18 +303,16 @@ fun ResaleScreen(
                             pendingRegions.add("전체")
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ResetButtonBackground,
-                            contentColor = OnBackground,
+                            containerColor = Color(0xFFF1F3F5),
+                            contentColor = Color(0xFF4B5563),
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp,
                         ),
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text("초기화", fontWeight = FontWeight.SemiBold)
                     }
 
@@ -319,13 +325,13 @@ fun ResaleScreen(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF141414),
+                            containerColor = com.ssafy.cheket.ui.theme.Primary,
                             contentColor = Color.White,
                         ),
                     ) {
-                        Text("적용", fontWeight = FontWeight.Bold)
+                        Text("적용", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -338,42 +344,58 @@ private fun ResaleSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
 ) {
-    Row(
+    val searchBorderBrush = remember {
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFD9EFE9),
+                Color(0xFFE4E7FB),
+            ),
+        )
+    }
+
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        textStyle = TextStyle(
+            fontSize = 15.sp,
+            color = OnBackground,
+        ),
+        cursorBrush = SolidColor(com.ssafy.cheket.ui.theme.Primary),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(SearchBackground)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Search,
-            contentDescription = null,
-            tint = MutedForeground,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Box(modifier = Modifier.weight(1f)) {
-            if (query.isEmpty()) {
-                Text(
-                    text = "공연명, 아티스트, 장소 검색",
-                    fontSize = 16.sp,
-                    color = MutedForeground,
-                )
-            }
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                textStyle = TextStyle(
-                    fontSize = 16.sp,
-                    color = OnBackground,
-                ),
-                cursorBrush = SolidColor(OnBackground),
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
+            .border(BorderStroke(1.dp, searchBorderBrush), RoundedCornerShape(24.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        decorationBox = { innerTextField ->
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    tint = MutedForeground,
+                    modifier = Modifier.size(18.dp),
+                )
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "공연명, 아티스트, 장소 검색",
+                            fontSize = 14.sp,
+                            color = MutedForeground,
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -384,29 +406,24 @@ private fun RegionSummaryButton(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(RegionButtonBackground)
+            .background(Color(0xFFF3F4F6))
+            .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             text = "지역",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = OnBackground,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF374151),
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = summary,
-            fontSize = 14.sp,
-            color = MutedForeground,
-        )
-        Spacer(modifier = Modifier.width(2.dp))
         Icon(
             imageVector = Icons.Outlined.KeyboardArrowDown,
             contentDescription = null,
             tint = MutedForeground,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
         )
     }
 }
@@ -423,14 +440,14 @@ private fun RegionChip(
             .clip(RoundedCornerShape(18.dp))
             .background(if (selected) com.ssafy.cheket.ui.theme.Primary else RegionSheetButtonBackground)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp),
+            .padding(horizontal = 10.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = region,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) Color(0xFF1F3A33) else OnBackground,
+            color = if (selected) Color.White else OnBackground,
             maxLines = 1,
         )
     }
@@ -441,12 +458,14 @@ private fun ResaleEventCard(
     group: ResaleGroupItem,
     onClick: () -> Unit,
 ) {
-    Column(
+    androidx.compose.material3.Card(
         modifier = Modifier
             .fillMaxWidth()
-            .elevatedSurfaceSoft(shape = RoundedCornerShape(24.dp))
-            .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, BorderColor),
     ) {
         AsyncImage(
             model = group.poster,
@@ -483,7 +502,7 @@ private fun ResaleEventCard(
             )
             InfoLine(
                 icon = Icons.Outlined.LocalOffer,
-                text = if (group.minPrice > 0) "%,d CTK ~".format(group.minPrice) else "가격 확인",
+                text = if (group.minPrice > 0) "%,d SSF ~".format(group.minPrice) else "가격 확인",
                 tint = PriceTextColor,
                 textColor = PriceTextColor,
                 fontWeight = FontWeight.SemiBold,

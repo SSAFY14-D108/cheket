@@ -53,6 +53,7 @@ class ShowRepositoryImpl(
             id = dto.showId.toString(),
             name = dto.title,
             date = dto.show?.showStartDate ?: "",
+            endDate = dto.show?.showEndDate,
             venue = dto.venue,
             region = dto.region,
             poster = dto.posterUrl,
@@ -66,6 +67,7 @@ class ShowRepositoryImpl(
             maxPerUser = dto.purchaseLimit ?: 4,
             grades = emptyList(),
             openDate = dto.reservation?.startDate,
+            reservationEndDate = dto.reservation?.endDate,
         )
 
     override suspend fun getShowsPage(
@@ -233,7 +235,7 @@ class ShowRepositoryImpl(
                             id = "rule_${r.daysRemaining}",
                             daysBefore = r.daysRemaining,
                             feeRate = (100 - r.refundRate) / 100f,
-                            label = "${r.daysRemaining}일 전: ${r.refundRate}% 환불",
+                            label = "공연 ${r.daysRemaining}일 전",
                         )
                     } ?: emptyList(),
                     descriptionImages = dto.descriptionImages ?: emptyList(),

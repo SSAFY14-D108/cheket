@@ -30,6 +30,7 @@ data class ResaleShowInfo(
     val title: String,
     val posterUrl: String,
     val venue: String,
+    val showDate: String = "",  // "2026.05.03 ~ 2026.05.05"
 )
 
 sealed class ResaleTicketsUiState {
@@ -68,15 +69,24 @@ class ResaleTicketsViewModel(
                 val showInfo = cachedShowInfo ?: run {
                     val showResponse = showService.getShowDetail(showIdLong)
                     val detail = showResponse.data
+                    val startDate = detail?.show?.showStartDate ?: ""
+                    val endDate = detail?.show?.showEndDate ?: ""
+                    val dateStr = if (startDate.isNotBlank() && endDate.isNotBlank() && startDate != endDate) {
+                        "${startDate.replace("-", ".")} ~ ${endDate.replace("-", ".")}"
+                    } else if (startDate.isNotBlank()) {
+                        startDate.replace("-", ".")
+                    } else ""
+
                     ResaleShowInfo(
                         showId = showId,
                         title = detail?.title ?: "공연",
                         posterUrl = detail?.posterUrl ?: "",
                         venue = detail?.venue ?: "",
+                        showDate = dateStr,
                     ).also { cachedShowInfo = it }
                 }
 
-                // 리세일 티켓 목록
+                // 2차 거래 티켓 목록
                 val response = resaleService.getResaleTickets(showIdLong, sort = sort)
                 val data = response.data
 
@@ -103,7 +113,7 @@ class ResaleTicketsViewModel(
         }
     }
 
-    /** 리세일 티켓 구매 */
+    /** 2차 거래 티켓 구매 */
     fun purchaseResale(ticketId: Long, onSuccess: (txId: Long) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {

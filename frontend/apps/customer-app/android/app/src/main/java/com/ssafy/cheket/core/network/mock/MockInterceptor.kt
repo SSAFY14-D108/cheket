@@ -280,9 +280,9 @@ class MockInterceptor : Interceptor {
     }""")
 
     private fun walletTransactions() = wrap("""[
-        {"transactionId":1,"type":"CHARGE","amount":5000,"description":"CTK 충전","createdAt":"2026-02-07T10:00:00"},
+        {"transactionId":1,"type":"CHARGE","amount":5000,"description":"SSF 충전","createdAt":"2026-02-07T10:00:00"},
         {"transactionId":2,"type":"PURCHASE","amount":-140000,"description":"AESPA WORLD TOUR 2026 - R석","createdAt":"2026-02-17T14:30:00"},
-        {"transactionId":3,"type":"CHARGE","amount":3000,"description":"CTK 충전","createdAt":"2026-02-22T09:00:00"},
+        {"transactionId":3,"type":"CHARGE","amount":3000,"description":"SSF 충전","createdAt":"2026-02-22T09:00:00"},
         {"transactionId":4,"type":"RESALE_SELL","amount":145000,"description":"METALLICA FLOOR - 리세일 수익","createdAt":"2026-02-27T16:00:00"},
         {"transactionId":5,"type":"PURCHASE","amount":-300000,"description":"ULTRA KOREA 2026 - VIP","createdAt":"2026-03-04T11:00:00"}
     ]""")

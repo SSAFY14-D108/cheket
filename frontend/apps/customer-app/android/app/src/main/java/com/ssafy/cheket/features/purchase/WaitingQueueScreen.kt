@@ -76,34 +76,14 @@ fun WaitingQueueScreen(
 
     // 뒤로가기 확인 다이얼로그
     if (showLeaveDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showLeaveDialog = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text("대기열 이탈", fontWeight = FontWeight.Bold, color = V0Fg)
-            },
-            text = {
-                Text(
-                    "대기열에서 나가면 현재 순번을 잃게 됩니다.\n정말 나가시겠어요?",
-                    fontSize = 14.sp,
-                    color = V0Muted,
-                    lineHeight = 20.sp,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLeaveDialog = false
-                    onBack()
-                }) {
-                    Text("나가기", color = Color(0xFFF87171), fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLeaveDialog = false }) {
-                    Text("계속 대기", color = V0Fg, fontWeight = FontWeight.SemiBold)
-                }
-            },
+        com.ssafy.cheket.core.ui.component.CheketDialog(
+            title = "대기열 이탈",
+            message = "대기열에서 나가면 현재 순번을 잃게 됩니다.\n정말 나가시겠어요?",
+            confirmText = "나가기",
+            dismissText = "계속 대기",
+            onConfirm = { showLeaveDialog = false; onBack() },
+            onDismiss = { showLeaveDialog = false },
+            isDanger = true,
         )
     }
 

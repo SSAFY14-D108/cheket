@@ -1,6 +1,7 @@
 package com.ssafy.cheket.features.resale
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,10 +29,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.CheketAlertDialog
+import com.ssafy.cheket.core.ui.component.CheketDialog
 import com.ssafy.cheket.core.ui.component.EmptyState
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
+import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 
 private val V0Background = Background
@@ -71,9 +74,7 @@ fun ResaleTicketsScreen(
             AppHeader(
                 title = "2차 거래소",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.RESALE_DETAIL)
-                },
+                helpTutorialId = TutorialId.RESALE_DETAIL,
             )
         },
     ) { innerPadding ->
@@ -219,7 +220,7 @@ fun ResaleTicketsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    "리세일 티켓 상세",
+                    "2차 거래 티켓 상세",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = V0ActiveFilterText,
@@ -238,17 +239,17 @@ fun ResaleTicketsScreen(
                     ResaleDetailRow("등급", ticket.grade)
                     ResaleDetailRow("공연 일시", ticket.showDate)
                     HorizontalDivider(color = Color(0xFFE5E7EB))
-                    ResaleDetailRow("정가", "%,d CTK".format(ticket.originalPrice))
+                    ResaleDetailRow("정가", "%,d SSF".format(ticket.originalPrice))
                     ResaleDetailRow(
                         "리세일가",
-                        "%,d CTK".format(ticket.resalePrice),
+                        "%,d SSF".format(ticket.resalePrice),
                         valueColor = Primary,
                     )
                     if (ticket.originalPrice > ticket.resalePrice) {
-                        val savePct = ((ticket.originalPrice - ticket.resalePrice) * 100) / ticket.originalPrice
+                        val savePct = (((ticket.originalPrice - ticket.resalePrice).toLong() * 100L) / ticket.originalPrice.toLong()).toInt()
                         ResaleDetailRow(
                             "할인",
-                            "${savePct}% 할인 (${ticket.originalPrice - ticket.resalePrice} CTK 절약)",
+                            "${savePct}% 할인 (${ticket.originalPrice - ticket.resalePrice} SSF 절약)",
                             valueColor = Danger,
                         )
                     }
@@ -272,7 +273,7 @@ fun ResaleTicketsScreen(
                         )
                     } else {
                         Text(
-                            "구매하기 · %,d CTK".format(ticket.resalePrice),
+                            "구매하기 · %,d SSF".format(ticket.resalePrice),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -283,59 +284,42 @@ fun ResaleTicketsScreen(
         }
     }
 
-    // ── 구매 확인 AlertDialog ──
+    // ── 구매 확인 다이얼로그 ──
     if (showPurchaseConfirm && selectedTicket != null) {
-        AlertDialog(
-            onDismissRequest = { showPurchaseConfirm = false },
-            title = { Text("리세일 티켓 구매", fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    "${selectedTicket!!.seatLabel} (${selectedTicket!!.grade})\n" +
-                            "가격: %,d CTK\n\n".format(selectedTicket!!.resalePrice) +
-                            "구매하시겠습니까? 블록체인에 기록되며 취소할 수 없습니다.",
+        CheketDialog(
+            title = "2차 거래 티켓 구매",
+            message = "${selectedTicket!!.seatLabel} (${selectedTicket!!.grade})\n" +
+                    "가격: %,d SSF\n\n".format(selectedTicket!!.resalePrice) +
+                    "구매하시겠습니까? 블록체인에 기록되며 취소할 수 없습니다.",
+            confirmText = "구매",
+            dismissText = "취소",
+            onConfirm = {
+                showPurchaseConfirm = false
+                isPurchasing = true
+                viewModel.purchaseResale(
+                    ticketId = selectedTicket!!.ticketId,
+                    onSuccess = { txId ->
+                        isPurchasing = false
+                        selectedTicket = null
+                        onTxProcessing(txId, "RESALE_PURCHASE")
+                    },
+                    onError = { msg ->
+                        isPurchasing = false
+                        purchaseErrorMsg = msg
+                    },
                 )
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showPurchaseConfirm = false
-                        isPurchasing = true
-                        viewModel.purchaseResale(
-                            ticketId = selectedTicket!!.ticketId,
-                            onSuccess = { txId ->
-                                isPurchasing = false
-                                selectedTicket = null
-                                onTxProcessing(txId, "RESALE_PURCHASE")
-                            },
-                            onError = { msg ->
-                                isPurchasing = false
-                                purchaseErrorMsg = msg
-                            },
-                        )
-                    },
-                ) {
-                    Text("구매", color = Primary, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPurchaseConfirm = false }) {
-                    Text("취소", color = MutedForeground)
-                }
-            },
+            onDismiss = { showPurchaseConfirm = false },
         )
     }
 
     // 구매 에러 다이얼로그
     purchaseErrorMsg?.let { msg ->
-        AlertDialog(
-            onDismissRequest = { purchaseErrorMsg = null },
-            title = { Text("구매 실패", fontWeight = FontWeight.Bold) },
-            text = { Text(msg, fontSize = 14.sp, lineHeight = 20.sp) },
-            confirmButton = {
-                TextButton(onClick = { purchaseErrorMsg = null }) {
-                    Text("확인", color = Primary, fontWeight = FontWeight.Bold)
-                }
-            },
+        CheketAlertDialog(
+            title = "구매 실패",
+            message = msg,
+            confirmText = "확인",
+            onConfirm = { purchaseErrorMsg = null },
         )
     }
 }
@@ -398,25 +382,27 @@ private fun ShowInfoCard(
                 )
                 Spacer(Modifier.height(6.dp))
 
-                // Date (CalendarDays icon)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        Icons.Outlined.CalendarMonth,
-                        contentDescription = null,
-                        tint = V0IconTint,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        text = "", // date not in ResaleShowInfo; placeholder
-                        fontSize = 12.sp,
-                        color = MutedForeground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 20.sp,
-                    )
+                // Date
+                if (showInfo.showDate.isNotBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.CalendarMonth,
+                            contentDescription = null,
+                            tint = V0IconTint,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = showInfo.showDate,
+                            fontSize = 12.sp,
+                            color = MutedForeground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 20.sp,
+                        )
+                    }
                 }
 
                 // Venue
@@ -477,18 +463,27 @@ private fun ResaleTicketCard(
     val discount = item.originalPrice - item.resalePrice
     val hasDiscount = discount > 0
     val discountPct = remember(item) {
-        if (item.discountRate > 0) {
-            item.discountRate.toInt()
-        } else if (item.originalPrice > 0 && hasDiscount) {
-            (discount * 100) / item.originalPrice
+        if (item.originalPrice > 0 && hasDiscount) {
+            ((discount.toLong() * 100L) / item.originalPrice.toLong()).toInt()
         } else 0
+    }
+
+    // 할인률에 따른 카드 스타일
+    val borderMod = when {
+        discountPct >= 40 -> Modifier
+            .gradientBorder(shape = RoundedCornerShape(12.dp), borderWidth = 1.5.dp)
+        discountPct >= 20 -> Modifier
+            .border(1.dp, Primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+        else -> Modifier
+            .border(0.5.dp, BorderColor, RoundedCornerShape(12.dp))
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .elevatedSurfaceSoft(shape = RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
+            .then(borderMod)
+            .background(Color.White)
             .clickable(onClick = onClick)
             .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -548,7 +543,7 @@ private fun ResaleTicketCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "%,d CTK".format(item.resalePrice),
+                    text = "%,d SSF".format(item.resalePrice),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = V0ActiveFilterText,
@@ -556,7 +551,7 @@ private fun ResaleTicketCard(
                 )
                 if (hasDiscount) {
                     Text(
-                        text = "정가 %,d CTK".format(item.originalPrice),
+                        text = "정가 %,d SSF".format(item.originalPrice),
                         fontSize = 11.sp,
                         color = MutedForeground,
                         textDecoration = TextDecoration.LineThrough,

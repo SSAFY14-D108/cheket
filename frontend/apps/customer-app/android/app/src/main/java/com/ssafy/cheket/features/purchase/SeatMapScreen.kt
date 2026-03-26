@@ -113,6 +113,7 @@ fun SeatMapScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var showDebugVenues by remember { mutableStateOf(false) }
     var showPurchaseConfirmDialog by remember { mutableStateOf(false) }
+    var showBackWarning by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -158,7 +159,8 @@ fun SeatMapScreen(
         { seat: SectionSeat ->
             when {
                 seat.status == "SOLD" -> showMessage("이미 판매된 좌석입니다")
-                seat.status == "LOCKED" -> showMessage("현재 잠금된 좌석입니다")
+                seat.status == "LOCKED" || seat.status == "HELD" -> showMessage("현재 잠금된 좌석입니다")
+                seat.status == "PENDING_TX" -> showMessage("결제 진행 중인 좌석입니다")
                 seat.status != "AVAILABLE" -> showMessage("선택할 수 없는 좌석입니다")
                 seat.sessionSeatId !in state.selectedSeatIds
                     && state.selectedSeatIds.size >= state.maxSeats ->
@@ -242,12 +244,12 @@ fun SeatMapScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
-        Column(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             AppHeader(
                 title = state.show?.name ?: "좌석 배치도",
                 onBack = {
                     if (isExpanded) isExpanded = false
-                    else onBack()
+                    else showBackWarning = true
                 },
                 onTitleLongPress = if (state.isTestMode) {
                     { showDebugVenues = !showDebugVenues }
@@ -505,34 +507,16 @@ fun SeatMapScreen(
 
     // ── 결제 확인 모달 ──
     if (showPurchaseConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showPurchaseConfirmDialog = false },
-            title = { Text("결제 화면으로 이동", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "선택한 좌석으로 결제를 진행합니다.",
-                        fontSize = 14.sp,
-                    )
-                    Text(
-                        "⚠️ 결제 화면에서 뒤로 가기 시\n다시 대기열을 통해 진입해야 합니다.",
-                        fontSize = 13.sp,
-                        color = Color(0xFFD97706),
-                        lineHeight = 18.sp,
-                    )
-                }
+        com.ssafy.cheket.core.ui.component.CheketDialog(
+            title = "결제 화면으로 이동",
+            message = "선택한 좌석으로 결제를 진행합니다.\n\n⚠️ 결제 화면에서 뒤로 가기 시 다시 대기열을 통해 진입해야 합니다.",
+            confirmText = "결제 진행",
+            dismissText = "취소",
+            onConfirm = {
+                showPurchaseConfirmDialog = false
+                viewModel.lockSeatsAndProceed { onPurchase() }
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    showPurchaseConfirmDialog = false
-                    viewModel.lockSeatsAndProceed { onPurchase() }
-                }) { Text("결제 진행", color = Primary, fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPurchaseConfirmDialog = false }) {
-                    Text("취소", color = V0MutedFg)
-                }
-            },
+            onDismiss = { showPurchaseConfirmDialog = false },
         )
     }
 
@@ -546,17 +530,30 @@ fun SeatMapScreen(
     }
 
     if (showExpiredDialog) {
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("시간 초과", fontWeight = FontWeight.Bold) },
-            text = { Text("좌석 선점 시간이 만료되었습니다.\n공연 상세 화면으로 이동합니다.", lineHeight = 20.sp) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showExpiredDialog = false
-                    onBack()
-                }) { Text("확인", color = Primary) }
-            },
+        com.ssafy.cheket.core.ui.component.CheketAlertDialog(
+            title = "시간 초과",
+            message = "좌석 선점 시간이 만료되었습니다.\n공연 상세 화면으로 이동합니다.",
+            confirmText = "확인",
+            onConfirm = { showExpiredDialog = false; onBack() },
         )
+    }
+
+    // 뒤로가기 경고
+    if (showBackWarning) {
+        com.ssafy.cheket.core.ui.component.CheketDialog(
+            title = "좌석 선택을 취소하시겠습니까?",
+            message = "좌석 선택 화면을 나가면 다시 대기열을 통해 진입해야 합니다.",
+            confirmText = "나가기",
+            dismissText = "계속 선택",
+            onConfirm = { showBackWarning = false; onBack() },
+            onDismiss = { showBackWarning = false },
+            isDanger = true,
+        )
+    }
+
+    // 시스템 뒤로가기 인터셉트
+    androidx.activity.compose.BackHandler(enabled = !isExpanded) {
+        showBackWarning = true
     }
 }
 
@@ -623,7 +620,7 @@ private fun FloatingSelectionChip(
                             color = Color.White,
                         )
                         Text(
-                            "${fmt.format(totalPrice)} CTK",
+                            "${fmt.format(totalPrice)} SSF",
                             fontSize = 13.sp,
                             color = Color.White.copy(alpha = 0.7f),
                         )
@@ -731,7 +728,7 @@ private fun BottomSheetContent(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "${fmt.format(totalPrice)} CTK",
+                    "${fmt.format(totalPrice)} SSF",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = OnBackground,
@@ -757,6 +754,9 @@ private fun SheetSeatRow(
 ) {
     val fmt = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
 
+    val gradeColor = remember(info.colorCode) {
+        try { Color(android.graphics.Color.parseColor(info.colorCode)) } catch (_: Exception) { Primary }
+    }
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = Color(0xFFF8FAFC),
@@ -776,7 +776,7 @@ private fun SheetSeatRow(
                         .width(4.dp)
                         .height(32.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Primary)
+                        .background(gradeColor)
                 )
                 Spacer(Modifier.width(14.dp))
                 Column {
@@ -788,7 +788,7 @@ private fun SheetSeatRow(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "${info.gradeName} · ${fmt.format(info.price)} CTK",
+                        "${info.gradeName} · ${fmt.format(info.price)} SSF",
                         fontSize = 13.sp,
                         color = MutedForeground,
                     )
@@ -1148,13 +1148,13 @@ private fun DrawScope.drawSeats(
             isSelected -> sectionColor                           // v0: grade color
             seat.status == "AVAILABLE" -> sectionColor.copy(alpha = 0.2f)  // v0: ${color}33
             seat.status == "SOLD" -> SeatSold
-            seat.status == "LOCKED" -> SeatLocked
+            seat.status == "LOCKED" || seat.status == "HELD" || seat.status == "PENDING_TX" -> SeatLocked
             else -> SeatSold
         }
         val strokeColor = when {
             isSelected -> sectionColor
             seat.status == "AVAILABLE" -> sectionColor.copy(alpha = 0.53f) // v0: ${color}88
-            seat.status == "LOCKED" -> SeatLockedBorder.copy(alpha = 0.5f)
+            seat.status == "LOCKED" || seat.status == "HELD" || seat.status == "PENDING_TX" -> SeatLockedBorder
             else -> Color.Transparent
         }
 
@@ -1210,8 +1210,8 @@ private fun DrawScope.drawSeats(
             drawContext.canvas.nativeCanvas.drawText(seat.seatNo, cx, cy + 2.5f, paint)
         }
 
-        // v0: unavailable seats have opacity-40
-        if (seat.status != "AVAILABLE" && !isSelected) {
+        // v0: unavailable seats have opacity-40 (except LOCKED/PENDING_TX which have distinct yellow)
+        if (seat.status != "AVAILABLE" && seat.status != "LOCKED" && seat.status != "HELD" && seat.status != "PENDING_TX" && !isSelected) {
             drawRoundRect(
                 color = Color.White.copy(alpha = 0.6f),
                 topLeft = Offset(drawLeft, drawTop),
@@ -1340,7 +1340,7 @@ private fun BottomSelectionPanel(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "${fmt.format(totalPrice)} CTK",
+                        "${fmt.format(totalPrice)} SSF",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground,
@@ -1366,12 +1366,15 @@ private fun SurfaceChip(
     onRemove: (SeatMapViewModel.SelectedSeatInfo) -> Unit,
 ) {
     val fmt = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
+    val gradeColor = remember(info.colorCode) {
+        try { Color(android.graphics.Color.parseColor(info.colorCode)) } catch (_: Exception) { Primary }
+    }
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = Color(0xFFF0FDF9),
+        color = gradeColor.copy(alpha = 0.08f),
         modifier = Modifier
             .animateContentSize()
-            .border(1.dp, Primary.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+            .border(1.dp, gradeColor.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
     ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
@@ -1385,7 +1388,7 @@ private fun SurfaceChip(
                     color = OnBackground,
                 )
                 Text(
-                    "${fmt.format(info.price)} CTK",
+                    "${fmt.format(info.price)} SSF",
                     fontSize = 11.sp,
                     color = MutedForeground,
                 )

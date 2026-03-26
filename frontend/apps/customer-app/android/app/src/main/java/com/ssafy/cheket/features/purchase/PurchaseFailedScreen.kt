@@ -46,7 +46,7 @@ private fun getFailureConfig(reason: String): FailureConfig {
         )
         "INSUFFICIENT_BALANCE" -> FailureConfig(
             title = "잔액이 부족합니다",
-            description = "CTK 잔액이 결제 금액보다 부족합니다.\n충전 후 다시 시도해 주세요.",
+            description = "SSF 잔액이 결제 금액보다 부족합니다.\n충전 후 다시 시도해 주세요.",
             errorCode = "ERR_BALANCE",
         )
         "NETWORK" -> FailureConfig(
@@ -148,7 +148,6 @@ fun PurchaseFailedScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .navigationBarsPadding()
                     .padding(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

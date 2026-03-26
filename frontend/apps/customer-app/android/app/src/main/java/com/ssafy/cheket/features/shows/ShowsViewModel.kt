@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.model.Show
+import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.network.dto.SaveSearchKeywordRequest
 import com.ssafy.cheket.core.network.service.ShowService
 import com.ssafy.cheket.core.repository.ShowRepository
@@ -71,7 +72,17 @@ class ShowsViewModel(
     private var searchJob: Job? = null
 
     init {
-        Log.d(TAG, "init ??loading shows")
+        // NavParams에서 초기 정렬 확인 (예: 홈 → 오픈 예정 더보기)
+        val initialSort = NavParams.initialSortOption
+        if (initialSort != null) {
+            NavParams.initialSortOption = null // 한 번만 사용
+            val sortOption = SortOption.entries.find { it.apiValue == initialSort }
+            if (sortOption != null) {
+                _uiState.value = _uiState.value.copy(sortBy = sortOption)
+                Log.d(TAG, "init — initial sort from NavParams: $sortOption")
+            }
+        }
+        Log.d(TAG, "init — loading shows")
         loadShows()
     }
 

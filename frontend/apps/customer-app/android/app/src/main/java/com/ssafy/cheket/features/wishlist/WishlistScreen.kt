@@ -169,7 +169,7 @@ private fun WishlistItem(
                         tint = MutedForeground,
                         modifier = Modifier.size(14.dp),
                     )
-                    Text(show.showDate, fontSize = 12.sp, color = MutedForeground)
+                    Text(com.ssafy.cheket.core.util.DateTimeUtils.formatShowDate(show.showDate), fontSize = 12.sp, color = MutedForeground)
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
