@@ -380,6 +380,9 @@ public class HostShowServiceImpl implements HostShowService {
         if (!show.getHost().getId().equals(hostId))
             throw new ForbiddenException("본인이 등록한 공연만 수정할 수 있습니다.");
 
+        // 알림을 보내기 위한 flag
+        boolean flag = true;
+
         // ── 2. 기본 정보: null이 아닌 필드만 수정 ──
         if (request.title() != null)
             show.setTitle(request.title());
@@ -387,23 +390,38 @@ public class HostShowServiceImpl implements HostShowService {
             Venue venue = venueRepository.findById(request.venueId())
                 .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
             show.setVenue(venue);
+            flag = false;
         }
-        if (request.artist() != null)
+        if (request.artist() != null) {
             show.setArtist(request.artist());
+            flag = false;
+        }
         if (request.description() != null)
             show.setDescription(request.description());
-        if (request.playtime() != null)
+        if (request.playtime() != null) {
             show.setPlaytime(request.playtime());
-        if (request.purchaseLimit() != null)
+            flag = false;
+        }
+        if (request.purchaseLimit() != null) {
             show.setPurchaseLimit(request.purchaseLimit());
-        if (request.showStartDate() != null)
+            flag = false;
+        }
+        if (request.showStartDate() != null) {
             show.setShowStartDate(request.showStartDate());
-        if (request.showEndDate() != null)
+            flag = false;
+        }
+        if (request.showEndDate() != null) {
             show.setShowEndDate(request.showEndDate());
-        if (request.reservationStartDate() != null)
+            flag = false;
+        }
+        if (request.reservationStartDate() != null) {
             show.setReservationStartDate(request.reservationStartDate());
-        if (request.reservationEndDate() != null)
+            flag = false;
+        }
+        if (request.reservationEndDate() != null) {
             show.setReservationEndDate(request.reservationEndDate());
+            flag = false;
+        }
         show.setUpdatedAt(LocalDateTime.now());
 
         // ── 3. 포스터 이미지: 파일이 있을 때만 교체 ──
@@ -471,6 +489,7 @@ public class HostShowServiceImpl implements HostShowService {
                 }
                 sessionSeatRepository.saveAll(sessionSeats);
             }
+            flag = false;
         }
 
         // ── 6. 등급 (grade): null이면 건드리지 않음 ──
@@ -507,6 +526,7 @@ public class HostShowServiceImpl implements HostShowService {
                     sessionSeatRepository.saveAll(sessionSeats);
                 }
             }
+            flag = false;
         }
 
         // ── 7. 환불 정책 (refundPolicy): null이면 건드리지 않음 ──
@@ -516,13 +536,60 @@ public class HostShowServiceImpl implements HostShowService {
                 refundPolicyRepository.save(RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
                     .refundRate(policy.refundRate()).build());
             }
+            flag = false;
         }
 
-        List<Long> targetUserIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getUserId)
-            .filter(Objects::nonNull).distinct().toList();
+        if (request.stakeholders() != null) {
+            List<Stakeholder> existingStakeholders = stakeholderRepository.findByShowId(showId);
 
-        for (Long userId : targetUserIds) {
-            notificationService.sendRequestUpdate(userId, showId);
+            Map<String, Stakeholder> existingByKey = existingStakeholders.stream().filter(this::isContractStakeholder)
+                .collect(Collectors.toMap(this::stakeholderKey, Function.identity(), (a, b) -> a));
+
+            Set<String> requestKeys = request.stakeholders().stream().map(this::stakeholderKey)
+                .collect(Collectors.toSet());
+
+            for (Stakeholder stakeholder : existingStakeholders) {
+                if (!isContractStakeholder(stakeholder)) {
+                    continue;
+                }
+
+                String key = stakeholderKey(stakeholder);
+                if (!requestKeys.contains(key)) {
+                    stakeholderRepository.delete(stakeholder);
+                    existingByKey.remove(key);
+                }
+            }
+
+            for (UpdateShowRequest.StakeholderInfo info : request.stakeholders()) {
+                String key = stakeholderKey(info);
+                Stakeholder stakeholder = existingByKey.get(key);
+
+                if (stakeholder == null) {
+                    Long stakeholderUserId = info.role() == StakeholderRole.ARTIST ? info.id() : null;
+                    Long stakeholderHostId = info.role() == StakeholderRole.ORGANIZER ? info.id() : null;
+
+                    stakeholder = Stakeholder.builder().showId(showId).userId(stakeholderUserId)
+                        .hostId(stakeholderHostId).role(info.role()).shareBps(info.shareBps()).build();
+                } else {
+                    stakeholder.setShareBps(info.shareBps());
+                }
+
+                stakeholder.setApprovalStatus(null);
+                stakeholder.setApprovedAt(null);
+                stakeholder.setRejectedAt(null);
+                stakeholderRepository.save(stakeholder);
+            }
+
+            flag = false;
+        }
+
+        if (!flag) {
+            List<Long> targetUserIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getUserId)
+                .filter(Objects::nonNull).distinct().toList();
+
+            for (Long userId : targetUserIds) {
+                notificationService.sendRequestUpdate(userId, showId);
+            }
         }
     }
 
@@ -663,6 +730,24 @@ public class HostShowServiceImpl implements HostShowService {
 
     private int clamp(int v, int min, int max) {
         return Math.max(min, Math.min(max, v));
+    }
+
+    private boolean isContractStakeholder(Stakeholder stakeholder) {
+        return stakeholder.getUserId() != null || stakeholder.getHostId() != null;
+    }
+
+    private String stakeholderKey(Stakeholder stakeholder) {
+        if (stakeholder.getRole() == StakeholderRole.ARTIST) {
+            return "ARTIST:" + stakeholder.getUserId();
+        }
+        return "ORGANIZER:" + stakeholder.getHostId();
+    }
+
+    private String stakeholderKey(UpdateShowRequest.StakeholderInfo info) {
+        if (info.role() == StakeholderRole.ARTIST) {
+            return "ARTIST:" + info.id();
+        }
+        return "ORGANIZER:" + info.id();
     }
 
 }
