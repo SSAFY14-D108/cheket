@@ -39,7 +39,6 @@ public class UserController {
 
     @PostMapping("/email")
     @Operation(summary = "이메일 찾기")
-    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<FindEmailResponse>> findEmail(@RequestBody FindEmailRequest request) {
         FindEmailResponse response = userService.findEmail(request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "이메일 찾기에 성공했습니다.", response));
