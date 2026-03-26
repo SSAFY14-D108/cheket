@@ -294,8 +294,9 @@ contract PurchaseRouter is Ownable {
         // struct를 개별 값으로 반환하므로 ABI 불일치 없음
         (uint256 eventId, , , , , , , , ) = ticketNFT.tickets(ticketId);
 
-        // ========== ❸ 예매 가능 여부 on-chain 검증 ==========
-        require(eventNFT.isBookingOpen(eventId), "Booking not open");
+        // ========== ❸ 예매 가능 여부 — 백엔드에서 검증 (온체인 검증 제거) ==========
+        // 예매 기간 검증은 백엔드에서 처리 (DB 기준)
+        // 온체인 bookingStartTime/bookingEndTime은 민팅 시 고정되어 DB 변경과 동기화 안 됨
 
         // ========== ❹ 1인당 구매 한도 on-chain 검증 ==========
         (, , uint256 maxPerWallet, , , , ) = eventNFT.getEventInfo(eventId);

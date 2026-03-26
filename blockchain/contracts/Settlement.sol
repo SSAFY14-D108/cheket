@@ -601,6 +601,12 @@ contract Settlement is Ownable {
         require(stakeholderNFTAddress != address(0), "StakeholderNFT not set");
         // setContracts()가 호출되지 않았으면 정산 불가
 
+        // ========== eventId 검증 (온체인 session → event 매핑 확인) ==========
+        ISettlementEventNFT eventNFTForCheck = ISettlementEventNFT(eventNFTAddress);
+        (uint256 actualEventId, , , ) = eventNFTForCheck.getSession(sessionId);
+        require(actualEventId == eventId, "EventId mismatch for session");
+        // 백엔드가 잘못된 eventId를 넘기면 엉뚱한 stakeholder에게 정산되는 것을 방지
+
         uint256 totalAmount = sessionDeposits[sessionId];
         // storage에서 읽기: 이 회차의 총 누적 입금액
         require(totalAmount > 0, "No deposits");
