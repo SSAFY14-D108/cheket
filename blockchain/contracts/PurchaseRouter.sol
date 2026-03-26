@@ -63,6 +63,9 @@ interface IPurchaseTicketNFT {
         uint256 sessionId,
         address wallet
     ) external view returns (uint256);
+
+    // 환불/만료된 티켓 재판매 시 VALID로 리셋
+    function resetTicketStatus(uint256 tokenId) external;
 }
 
 // Settlement에서 필요한 함수
@@ -306,7 +309,13 @@ contract PurchaseRouter is Ownable {
         // ========== ❻ Settlement 장부 기록 ==========
         settlement.recordDeposit(sessionId, price);
 
-        // ========== ❼ NFT 소유권 이전: 플랫폼 → 구매자 ==========
+        // ========== ❼ 환불/만료된 티켓이면 VALID로 리셋 ==========
+        // 환불된 NFT가 플랫폼에 회수된 후 재판매될 때
+        // 상태가 REFUNDED/EXPIRED인 채로 남아있으면
+        // 이후 환불/입장 시 "Ticket not valid" 에러 발생
+        ticketNFT.resetTicketStatus(ticketId);
+
+        // ========== ❽ NFT 소유권 이전: 플랫폼 → 구매자 ==========
         ticketNFT.transferFrom(platformWallet, buyer, ticketId);
 
         // ========== ❽ 보유 수 업데이트 ==========
