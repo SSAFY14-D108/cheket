@@ -80,56 +80,10 @@ services:
     networks:
       - cheket_network
 
-  # ----- Blockscout (Block Explorer) -----
-  blockscout-db:
-    image: postgres:15
-    container_name: cheket_blockscout_db
-    environment:
-      POSTGRES_PASSWORD: blockscout
-      POSTGRES_USER: blockscout
-      POSTGRES_DB: blockscout
-    volumes:
-      - blockscout_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U blockscout"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - cheket_network
-
-  blockscout:
-    image: blockscout/blockscout:latest
-    container_name: cheket_blockscout
-    command: ["bin/blockscout", "start"]
-    depends_on:
-      blockscout-db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://blockscout:blockscout@blockscout-db:5432/blockscout
-      ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: https://rpc.ssafy-blockchain.com
-      ETHEREUM_JSONRPC_WS_URL: wss://ws.ssafy-blockchain.com
-      CHAIN_ID: "31221"
-      NETWORK: SSAFY
-      SUBNETWORK: "SSAFY Blockchain"
-      COIN: SSF
-      INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: "true"
-      INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "true"
-      BLOCK_TRANSFORMER: base
-      ECTO_USE_SSL: "false"
-    ports:
-      - "4000:4000"
-    restart: unless-stopped
-    networks:
-      - cheket_network
-
 volumes:
   mysql_data:
   redis_data:
   keystore_data:
-  blockscout_db_data:
 
 networks:
   cheket_network:
