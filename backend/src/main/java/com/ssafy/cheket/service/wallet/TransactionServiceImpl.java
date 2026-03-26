@@ -129,8 +129,11 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // entity를 dto로 변환해서 사용
-        return transactions.stream().map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(),
-            tx.getDescription(), tx.getSellerId(), tx.getBuyerId(), tx.getCreatedAt())).toList();
+        return transactions.stream()
+            .map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(), tx.getDescription(),
+                tx.getTxStatus().name(), tx.getTxHash(), tx.getBlockNumber(), tx.getSellerId(), tx.getBuyerId(),
+                tx.getCreatedAt()))
+            .toList();
     }
 
     @Override
