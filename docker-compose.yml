@@ -102,6 +102,7 @@ services:
   blockscout:
     image: blockscout/blockscout:latest
     container_name: cheket_blockscout
+    command: ["bin/blockscout", "start"]
     depends_on:
       blockscout-db:
         condition: service_healthy
