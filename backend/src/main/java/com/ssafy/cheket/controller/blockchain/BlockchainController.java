@@ -43,8 +43,8 @@ public class BlockchainController {
     @Operation(summary = "[민팅] 공연 단건 민팅", description = "DRAFT 상태의 공연을 수동으로 민팅" + " (EventNFT + TicketNFT 발행)")
     public ResponseEntity<Map<String, Object>> mintShow(@PathVariable Long showId) {
         log.info("[민팅 API] 공연 단건 민팅 요청 — showId={}", showId);
-        showMintingService.mintShowNfts(showId);
-        return ResponseEntity.ok(Map.of("message", "민팅 완료", "showId", showId));
+        Map<String, Object> result = showMintingService.mintShowNfts(showId);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/minting/shows/all")

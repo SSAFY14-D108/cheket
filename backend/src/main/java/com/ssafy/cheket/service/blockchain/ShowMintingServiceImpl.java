@@ -154,14 +154,14 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
     @Override
     @Transactional
-    public void mintShowNfts(Long showId) {
+    public Map<String, Object> mintShowNfts(Long showId) {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new BlockchainException("공연을 찾을 수 없습니다: " + showId));
 
         // 이미 발행됐거나 발행 중이면 스킵
         if (show.getStatus() != ShowStatus.DRAFT) {
             log.warn("공연 {}는 DRAFT 상태가 아닙니다 (현재: {})", showId, show.getStatus());
-            return;
+            return Map.of("message", "이미 민팅되었거나 진행 중입니다", "showId", showId, "status", show.getStatus().name());
         }
 
         // ========== ① DRAFT → MINTING ==========
@@ -169,17 +169,19 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         showRepository.save(show);
         log.info("[공연 {}] DRAFT → MINTING 상태 전이", showId);
 
+        List<String> txHashes = new java.util.ArrayList<>();
+
         try {
             // ========== ② 포스터 + 메타데이터 IPFS 업로드 ==========
             uploadToIpfs(show);
 
             // ========== ③ EventNFT 발행 ==========
-            BigInteger onChainEventId = mintEventNft(show);
+            BigInteger onChainEventId = mintEventNft(show, txHashes);
 
             // ========== ④ 회차별 addSession ==========
             List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
             for (Session session : sessions) {
-                addSessionOnChain(session, onChainEventId);
+                addSessionOnChain(session, onChainEventId, txHashes);
             }
 
             // ========== ⑤ 환불 정책 온체인 등록 ==========
@@ -187,13 +189,16 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
             // ========== ⑥ TicketNFT 배치 발행 ==========
             for (Session session : sessions) {
-                batchMintTicketsForSession(show, session, onChainEventId);
+                batchMintTicketsForSession(show, session, onChainEventId, txHashes);
             }
 
             // ========== ⑦ MINTING → MINTED ==========
             show.setStatus(ShowStatus.MINTED);
             showRepository.save(show);
             log.info("[공연 {}] MINTING → MINTED 상태 전이 완료", showId);
+
+            return Map.of("message", "민팅 완료", "showId", showId, "eventNftId", show.getEventNftId(), "txHashes",
+                txHashes);
 
         } catch (Exception e) {
             // 실패 시 MINTING → DRAFT로 복원 (재시도 가능하도록)
@@ -257,7 +262,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         }
     }
 
-    private BigInteger mintEventNft(Show show) throws Exception {
+    private BigInteger mintEventNft(Show show, List<String> txHashes) throws Exception {
         List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(show.getId());
         List<BigInteger> stakeholderTokenIds = stakeholders.stream()
             .map(s -> BigInteger.valueOf(s.getStakeholderNftId())).collect(Collectors.toList());
@@ -289,13 +294,14 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         show.setEventNftId(onChainEventId.longValue());
         showRepository.save(show);
 
+        txHashes.add(receipt.getTransactionHash());
         log.info("[공연 {}] EventNFT 발행 완료 — onChainEventId={}," + " txHash={}", show.getId(), onChainEventId,
             receipt.getTransactionHash());
 
         return onChainEventId;
     }
 
-    private void addSessionOnChain(Session session, BigInteger onChainEventId) throws Exception {
+    private void addSessionOnChain(Session session, BigInteger onChainEventId, List<String> txHashes) throws Exception {
 
         List<SessionSeat> seats = sessionSeatRepository.findBySessionId(session.getId());
         int ticketSupply = seats.size();
@@ -315,6 +321,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
             session.setOnChainSessionId(onChainSessionId.longValue());
             sessionRepository.save(session);
 
+            txHashes.add(receipt.getTransactionHash());
             log.info("[회차 {}] addSession 완료 — onChainSessionId={}", session.getId(), onChainSessionId);
         }
     }
@@ -343,7 +350,8 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         log.info("[공연 {}] 환불 정책 온체인 등록 완료", show.getId());
     }
 
-    private void batchMintTicketsForSession(Show show, Session session, BigInteger onChainEventId) throws Exception {
+    private void batchMintTicketsForSession(Show show, Session session, BigInteger onChainEventId,
+        List<String> txHashes) throws Exception {
 
         if (session.getOnChainSessionId() == null) {
             throw new BlockchainException("회차 " + session.getId() + "의 onChainSessionId가 없습니다");
@@ -413,6 +421,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
                 List<TicketNFT.BatchTicketMintedEventResponse> mintEvents = blockchainService.getTicketNFT()
                     .getBatchTicketMintedEvents(receipt);
 
+                txHashes.add(receipt.getTransactionHash());
                 if (!mintEvents.isEmpty()) {
                     BigInteger startTokenId = mintEvents.get(0).startTokenId;
 

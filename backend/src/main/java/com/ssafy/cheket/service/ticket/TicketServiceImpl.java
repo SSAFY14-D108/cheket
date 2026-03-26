@@ -139,9 +139,7 @@ public class TicketServiceImpl implements TicketService {
 
         // ③ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.PURCHASE).amount(0L)
-            .description("요청 접수 — 티켓 구매 대기 (userId=%d, showId=%d, sessionId=%d, seats=%d)".formatted(userId, showId,
-                sessionId, seats.size()))
-            .txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
+            .description("요청 접수 — 티켓 구매 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
         transactionRepository.save(transaction);
 
         log.info("[티켓 구매] PENDING 생성 — txId={}", transaction.getId());
@@ -349,9 +347,7 @@ public class TicketServiceImpl implements TicketService {
         // ========== ④ Transaction PENDING 생성 ==========
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.TRANSFER) // 양도 타입
             .amount(0L) // 무료 양도
-            .description("요청 접수 — 티켓 양도 대기 (ticketId=%d, senderUserId=%d, receiverUserId=%d)".formatted(ticketId,
-                senderUserId, receiver.getId()))
-            .txStatus(Transaction.TxStatus.PENDING).sellerId(senderUserId) // 보내는 사람
+            .description("요청 접수 — 티켓 양도 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(senderUserId) // 보내는 사람
             .buyerId(receiver.getId()) // 받는 사람
             .build();
         transactionRepository.save(transaction);
@@ -438,13 +434,11 @@ public class TicketServiceImpl implements TicketService {
 
         // ⑤ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CREATE)
-            .amount((long) resalePrice)
-            .description("요청 접수 — 리세일 등록 대기 (ticketId=%d, price=%d SSF, sellerUserId=%d)".formatted(ticketId,
-                resalePrice, userId))
-            .txStatus(Transaction.TxStatus.PENDING).sellerId(userId) // 등록하는
-                                                                     // 사람
-                                                                     // =
-                                                                     // 판매자
+            .amount((long) resalePrice).description("요청 접수 — 리세일 등록 대기").txStatus(Transaction.TxStatus.PENDING)
+            .sellerId(userId) // 등록하는
+                              // 사람
+                              // =
+                              // 판매자
             .build();
         transactionRepository.save(transaction);
 
