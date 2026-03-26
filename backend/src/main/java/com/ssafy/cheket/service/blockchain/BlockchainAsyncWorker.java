@@ -143,8 +143,7 @@ public class BlockchainAsyncWorker {
             // Transaction 금액 + 상태 업데이트
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
             tx.setAmount(totalPrice.longValue());
-            tx.setDescription("전자서명 처리 중 — SSF 결제 승인 (buyerUserId=%d, seats=%d, totalPrice=%d SSF)".formatted(userId,
-                seats.size(), totalPrice.longValue()));
+            tx.setDescription("전자서명 처리 중 — SSF 결제 승인");
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] Transaction 업데이트 — totalPrice={}", totalPrice);
 
@@ -180,8 +179,7 @@ public class BlockchainAsyncWorker {
             // Transaction 상태 업데이트
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
-            tx.setDescription("전파 완료 — SSF approve 확정, NFT 이전 준비 (approveTxHash=%s, onChainSessionId=%d)"
-                .formatted(approveTx.getTransactionHash(), onChainSessionIdValue));
+            tx.setDescription("블록 생성 대기 중 — NFT 이전 준비");
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] Transaction → SUBMITTED");
 
@@ -199,8 +197,7 @@ public class BlockchainAsyncWorker {
                 SessionSeat seat = seats.get(i);
                 BigInteger ticketNftId = BigInteger.valueOf(seat.getOnChainTicketNftId());
 
-                tx.setDescription("블록 생성 대기 중 — 티켓 NFT 소유권 이전 (%d/%d, sessionSeatId=%d, ticketNftId=%d)"
-                    .formatted(i + 1, seats.size(), seat.getId(), seat.getOnChainTicketNftId()));
+                tx.setDescription("블록 생성 대기 중 — 티켓 NFT 소유권 이전 (%d/%d)".formatted(i + 1, seats.size()));
                 transactionRepository.save(tx);
                 log.info("[티켓 구매 비동기] purchaseTicket 호출 — {}/{}, nftId={}", i + 1, seats.size(), ticketNftId);
 
@@ -217,11 +214,12 @@ public class BlockchainAsyncWorker {
                         break;
                     } catch (Exception retryErr) {
                         if (attempt < maxRetry) {
-                            log.warn("[티켓 구매 비동기] purchaseTicket 실패 {}/{}회, 2초 후 재시도 — nftId={}", attempt, maxRetry,
-                                ticketNftId);
+                            log.warn("[티켓 구매 비동기] purchaseTicket 실패 {}/{}회, 2초 후 재시도 — nftId={}, 원인: {}", attempt,
+                                maxRetry, ticketNftId, retryErr.getMessage());
                             Thread.sleep(2000);
                         } else {
-                            log.error("[티켓 구매 비동기] purchaseTicket {}회 모두 실패 — nftId={}", maxRetry, ticketNftId);
+                            log.error("[티켓 구매 비동기] purchaseTicket {}회 모두 실패 — nftId={}, 원인: {}", maxRetry, ticketNftId,
+                                retryErr.getMessage());
                         }
                     }
                 }
@@ -274,8 +272,7 @@ public class BlockchainAsyncWorker {
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(
                 receipt != null && receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 구매 완료 (buyerUserId=%d, seats=%d, amount=%d SSF, txHash=%s)".formatted(userId,
-                seats.size(), totalPrice.longValue(), lastTxHash));
+            tx.setDescription("블록체인 확정 — 구매 완료 (%d매)".formatted(seats.size()));
             transactionRepository.save(tx);
             log.info("[티켓 구매 비동기] 완료 — txId={}, {}매, {} SSF", txId, seats.size(), totalPrice);
 
@@ -345,8 +342,7 @@ public class BlockchainAsyncWorker {
             String encodedApprove = FunctionEncoder.encode(approveFunction);
 
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("전자서명 처리 중 — NFT 전송 승인 (ticketId=%d, nftId=%d, fromUserId=%d, toUserId=%d)"
-                .formatted(ticketId, onChainTicketNftId, senderUserId, receiverUserId));
+            tx.setDescription("전자서명 처리 중 — NFT 전송 승인");
             transactionRepository.save(tx);
             log.info("[양도 비동기] NFT approve 전송 중 — sender={}, Marketplace={}", senderAddress,
                 blockchainService.getMarketplace().getContractAddress());
@@ -363,8 +359,7 @@ public class BlockchainAsyncWorker {
             log.info("[양도 비동기] NFT approve 블록 확정 완료");
 
             // ========== ③ Transaction 상태 업데이트 ==========
-            tx.setDescription("블록 생성 대기 중 — NFT 소유권 이전 트랜잭션 전파 (ticketId=%d, nftId=%d, approveTxHash=%s)"
-                .formatted(ticketId, onChainTicketNftId, approveTx.getTransactionHash()));
+            tx.setDescription("블록 생성 대기 중 — NFT 소유권 이전 트랜잭션 전파");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
             transactionRepository.save(tx);
@@ -394,8 +389,7 @@ public class BlockchainAsyncWorker {
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 양도 완료 (ticketId=%d, nftId=%d, fromUserId=%d, toUserId=%d, txHash=%s)"
-                .formatted(ticketId, onChainTicketNftId, senderUserId, receiverUserId, txHash));
+            tx.setDescription("블록체인 확정 — 양도 완료");
             transactionRepository.save(tx);
 
             TicketTransfer ticketTransfer = TicketTransfer.builder().fromUserId(senderUserId).toUserId(receiverUserId)
@@ -480,8 +474,7 @@ public class BlockchainAsyncWorker {
 
             String settlementAddress = blockchainService.getSettlement().getContractAddress();
 
-            tx.setDescription("전자서명 처리 중 — NFT 환불 승인 (ticketId=%d, nftId=%d, userId=%d)".formatted(ticketId,
-                onChainTicketNftId, userId));
+            tx.setDescription("전자서명 처리 중 — NFT 환불 승인");
             transactionRepository.save(tx);
             log.info("[티켓 환불 비동기] NFT approve 전송 중 — Settlement={}", settlementAddress);
 
@@ -503,8 +496,7 @@ public class BlockchainAsyncWorker {
             // ========== ③ Settlement.refund() 호출 ==========
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
-            tx.setDescription("블록 생성 대기 중 — 티켓 환불 트랜잭션 전파 (ticketId=%d, nftId=%d, approveTxHash=%s)".formatted(ticketId,
-                onChainTicketNftId, approveTx.getTransactionHash()));
+            tx.setDescription("블록 생성 대기 중 — 티켓 환불 트랜잭션 전파");
             transactionRepository.save(tx);
             log.info("[티켓 환불 비동기] Transaction → SUBMITTED");
 
@@ -532,8 +524,7 @@ public class BlockchainAsyncWorker {
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(
                 refundReceipt.getBlockNumber() != null ? refundReceipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 환불 완료 (ticketId=%d, nftId=%d, refunded=%d SSF, txHash=%s)".formatted(ticketId,
-                onChainTicketNftId, refundedAmount, txHash));
+            tx.setDescription("블록체인 확정 — 환불 완료");
             transactionRepository.save(tx);
 
             ticketRepository.delete(ticket);
@@ -600,8 +591,7 @@ public class BlockchainAsyncWorker {
             for (int i = 0; i < stakeholders.size(); i++) {
                 Stakeholder stakeholder = stakeholders.get(i);
 
-                tx.setDescription("블록 확정 대기 — 이해관계자 등록 (%d/%d, stakeholderId=%d)".formatted(i + 1, stakeholders.size(),
-                    stakeholder.getId()));
+                tx.setDescription("블록 확정 대기 — 이해관계자 등록 (%d/%d)".formatted(i + 1, stakeholders.size()));
                 transactionRepository.save(tx);
 
                 // ========== ① 이해관계자 지갑 주소 조회 ==========
@@ -658,7 +648,7 @@ public class BlockchainAsyncWorker {
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(
                 receipt != null && receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 수익 분배 계약 등록 완료 (%d건, txHash=%s)".formatted(stakeholders.size(), lastTxHash));
+            tx.setDescription("블록체인 확정 — 수익 분배 계약 등록 완료 (%d명)".formatted(stakeholders.size()));
             transactionRepository.save(tx);
             log.info("[StakeholderNFT 발행 비동기] 완료 — txId={}, {}건", txId, stakeholders.size());
 
@@ -824,8 +814,7 @@ public class BlockchainAsyncWorker {
             String encodedApprove = FunctionEncoder.encode(approveFunction);
 
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("전자서명 처리 중 — NFT 예치 승인 (ticketId=%d, nftId=%d, sellerUserId=%d, price=%d SSF)"
-                .formatted(ticketId, onChainTicketNftId, userId, resalePrice));
+            tx.setDescription("전자서명 처리 중 — NFT 예치 승인");
             transactionRepository.save(tx);
             log.info("[리세일 등록 비동기] NFT approve 전송 중");
 
@@ -840,8 +829,7 @@ public class BlockchainAsyncWorker {
             log.info("[리세일 등록 비동기] NFT approve 블록 확정 완료");
 
             // ③ Escrow.createDeal() — 플랫폼 키로 서명
-            tx.setDescription("블록 생성 대기 중 — 리세일 등록 트랜잭션 전파 (ticketId=%d, approveTxHash=%s, deadline=%d)"
-                .formatted(ticketId, approveTx.getTransactionHash(), deadlineUnix));
+            tx.setDescription("블록 생성 대기 중 — 리세일 등록 트랜잭션 전파");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
             transactionRepository.save(tx);
@@ -879,8 +867,7 @@ public class BlockchainAsyncWorker {
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
-            tx.setDescription("블록체인 확정 — 리세일 등록 완료 (ticketId=%d, dealId=%s, price=%d SSF, txHash=%s)"
-                .formatted(ticketId, onChainDealId, resalePrice, txHash));
+            tx.setDescription("블록체인 확정 — 리세일 등록 완료");
             transactionRepository.save(tx);
 
             log.info("[리세일 등록 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
@@ -913,11 +900,10 @@ public class BlockchainAsyncWorker {
         try {
             // ① Transaction 상태 업데이트
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("블록체인 준비 중 — NFT 반환 대기 (ticketId=%d, dealId=%d)".formatted(ticketId, onChainDealId));
+            tx.setDescription("블록체인 준비 중 — NFT 반환 대기");
             transactionRepository.save(tx);
 
-            tx.setDescription(
-                "블록 생성 대기 중 — NFT 반환 트랜잭션 전파 (ticketId=%d, dealId=%d)".formatted(ticketId, onChainDealId));
+            tx.setDescription("블록 생성 대기 중 — NFT 반환 트랜잭션 전파");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             transactionRepository.save(tx);
             log.info("[리세일 취소 비동기] Transaction → SUBMITTED");
@@ -948,8 +934,7 @@ public class BlockchainAsyncWorker {
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
-            tx.setDescription(
-                "블록체인 확정 — 리세일 취소 완료 (ticketId=%d, dealId=%d, txHash=%s)".formatted(ticketId, onChainDealId, txHash));
+            tx.setDescription("블록체인 확정 — 리세일 취소 완료");
             transactionRepository.save(tx);
 
             log.info("[리세일 취소 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
@@ -1007,8 +992,7 @@ public class BlockchainAsyncWorker {
             String encodedApprove = FunctionEncoder.encode(approveFunction);
 
             Transaction tx = transactionRepository.findById(txId).orElseThrow();
-            tx.setDescription("전자서명 처리 중 — SSF 결제 승인 (buyerUserId=%d, dealId=%d, price=%d SSF)".formatted(buyerUserId,
-                onChainDealId, resalePrice));
+            tx.setDescription("전자서명 처리 중 — SSF 결제 승인");
             transactionRepository.save(tx);
             log.info("[리세일 구매 비동기] SSF approve 전송 중 — Escrow={}, resalePrice={}",
                 blockchainService.getEscrow().getContractAddress(), resalePrice);
@@ -1024,8 +1008,7 @@ public class BlockchainAsyncWorker {
             log.info("[리세일 구매 비동기] SSF approve 블록 확정 완료");
 
             // ③ Escrow.buyAndSettle() — 플랫폼 키로 서명
-            tx.setDescription("블록 생성 대기 중 — 리세일 구매 트랜잭션 전파 (dealId=%d, approveTxHash=%s)".formatted(onChainDealId,
-                approveTx.getTransactionHash()));
+            tx.setDescription("블록 생성 대기 중 — 리세일 구매 트랜잭션 전파");
             tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
             tx.setTxHash(approveTx.getTransactionHash());
             transactionRepository.save(tx);
@@ -1059,9 +1042,7 @@ public class BlockchainAsyncWorker {
             tx.setTxHash(txHash);
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
             tx.setBlockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
-            tx.setDescription(
-                "블록체인 확정 — 리세일 구매 완료 (ticketId=%d, dealId=%d, buyerUserId=%d, sellerUserId=%d, price=%d SSF, txHash=%s)"
-                    .formatted(ticketId, onChainDealId, buyerUserId, sellerUserId, resalePrice, txHash));
+            tx.setDescription("블록체인 확정 — 리세일 구매 완료");
             transactionRepository.save(tx);
 
             SessionSeat sessionSeat = sessionSeatRepository.findById(ticket.getSessionSeatId())

@@ -32,7 +32,7 @@ public interface ShowMintingService {
      * @param showId
      *            공연 ID
      */
-    void mintShowNfts(Long showId);
+    Map<String, Object> mintShowNfts(Long showId);
 
     /**
      * 예매 시작일이 내일 이하인 DRAFT 공연 일괄 민팅 (수동 API용)
