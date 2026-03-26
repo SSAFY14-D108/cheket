@@ -21,8 +21,20 @@ class MainActivity : ComponentActivity() {
             CheketQRTheme {
                 var isLoggedIn by remember { mutableStateOf(TokenStore.isLoggedIn) }
 
+                // TokenStore.clear() 호출 시 (토큰 만료 등) 자동으로 로그인 화면 전환
+                LaunchedEffect(Unit) {
+                    snapshotFlow { TokenStore.isLoggedIn }
+                        .collect { isLoggedIn = it }
+                }
+
                 if (isLoggedIn) {
-                    ScannerRoute(modifier = Modifier.fillMaxSize())
+                    ScannerRoute(
+                        modifier = Modifier.fillMaxSize(),
+                        onLogout = {
+                            TokenStore.clear()
+                            isLoggedIn = false
+                        },
+                    )
                 } else {
                     LoginScreen(
                         onLoginSuccess = { isLoggedIn = true },

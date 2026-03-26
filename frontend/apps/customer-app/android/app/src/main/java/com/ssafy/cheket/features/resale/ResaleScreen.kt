@@ -175,10 +175,9 @@ fun ResaleScreen(
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
-                
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 16.dp),
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             if (isSearchMode) {
                 ResaleSearchBar(
                     query = query,

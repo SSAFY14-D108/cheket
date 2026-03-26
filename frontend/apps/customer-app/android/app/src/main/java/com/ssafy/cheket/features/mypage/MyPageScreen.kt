@@ -296,7 +296,7 @@ private fun ProfileHero(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "MY PAGE",
+                        text = "마이페이지",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = TertiaryText,

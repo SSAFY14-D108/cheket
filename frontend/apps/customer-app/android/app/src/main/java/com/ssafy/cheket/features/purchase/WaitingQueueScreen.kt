@@ -71,6 +71,7 @@ fun WaitingQueueScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var totalEstimated by remember { mutableStateOf(FALLBACK_ESTIMATED_WAIT) } // 초기 총 대기시간 (프로그레스 바용)
     var showLeaveDialog by remember { mutableStateOf(false) }
+    var retryCount by remember { mutableIntStateOf(0) }
 
     val scope = rememberCoroutineScope()
 
@@ -100,8 +101,8 @@ fun WaitingQueueScreen(
         label = "progress",
     )
 
-    // 대기열 진입 API 호출
-    LaunchedEffect(Unit) {
+    // 대기열 진입 API 호출 (retryCount 변경 시 재실행)
+    LaunchedEffect(retryCount) {
         if (queueService == null || sessionId.isBlank()) {
             Log.w(TAG, "No queueService or sessionId, using mock mode")
             // Mock fallback
@@ -282,6 +283,7 @@ fun WaitingQueueScreen(
                             estimatedWaitSeconds = FALLBACK_ESTIMATED_WAIT
                             readyCountdown = 60
                             errorMessage = null
+                            retryCount++ // LaunchedEffect 재실행 → 대기열 재진입
                         },
                         onBack = onBack,
                     )

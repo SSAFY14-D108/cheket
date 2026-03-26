@@ -353,7 +353,7 @@ private fun ShowDetailContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Icon(Icons.Outlined.CalendarMonth, null, tint = V0IconGray, modifier = Modifier.size(16.dp))
-                            Text(show.date, fontSize = 14.sp, color = V0TextMuted)
+                            Text(com.ssafy.cheket.core.util.DateTimeUtils.formatDate(show.date), fontSize = 14.sp, color = V0TextMuted)
                         }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
