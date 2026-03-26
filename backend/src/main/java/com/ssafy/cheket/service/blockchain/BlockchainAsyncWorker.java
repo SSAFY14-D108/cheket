@@ -949,8 +949,13 @@ public class BlockchainAsyncWorker {
             log.info("[리세일 등록 비동기] createDeal 호출 — seller={}, nftId={}, price={}, deadline={}", sellerAddress,
                 onChainTicketNftId, resalePrice, deadlineUnix);
 
+            // Escrow.createDeal(seller, ticketId, ssfAmount, originalPrice, resaleCapBps,
+            // deadline)
+            long resaleCapBps = 11000L; // 110% (원가의 110%까지 허용, 기본값)
+
             TransactionReceipt receipt = blockchainService.getEscrow()
                 .createDeal(sellerAddress, BigInteger.valueOf(onChainTicketNftId), BigInteger.valueOf(resalePrice),
+                    BigInteger.valueOf(originalPrice), BigInteger.valueOf(resaleCapBps),
                     BigInteger.valueOf(deadlineUnix))
                 .send();
 
