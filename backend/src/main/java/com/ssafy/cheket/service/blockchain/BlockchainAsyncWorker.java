@@ -111,6 +111,7 @@ public class BlockchainAsyncWorker {
 
         // 좌석 다시 조회 (별도 트랜잭션이므로)
         List<SessionSeat> seats = sessionSeatRepository.findAllById(sessionSeatIds);
+        String buyerAddress = null;
 
         try {
             // ========== ① 사용자 지갑 로드 ==========
@@ -126,7 +127,7 @@ public class BlockchainAsyncWorker {
             Credentials buyerCredentials = WalletUtils.loadCredentials(keystorePassword,
                 new File(keystoreDirectory + "/" + wallet.getKeystoreFilename()));
 
-            String buyerAddress = wallet.getAddress();
+            buyerAddress = wallet.getAddress();
             log.info("[티켓 구매 비동기] 사용자 지갑 주소: {}", buyerAddress);
 
             // ========== ② 온체인에서 총 가격 조회 ==========
@@ -274,14 +275,64 @@ public class BlockchainAsyncWorker {
                 receipt != null && receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
             tx.setDescription("블록체인 확정 — 구매 완료 (%d매)".formatted(seats.size()));
             transactionRepository.save(tx);
+
+            // 온체인 검증 — 각 좌석의 NFT 소유자가 구매자인지 확인
+            for (SessionSeat seat : seats) {
+                if (seat.getOnChainTicketNftId() != null) {
+                    verifyAndSyncOwnership(seat.getOnChainTicketNftId(), buyerAddress, "구매");
+                }
+            }
+
             log.info("[티켓 구매 비동기] 완료 — txId={}, {}매, {} SSF", txId, seats.size(), totalPrice);
 
         } catch (BlockchainException e) {
             log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, e.getMessage());
+            // 온체인 확인 후 DB 동기화 시도
+            boolean anySynced = false;
+            if (buyerAddress != null) {
+                for (SessionSeat seat : seats) {
+                    if (seat.getOnChainTicketNftId() != null && seat.getStatus() == SeatStatus.PENDING_TX) {
+                        if (syncPurchaseWithOnChain(seat.getOnChainTicketNftId(), buyerAddress, seat, userId, txId)) {
+                            anySynced = true;
+                        }
+                    }
+                }
+            }
+            if (!anySynced) {
+                updateTransactionFailed(txId, e.getMessage());
+                restoreSeatsToAvailable(sessionSeatIds, txId);
+            } else {
+                // 온체인 동기화로 복구됨
+                Transaction tx = transactionRepository.findById(txId).orElse(null);
+                if (tx != null) {
+                    tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
+                    tx.setDescription("블록체인 확정 — 구매 완료 (온체인 동기화)");
+                    transactionRepository.save(tx);
+                }
+            }
         } catch (Exception e) {
             log.error("[티켓 구매 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "티켓 구매 실패 — " + e.getMessage());
+            boolean anySynced = false;
+            if (buyerAddress != null) {
+                for (SessionSeat seat : seats) {
+                    if (seat.getOnChainTicketNftId() != null && seat.getStatus() == SeatStatus.PENDING_TX) {
+                        if (syncPurchaseWithOnChain(seat.getOnChainTicketNftId(), buyerAddress, seat, userId, txId)) {
+                            anySynced = true;
+                        }
+                    }
+                }
+            }
+            if (!anySynced) {
+                updateTransactionFailed(txId, "티켓 구매 실패 — " + e.getMessage());
+                restoreSeatsToAvailable(sessionSeatIds, txId);
+            } else {
+                Transaction tx = transactionRepository.findById(txId).orElse(null);
+                if (tx != null) {
+                    tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
+                    tx.setDescription("블록체인 확정 — 구매 완료 (온체인 동기화)");
+                    transactionRepository.save(tx);
+                }
+            }
         }
     }
 
@@ -396,7 +447,8 @@ public class BlockchainAsyncWorker {
                 .ticketId(ticketId).txHash(txHash).build();
             ticketTransferRepository.save(ticketTransfer);
 
-            log.info("[양도 비동기] Transaction → CONFIRMED — txId={}", txId);
+            // 온체인 검증
+            verifyAndSyncOwnership(onChainTicketNftId, receiverAddress, "양도");
 
             log.info("[양도 비동기] 완료 — txId={}, ticketId={}, sender={} → receiver={}", txId, ticketId, senderUserId,
                 receiverUserId);
@@ -531,6 +583,9 @@ public class BlockchainAsyncWorker {
 
             sessionSeat.setStatus(SeatStatus.AVAILABLE);
             sessionSeatRepository.save(sessionSeat);
+
+            // 온체인 검증 — NFT가 플랫폼에 반환됐는지
+            verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getPlatformWalletAddress(), "환불");
 
             log.info("[티켓 환불 비동기] 완료 — txId={}, ticketId={}, refunded={} SSF", txId, ticketId, refundedAmount);
 
@@ -870,6 +925,9 @@ public class BlockchainAsyncWorker {
             tx.setDescription("블록체인 확정 — 리세일 등록 완료");
             transactionRepository.save(tx);
 
+            // 온체인 검증 — NFT가 Escrow에 예치됐는지
+            verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getEscrow().getContractAddress(), "리세일 등록");
+
             log.info("[리세일 등록 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
         } catch (BlockchainException e) {
@@ -936,6 +994,18 @@ public class BlockchainAsyncWorker {
             tx.setBlockNumber(receipt.getBlockNumber() != null ? receipt.getBlockNumber().longValue() : null);
             tx.setDescription("블록체인 확정 — 리세일 취소 완료");
             transactionRepository.save(tx);
+
+            // 온체인 검증 — NFT가 판매자에게 돌아왔는지
+            Ticket cancelTicket = ticketRepository.findById(ticketId).orElse(null);
+            if (cancelTicket != null && cancelTicket.getUserId() != null) {
+                User seller = userRepository.findByIdAndDeletedAtIsNull(cancelTicket.getUserId()).orElse(null);
+                if (seller != null) {
+                    Wallet sellerWallet = walletRepository.findById(seller.getWalletId()).orElse(null);
+                    if (sellerWallet != null) {
+                        verifyAndSyncOwnership(cancelTicket.getTicketNftId(), sellerWallet.getAddress(), "리세일 취소");
+                    }
+                }
+            }
 
             log.info("[리세일 취소 비동기] 완료 — txId={}, dealId={}", txId, onChainDealId);
 
@@ -1054,6 +1124,12 @@ public class BlockchainAsyncWorker {
             Show show = showRepository.findById(session.getShowId())
                 .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다."));
 
+            // 온체인 검증 — NFT가 구매자에게 이전됐는지
+            Ticket verifyTicket = ticketRepository.findById(ticketId).orElse(null);
+            if (verifyTicket != null && verifyTicket.getTicketNftId() != null) {
+                verifyAndSyncOwnership(verifyTicket.getTicketNftId(), buyerAddress, "리세일 구매");
+            }
+
             // 판매자 알림
             notificationService.sendResale(sellerUserId, show.getTitle());
 
@@ -1076,6 +1152,112 @@ public class BlockchainAsyncWorker {
     /**
      * Transaction → FAILED 업데이트 (공통)
      */
+    /**
+     * 온체인 NFT 소유자를 확인하고 불일치 시 DB를 온체인 기준으로 동기화
+     * 모든 온체인 작업(구매/양도/환불/리세일) 완료 또는 실패 후 호출
+     *
+     * @param nftId           온체인 TicketNFT ID
+     * @param expectedOwner   기대하는 소유자 지갑 주소
+     * @param operation       작업명 (로그용)
+     */
+    private void verifyAndSyncOwnership(Long nftId, String expectedOwner, String operation) {
+        try {
+            String actualOwner = blockchainService.getTicketNFT()
+                .ownerOf(BigInteger.valueOf(nftId)).send();
+
+            if (actualOwner.equalsIgnoreCase(expectedOwner)) {
+                log.info("[온체인 검증] {} — nftId={}, 소유자 일치 ✅", operation, nftId);
+            } else {
+                log.warn("[온체인 검증] {} — nftId={}, 소유자 불일치 ❌ 기대={}, 실제={} — DB 동기화 시도",
+                    operation, nftId, expectedOwner, actualOwner);
+
+                // 온체인 실제 소유자 기준으로 DB 동기화
+                syncTicketOwnerFromOnChain(nftId, actualOwner, operation);
+            }
+        } catch (Exception e) {
+            log.error("[온체인 검증] {} — nftId={}, 소유자 조회 실패", operation, nftId, e);
+        }
+    }
+
+    /**
+     * 온체인 소유자를 기준으로 DB 티켓 소유권 동기화
+     */
+    private void syncTicketOwnerFromOnChain(Long nftId, String actualOnChainOwner, String operation) {
+        try {
+            // 플랫폼 지갑이면 → 미판매 or 환불된 상태
+            if (actualOnChainOwner.equalsIgnoreCase(blockchainService.getPlatformWalletAddress())) {
+                log.info("[온체인 동기화] {} — nftId={}, 플랫폼 소유 확인 — 미판매/환불 상태", operation, nftId);
+                return;
+            }
+
+            // Escrow 소유면 → 리세일 예치 상태
+            if (actualOnChainOwner.equalsIgnoreCase(blockchainService.getEscrow().getContractAddress())) {
+                log.info("[온체인 동기화] {} — nftId={}, Escrow 소유 확인 — 리세일 예치 상태", operation, nftId);
+                return;
+            }
+
+            // 그 외 → 특정 사용자 소유. DB에서 해당 주소의 사용자 찾아서 소유권 매칭
+            Wallet ownerWallet = walletRepository.findByAddress(actualOnChainOwner).orElse(null);
+            if (ownerWallet == null) {
+                log.warn("[온체인 동기화] {} — nftId={}, 온체인 소유자 주소의 지갑을 DB에서 찾을 수 없음: {}",
+                    operation, nftId, actualOnChainOwner);
+                return;
+            }
+
+            // 지갑 → 사용자 찾기
+            User owner = userRepository.findByWalletId(ownerWallet.getId()).orElse(null);
+            if (owner == null) {
+                log.warn("[온체인 동기화] {} — nftId={}, 지갑의 사용자를 찾을 수 없음: walletId={}",
+                    operation, nftId, ownerWallet.getId());
+                return;
+            }
+
+            // 해당 nftId의 티켓 찾기
+            Ticket ticket = ticketRepository.findByTicketNftId(nftId).orElse(null);
+            if (ticket != null && !ticket.getUserId().equals(owner.getId())) {
+                log.warn("[온체인 동기화] {} — nftId={}, 티켓 소유자 변경: {} → {}",
+                    operation, nftId, ticket.getUserId(), owner.getId());
+                ticket.setUserId(owner.getId());
+                ticketRepository.save(ticket);
+            }
+        } catch (Exception e) {
+            log.error("[온체인 동기화] {} — nftId={}, 동기화 실패", operation, nftId, e);
+        }
+    }
+
+    /**
+     * 구매 실패 시 온체인 소유자를 확인하고 DB 동기화
+     * 온체인에서 이미 구매자 것이면 DB를 성공으로 처리
+     */
+    private boolean syncPurchaseWithOnChain(Long nftId, String buyerAddress, SessionSeat seat,
+                                            Long userId, Long txId) {
+        try {
+            String actualOwner = blockchainService.getTicketNFT()
+                .ownerOf(BigInteger.valueOf(nftId)).send();
+
+            if (actualOwner.equalsIgnoreCase(buyerAddress)) {
+                // 온체인에서는 이미 구매 성공 → DB 동기화
+                log.warn("[온체인 동기화] nftId={} — 온체인 구매 성공 확인, DB 동기화", nftId);
+                seat.setStatus(SeatStatus.SOLD);
+                sessionSeatRepository.save(seat);
+
+                Ticket ticket = Ticket.builder().userId(userId).sessionSeatId(seat.getId())
+                    .numbering(generateTicketNumber()).ticketNftId(seat.getOnChainTicketNftId())
+                    .resaleStatus(ResaleStatus.AVAILABLE).build();
+                ticketRepository.save(ticket);
+
+                log.info("[온체인 동기화] nftId={} — DB 동기화 완료 (SOLD + Ticket 생성)", nftId);
+                return true;
+            } else {
+                log.info("[온체인 동기화] nftId={} — 온체인 소유자={}, 구매 실패 확인", nftId, actualOwner);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("[온체인 동기화] nftId={} — 소유자 조회 실패", nftId, e);
+            return false;
+        }
+    }
+
     private void updateTransactionFailed(Long txId, String description) {
         try {
             Transaction failedTx = transactionRepository.findById(txId).orElseThrow();

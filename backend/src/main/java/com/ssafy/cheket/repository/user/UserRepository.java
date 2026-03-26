@@ -30,4 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 탈퇴하지 않은 유저만 ID로 조회 - 인증이 필요한 API에서 유저 존재 여부 확인 시 사용
     Optional<User> findByIdAndDeletedAtIsNull(Long id);
+
+    // 지갑 ID로 유저 조회 - 온체인 동기화 시 지갑 주소 → 사용자 매핑
+    Optional<User> findByWalletId(Long walletId);
 }
