@@ -114,10 +114,10 @@ fun TicketHistoryScreen(
                     }
                 }
 
-                uiState.visibleTickets.isEmpty() && uiState.errorMessage != null -> {
+                uiState.visibleTickets.isEmpty() && uiState.visibleErrorMessage != null -> {
                     EmptyState(
                         title = "티켓 내역을 불러오지 못했어요",
-                        description = uiState.errorMessage ?: "잠시 후 다시 시도해 주세요.",
+                        description = uiState.visibleErrorMessage ?: "잠시 후 다시 시도해 주세요.",
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -142,14 +142,6 @@ fun TicketHistoryScreen(
 
                 else -> {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        uiState.errorMessage?.let { message ->
-                            Text(
-                                text = message,
-                                fontSize = 12.sp,
-                                color = HistoryInactiveText,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            )
-                        }
 
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),

@@ -53,6 +53,14 @@ interface ShowService {
     @POST("api/v1/shows/search")
     suspend fun saveSearchKeyword(@Body request: SaveSearchKeywordRequest): ApiResponse<Unit>
 
+    /** 호스트 공연 상세 (계약 승인 화면용) */
+    @GET("api/v1/hosts/shows/{showId}")
+    suspend fun getHostShowDetail(@Path("showId") showId: Long): ApiResponse<HostShowDetailDto>
+
+    /** 계약 승인/거절 내역 조회 */
+    @GET("api/v1/hosts/shows/{showId}/contracts")
+    suspend fun getContractApprovals(@Path("showId") showId: Long): ApiResponse<List<ContractApprovalDto>>
+
     /** 계약 승인 */
     @POST("api/v1/shows/contracts/{showId}/approve")
     suspend fun approveContract(@Path("showId") showId: Long): ApiResponse<Unit>

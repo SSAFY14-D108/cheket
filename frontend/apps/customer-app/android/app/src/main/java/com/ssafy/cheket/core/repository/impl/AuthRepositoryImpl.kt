@@ -12,6 +12,7 @@ import com.ssafy.cheket.core.network.dto.LoginRequest
 import com.ssafy.cheket.core.network.dto.SignupRequest
 import com.ssafy.cheket.core.network.service.AuthService
 import com.ssafy.cheket.core.network.service.UserService
+import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ class AuthRepositoryImpl(
                     accessToken = response.data.accessToken,
                     refreshToken = response.data.refreshToken,
                 )
+                authDataStore.onLoginSuccess()
                 authDataStore.saveTokens(tokens)
                 Log.d(TAG, "login() success, tokens saved. Fetching user info...")
                 fetchAndSetCurrentUser()
@@ -122,6 +124,10 @@ class AuthRepositoryImpl(
         authDataStore.clear()
         _currentUser.value = null
         _isLoggedIn.value = false
+        // 캐시된 네비게이션 파라미터 정리
+        NavParams.clearPurchase()
+        NavParams.clearTransfer()
+        NavParams.clearSelectedTicket()
         AuthEventBus.sendEvent(AuthEvent.ForceLogout(AuthLogoutReason.USER_LOGOUT))
     }
 
@@ -130,6 +136,7 @@ class AuthRepositoryImpl(
             val response = userService.getUserInfo()
             Log.d(TAG, "fetchAndSetCurrentUser() statusCode=${response.httpStatusCode}")
             response.data?.let { dto ->
+                authDataStore.saveUserId(dto.userId)
                 _currentUser.value = User(
                     id = dto.userId.toString(),
                     name = dto.username,

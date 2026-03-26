@@ -624,7 +624,7 @@ private fun TicketBackFace(ticket: Ticket) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.2f)))
             Spacer(Modifier.height(12.dp))
 
-            BackInfoRow(label = "DATE", value = ticket.showDate.split(" ").firstOrNull() ?: ticket.showDate)
+            BackInfoRow(label = "DATE", value = com.ssafy.cheket.core.util.DateTimeUtils.formatShowDate(ticket.showDate))
             Spacer(Modifier.height(8.dp))
             BackInfoRow(label = "VENUE", value = ticket.venue)
 

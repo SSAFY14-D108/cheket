@@ -2,6 +2,8 @@
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,7 +45,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +72,7 @@ import com.ssafy.cheket.core.model.OpenScheduleItem
 import com.ssafy.cheket.core.model.RankingItem
 import com.ssafy.cheket.core.model.ResaleItem
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
+import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.Black
 import com.ssafy.cheket.ui.theme.Primary
@@ -92,10 +98,12 @@ fun HomeScreen(
     onShowClick: (String) -> Unit = {},
     onMyPage: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    onOpenSoon: () -> Unit = {},
     onSeatMapTest: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var isRefreshing by remember { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -124,11 +132,20 @@ fun HomeScreen(
         },
         containerColor = V0Background,
     ) { innerPadding ->
-        LazyColumn(
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.refresh()
+                isRefreshing = false
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .background(V0Background)
                 .padding(innerPadding),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
         ) {
             item {
                 HeroBanner(
@@ -154,6 +171,7 @@ fun HomeScreen(
                     OpenScheduleSection(
                         items = uiState.openSchedule,
                         onItemClick = onShowClick,
+                        onMore = onOpenSoon,
                     )
                 }
             }
@@ -177,6 +195,7 @@ fun HomeScreen(
                 }
             }
         }
+        } // PullToRefreshBox
     }
 }
 
@@ -207,6 +226,20 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
             .fillMaxWidth()
             .aspectRatio(4f / 3f),
     ) {
+        // 좌측 상단 고정 라벨
+        Text(
+            text = "AI가 추천한 공연",
+            color = White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 16.dp, top = 14.dp)
+                .background(Black.copy(alpha = 0.4f), RoundedCornerShape(50))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+                .zIndex(1f),
+        )
+
         HorizontalPager(state = pagerState) { page ->
             val slide = slides[page]
             Box(
@@ -350,14 +383,8 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(items.take(5)) { item ->
-            val rankBg = when (item.rank) {
-                1 -> Color(0xFFEAB308)
-                2 -> Color(0xFF9CA3AF)
-                3 -> Color(0xFFB45309)
-                else -> Color(0xFF374151)
-            }
-
+        itemsIndexed(items.take(5)) { index, item ->
+            val rank = index + 1
             Column(
                 modifier = Modifier
                     .width(128.dp)
@@ -377,16 +404,45 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFFF3F4F6)),
                     )
+                    // 등수 배지
                     Box(
-                        Modifier
-                            .padding(8.dp)
+                        modifier = Modifier
+                            .padding(6.dp)
                             .size(24.dp)
-                            .clip(CircleShape)
-                            .background(rankBg)
-                            .align(Alignment.TopStart),
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(
+                                run {
+                                    val alpha = if (rank == 1) 1f else 0.6f
+                                    androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFFE8B4CB).copy(alpha = alpha),
+                                            Color(0xFFCDB4E8).copy(alpha = alpha),
+                                            Color(0xFFB4E8D4).copy(alpha = alpha),
+                                            Color(0xFFABFEFF).copy(alpha = alpha),
+                                        )
+                                    )
+                                }
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("${item.rank}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = White)
+                        // 숫자 stroke 효과: 뒤에 테두리, 앞에 흰색
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "$rank",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF2D1A4E),
+                                style = androidx.compose.ui.text.TextStyle(
+                                    drawStyle = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f),
+                                ),
+                            )
+                            Text(
+                                text = "$rank",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White,
+                            )
+                        }
                     }
                 }
                 Text(
@@ -394,10 +450,10 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = V0Gray900,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp,
-                    modifier = Modifier.height(32.dp),
+                    modifier = Modifier.height(18.dp),
                 )
                 Text(
                     text = item.venue,
@@ -415,12 +471,13 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
 private fun OpenScheduleSection(
     items: List<OpenScheduleItem>,
     onItemClick: (String) -> Unit,
+    onMore: () -> Unit = {},
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val cardWidth = minOf((screenWidth * 82 / 100), 320).dp
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "오픈 예정", onMore = {})
+        HomeSectionHeader(title = "오픈 예정", onMore = onMore)
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -463,7 +520,7 @@ private fun OpenScheduleSection(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = V0Gray900,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             lineHeight = 18.sp,
                             modifier = Modifier.padding(top = 4.dp),
@@ -591,7 +648,7 @@ private fun LikedShowsSection(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         lineHeight = 16.sp,
-                        modifier = Modifier.height(32.dp),
+                        modifier = Modifier.heightIn(min = 34.dp),
                     )
                     Text(
                         text = show.venue,
@@ -711,13 +768,13 @@ private fun ResaleDiscountSection(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
-                                text = "%,d CTK".format(item.originalPrice),
+                                text = "%,d SSF".format(item.originalPrice),
                                 fontSize = 12.sp,
                                 color = V0TextSub,
                                 textDecoration = TextDecoration.LineThrough,
                             )
                             Text(
-                                text = "%,d CTK".format(item.resalePrice),
+                                text = "%,d SSF".format(item.resalePrice),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = V0Red500,

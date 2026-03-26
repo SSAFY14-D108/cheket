@@ -126,6 +126,7 @@ fun FindAccountScreen(
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
+                
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),

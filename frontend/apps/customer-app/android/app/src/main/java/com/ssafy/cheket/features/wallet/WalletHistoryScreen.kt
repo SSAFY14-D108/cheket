@@ -1,6 +1,7 @@
 package com.ssafy.cheket.features.wallet
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,10 +10,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
 import java.text.NumberFormat
@@ -41,9 +44,7 @@ fun WalletHistoryScreen(
             AppHeader(
                 title = "거래 내역",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.WALLET_HISTORY)
-                },
+                helpTutorialId = TutorialId.WALLET_HISTORY,
             )
         },
     ) { innerPadding ->
@@ -126,59 +127,93 @@ fun WalletHistoryScreen(
 @Composable
 private fun HistoryTxItem(tx: TxUiItem) {
     val isIncome = tx.amount > 0
+    val isFailed = tx.txStatus == "FAILED"
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.KOREA) }
+    var expanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(if (isIncome) PrimaryLight else Danger.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center,
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    if (isIncome) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
-                    contentDescription = null,
-                    tint = if (isIncome) Primary else Danger,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    tx.description,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = OnBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(tx.typeLabel, fontSize = 11.sp, color = MutedForeground)
-                    Text(tx.timeLabel, fontSize = 11.sp, color = SubText)
+                // 아이콘
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                isFailed -> Danger.copy(alpha = 0.1f)
+                                isIncome -> PrimaryLight
+                                else -> Danger.copy(alpha = 0.1f)
+                            }
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        when {
+                            isFailed -> Icons.Filled.Close
+                            isIncome -> Icons.Filled.ArrowDownward
+                            else -> Icons.Filled.ArrowUpward
+                        },
+                        contentDescription = null,
+                        tint = when {
+                            isFailed -> Danger
+                            isIncome -> Primary
+                            else -> Danger
+                        },
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
-            }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    "${if (isIncome) "+" else ""}${numberFormat.format(tx.amount)} CTK",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isIncome) Primary else Danger,
-                )
+                Spacer(Modifier.width(12.dp))
+
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        tx.description,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isFailed) MutedForeground else OnBackground,
+                        maxLines = if (expanded) Int.MAX_VALUE else 1,
+                        overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(tx.typeLabel, fontSize = 11.sp, color = MutedForeground)
+                        if (isFailed) {
+                            Text("실패", fontSize = 11.sp, color = Danger, fontWeight = FontWeight.SemiBold)
+                        }
+                        Text(tx.timeLabel, fontSize = 11.sp, color = SubText)
+                    }
+                }
+
+                // 금액 — FAILED이면 표시 안 함
+                if (!isFailed) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (tx.amount != 0L) {
+                            Text(
+                                "${if (isIncome) "+" else ""}${numberFormat.format(tx.amount)} SSF",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isIncome) Primary else Danger,
+                            )
+                        } else {
+                            Text(
+                                "-",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MutedForeground,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

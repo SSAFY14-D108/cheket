@@ -54,7 +54,6 @@ import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.BorderColor
@@ -88,9 +87,7 @@ fun TransferScreen(
             AppHeader(
                 title = "티켓 양도",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.TRANSFER)
-                },
+                helpTutorialId = TutorialId.TRANSFER,
             )
         },
         containerColor = Background,
@@ -99,6 +96,7 @@ fun TransferScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),

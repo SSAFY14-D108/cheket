@@ -236,9 +236,9 @@ object MockDataSource {
     // ── Wallet / TX mock data ──
 
     val mockWalletTxs = listOf(
-        WalletTx("wtx_001", WalletTxType.CHARGE, "CTK 충전", 5000, 7400, System.currentTimeMillis() - 86400000 * 30),
+        WalletTx("wtx_001", WalletTxType.CHARGE, "SSF 충전", 5000, 7400, System.currentTimeMillis() - 86400000 * 30),
         WalletTx("wtx_002", WalletTxType.PURCHASE, "AESPA WORLD TOUR 2025 - R석", -140000, 2400, System.currentTimeMillis() - 86400000 * 20),
-        WalletTx("wtx_003", WalletTxType.CHARGE, "CTK 충전", 3000, 142400, System.currentTimeMillis() - 86400000 * 15),
+        WalletTx("wtx_003", WalletTxType.CHARGE, "SSF 충전", 3000, 142400, System.currentTimeMillis() - 86400000 * 15),
         WalletTx("wtx_004", WalletTxType.RESALE_SELL, "METALLICA FLOOR - 리세일 수익", 145000, 5400, System.currentTimeMillis() - 86400000 * 10),
         WalletTx("wtx_005", WalletTxType.PURCHASE, "ULTRA KOREA 2025 - VIP", -300000, 2400, System.currentTimeMillis() - 86400000 * 5),
     )
@@ -762,6 +762,7 @@ object MockDataSource {
         }
 
         // 각 구역의 convex hull → SectionBounds
+        // pad: 구역 경계 여백 (원래 크기)
         val pad = SEAT_RADIUS + 5f
         val sectionBounds = mutableMapOf<Long, SectionBounds>()
         for (section in sections) {
@@ -828,7 +829,7 @@ object MockDataSource {
     // 캔버스 상수 (SeatMapScreen과 동일)
     private const val CANVAS_W = 1000f
     private const val SEAT_RADIUS = 10f
-    private const val SEAT_GAP = 4f
+    private const val SEAT_GAP = 12f  // 좌석 간 간격 확대 (4f → 12f)
 
     fun getResaleGrouped(): List<ResaleGroupItem> =
         mockResaleItems.groupBy { it.showId }.map { (showId, items) ->

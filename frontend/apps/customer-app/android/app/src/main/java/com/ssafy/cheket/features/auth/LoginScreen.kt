@@ -74,6 +74,7 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
+            
             .verticalScroll(rememberScrollState()),
     ) {
         Box(
@@ -160,7 +161,7 @@ fun LoginScreen(
                             Box(modifier = Modifier.weight(1f)) {
                                 if (uiState.id.isEmpty()) {
                                     Text(
-                                        text = "아이디",
+                                        text = "이메일",
                                         fontSize = 14.sp,
                                         color = LoginPlaceholderTint,
                                     )
@@ -260,7 +261,19 @@ fun LoginScreen(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Text(
+                    text = "아이디 찾기",
+                    fontSize = 13.sp,
+                    color = MutedForeground,
+                    modifier = Modifier.clickable { onFindAccount() },
+                )
+                Text(
+                    text = "  |  ",
+                    fontSize = 13.sp,
+                    color = MutedForeground,
+                )
                 Text(
                     text = "비밀번호 찾기",
                     fontSize = 13.sp,
@@ -295,17 +308,6 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "아이디 찾기",
-                    fontSize = 14.sp,
-                    color = MutedForeground,
-                    modifier = Modifier.clickable { onFindAccount() },
-                )
-                Text(
-                    text = "  |  ",
-                    fontSize = 14.sp,
-                    color = MutedForeground,
-                )
                 Text(
                     text = "회원가입",
                     fontSize = 14.sp,

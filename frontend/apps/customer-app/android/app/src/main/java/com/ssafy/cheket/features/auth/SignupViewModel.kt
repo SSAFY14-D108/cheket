@@ -173,7 +173,7 @@ class SignupViewModel(
         val newErrors = mutableMapOf<String, String>()
         if (state.password.length < 6) newErrors["password"] = "비밀번호는 6자 이상이어야 합니다."
         if (state.password != state.passwordConfirm) newErrors["passwordConfirm"] = "비밀번호가 일치하지 않습니다."
-        if (!state.agreedAll) newErrors["agreed"] = "약관에 동의해주세요."
+        // 약관 동의 UI 제거됨 — agreedAll 검사 생략
         if (newErrors.isNotEmpty()) {
             Log.w(TAG, "signup() validation failed: ${newErrors.keys}")
             _uiState.update { it.copy(errors = newErrors) }

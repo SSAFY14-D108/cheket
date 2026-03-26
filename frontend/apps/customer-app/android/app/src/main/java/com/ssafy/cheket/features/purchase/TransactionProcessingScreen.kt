@@ -38,14 +38,14 @@ import java.util.Locale
 
 private const val TAG = "TxProcessingScreen"
 
-// v0 colors
-private val V0Fg = Color(0xFF111111)
-private val V0Muted = Color(0xFF6B7280)
+// 앱 테마 통일 색상
+private val V0Fg = OnBackground
+private val V0Muted = MutedForeground
 private val V0GradientBg = Background
-private val ProgressBlue = Color(0xFF3B82F6)
+private val ProgressActive = Primary           // 진행 중: Primary 그린
 private val ProgressTrack = Color(0xFFE5E7EB)
-private val ConfirmedGreen = Color(0xFF4B6CB7)
-private val FailedRed = Color(0xFFF87171)
+private val ConfirmedGreen = Primary           // 완료: Primary 그린
+private val FailedRed = Danger                 // 실패: Danger 레드
 
 /**
  * 블록체인 TX 상태:
@@ -120,8 +120,9 @@ fun TransactionProcessingScreen(
                     }
                     "FAILED" -> {
                         currentStatus = TxStatus.FAILED
-                        errorMessage = if (!desc.isNullOrBlank()) desc
-                        else "블록체인 처리에 실패했습니다"
+                        errorMessage = description
+                            ?: if (!desc.isNullOrBlank()) desc
+                            else "블록체인 처리에 실패했습니다"
                     }
                 }
             } catch (e: Exception) {
@@ -134,7 +135,7 @@ fun TransactionProcessingScreen(
     // Auto-navigate on CONFIRMED
     LaunchedEffect(currentStatus) {
         if (currentStatus == TxStatus.CONFIRMED) {
-            delay(2000L)
+            delay(5000L)
             onComplete()
         } else if (currentStatus == TxStatus.FAILED) {
             // FAILED는 자동 이동하지 않음 — 사용자가 직접 선택
@@ -261,7 +262,7 @@ private fun ProcessingContent(
                     style = Stroke(width = stroke, cap = StrokeCap.Round),
                 )
                 drawArc(
-                    color = ProgressBlue,
+                    color = ProgressActive,
                     startAngle = -90f,
                     sweepAngle = progress * 270f,
                     useCenter = false,
@@ -286,13 +287,9 @@ private fun ProcessingContent(
             }
         }
 
-        // 메인 상태 텍스트 — description 우선, 없으면 status 기반 매핑
+        // 메인 상태 텍스트 — description 매핑 우선, 없으면 status 기반 매핑
         Text(
-            text = description ?: when (status) {
-                TxStatus.PENDING -> "SSF 승인 처리 중..."
-                TxStatus.SUBMITTED -> "블록체인에 기록 중..."
-                else -> ""
-            },
+            text = mapTxDescription(description, status),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = V0Fg,
@@ -348,7 +345,7 @@ private fun ProcessingContent(
     ) {
         if (txAmount != null && txAmount > 0) {
             Text(
-                text = "결제 금액: ${formatAmount(txAmount)} CTK",
+                text = "결제 금액: ${formatAmount(txAmount)} SSF",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = V0Fg,
@@ -423,7 +420,7 @@ private fun ConfirmedContent(
         }
 
         if (txAmount != null && txAmount > 0) {
-            TxInfoRow("결제 금액", "${formatAmount(txAmount)} CTK")
+            TxInfoRow("결제 금액", "${formatAmount(txAmount)} SSF")
         }
     }
 
@@ -547,7 +544,7 @@ private fun StatusStepItem(
                 .background(
                     when {
                         isCompleted -> ConfirmedGreen
-                        isActive -> ProgressBlue
+                        isActive -> ProgressActive
                         else -> ProgressTrack
                     }
                 ),
@@ -593,7 +590,7 @@ private fun StatusStepItem(
         if (isCompleted) {
             Text("완료", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ConfirmedGreen)
         } else if (isActive) {
-            Text("처리 중", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ProgressBlue)
+            Text("처리 중", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ProgressActive)
         }
     }
 }
@@ -632,3 +629,27 @@ private fun txTypeLabel(type: String): String = when (type) {
 
 private fun formatAmount(amount: Long): String =
     NumberFormat.getNumberInstance(Locale.KOREA).format(amount)
+
+/**
+ * API에서 내려오는 description 원문을 사용자 친화적 메시지로 매핑.
+ * - 한국어 텍스트(구매 중, 구매 완료, 실패)는 그대로 표시
+ * - "승인" 포함 → "SSF 승인 처리 중..."
+ * - null/blank → status 기반 폴백
+ */
+private fun mapTxDescription(description: String?, status: TxStatus): String {
+    if (description.isNullOrBlank()) {
+        return when (status) {
+            TxStatus.PENDING -> "SSF 승인 처리 중..."
+            TxStatus.SUBMITTED -> "블록체인에 기록 중..."
+            TxStatus.CONFIRMED -> "처리 완료"
+            TxStatus.FAILED -> "처리 실패"
+        }
+    }
+    return when {
+        description.contains("구매 중") -> description
+        description.contains("구매 완료") -> description
+        description.contains("실패") -> description
+        description.contains("승인") -> "SSF 승인 처리 중..."
+        else -> description
+    }
+}

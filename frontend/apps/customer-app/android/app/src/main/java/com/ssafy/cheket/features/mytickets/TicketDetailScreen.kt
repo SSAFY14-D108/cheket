@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,7 +24,6 @@ import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.outlined.ConfirmationNumber
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -54,6 +55,8 @@ import com.ssafy.cheket.core.datasource.mock.MockDataSource
 import com.ssafy.cheket.core.model.TicketStatus
 import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
+import com.ssafy.cheket.core.ui.component.CheketAlertDialog
+import com.ssafy.cheket.core.ui.component.CheketDialog
 import com.ssafy.cheket.core.ui.component.TicketStatusBadge
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.BorderColor
@@ -75,7 +78,7 @@ fun TicketDetailScreen(
     onTransfer: (String) -> Unit,
     onResaleCreate: (String) -> Unit,
     onResaleCancelRequested: (Long) -> Unit,
-    onRefundSuccess: () -> Unit,
+    onRefundSuccess: (txId: Long?) -> Unit,
     onBack: () -> Unit,
     refundViewModel: TicketRefundViewModel = viewModel(factory = TicketRefundViewModel.Factory),
     resaleCancelViewModel: ResaleCancelViewModel = viewModel(factory = ResaleCancelViewModel.Factory),
@@ -94,6 +97,7 @@ fun TicketDetailScreen(
     Scaffold(
         topBar = { AppHeader(title = "티켓 상세", onBack = onBack) },
         containerColor = Background,
+        contentWindowInsets = WindowInsets(0),
     ) { innerPadding ->
         if (ticket == null) {
             Box(
@@ -112,106 +116,58 @@ fun TicketDetailScreen(
         }
 
         if (showRefundDialog) {
-            AlertDialog(
-                onDismissRequest = { showRefundDialog = false },
-                title = { Text("티켓 환불") },
-                text = { Text("정말 환불하시겠어요? 환불 후에는 되돌릴 수 없습니다.") },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showRefundDialog = false
-                            refundViewModel.refundTicket(
-                                ticketId = ticket.id,
-                                onSuccess = onRefundSuccess,
-                                onFailure = { message -> refundErrorMessage = message },
-                            )
-                        },
-                        enabled = !refundUiState.isRefunding,
-                    ) {
-                        if (refundUiState.isRefunding) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = White,
-                            )
-                        } else {
-                            Text("환불하기")
-                        }
-                    }
+            CheketDialog(
+                title = "티켓 환불",
+                message = "정말 환불하시겠어요? 환불 후에는 되돌릴 수 없습니다.",
+                confirmText = "환불하기",
+                dismissText = "취소",
+                onConfirm = {
+                    showRefundDialog = false
+                    refundViewModel.refundTicket(
+                        ticketId = ticket.id,
+                        onSuccess = { txId -> onRefundSuccess(txId) },
+                        onFailure = { message -> refundErrorMessage = message },
+                    )
                 },
-                dismissButton = {
-                    OutlinedButton(
-                        onClick = { showRefundDialog = false },
-                        enabled = !refundUiState.isRefunding,
-                    ) {
-                        Text("취소")
-                    }
-                },
+                onDismiss = { showRefundDialog = false },
+                isDanger = true,
             )
         }
 
         if (showResaleCancelDialog) {
-            AlertDialog(
-                onDismissRequest = { showResaleCancelDialog = false },
-                title = { Text("판매 등록 취소") },
-                text = { Text("판매 등록을 취소하시겠어요? 블록체인 처리 후 다시 보유중 상태로 돌아옵니다.") },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showResaleCancelDialog = false
-                            resaleCancelViewModel.cancelResale(
-                                ticketId = ticket.id,
-                                onSuccess = onResaleCancelRequested,
-                                onFailure = { message -> resaleCancelErrorMessage = message },
-                            )
-                        },
-                        enabled = !resaleCancelUiState.isCancelling,
-                    ) {
-                        if (resaleCancelUiState.isCancelling) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = White,
-                            )
-                        } else {
-                            Text("취소 요청하기")
-                        }
-                    }
+            CheketDialog(
+                title = "판매 등록 취소",
+                message = "판매 등록을 취소하시겠어요? 블록체인 처리 후 다시 보유중 상태로 돌아옵니다.",
+                confirmText = "취소 요청하기",
+                dismissText = "닫기",
+                onConfirm = {
+                    showResaleCancelDialog = false
+                    resaleCancelViewModel.cancelResale(
+                        ticketId = ticket.id,
+                        onSuccess = onResaleCancelRequested,
+                        onFailure = { message -> resaleCancelErrorMessage = message },
+                    )
                 },
-                dismissButton = {
-                    OutlinedButton(
-                        onClick = { showResaleCancelDialog = false },
-                        enabled = !resaleCancelUiState.isCancelling,
-                    ) {
-                        Text("닫기")
-                    }
-                },
+                onDismiss = { showResaleCancelDialog = false },
+                isDanger = true,
             )
         }
 
         refundErrorMessage?.let { message ->
-            AlertDialog(
-                onDismissRequest = { refundErrorMessage = null },
-                title = { Text("환불 실패") },
-                text = { Text(message) },
-                confirmButton = {
-                    Button(onClick = { refundErrorMessage = null }) {
-                        Text("확인")
-                    }
-                },
+            CheketAlertDialog(
+                title = "환불 실패",
+                message = message,
+                confirmText = "확인",
+                onConfirm = { refundErrorMessage = null },
             )
         }
 
         resaleCancelErrorMessage?.let { message ->
-            AlertDialog(
-                onDismissRequest = { resaleCancelErrorMessage = null },
-                title = { Text("판매 등록 취소 실패") },
-                text = { Text(message) },
-                confirmButton = {
-                    Button(onClick = { resaleCancelErrorMessage = null }) {
-                        Text("확인")
-                    }
-                },
+            CheketAlertDialog(
+                title = "판매 등록 취소 실패",
+                message = message,
+                confirmText = "확인",
+                onConfirm = { resaleCancelErrorMessage = null },
             )
         }
 
@@ -263,7 +219,7 @@ fun TicketDetailScreen(
 
                     HorizontalDivider(color = BorderColor)
 
-                    InfoRow(label = "공연일시", value = ticket.showDate)
+                    InfoRow(label = "공연일시", value = com.ssafy.cheket.core.util.DateTimeUtils.formatShowDateTime(ticket.showDate))
                     InfoRow(label = "장소", value = ticket.venue)
                     InfoRow(label = "좌석", value = ticket.seatLabel)
                     InfoRow(label = "등급", value = ticket.grade)
@@ -495,5 +451,5 @@ private fun DisabledActionButton(text: String) {
 
 private fun formatPrice(price: Int): String {
     val format = NumberFormat.getNumberInstance(Locale.KOREA)
-    return "${format.format(price)} CTK"
+    return "${format.format(price)} SSF"
 }

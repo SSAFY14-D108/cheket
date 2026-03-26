@@ -3,6 +3,8 @@
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -262,26 +264,11 @@ private fun ShowDetailContent(
                     AsyncImage(
                         model = show.poster,
                         contentDescription = show.name,
-                        contentScale = ContentScale.Fit,
-                        alignment = Alignment.TopCenter,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(16.dp)),
-                    )
-                    // 하단 그라데이션: 이미지 아래 빈 공간을 배경색으로 자연스럽게 채움
-                    Box(
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(0.4f)
-                            .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        V0Background,
-                                    ),
-                                ),
-                            ),
+                            .aspectRatio(144f / 224f)
+                            .clip(RoundedCornerShape(16.dp)),
                     )
                 }
 
@@ -302,7 +289,7 @@ private fun ShowDetailContent(
                             imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = if (isLiked) "찜 해제" else "찜하기",
                             tint = if (isLiked) Danger else White,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(26.dp),
                         )
                     }
                     // count badge: bg-[#9aa4b2] (gray, NOT green)
@@ -412,7 +399,7 @@ private fun ShowDetailContent(
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        show.grades.forEach { grade ->
+                        show.grades.distinctBy { it.name to it.price }.forEach { grade ->
                             GradeRow(grade = grade, numberFormat = numberFormat)
                         }
                     }
@@ -504,7 +491,7 @@ private fun GradeRow(
         }
         // price: text-sm font-bold text-[#111111]
         Text(
-            text = "${numberFormat.format(grade.price)} CTK",
+            text = "${numberFormat.format(grade.price)} SSF",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = V0TextPrimary,

@@ -12,6 +12,9 @@ data class TransactionDto(
     @SerializedName("type") val type: String,
     @SerializedName("amount") val amount: Long,
     @SerializedName("description") val description: String?,
+    @SerializedName("txStatus") val txStatus: String? = null,      // PENDING, SUBMITTED, CONFIRMED, FAILED
+    @SerializedName("txHash") val txHash: String? = null,
+    @SerializedName("blockNumber") val blockNumber: Long? = null,
     @SerializedName("sellerId") val sellerId: Long? = null,
     @SerializedName("buyerId") val buyerId: Long? = null,
     @SerializedName("createdAt") val createdAt: String,

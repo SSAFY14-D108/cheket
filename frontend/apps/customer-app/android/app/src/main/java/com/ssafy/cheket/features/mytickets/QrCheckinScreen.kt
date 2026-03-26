@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.cheket.core.ui.component.AppHeader
-import com.ssafy.cheket.core.ui.component.TutorialHelpButton
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.BorderColor
@@ -79,9 +78,7 @@ fun QrCheckinScreen(
             AppHeader(
                 title = "QR 코드 보기",
                 onBack = onBack,
-                actions = {
-                    TutorialHelpButton(tutorialId = TutorialId.QR_CHECKIN)
-                },
+                helpTutorialId = TutorialId.QR_CHECKIN,
             )
         },
         containerColor = Background,
@@ -163,12 +160,12 @@ fun QrCheckinScreen(
                         if (uiState.qrData != null) {
                             TokenMatrixCode(
                                 payload = uiState.qrData ?: ticketId,
-                                modifier = Modifier.size(160.dp),
+                                modifier = Modifier.size(140.dp),
                             )
                         } else {
                             Box(
                                 modifier = Modifier
-                                    .size(160.dp)
+                                    .size(140.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(CardBg),
                                 contentAlignment = Alignment.Center,
@@ -294,7 +291,7 @@ private fun TokenMatrixCode(
     }
 
     if (matrix != null) {
-        Canvas(modifier = modifier.clip(RoundedCornerShape(8.dp)).background(White)) {
+        Canvas(modifier = modifier.clip(RoundedCornerShape(12.dp)).background(White)) {
             val padding = 8.dp.toPx()
             val drawableArea = size.minDimension - padding * 2
             val cellWidth = drawableArea / matrix.width

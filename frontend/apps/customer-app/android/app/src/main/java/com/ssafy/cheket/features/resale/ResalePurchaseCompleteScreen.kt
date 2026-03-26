@@ -157,11 +157,11 @@ fun ResalePurchaseCompleteScreen(
 
                     HorizontalDivider(color = BorderColor)
 
-                    PaymentRow("정가", "%,d CTK".format(originalPrice))
+                    PaymentRow("정가", "%,d SSF".format(originalPrice))
                     if (discount != 0) {
                         PaymentRow(
                             "할인",
-                            "${if (discount > 0) "-" else "+"}%,d CTK".format(kotlin.math.abs(discount)),
+                            "${if (discount > 0) "-" else "+"}%,d SSF".format(kotlin.math.abs(discount)),
                             valueColor = if (discount > 0) Success else Danger,
                         )
                     }
@@ -174,7 +174,7 @@ fun ResalePurchaseCompleteScreen(
                     ) {
                         Text("실 결제 금액", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = OnBackground)
                         Text(
-                            "%,d CTK".format(resalePrice),
+                            "%,d SSF".format(resalePrice),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Primary,

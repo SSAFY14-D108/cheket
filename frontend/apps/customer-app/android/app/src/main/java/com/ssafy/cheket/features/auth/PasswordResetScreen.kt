@@ -94,38 +94,34 @@ fun PasswordResetScreen(
     var confirmError by remember { mutableStateOf<String?>(null) }
 
     fun sendCode() {
-        if (email.isBlank() || !email.contains("@")) {
-            emailError = "이메일을 입력해 주세요"
+        if (phone.isBlank() || phone.length < 10) {
+            phoneError = "전화번호를 입력해 주세요"
             return
         }
-        emailError = null
+        phoneError = null
         isLoading = true
         scope.launch {
             try {
-                val response = authService.requestPasswordReset(PasswordResetRequest(email))
-                Log.d(TAG, "requestPasswordReset() statusCode=${response.httpStatusCode}")
+                val formattedPhone = formatPhoneForApi(phone)
+                val response = authService.sendSms(com.ssafy.cheket.core.network.dto.SmsSendRequest(formattedPhone))
+                Log.d(TAG, "sendSms() statusCode=${response.httpStatusCode}")
                 isLoading = false
                 if (response.httpStatusCode in 200..299) {
                     codeSent = true
                     Toast.makeText(context, "인증번호를 전송했어요", Toast.LENGTH_SHORT).show()
                 } else {
-                    emailError = response.responseMessage ?: "인증번호 전송에 실패했어요"
+                    phoneError = response.responseMessage ?: "인증번호 전송에 실패했어요"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "requestPasswordReset() error", e)
+                Log.e(TAG, "sendSms() error", e)
                 isLoading = false
-                emailError = "인증번호 전송에 실패했어요"
+                phoneError = "인증번호 전송에 실패했어요"
             }
         }
     }
 
     fun validate(): Boolean {
         var valid = true
-
-        if (email.isBlank()) {
-            emailError = "이메일을 입력해 주세요"
-            valid = false
-        } else emailError = null
 
         if (phone.isBlank() || phone.length < 10) {
             phoneError = "전화번호를 입력해 주세요"
@@ -190,30 +186,33 @@ fun PasswordResetScreen(
                 .fillMaxSize()
                 .background(Background)
                 .padding(innerPadding)
+                
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "등록된 이메일로 인증번호를 받고 새 비밀번호를 설정해 주세요.",
+                text = "등록된 전화번호로 인증번호를 받고 새 비밀번호를 설정해 주세요.",
                 fontSize = 14.sp,
                 color = MutedForeground,
                 lineHeight = 20.sp,
             )
 
-            ResetInputBlock("이메일", emailError) {
+            ResetInputBlock("전화번호", phoneError) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedTextField(
-                        value = email,
+                        value = phone,
                         onValueChange = {
-                            email = it
-                            emailError = null
+                            phone = it.filter(Char::isDigit).take(11)
+                            phoneError = null
                         },
-                        placeholder = { Text("이메일을 입력해 주세요", fontSize = 14.sp) },
-                        leadingIcon = { Icon(Icons.Outlined.Email, null, tint = ResetInputIconTint) },
+                        placeholder = { Text("010-0000-0000", fontSize = 14.sp) },
+                        leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = ResetInputIconTint) },
+                        visualTransformation = PhoneVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         shape = ResetFieldShape,
                         colors = resetInputColors(),
@@ -236,24 +235,6 @@ fun PasswordResetScreen(
                         )
                     }
                 }
-            }
-
-            ResetInputBlock("전화번호", phoneError) {
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = {
-                        phone = it.filter(Char::isDigit).take(11)
-                        phoneError = null
-                    },
-                    placeholder = { Text("010-0000-0000", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = ResetInputIconTint) },
-                    visualTransformation = PhoneVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    shape = ResetFieldShape,
-                    colors = resetInputColors(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
 
             ResetInputBlock("인증번호", codeError) {

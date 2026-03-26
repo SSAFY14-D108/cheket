@@ -37,6 +37,10 @@ class HomeViewModel(
         load()
     }
 
+    fun refresh() {
+        load()
+    }
+
     private fun load() {
         // 1. 배너 (추천 API 시도 후 실패 시 랭킹 fallback)
         viewModelScope.launch {

@@ -215,7 +215,7 @@ private fun GradeCard(
                 horizontalAlignment = Alignment.End,
             ) {
                 Text(
-                    text = "${numberFormat.format(grade.price)} CTK",
+                    text = "${numberFormat.format(grade.price)} SSF",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isSoldOut) MutedForeground else OnBackground,
@@ -374,7 +374,6 @@ private fun SeatSelectionContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
                         .padding(16.dp),
                 ) {
                     // Selected seats row
@@ -429,7 +428,7 @@ private fun SeatSelectionContent(
                                 color = SubText,
                             )
                             Text(
-                                text = "${numberFormat.format(selectedSeats.sumOf { it.price })} CTK",
+                                text = "${numberFormat.format(selectedSeats.sumOf { it.price })} SSF",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OnBackground,

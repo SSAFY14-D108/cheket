@@ -127,7 +127,7 @@ class SeatMapViewModel(
                             "COMPLETED" -> com.ssafy.cheket.core.model.ShowStatus.COMPLETED
                             else -> com.ssafy.cheket.core.model.ShowStatus.ON_SALE
                         },
-                        maxPerUser = 4,
+                        maxPerUser = d.purchaseLimit ?: 4,
                         grades = d.grade.map { g ->
                             com.ssafy.cheket.core.model.Grade(
                                 name = g.gradeName,
@@ -233,6 +233,7 @@ class SeatMapViewModel(
         val sectionName: String,
         val gradeName: String,
         val price: Int,
+        val colorCode: String = "",
     )
 
     fun getSelectedSeatDetails(): List<SelectedSeatInfo> {
@@ -247,6 +248,7 @@ class SeatMapViewModel(
                         sectionName = section.sectionName,
                         gradeName = section.gradeName,
                         price = section.price,
+                        colorCode = section.colorCode,
                     )
                 }
         }

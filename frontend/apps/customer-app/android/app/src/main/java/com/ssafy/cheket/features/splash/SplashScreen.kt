@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -86,6 +87,16 @@ fun SplashScreen(
         label = "logoScale",
     )
 
+    // 가로 방향 스프링 (0 → 1, 탄성 있게 늘어남)
+    val logoScaleX by animateFloatAsState(
+        targetValue = if (phase >= 2) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "logoScaleX",
+    )
+
     val logoAlpha by animateFloatAsState(
         targetValue = if (phase >= 2) 1f else 0f,
         animationSpec = tween(if (phase >= 2) 400 else 0, delayMillis = if (phase >= 2) 150 else 0),
@@ -119,13 +130,14 @@ fun SplashScreen(
         // "C" 아이콘 (Phase 1→2에서 사라짐)
         if (cAlpha > 0.01f) {
             Image(
-                painter = painterResource(id = R.drawable.ic_cheket_c),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(88.dp)
+                    .size(80.dp)
                     .scale(cScale)
                     .alpha(cAlpha)
                     .rotate(cRotation)
+                    .padding(16.dp)
                     .clip(RoundedCornerShape(20.dp)),
             )
         }
@@ -140,7 +152,9 @@ fun SplashScreen(
             Image(
                 painter = painterResource(id = R.drawable.logo_cheket),
                 contentDescription = "Cheket Logo",
-                modifier = Modifier.width(260.dp),
+                modifier = Modifier
+                    .width(260.dp)
+                    .graphicsLayer(scaleX = logoScaleX),
             )
 
             Spacer(Modifier.height(20.dp))

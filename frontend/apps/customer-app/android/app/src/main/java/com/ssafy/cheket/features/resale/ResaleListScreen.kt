@@ -74,6 +74,7 @@ fun ResaleListScreen(
                 .fillMaxSize()
                 .background(V0Background)
                 .padding(innerPadding)
+                
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -294,7 +295,7 @@ private fun ResaleEventCard(
                     modifier = Modifier.size(12.dp),
                 )
                 Text(
-                    text = "%,d CTK~".format(group.minPrice),
+                    text = "%,d SSF~".format(group.minPrice),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF333333),

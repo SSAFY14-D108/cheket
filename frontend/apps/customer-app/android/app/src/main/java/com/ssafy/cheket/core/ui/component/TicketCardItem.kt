@@ -98,7 +98,7 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
                     modifier = Modifier.size(12.dp),
                 )
                 Text(
-                    text = ticket.showDate,
+                    text = com.ssafy.cheket.core.util.DateTimeUtils.formatShowDateTime(ticket.showDate),
                     fontSize = 12.sp,
                     color = MutedForeground,
                     maxLines = 1,

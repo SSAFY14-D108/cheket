@@ -25,12 +25,22 @@ data class TicketHistoryUiState(
     val usedTickets: List<Ticket> = emptyList(),
     val selectedTab: TicketHistoryTab = TicketHistoryTab.UPCOMING,
     val isLoading: Boolean = true,
+    val upcomingFailed: Boolean = false,
+    val usedFailed: Boolean = false,
     val errorMessage: String? = null,
 ) {
     val visibleTickets: List<Ticket>
         get() = when (selectedTab) {
             TicketHistoryTab.UPCOMING -> upcomingTickets
             TicketHistoryTab.USED -> usedTickets
+        }
+
+    /** Only show partial error when the currently visible tab's data failed to load */
+    val visibleErrorMessage: String?
+        get() = when {
+            selectedTab == TicketHistoryTab.UPCOMING && upcomingFailed -> "예정/보유 티켓을 불러오지 못했어요."
+            selectedTab == TicketHistoryTab.USED && usedFailed -> "사용완료 티켓을 불러오지 못했어요."
+            else -> null
         }
 }
 
@@ -69,17 +79,17 @@ class TicketHistoryViewModel(
                     upcomingTickets = upcoming,
                     usedTickets = used,
                     isLoading = false,
-                    errorMessage = if (upcomingResult.isFailure || usedResult.isFailure) {
-                        "일부 티켓 내역을 불러오지 못했어요."
-                    } else {
-                        null
-                    },
+                    upcomingFailed = upcomingResult.isFailure,
+                    usedFailed = usedResult.isFailure,
+                    errorMessage = null,
                 )
             } else {
                 _uiState.value = _uiState.value.copy(
                     upcomingTickets = emptyList(),
                     usedTickets = emptyList(),
                     isLoading = false,
+                    upcomingFailed = true,
+                    usedFailed = true,
                     errorMessage = "티켓 내역을 불러오지 못했어요.",
                 )
             }

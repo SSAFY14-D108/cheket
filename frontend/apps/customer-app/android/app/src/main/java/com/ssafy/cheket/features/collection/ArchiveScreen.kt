@@ -162,7 +162,7 @@ private fun ArchiveTicketCard(
                     lineHeight = 15.sp,
                 )
                 Text(
-                    ticket.showDate,
+                    com.ssafy.cheket.core.util.DateTimeUtils.formatShowDateTime(ticket.showDate),
                     fontSize = 10.sp,
                     color = White.copy(alpha = 0.7f),
                 )
