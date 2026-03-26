@@ -33,7 +33,7 @@ public class Session {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "on_chain_session_id", unique = true)
+    @Column(name = "on_chain_session_id")
     private Long onChainSessionId;
 
     @PrePersist
