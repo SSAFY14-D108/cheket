@@ -15,10 +15,10 @@ export function AppFooter() {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-black/10 pt-4 text-xs text-black/50 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 CHEKET D107</p>
-          <p>NFT 기반 티켓 운영을 위한 호스트 관리 페이지</p>
+          <p>© 2026 CHEKET D108</p>
+          <p>NFT 기반 공연 운영을 위한 호스트 관리 페이지</p>
         </div>
       </div>
     </footer>
-  );
+  )
 }

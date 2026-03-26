@@ -1,4 +1,9 @@
-import type { CreateShowPayload, HostShowDetail, ShowFormPayload } from "@/lib/show-manage-api"
+import type {
+  CreateShowPayload,
+  HostShowDetail,
+  ShowFormPayload,
+  UpdateShowPayload,
+} from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 
 export const PLATFORM_FEE_BPS = 800
@@ -15,6 +20,7 @@ export const FIXED_PLATFORM_STAKEHOLDER: Stakeholder = {
 
 export interface ShowFormValues {
   mode: "create" | "edit"
+  contentOnlyEdit?: boolean
   title: string
   artistName: string
   playtime: string
@@ -48,6 +54,10 @@ export function toLocalDateTimeValue(value?: string | null, fallbackTime = "00:0
 
 export function toNumericString(value?: number | null) {
   return value === undefined || value === null ? "" : String(value)
+}
+
+export function isContentOnlyEditableStatus(status?: string | null) {
+  return Boolean(status) && status !== "PENDING_CONTRACT"
 }
 
 export function getReservationStartMinDate(baseDate = new Date()) {
@@ -103,6 +113,20 @@ function normalizeSessionTimeValue(value?: string | null) {
   }
 
   return value.includes("T") ? value.slice(11, 16) : value.slice(0, 5)
+}
+
+function isSessionChanged(
+  session: SessionItem,
+  initialSession?: SessionItem
+) {
+  if (!initialSession) {
+    return true
+  }
+
+  return (
+    session.sessionDate !== initialSession.sessionDate ||
+    session.sessionStartTime !== initialSession.sessionStartTime
+  )
 }
 
 function buildGradeGroupingKey(grade: {
@@ -228,6 +252,7 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
       businessNo === FIXED_PLATFORM_STAKEHOLDER.businessNo
 
     return {
+      id: stakeholder.id,
       role,
       name: stakeholder.name ?? "",
       phone,
@@ -300,12 +325,15 @@ export function buildInitialSessionInfo(initialData?: HostShowDetail): SessionIt
   }))
 }
 
-export function buildValidationMessage(values: ShowFormValues) {
+export function buildValidationMessage(
+  values: ShowFormValues,
+  initialData?: HostShowDetail
+) {
   if (!values.title.trim()) {
     return "공연명을 입력해주세요."
   }
 
-  if (!values.artistName.trim()) {
+  if (!values.contentOnlyEdit && !values.artistName.trim()) {
     return "아티스트 또는 그룹명을 입력해주세요."
   }
 
@@ -315,6 +343,10 @@ export function buildValidationMessage(values: ShowFormValues) {
 
   if (values.mode === "create" && !values.posterFile) {
     return "대표 포스터 파일을 등록해주세요."
+  }
+
+  if (values.contentOnlyEdit) {
+    return !values.description.trim() ? "怨듭뿰 ?ㅻ챸???낅젰?댁＜?몄슂." : null
   }
 
   if (!values.venueId) {
@@ -333,7 +365,11 @@ export function buildValidationMessage(values: ShowFormValues) {
   const reservationCloseAt = new Date(values.closeAt)
   const reservationMinDate = getReservationStartMinDate()
 
-  if (!Number.isNaN(reservationOpenAt.getTime()) && reservationOpenAt < reservationMinDate) {
+  if (
+    values.mode === "create" &&
+    !Number.isNaN(reservationOpenAt.getTime()) &&
+    reservationOpenAt < reservationMinDate
+  ) {
     return "예매 가능 시작일은 현재 날짜 기준 2일 뒤부터 설정할 수 있습니다."
   }
 
@@ -431,6 +467,26 @@ export function buildValidationMessage(values: ShowFormValues) {
 
   const showStartDate = new Date(values.showStartAt).getTime()
   const showEndDate = new Date(values.showEndAt).getTime()
+  const sessionMinDate = getReservationStartMinDate().getTime()
+  const initialSessionInfo = buildInitialSessionInfo(initialData)
+
+  if (
+    values.sessionInfo.some((session, index) => {
+      const sessionTimestamp = toSessionTimestamp(session.sessionDate, session.sessionStartTime)
+
+      if (Number.isNaN(sessionTimestamp)) {
+        return false
+      }
+
+      if (values.mode === "create") {
+        return sessionTimestamp < sessionMinDate
+      }
+
+      return isSessionChanged(session, initialSessionInfo[index]) && sessionTimestamp < sessionMinDate
+    })
+  ) {
+    return "회차는 현재 기준 2일 이후 일정부터 등록할 수 있습니다."
+  }
 
   if (
     values.sessionInfo.some((session) => {
@@ -501,20 +557,210 @@ export function buildCreatePayload(values: Omit<ShowFormValues, "mode">): Create
   }
 }
 
+function areStringArraysEqual(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((value, index) => value === right[index])
+}
+
+function areNumberArraysEqual(left: number[], right: number[]) {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((value, index) => value === right[index])
+}
+
+function mapUpdateStakeholders(values: Stakeholder[]) {
+  return values
+    .filter((stakeholder) => !stakeholder.isFixed)
+    .map((stakeholder) => ({
+      role: stakeholder.role,
+      id: stakeholder.id ?? 0,
+      name: stakeholder.name.trim(),
+      number:
+        stakeholder.role === "ORGANIZER"
+          ? stakeholder.businessNo?.trim() || ""
+          : stakeholder.phone?.trim() || "",
+      shareBps: Number(stakeholder.shareBps),
+    }))
+}
+
+function mapInitialUpdateStakeholders(initialData?: HostShowDetail) {
+  return (initialData?.stakeholders ?? [])
+    .filter(
+      (stakeholder) =>
+        !(
+          stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name &&
+          stakeholder.number === FIXED_PLATFORM_STAKEHOLDER.businessNo
+        )
+    )
+    .map((stakeholder) => ({
+      role: stakeholder.role,
+      id: stakeholder.id ?? 0,
+      name: stakeholder.name ?? "",
+      number: stakeholder.number ?? "",
+      shareBps: stakeholder.shareBps,
+    }))
+}
+
 export function buildUpdatePayload(
   values: Omit<ShowFormValues, "mode">,
-  currentPreviews: string[] = []
-): CreateShowPayload {
+  currentPreviews: string[] = [],
+  initialData?: HostShowDetail,
+  options?: {
+    contentOnlyEdit?: boolean
+  }
+): UpdateShowPayload {
   const retainedUrls = currentPreviews.filter((url) => url.startsWith("http"))
-  const showPayload = { ...buildPayload(values) }
-  delete showPayload.stakeholders
+  const contentOnlyEdit = Boolean(options?.contentOnlyEdit)
+  const showPayload: Record<string, unknown> = {}
+  const initialRetainedUrls = initialData?.descriptionImages ?? []
+  const trimmedTitle = values.title.trim()
+  const trimmedDescription = values.description.trim()
+
+  if (trimmedTitle !== (initialData?.title ?? "")) {
+    showPayload.title = trimmedTitle
+  }
+
+  if (trimmedDescription !== (initialData?.description ?? "")) {
+    showPayload.description = trimmedDescription
+  }
+
+  if (!areStringArraysEqual(retainedUrls, initialRetainedUrls)) {
+    showPayload.existingDescriptionImageUrls = retainedUrls
+  }
+
+  if (!contentOnlyEdit) {
+    const fullPayload = buildPayload(values)
+
+    if (Number(values.venueId) !== (initialData?.venue.venueId ?? 0)) {
+      showPayload.venueId = fullPayload.venueId
+    }
+
+    if (values.artistName.trim() !== (initialData?.artistName ?? "")) {
+      showPayload.artist = fullPayload.artist
+    }
+
+    if (Number(values.playtime) !== (initialData?.playtime ?? 0)) {
+      showPayload.playtime = fullPayload.playtime
+    }
+
+    if (fullPayload.showStartDate !== (initialData?.show.showStartDate ?? "")) {
+      showPayload.showStartDate = fullPayload.showStartDate
+    }
+
+    if (fullPayload.showEndDate !== (initialData?.show.showEndDate ?? "")) {
+      showPayload.showEndDate = fullPayload.showEndDate
+    }
+
+    if (fullPayload.reservationStartDate !== (initialData?.reservation.startDate ?? "")) {
+      showPayload.reservationStartDate = fullPayload.reservationStartDate
+    }
+
+    if (fullPayload.reservationEndDate !== (initialData?.reservation.endDate ?? "")) {
+      showPayload.reservationEndDate = fullPayload.reservationEndDate
+    }
+
+    if (Number(values.purchaseLimit) !== (initialData?.purchaseLimit ?? 0)) {
+      showPayload.purchaseLimit = fullPayload.purchaseLimit
+    }
+
+    const initialGrades = buildInitialGrades(initialData)
+    const currentGrades = values.grades.map((grade) => ({
+      gradeName: grade.gradeName.trim(),
+      price: String(Number(grade.price)),
+      colorCode: grade.colorCode,
+      sectionIds: parseSectionIds(grade.sectionId),
+      ticketEffectId: grade.ticketEffectId || "",
+    }))
+    const comparableInitialGrades = initialGrades.map((grade) => ({
+      gradeName: grade.gradeName.trim(),
+      price: String(Number(grade.price)),
+      colorCode: grade.colorCode,
+      sectionIds: parseSectionIds(grade.sectionId),
+      ticketEffectId: grade.ticketEffectId || "",
+    }))
+
+    const gradesChanged =
+      currentGrades.length !== comparableInitialGrades.length ||
+      currentGrades.some((grade, index) => {
+        const initialGrade = comparableInitialGrades[index]
+        return (
+          !initialGrade ||
+          grade.gradeName !== initialGrade.gradeName ||
+          grade.price !== initialGrade.price ||
+          grade.colorCode !== initialGrade.colorCode ||
+          grade.ticketEffectId !== initialGrade.ticketEffectId ||
+          !areNumberArraysEqual(grade.sectionIds, initialGrade.sectionIds)
+        )
+      })
+
+    if (gradesChanged) {
+      showPayload.grade = fullPayload.grade
+    }
+
+    const initialRefundPolicy = buildInitialRefundPolicy(initialData)
+    const refundChanged =
+      values.refundPolicy.length !== initialRefundPolicy.length ||
+      values.refundPolicy.some((item, index) => {
+        const initialItem = initialRefundPolicy[index]
+        return (
+          !initialItem ||
+          item.daysRemaining !== initialItem.daysRemaining ||
+          item.refundRate !== initialItem.refundRate
+        )
+      })
+
+    if (refundChanged) {
+      showPayload.refundPolicy = fullPayload.refundPolicy
+    }
+
+    const initialSessionInfo = buildInitialSessionInfo(initialData)
+    const sessionsChanged =
+      values.sessionInfo.length !== initialSessionInfo.length ||
+      values.sessionInfo.some((session, index) => {
+        const initialSession = initialSessionInfo[index]
+        return (
+          !initialSession ||
+          session.sessionDate !== initialSession.sessionDate ||
+          session.sessionStartTime !== initialSession.sessionStartTime
+        )
+      })
+
+    if (sessionsChanged) {
+      showPayload.sessionInfo = fullPayload.sessionInfo
+    }
+
+    const currentStakeholders = mapUpdateStakeholders(values.stakeholders)
+    const initialStakeholders = mapInitialUpdateStakeholders(initialData)
+    const stakeholdersChanged =
+      currentStakeholders.length !== initialStakeholders.length ||
+      currentStakeholders.some((stakeholder, index) => {
+        const initialStakeholder = initialStakeholders[index]
+        return (
+          !initialStakeholder ||
+          stakeholder.role !== initialStakeholder.role ||
+          stakeholder.id !== initialStakeholder.id ||
+          stakeholder.name !== initialStakeholder.name ||
+          stakeholder.number !== initialStakeholder.number ||
+          stakeholder.shareBps !== initialStakeholder.shareBps
+        )
+      })
+
+    if (stakeholdersChanged) {
+      showPayload.stakeholders = currentStakeholders
+    }
+  }
 
   return {
     show: {
       ...showPayload,
-      existingDescriptionImageUrls: retainedUrls,
     },
     posterImageFile: values.posterFile ?? null,
-    descriptionImageFiles: values.descriptionImageFiles,
+    descriptionImageFiles:
+      values.descriptionImageFiles.length > 0 ? values.descriptionImageFiles : undefined,
   }
 }

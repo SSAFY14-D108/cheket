@@ -45,6 +45,15 @@ function parseSelectedSectionIds(sectionIdValue: string) {
     .filter(Boolean)
 }
 
+function isGradeComplete(grade: Grade) {
+  return (
+    Boolean(grade.gradeName.trim()) &&
+    Number.isFinite(Number(grade.price)) &&
+    Number(grade.price) > 0 &&
+    parseSelectedSectionIds(grade.sectionId).length > 0
+  )
+}
+
 function getVenueMapImg(id: string) {
   switch (id) {
     case "1":
@@ -106,6 +115,12 @@ export function SettingsCardTickets({
   const safeActiveGradeIndex =
     grades.length === 0 ? 0 : Math.min(activeGradeIndex, grades.length - 1)
   const activeGrade = grades[safeActiveGradeIndex] ?? null
+  const invalidGradeIndexes = grades.reduce<number[]>((accumulator, grade, index) => {
+    if (!isGradeComplete(grade)) {
+      accumulator.push(index)
+    }
+    return accumulator
+  }, [])
 
   useEffect(() => {
     let isCancelled = false
@@ -246,7 +261,6 @@ export function SettingsCardTickets({
             <Input
               type="number"
               inputMode="numeric"
-              placeholder="2"
               value={purchaseLimit}
               onChange={(event) => onChangePurchaseLimit(event.target.value)}
               className={`h-11 w-[140px] rounded-2xl text-center text-lg font-semibold ${
@@ -346,6 +360,7 @@ export function SettingsCardTickets({
                   grades.map((grade, idx) => {
                     const selectedCount = parseSelectedSectionIds(grade.sectionId).length
                     const isActive = idx === safeActiveGradeIndex
+                    const isInvalid = invalidGradeIndexes.includes(idx)
 
                     return (
                       <button
@@ -354,15 +369,24 @@ export function SettingsCardTickets({
                         onClick={() => setActiveGradeIndex(idx)}
                         className={`flex w-full items-start justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
                           isActive
-                            ? "border-black/15 bg-black/[0.04]"
-                            : "border-transparent bg-black/[0.02] hover:border-black/8 hover:bg-black/[0.035]"
+                            ? isInvalid && showErrors
+                              ? "border-destructive bg-destructive/5"
+                              : "border-black/15 bg-black/[0.04]"
+                            : isInvalid && showErrors
+                              ? "border-destructive/60 bg-destructive/5 hover:border-destructive"
+                              : "border-transparent bg-black/[0.02] hover:border-black/8 hover:bg-black/[0.035]"
                         }`}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span
                               className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: grade.colorCode || "#8b5cf6" }}
+                              style={{
+                                backgroundColor:
+                                  isInvalid && showErrors
+                                    ? "#ef4444"
+                                    : grade.colorCode || "#8b5cf6",
+                              }}
                             />
                             <span className="text-xs font-semibold text-foreground">등급 {idx + 1}</span>
                           </div>
@@ -372,8 +396,19 @@ export function SettingsCardTickets({
                           <p className="mt-1 text-[11px] text-muted-foreground">
                             {grade.price ? `${Number(grade.price).toLocaleString()} SSF` : "가격 미입력"}
                           </p>
+                          {isInvalid && showErrors ? (
+                            <p className="mt-1 text-[11px] font-medium text-destructive">
+                              필수값 미입력
+                            </p>
+                          ) : null}
                         </div>
-                        <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] text-muted-foreground">
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-1 text-[11px] ${
+                            isInvalid && showErrors
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-white text-muted-foreground"
+                          }`}
+                        >
                           {selectedCount}구역
                         </span>
                       </button>

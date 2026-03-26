@@ -13,6 +13,8 @@ export interface Stakeholder {
   businessNo?: string
   phone?: string
   shareBps: number
+  approvalStatus?: "PENDING" | "APPROVED" | "REJECTED"
+  determinedAt?: string
 }
 
 export interface RefundItem {
@@ -105,6 +107,11 @@ export interface MyPageShowSummary {
     endDate: string
   }
   status: string
+}
+
+interface ContractApprovalRecord {
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED"
+  determinedAt?: string | null
 }
 
 export const mockSectionsByVenue: Record<number, Section[]> = {
@@ -453,6 +460,60 @@ export const myPageShowsStore = INITIAL_MY_PAGE_SHOWS.map((show) => ({
   reservation: { ...show.reservation },
 }))
 
+export const contractApprovalStore = new Map<number, ContractApprovalRecord[]>([
+  [
+    42,
+    [
+      { approvalStatus: "APPROVED", determinedAt: "2026-03-18T10:00:00" },
+      { approvalStatus: "PENDING", determinedAt: null },
+    ],
+  ],
+  [
+    43,
+    [
+      { approvalStatus: "APPROVED", determinedAt: "2026-03-20T13:00:00" },
+      { approvalStatus: "APPROVED", determinedAt: "2026-03-20T13:10:00" },
+    ],
+  ],
+  [
+    44,
+    [
+      { approvalStatus: "APPROVED", determinedAt: "2026-03-21T09:00:00" },
+      { approvalStatus: "REJECTED", determinedAt: "2026-03-21T10:15:00" },
+    ],
+  ],
+  [
+    45,
+    [
+      { approvalStatus: "PENDING", determinedAt: null },
+      { approvalStatus: "APPROVED", determinedAt: "2026-03-22T16:20:00" },
+    ],
+  ],
+])
+
+function getDerivedShowStatus(showId: number, fallbackStatus: string) {
+  const approvals = contractApprovalStore.get(showId) ?? []
+
+  if (approvals.some((approval) => approval.approvalStatus === "REJECTED")) {
+    return "CONTRACT_REJECTED"
+  }
+
+  if (approvals.some((approval) => approval.approvalStatus === "PENDING")) {
+    return "PENDING_CONTRACT"
+  }
+
+  return fallbackStatus
+}
+
+export function getMyPageShowsSnapshot() {
+  return myPageShowsStore.map((show) => ({
+    ...show,
+    show: { ...show.show },
+    reservation: { ...show.reservation },
+    status: getDerivedShowStatus(show.showId, show.status),
+  }))
+}
+
 export function getShowDetailSnapshot(showIdValue: string | readonly string[] | undefined) {
   const showId = Number(showIdValue)
 
@@ -506,6 +567,34 @@ export function getShowDetailSnapshot(showIdValue: string | readonly string[] | 
     createdAt: event.createdAt,
     updatedAt: event.updatedAt,
   }
+}
+
+export function getShowContractsSnapshot(
+  showIdValue: string | readonly string[] | undefined,
+) {
+  const showId = Number(showIdValue)
+
+  if (!Number.isInteger(showId)) {
+    return null
+  }
+
+  const event = mockEventStore.find((item) => item.showId === showId)
+
+  if (!event) {
+    return null
+  }
+
+  const statuses = contractApprovalStore.get(showId) ?? []
+
+  return event.stakeholders.map((stakeholder, index) => ({
+    ...(statuses[index] ?? {
+      approvalStatus: stakeholder.approvalStatus ?? "PENDING",
+      determinedAt: stakeholder.determinedAt ?? null,
+    }),
+    userType: stakeholder.role === "ORGANIZER" ? "HOST" : "USER",
+    userId: stakeholder.id ?? 15 + index,
+    username: stakeholder.name,
+  }))
 }
 
 export function getNextShowId() {

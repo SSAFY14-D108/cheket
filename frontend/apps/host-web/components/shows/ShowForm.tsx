@@ -61,6 +61,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   const form = useShowForm({ mode, initialData });
   const {
     isEdit,
+    isContentOnlyEdit,
     title,
     artistName,
     playtime,
@@ -120,20 +121,34 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   const [walletAddress, setWalletAddress] = useState("");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [walletStatusMessage, setWalletStatusMessage] = useState("");
+  const stepLabels = isContentOnlyEdit ? ["기본 정보"] : STEP_LABELS;
+  const totalSteps = stepLabels.length;
 
   const headerTitle = isEdit ? "공연 수정" : "공연 등록";
   const submitLabel = isEdit ? "수정 완료" : "등록 완료";
   const isRemotePosterPreview =
     typeof posterPreview === "string" && /https?:\/\//.test(posterPreview);
   const canConfirmCreate = confirmText.trim() === SETTLEMENT_CONFIRM_TEXT;
-  const reservationOpenMinDate = useMemo(
-    () => getReservationStartMinDate(),
-    [],
-  );
+  const canEditStakeholders = !isEdit || !isContentOnlyEdit;
+  const reservationOpenMinDate = useMemo(() => {
+    if (!isEdit) {
+      return getReservationStartMinDate();
+    }
+
+    if (openAt) {
+      const currentReservationOpenDate = new Date(openAt);
+      if (!Number.isNaN(currentReservationOpenDate.getTime())) {
+        return currentReservationOpenDate;
+      }
+    }
+
+    return undefined;
+  }, [isEdit, openAt]);
   const reservationOpenMaxDate = useMemo(
     () => (showStartAt ? new Date(showStartAt) : undefined),
     [showStartAt],
   );
+  const sessionMinDate = useMemo(() => getReservationStartMinDate(), []);
   const stakeholderShareBps = useMemo(
     () =>
       stakeholders
@@ -191,10 +206,10 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   const validateStep1 = () =>
     Boolean(
       title.trim() &&
-      artistName.trim() &&
       posterPreview &&
       description.trim() &&
-      Number(playtime) > 0,
+      (isContentOnlyEdit ||
+        (artistName.trim() && Number(playtime) > 0)),
     );
   const validateStep2 = () =>
     Boolean(
@@ -221,6 +236,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     );
 
   const goNextStep = () => {
+    if (isContentOnlyEdit) {
+      return;
+    }
     if (step === 1 && !validateStep1()) {
       setShowStep1Errors(true);
       return;
@@ -233,7 +251,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
       setShowStep3Errors(true);
       return;
     }
-    setStep((current) => Math.min(4, current + 1));
+    setStep((current) => Math.min(totalSteps, current + 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -281,11 +299,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                   <p className="text-sm font-semibold text-black">
                     {headerTitle}
                   </p>
-                  <p className="text-xs text-black/45">현재 단계 {step} / 4</p>
+                  <p className="text-xs text-black/45">
+                    현재 단계 {step} / {totalSteps}
+                  </p>
                 </div>
               </div>
               <div className="flex w-full items-center gap-2 lg:max-w-xl">
-                {STEP_LABELS.map((label, index) => {
+                {stepLabels.map((label, index) => {
                   const current = index + 1;
                   const active = step === current;
                   const past = step > current;
@@ -311,7 +331,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                 })}
               </div>
               <div className="flex items-center justify-end gap-2">
-                {step > 1 ? (
+                {step > 1 && !isContentOnlyEdit ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -324,7 +344,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     이전
                   </Button>
                 ) : null}
-                {step < 4 ? (
+                {step < totalSteps && !isContentOnlyEdit ? (
                   <Button
                     size="sm"
                     className="h-10 min-w-20 rounded-full bg-black font-bold text-white shadow-none hover:bg-black/85"
@@ -354,7 +374,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     기본 정보
                   </h2>
                   <p className="mt-1 text-sm text-black/45">
-                    포스터, 공연명, 아티스트명과 소개를 입력해주세요.
+                    {isContentOnlyEdit
+                      ? "최종 등록 이후에는 공연명, 포스터와 소개 정보만 수정할 수 있습니다."
+                      : "포스터, 공연명, 아티스트명과 소개를 입력해주세요."}
                   </p>
                 </div>
                 <div className="p-5 sm:p-6">
@@ -437,6 +459,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                           onChange={(event) => setTitle(event.target.value)}
                         />
                       </div>
+                      {!isContentOnlyEdit ? (
                       <div className="flex flex-col gap-3">
                         <Label
                           className={`text-[15px] font-bold ${!artistName.trim() && showStep1Errors ? "text-destructive" : "text-foreground"}`}
@@ -453,6 +476,8 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                           }
                         />
                       </div>
+                      ) : null}
+                      {!isContentOnlyEdit ? (
                       <div className="flex flex-col gap-3">
                         <Label
                           className={`text-[15px] font-bold ${(!playtime.trim() || Number(playtime) <= 0) && showStep1Errors ? "text-destructive" : "text-foreground"}`}
@@ -468,6 +493,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                           onChange={(event) => setPlaytime(event.target.value)}
                         />
                       </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -567,7 +593,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             </div>
           ) : null}
 
-          {step === 2 ? (
+          {step === 2 && !isContentOnlyEdit ? (
             <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-6">
               <SettingsCardBasic
                 venueId={venueId}
@@ -582,6 +608,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                 reservationEndAt={closeAt}
                 showStartAt={showStartAt}
                 showEndAt={showEndAt}
+                sessionMinDate={sessionMinDate}
                 showErrors={showStep2Errors}
                 onAddSession={addSession}
                 onRemoveSession={removeSession}
@@ -639,7 +666,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               </Card>
             </div>
           ) : null}
-          {step === 3 ? (
+          {step === 3 && !isContentOnlyEdit ? (
             <SettingsCardTickets
               venueId={venueId}
               showStartAt={showStartAt}
@@ -659,9 +686,10 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               showSessionSection={false}
             />
           ) : null}
-          {step === 4 ? (
+          {step === 4 && !isContentOnlyEdit ? (
             <SettingsCardPolicies
               isEdit={isEdit}
+              canEditStakeholders={canEditStakeholders}
               stakeholders={stakeholders}
               refundPolicy={refundPolicy}
               onAddStakeholder={addStakeholder}
@@ -811,3 +839,4 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     </>
   );
 }
+

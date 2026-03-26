@@ -8,6 +8,7 @@ export interface Grade {
 }
 
 export interface Stakeholder {
+    id?: number
     role: 'ORGANIZER' | 'ARTIST'
     name: string
     phone?: string

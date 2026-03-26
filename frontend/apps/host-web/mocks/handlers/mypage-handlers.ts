@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw"
 import { getMockHostPassword } from "@/mocks/data/auth-store"
 import { MY_PAGE_COMPANY, MY_WALLET_BALANCE } from "@/mocks/data/mypage-store"
-import { myPageShowsStore } from "@/mocks/data/show-store"
+import { getMyPageShowsSnapshot, myPageShowsStore } from "@/mocks/data/show-store"
 import { createUnauthorizedResponse, isAuthorized } from "./utils"
 
 export const mypageHandlers = [
@@ -105,7 +105,8 @@ export const mypageHandlers = [
     const page = Number(url.searchParams.get("page") ?? "0")
     const size = Number(url.searchParams.get("size") ?? "20")
     const startIndex = page * size
-    const pagedShows = myPageShowsStore.slice(startIndex, startIndex + size)
+    const shows = getMyPageShowsSnapshot()
+    const pagedShows = shows.slice(startIndex, startIndex + size)
 
     return HttpResponse.json(
       {
@@ -115,8 +116,8 @@ export const mypageHandlers = [
           shows: pagedShows,
           page,
           size,
-          totalElements: myPageShowsStore.length,
-          totalPages: Math.ceil(myPageShowsStore.length / size) || 1,
+          totalElements: shows.length,
+          totalPages: Math.ceil(shows.length / size) || 1,
         },
       },
       { status: 200 }

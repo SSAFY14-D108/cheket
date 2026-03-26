@@ -36,6 +36,7 @@ function formatBusinessNo(value: string): string {
 
 interface SettingsCardPoliciesProps {
   isEdit: boolean
+  canEditStakeholders?: boolean
   stakeholders: Stakeholder[]
   refundPolicy: RefundItem[]
   onAddStakeholder: () => void
@@ -53,6 +54,7 @@ interface SettingsCardPoliciesProps {
 
 export function SettingsCardPolicies({
   isEdit,
+  canEditStakeholders = !isEdit,
   stakeholders,
   refundPolicy,
   onAddStakeholder,
@@ -303,7 +305,7 @@ export function SettingsCardPolicies({
                   {(PLATFORM_FEE_BPS / 100).toLocaleString()}%는 자동 고정됩니다.
                 </div>
 
-                {isEdit && (
+                {isEdit && !canEditStakeholders && (
                   <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-600">
                     정산 비율과 이해관계자 정보는 등록 후 수정할 수 없습니다.
                   </div>
@@ -322,7 +324,7 @@ export function SettingsCardPolicies({
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-sm">이해관계자 설정</Label>
-            {!isEdit && (
+            {canEditStakeholders && (
               <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onAddStakeholder}>
                 <Plus className="mr-1 size-3.5" />
                 추가
@@ -377,7 +379,7 @@ export function SettingsCardPolicies({
                       onUpdateStakeholder(idx, "phone", "")
                       onUpdateStakeholder(idx, "businessNo", "")
                     }}
-                    disabled={isEdit}
+                    disabled={!canEditStakeholders}
                   >
                     <option value="ORGANIZER">사업자</option>
                     <option value="ARTIST">개인</option>
@@ -395,8 +397,8 @@ export function SettingsCardPolicies({
                           onUpdateStakeholder(idx, "verified", false)
                           onUpdateStakeholder(idx, "name", "")
                         }}
-                        className={`h-8 min-w-0 text-xs ${isEdit ? "bg-muted/50" : ""}`}
-                        readOnly={isEdit}
+                        className={`h-8 min-w-0 text-xs ${!canEditStakeholders ? "bg-muted/50" : ""}`}
+                        readOnly={!canEditStakeholders}
                       />
                     ) : (
                       <Input
@@ -407,8 +409,8 @@ export function SettingsCardPolicies({
                           onUpdateStakeholder(idx, "verified", false)
                           onUpdateStakeholder(idx, "name", "")
                         }}
-                        className={`h-8 min-w-0 text-xs ${isEdit ? "bg-muted/50" : ""}`}
-                        readOnly={isEdit}
+                        className={`h-8 min-w-0 text-xs ${!canEditStakeholders ? "bg-muted/50" : ""}`}
+                        readOnly={!canEditStakeholders}
                       />
                     )}
                     <Button
@@ -416,7 +418,7 @@ export function SettingsCardPolicies({
                       size="sm"
                       className="h-8 w-[72px] px-0 text-xs"
                       onClick={() => void handleVerify(idx)}
-                      disabled={Boolean(searchingIndexes[idx]) || isEdit}
+                      disabled={Boolean(searchingIndexes[idx]) || !canEditStakeholders}
                     >
                       <Search className="mr-1 size-3.5" />
                       {searchingIndexes[idx] ? "조회중" : "조회"}
@@ -451,8 +453,8 @@ export function SettingsCardPolicies({
                           onUpdateStakeholder(idx, "shareBps", String(Math.round(parsed * 100)))
                         }
                       }}
-                      className={`h-8 w-[78px] text-right text-xs ${isEdit ? "bg-muted/50" : ""}`}
-                      readOnly={isEdit}
+                      className={`h-8 w-[78px] text-right text-xs ${!canEditStakeholders ? "bg-muted/50" : ""}`}
+                      readOnly={!canEditStakeholders}
                     />
                     <span className="text-xs text-muted-foreground">%</span>
                     <span className="text-[11px] text-muted-foreground">
@@ -467,7 +469,7 @@ export function SettingsCardPolicies({
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => onRemoveStakeholder(idx)}
-                    disabled={isEdit}
+                    disabled={!canEditStakeholders}
                     aria-label={`이해관계자 ${displayIndex + 1} 삭제`}
                   >
                     <Trash2 className="size-3.5" />

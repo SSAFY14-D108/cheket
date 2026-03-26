@@ -8,9 +8,10 @@ import { EventCard } from "@/components/mypage/EventCard"
 import { LogoutButton } from "@/components/mypage/LogoutButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
-import { compareShowsByDisplayOrder, getShowDisplayMeta } from "@/lib/show-display"
+import { getShowDisplayMeta } from "@/lib/show-display"
 import {
   fetchMyCompanyInfo,
   fetchMyShows,
@@ -23,7 +24,14 @@ import {
 
 const FETCH_SHOWS_SIZE = 100
 const DISPLAY_SHOWS_PAGE_SIZE = 8
-type ShowFilter = "all" | "upcoming" | "live" | "ended"
+type ShowFilter = "all" | "pending" | "upcoming" | "live" | "ended"
+
+function sortShowsByLatest(left: MyShowSummary, right: MyShowSummary) {
+  const leftTimestamp = new Date(left.show.showStartDate).getTime()
+  const rightTimestamp = new Date(right.show.showStartDate).getTime()
+
+  return rightTimestamp - leftTimestamp
+}
 
 export function MyPageContent() {
   const { toast } = useToast()
@@ -36,6 +44,7 @@ export function MyPageContent() {
   const [currentPage, setCurrentPage] = useState(0)
   const [activeTab, setActiveTab] = useState<"info" | "shows">("shows")
   const [showFilter, setShowFilter] = useState<ShowFilter>("all")
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     let isCancelled = false
@@ -65,7 +74,7 @@ export function MyPageContent() {
 
           if (!(walletError instanceof ApiError && walletError.status === 401)) {
             toast({
-              title: "지갑 정보를 불러오지 못했습니다.",
+              title: "지갑 정보를 불러오지 못했습니다",
               description:
                 walletError instanceof ApiError
                   ? walletError.message
@@ -82,7 +91,7 @@ export function MyPageContent() {
         if (!(error instanceof ApiError && error.status === 401)) {
           setHasSummaryLoadError(true)
           toast({
-            title: "회사 정보를 불러오지 못했습니다.",
+            title: "회사 정보를 불러오지 못했습니다",
             description:
               error instanceof ApiError
                 ? error.message
@@ -123,7 +132,7 @@ export function MyPageContent() {
         if (!(error instanceof ApiError && error.status === 401)) {
           setHasShowsLoadError(true)
           toast({
-            title: "공연 목록을 불러오지 못했습니다.",
+            title: "공연 목록을 불러오지 못했습니다",
             description:
               error instanceof ApiError
                 ? error.message
@@ -143,9 +152,16 @@ export function MyPageContent() {
     }
   }, [toast])
 
-  const allShows: MyShowSummary[] = [...(showsPage?.shows ?? [])].sort(compareShowsByDisplayOrder)
+  const allShows: MyShowSummary[] = [...(showsPage?.shows ?? [])].sort(sortShowsByLatest)
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
   const filteredShows = allShows.filter((show) => {
+    const matchesSearch =
+      normalizedSearchQuery.length === 0 ||
+      show.title.toLowerCase().includes(normalizedSearchQuery)
+
+    if (!matchesSearch) return false
     if (showFilter === "all") return true
+    if (showFilter === "pending") return show.status === "PENDING_CONTRACT"
 
     const performancePhase = getShowDisplayMeta(show).performance.phase
 
@@ -153,6 +169,7 @@ export function MyPageContent() {
     if (showFilter === "live") return performancePhase === "LIVE"
     return performancePhase === "ENDED"
   })
+
   const totalShows = showsPage?.totalElements ?? 0
   const totalPages = Math.ceil(filteredShows.length / DISPLAY_SHOWS_PAGE_SIZE)
   const isFirstPage = currentPage === 0
@@ -167,6 +184,11 @@ export function MyPageContent() {
   const filterOptions: Array<{ key: ShowFilter; label: string; count: number }> = [
     { key: "all", label: "전체", count: allShows.length },
     {
+      key: "pending",
+      label: "승인대기중",
+      count: allShows.filter((show) => show.status === "PENDING_CONTRACT").length,
+    },
+    {
       key: "upcoming",
       label: "공연 예정",
       count: allShows.filter((show) => getShowDisplayMeta(show).performance.phase === "UPCOMING")
@@ -179,7 +201,7 @@ export function MyPageContent() {
     },
     {
       key: "ended",
-      label: "공연 완료",
+      label: "공연 종료",
       count: allShows.filter((show) => getShowDisplayMeta(show).performance.phase === "ENDED")
         .length,
     },
@@ -193,7 +215,7 @@ export function MyPageContent() {
 
   useEffect(() => {
     setCurrentPage(0)
-  }, [showFilter])
+  }, [showFilter, searchQuery])
 
   return (
     <main className="min-h-svh bg-white">
@@ -282,36 +304,8 @@ export function MyPageContent() {
 
         {activeTab === "shows" ? (
           <section className="mt-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
-                {filterOptions.map((option) => {
-                  const active = showFilter === option.key
-
-                  return (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setShowFilter(option.key)}
-                      className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
-                        active
-                          ? "border-black bg-black text-white"
-                          : "border-black/10 bg-white text-black/62 hover:bg-black/[0.03]"
-                      }`}
-                    >
-                      <span>{option.label}</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          active ? "bg-white/14 text-white" : "bg-black/[0.05] text-black/56"
-                        }`}
-                      >
-                        {option.count}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -338,6 +332,47 @@ export function MyPageContent() {
                   다음
                 </Button>
               </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap gap-2">
+                    {filterOptions.map((option) => {
+                      const active = showFilter === option.key
+
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => setShowFilter(option.key)}
+                          className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                            active
+                              ? "border-black bg-black text-white"
+                              : "border-black/10 bg-white text-black/62 hover:bg-black/[0.03]"
+                          }`}
+                        >
+                          <span>{option.label}</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              active ? "bg-white/14 text-white" : "bg-black/[0.05] text-black/56"
+                            }`}
+                          >
+                            {option.count}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="w-full lg:w-72 lg:min-w-72">
+                    <Input
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="공연 제목 검색"
+                      className="h-10 rounded-full border-black/10 bg-white px-4"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {visibleShows.length > 0 ? (
@@ -353,7 +388,7 @@ export function MyPageContent() {
                     ? "공연 목록을 불러오는 중입니다."
                     : hasShowsLoadError
                       ? "공연 목록을 불러오지 못했습니다."
-                      : "선택한 상태의 공연이 없습니다."}
+                      : "조건에 맞는 공연이 없습니다."}
                 </CardContent>
               </Card>
             )}
