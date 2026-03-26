@@ -1,4 +1,9 @@
-import type { CreateShowPayload, HostShowDetail, ShowFormPayload } from "@/lib/show-manage-api"
+import type {
+  CreateShowPayload,
+  HostShowDetail,
+  HostShowStakeholder,
+  ShowFormPayload,
+} from "@/lib/show-manage-api"
 import type { Grade, RefundItem, SessionItem, Stakeholder } from "./showFormTypes"
 
 export const PLATFORM_FEE_BPS = 800
@@ -119,6 +124,23 @@ function buildGradeGroupingKey(grade: {
   ].join("|")
 }
 
+function isPlatformStakeholderRecord(stakeholder: HostShowStakeholder) {
+  const stakeholderNumber = stakeholder.number?.trim() ?? ""
+  const stakeholderName = stakeholder.name?.trim() ?? ""
+
+  return (
+    stakeholder.role === "ORGANIZER" &&
+    stakeholder.shareBps === PLATFORM_FEE_BPS &&
+    (
+      (
+        stakeholderName === FIXED_PLATFORM_STAKEHOLDER.name &&
+        stakeholderNumber === FIXED_PLATFORM_STAKEHOLDER.businessNo
+      ) ||
+      (!stakeholder.id && !stakeholderName && !stakeholderNumber)
+    )
+  )
+}
+
 function toSessionTimestamp(sessionDate: string, sessionStartTime: string) {
   return new Date(
     `${normalizeSessionDateValue(sessionDate)}T${normalizeSessionTimeValue(sessionStartTime)}`
@@ -223,13 +245,11 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
     const role: Stakeholder["role"] = stakeholder.role === "ORGANIZER" ? "ORGANIZER" : "ARTIST"
     const businessNo = role === "ORGANIZER" ? stakeholder.number || "" : ""
     const phone = role === "ARTIST" ? stakeholder.number || "" : ""
-    const isFixed =
-      stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name &&
-      businessNo === FIXED_PLATFORM_STAKEHOLDER.businessNo
+    const isFixed = isPlatformStakeholderRecord(stakeholder)
 
     return {
       role,
-      name: stakeholder.name ?? "",
+      name: isFixed ? FIXED_PLATFORM_STAKEHOLDER.name : stakeholder.name ?? "",
       phone,
       businessNo,
       shareBps: String(stakeholder.shareBps),
@@ -246,11 +266,7 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
     }
   })
 
-  const fixedStakeholderIndex = mappedStakeholders.findIndex(
-    (stakeholder) =>
-      stakeholder.name === FIXED_PLATFORM_STAKEHOLDER.name &&
-      stakeholder.businessNo === FIXED_PLATFORM_STAKEHOLDER.businessNo
-  )
+  const fixedStakeholderIndex = mappedStakeholders.findIndex((stakeholder) => stakeholder.isFixed)
 
   if (fixedStakeholderIndex < 0) {
     return [{ ...FIXED_PLATFORM_STAKEHOLDER }, ...mappedStakeholders]
