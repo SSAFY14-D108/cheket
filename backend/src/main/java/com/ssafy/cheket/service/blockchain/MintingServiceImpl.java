@@ -388,7 +388,8 @@ public class MintingServiceImpl implements MintingService {
             List<SessionSeat> seats = sessionSeatRepository.findBySessionId(session.getId());
 
             for (SessionSeat seat : seats) {
-                if (seat.getOnChainTicketNftId() == null) continue;
+                if (seat.getOnChainTicketNftId() == null)
+                    continue;
                 totalChecked++;
 
                 try {

@@ -127,15 +127,21 @@ public class ResaleServiceImpl implements ResaleService {
             throw new ConflictException("리세일 등록 상태가 아닙니다: " + ticket.getResaleStatus());
         }
 
-        // ② ACTIVE Resale 조회
+        // ② ACTIVE Resale 조회 (PENDING 상태면 이미 처리 중이므로 중복 방지)
         Resale resale = resaleEntityRepository.findByTicketIdAndStatus(ticketId, Resale.ResaleListingStatus.ACTIVE)
-            .orElseThrow(() -> new NotFoundException("활성 리세일 등록을 찾을 수 없습니다."));
+            .orElseThrow(() -> new NotFoundException("활성 리세일 등록을 찾을 수 없습니다. (이미 취소/구매 처리 중일 수 있습니다)"));
 
         if (resale.getOnChainListingId() == null) {
             throw new ConflictException("온체인 등록이 완료되지 않은 리세일입니다.");
         }
 
-        // ③ Transaction PENDING 생성
+        // ③ 중복 방지: 리세일 상태를 PENDING_CANCEL로 변경
+        resale.setStatus(Resale.ResaleListingStatus.PENDING_CANCEL);
+        resale.setUpdatedAt(LocalDateTime.now());
+        resaleEntityRepository.save(resale);
+        log.info("[리세일 취소] Resale → PENDING_CANCEL — resaleId={}", resale.getId());
+
+        // ④ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_CANCEL).amount(0L)
             .description("리세일 취소 대기").txStatus(Transaction.TxStatus.PENDING).sellerId(userId) // 취소하는 사람 = 판매자
             .build();
@@ -165,9 +171,9 @@ public class ResaleServiceImpl implements ResaleService {
     public Long purchaseResale(Long buyerUserId, Long ticketId) {
         log.info("[리세일 구매] 요청 — buyerUserId={}, ticketId={}", buyerUserId, ticketId);
 
-        // ① ACTIVE Resale 조회
+        // ① ACTIVE Resale 조회 (PENDING 상태면 이미 처리 중이므로 중복 방지)
         Resale resale = resaleEntityRepository.findByTicketIdAndStatus(ticketId, Resale.ResaleListingStatus.ACTIVE)
-            .orElseThrow(() -> new NotFoundException("활성 리세일 등록을 찾을 수 없습니다."));
+            .orElseThrow(() -> new NotFoundException("활성 리세일 등록을 찾을 수 없습니다. (이미 취소/구매 처리 중일 수 있습니다)"));
 
         if (resale.getOnChainListingId() == null) {
             throw new ConflictException("온체인 등록이 완료되지 않은 리세일입니다.");
@@ -202,7 +208,13 @@ public class ResaleServiceImpl implements ResaleService {
                 "SSF 잔액이 부족합니다. (보유: " + balanceResponse.balance() + " SSF, 필요: " + resale.getResalePrice() + " SSF)");
         }
 
-        // ⑥ Transaction PENDING 생성
+        // ⑥ 중복 방지: 리세일 상태를 PENDING_PURCHASE로 변경
+        resale.setStatus(Resale.ResaleListingStatus.PENDING_PURCHASE);
+        resale.setUpdatedAt(LocalDateTime.now());
+        resaleEntityRepository.save(resale);
+        log.info("[리세일 구매] Resale → PENDING_PURCHASE — resaleId={}", resale.getId());
+
+        // ⑦ Transaction PENDING 생성
         Transaction transaction = Transaction.builder().type(Transaction.TransactionType.RESALE_PURCHASE)
             .amount((long) resale.getResalePrice()).description("리세일 구매 대기").txStatus(Transaction.TxStatus.PENDING)
             .buyerId(buyerUserId).sellerId(resale.getUserId()).build();

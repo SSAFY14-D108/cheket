@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class Resale {
 
     public enum ResaleListingStatus {
-        ACTIVE, SOLD, CANCELLED
+        ACTIVE, SOLD, CANCELLED, PENDING_CANCEL, PENDING_PURCHASE
     }
 
     @Id
