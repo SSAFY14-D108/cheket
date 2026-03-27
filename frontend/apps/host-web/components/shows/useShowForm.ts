@@ -466,7 +466,11 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             descriptionImageFiles,
           })
         )
-        window.alert(`공연이 등록되었습니다. (공연 ID: ${response})`)
+        window.alert(
+          response
+            ? `공연이 등록되었습니다. (공연 ID: ${response})`
+            : "공연이 등록되었습니다."
+        )
       }
 
       router.push("/mypage")

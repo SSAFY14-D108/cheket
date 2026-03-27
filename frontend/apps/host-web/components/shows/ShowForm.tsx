@@ -39,8 +39,7 @@ interface ShowFormProps {
 }
 
 const STEP_LABELS = ["기본 정보", "일정 / 장소", "티켓 설정", "정산 / 정책"];
-const SETTLEMENT_CONFIRM_TEXT =
-  "정산 정책을 확인했고 그대로 공연을 등록합니다.";
+const SETTLEMENT_CONFIRM_TEXT = "정산 정책을 확인했고 그대로 공연을 등록합니다.";
 
 function formatSharePercent(shareBps: string) {
   return `${((Number(shareBps) || 0) / 100).toLocaleString("ko-KR", {
@@ -114,7 +113,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   const [showStep3Errors, setShowStep3Errors] = useState(false);
   const [showStep4Errors, setShowStep4Errors] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
+  const [isSettlementConfirmed, setIsSettlementConfirmed] = useState(false);
   const [walletStatus, setWalletStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
@@ -128,7 +127,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
   const submitLabel = isEdit ? "수정 완료" : "등록 완료";
   const isRemotePosterPreview =
     typeof posterPreview === "string" && /https?:\/\//.test(posterPreview);
-  const canConfirmCreate = confirmText.trim() === SETTLEMENT_CONFIRM_TEXT;
+  const canConfirmCreate = isSettlementConfirmed;
   const canEditStakeholders = !isEdit || !isContentOnlyEdit;
   const reservationOpenMinDate = useMemo(() => {
     if (!isEdit) {
@@ -273,7 +272,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
       void handleSubmit();
       return;
     }
-    setConfirmText("");
+    setIsSettlementConfirmed(false);
     setIsConfirmOpen(true);
   };
 
@@ -708,7 +707,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
         open={isConfirmOpen}
         onOpenChange={(open) => {
           setIsConfirmOpen(open);
-          if (!open) setConfirmText("");
+          if (!open) setIsSettlementConfirmed(false);
         }}
       >
         <DialogContent className="sm:max-w-xl">
@@ -776,18 +775,30 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="settlement-confirm-text">
-              아래 문구를 그대로 입력해야 등록을 진행할 수 있습니다.
-            </Label>
-            <div className="rounded-md bg-muted px-3 py-2 font-semibold text-foreground">
-              {SETTLEMENT_CONFIRM_TEXT}
+            <div className="rounded-lg border border-border bg-background px-4 py-3">
+              <label
+                htmlFor="settlement-confirm"
+                className="flex cursor-pointer items-start gap-3"
+              >
+                <input
+                  id="settlement-confirm"
+                  type="checkbox"
+                  checked={isSettlementConfirmed}
+                  onChange={(event) =>
+                    setIsSettlementConfirmed(event.target.checked)
+                  }
+                  className="mt-1 size-4 rounded border-black/20 text-black focus:ring-black"
+                />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">
+                    등록 전 확인
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {SETTLEMENT_CONFIRM_TEXT}
+                  </p>
+                </div>
+              </label>
             </div>
-            <Input
-              id="settlement-confirm-text"
-              value={confirmText}
-              onChange={(event) => setConfirmText(event.target.value)}
-              placeholder="확인 문구를 그대로 입력해 주세요"
-            />
           </div>
           <div className="space-y-2">
             <Label>정산 비율 요약</Label>
@@ -818,7 +829,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               variant="outline"
               onClick={() => {
                 setIsConfirmOpen(false);
-                setConfirmText("");
+                setIsSettlementConfirmed(false);
               }}
             >
               취소
