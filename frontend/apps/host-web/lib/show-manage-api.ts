@@ -396,6 +396,14 @@ function buildShowContractsConfirmPath(showId: string | number) {
   return `/api/v1/hosts/shows/${showId}/contracts/confirm`
 }
 
+function buildShowContractApprovePath(showId: string | number) {
+  return `/api/v1/shows/contracts/${showId}/approve`
+}
+
+function buildShowContractRejectPath(showId: string | number) {
+  return `/api/v1/shows/contracts/${showId}/reject`
+}
+
 function buildTicketEffectsPath() {
   return "/api/v1/hosts/shows/effect"
 }
@@ -441,6 +449,28 @@ export async function fetchShowContracts(showId: string | number) {
 export async function confirmShowContracts(showId: string | number) {
   const response = await apiFetch<ApiResponse<TxIdResponseData>>(
     buildShowContractsConfirmPath(showId),
+    {
+      method: "POST",
+    },
+  )
+
+  return response
+}
+
+export async function approveShowContract(showId: string | number) {
+  const response = await apiFetch<ApiMessageResponse>(
+    buildShowContractApprovePath(showId),
+    {
+      method: "POST",
+    },
+  )
+
+  return response
+}
+
+export async function rejectShowContract(showId: string | number) {
+  const response = await apiFetch<ApiMessageResponse>(
+    buildShowContractRejectPath(showId),
     {
       method: "POST",
     },

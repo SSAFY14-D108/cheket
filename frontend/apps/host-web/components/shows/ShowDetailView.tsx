@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -24,10 +24,12 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
 import {
+  approveShowContract,
   confirmShowContracts,
   deleteShow,
   type HostShowContractApproval,
   type HostShowDetail,
+  rejectShowContract,
 } from "@/lib/show-manage-api"
 import { getShowDisplayMeta } from "@/lib/show-display"
 import { ShowTxProgressModal } from "./ShowTxProgressModal"
@@ -79,13 +81,22 @@ export function ShowDetailView({
 }: ShowDetailViewProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const [localContractApprovals, setLocalContractApprovals] =
+    useState<HostShowContractApproval[]>(contractApprovals)
   const [isSubmittingFinalRegistration, setIsSubmittingFinalRegistration] =
     useState(false)
+  const [contractDecisionAction, setContractDecisionAction] = useState<
+    "approve" | "reject" | null
+  >(null)
   const [activeTxId, setActiveTxId] = useState<number | null>(null)
   const [isTxModalOpen, setIsTxModalOpen] = useState(false)
   const [selectedDescriptionImage, setSelectedDescriptionImage] = useState<
     string | null
   >(null)
+
+  useEffect(() => {
+    setLocalContractApprovals(contractApprovals)
+  }, [contractApprovals])
 
   const displayMeta = getShowDisplayMeta(showDetail)
   const visibleStakeholders = showDetail.stakeholders.filter((stakeholder) => {
@@ -107,23 +118,30 @@ export function ShowDetailView({
     PLATFORM_FEE_BPS +
     visibleStakeholders.reduce((sum, stakeholder) => sum + stakeholder.shareBps, 0)
 
-  const hasContracts = contractApprovals.length > 0
-  const approvedCount = contractApprovals.filter(
+  const hasContracts = localContractApprovals.length > 0
+  const approvedCount = localContractApprovals.filter(
     (approval) => approval.approvalStatus === "APPROVED",
   ).length
-  const pendingCount = contractApprovals.filter(
+  const pendingCount = localContractApprovals.filter(
     (approval) => approval.approvalStatus === "PENDING",
   ).length
-  const rejectedCount = contractApprovals.filter(
+  const rejectedCount = localContractApprovals.filter(
     (approval) => approval.approvalStatus === "REJECTED",
   ).length
   const hasRejectedContract = rejectedCount > 0
-  const isAllApproved = hasContracts && approvedCount === contractApprovals.length
+  const isAllApproved =
+    hasContracts && approvedCount === localContractApprovals.length
   const isPendingContract = showDetail.status === "PENDING_CONTRACT"
+  const hasHostPendingApproval = localContractApprovals.some(
+    (approval) =>
+      approval.userType === "HOST" && approval.approvalStatus === "PENDING",
+  )
   const canEditShow = showDetail.status !== "CANCELLED"
   const canConfirmShow = isPendingContract
+  const isSubmittingContractDecision = contractDecisionAction !== null
   const confirmButtonDisabled =
-    !hasRejectedContract && (!isAllApproved || isSubmittingFinalRegistration)
+    !hasRejectedContract &&
+    (!isAllApproved || isSubmittingFinalRegistration || isSubmittingContractDecision)
 
   const actionHint = hasRejectedContract
     ? "거절된 이해관계자가 있어 공연 수정 후 다시 승인 절차를 진행해야 합니다."
@@ -148,7 +166,7 @@ export function ShowDetailView({
     },
     {
       label: "승인 현황",
-      value: `${approvedCount}/${contractApprovals.length || 0}`,
+      value: `${approvedCount}/${localContractApprovals.length || 0}`,
       hint: hasRejectedContract ? "거절 포함" : "완료 수",
       icon: Users,
     },
@@ -209,6 +227,78 @@ export function ShowDetailView({
       })
     } finally {
       setIsSubmittingFinalRegistration(false)
+    }
+  }
+
+  const handleApproveContract = async () => {
+    try {
+      setContractDecisionAction("approve")
+      const response = await approveShowContract(showDetail.showId)
+      setLocalContractApprovals((currentApprovals) =>
+        currentApprovals.map((approval) =>
+          approval.userType === "HOST" && approval.approvalStatus === "PENDING"
+            ? {
+                ...approval,
+                approvalStatus: "APPROVED",
+                determinedAt: new Date().toISOString(),
+              }
+            : approval,
+        ),
+      )
+      toast({
+        title: "계약 승인 완료",
+        description: response.responseMessage || "주최측 계약 승인이 완료되었습니다.",
+      })
+      router.refresh()
+    } catch (error) {
+      toast({
+        title: "계약 승인 실패",
+        description:
+          error instanceof ApiError
+            ? error.message
+            : "계약 승인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        variant: "destructive",
+      })
+    } finally {
+      setContractDecisionAction(null)
+    }
+  }
+
+  const handleRejectContract = async () => {
+    if (!window.confirm("이 계약을 거절하시겠습니까? 거절 후에는 공연 수정이 필요할 수 있습니다.")) {
+      return
+    }
+
+    try {
+      setContractDecisionAction("reject")
+      const response = await rejectShowContract(showDetail.showId)
+      setLocalContractApprovals((currentApprovals) =>
+        currentApprovals.map((approval) =>
+          approval.userType === "HOST" && approval.approvalStatus === "PENDING"
+            ? {
+                ...approval,
+                approvalStatus: "REJECTED",
+                determinedAt: new Date().toISOString(),
+              }
+            : approval,
+        ),
+      )
+      toast({
+        title: "계약 거절 완료",
+        description: response.responseMessage || "주최측 계약이 거절 처리되었습니다.",
+      })
+      router.refresh()
+    } catch (error) {
+      toast({
+        title: "계약 거절 실패",
+        description:
+          error instanceof ApiError
+            ? error.message
+            : "계약 거절 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        variant: "destructive",
+      })
+    } finally {
+      setContractDecisionAction(null)
     }
   }
 
@@ -322,6 +412,54 @@ export function ShowDetailView({
                 </p>
               </div>
 
+              <div className="mt-5">
+                <div className="space-y-3">
+                  {isPendingContract && hasHostPendingApproval ? (
+                    <>
+                      <Button
+                        type="button"
+                        onClick={handleApproveContract}
+                        disabled={isSubmittingContractDecision}
+                        className="h-12 w-full rounded-full text-sm font-semibold"
+                      >
+                        {contractDecisionAction === "approve" ? "승인 처리중..." : "계약 승인"}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleRejectContract}
+                        disabled={isSubmittingContractDecision}
+                        variant="outline"
+                        className="h-12 w-full rounded-full border-amber-300 text-sm font-semibold text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                      >
+                        {contractDecisionAction === "reject" ? "거절 처리중..." : "계약 거절"}
+                      </Button>
+                    </>
+                  ) : null}
+                  {canConfirmShow ? (
+                    <Button
+                      type="button"
+                      onClick={handleFinalRegistration}
+                      disabled={confirmButtonDisabled}
+                      variant="outline"
+                      className="h-12 w-full rounded-full text-sm font-semibold"
+                    >
+                      {isSubmittingFinalRegistration ? "처리중..." : "최종등록"}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.6rem] border border-black/8 bg-white p-5">
+              <div className="space-y-1">
+                <p className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-black/36">
+                  Manage show
+                </p>
+                <h2 className="text-xl font-semibold tracking-[-0.04em] text-black">
+                  공연 관리
+                </h2>
+              </div>
+
               <div className="mt-5 space-y-3">
                 {canEditShow ? (
                   <Button
@@ -330,17 +468,6 @@ export function ShowDetailView({
                     className="h-12 w-full rounded-full text-sm font-semibold"
                   >
                     공연 수정
-                  </Button>
-                ) : null}
-                {canConfirmShow ? (
-                  <Button
-                    type="button"
-                    onClick={handleFinalRegistration}
-                    disabled={confirmButtonDisabled}
-                    variant="outline"
-                    className="h-12 w-full rounded-full text-sm font-semibold"
-                  >
-                    {isSubmittingFinalRegistration ? "처리중..." : "최종등록"}
                   </Button>
                 ) : null}
                 <Button
@@ -530,7 +657,7 @@ export function ShowDetailView({
                 </div>
 
                 <div className="space-y-3">
-                  {contractApprovals.map((approval) => {
+                  {localContractApprovals.map((approval) => {
                     const statusMeta = getContractStatusMeta(approval.approvalStatus)
 
                     return (
