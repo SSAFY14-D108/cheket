@@ -146,6 +146,8 @@ export function ShowDetailView({
   >(null)
   const [activeTxId, setActiveTxId] = useState<number | null>(null)
   const [isTxModalOpen, setIsTxModalOpen] = useState(false)
+  const [hasStartedFinalRegistration, setHasStartedFinalRegistration] =
+    useState(showDetail.status !== "PENDING_CONTRACT")
   const [selectedDescriptionImage, setSelectedDescriptionImage] = useState<
     string | null
   >(null)
@@ -153,6 +155,10 @@ export function ShowDetailView({
   useEffect(() => {
     setLocalContractApprovals(contractApprovals)
   }, [contractApprovals])
+
+  useEffect(() => {
+    setHasStartedFinalRegistration(showDetail.status !== "PENDING_CONTRACT")
+  }, [showDetail.status])
 
   const displayMeta = getShowDisplayMeta(showDetail)
   const visibleStakeholders = showDetail.stakeholders.filter((stakeholder) => {
@@ -193,7 +199,10 @@ export function ShowDetailView({
       approval.userType === "HOST" && approval.approvalStatus === "PENDING",
   )
   const canEditShow = showDetail.status !== "CANCELLED"
-  const canConfirmShow = isPendingContract
+  const canConfirmShow =
+    isPendingContract && !hasStartedFinalRegistration && !isSubmittingFinalRegistration
+  const canDeleteShow =
+    isPendingContract && !hasStartedFinalRegistration && !isSubmittingFinalRegistration
   const isSubmittingContractDecision = contractDecisionAction !== null
   const isActionLocked = isTxModalOpen || isSubmittingFinalRegistration
   const confirmButtonDisabled =
@@ -262,6 +271,7 @@ export function ShowDetailView({
       setIsSubmittingFinalRegistration(true)
       const response = await confirmShowContracts(showDetail.showId)
       const txId = response.data?.txId
+      setHasStartedFinalRegistration(true)
 
       if (typeof txId === "number" && txId > 0) {
         setActiveTxId(txId)
@@ -271,6 +281,7 @@ export function ShowDetailView({
         router.refresh()
       }
     } catch (error) {
+      setHasStartedFinalRegistration(false)
       toast({
         title: "최종등록 실패",
         description:
@@ -526,15 +537,17 @@ export function ShowDetailView({
                     공연 수정
                   </Button>
                 ) : null}
-                <Button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={isActionLocked}
-                  variant="outline"
-                  className="h-12 w-full rounded-full border-destructive text-sm font-semibold text-destructive hover:bg-destructive hover:text-primary-foreground"
-                >
-                  삭제하기
-                </Button>
+                {canDeleteShow ? (
+                  <Button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={isActionLocked}
+                    variant="outline"
+                    className="h-12 w-full rounded-full border-destructive text-sm font-semibold text-destructive hover:bg-destructive hover:text-primary-foreground"
+                  >
+                    삭제하기
+                  </Button>
+                ) : null}
               </div>
             </div>
           </aside>
