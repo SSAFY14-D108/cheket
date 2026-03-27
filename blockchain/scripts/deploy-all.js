@@ -143,6 +143,12 @@ async function main() {
   await tx.wait();
   console.log("    ✅ 완료");
 
+  // ========== Marketplace.setEventNFT (maxPerWallet on-chain 검증용) ==========
+  console.log("Marketplace.setEventNFT(EventNFT)...");
+  tx = await marketplace.setEventNFT(eventNFTAddress);
+  await tx.wait();
+  console.log("    ✅ 완료");
+
   // ========== 결과 출력 ==========
   console.log("\n========================================");
   console.log("배포 완료! 컨트랙트 주소");

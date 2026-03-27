@@ -697,12 +697,6 @@ contract Settlement is Ownable {
             distributed += share;
         }
 
-        // ========== EventNFT 정산 완료 표시 ==========
-        eventNFT.finalizeSession(sessionId);
-        // EventNFT.sessions[sessionId].isFinalized = true
-        // → on-chain에 정산 완료 기록 (이중 정산 추가 방어)
-        // → Settlement + EventNFT 양쪽 모두 정산 완료 표시
-
         emit SessionFinalized(settlementId, eventId, sessionId, totalAmount);
         // 로그: "정산 #0 완료: 공연 0, 회차 0, 총 1,250,000 SSF"
 
