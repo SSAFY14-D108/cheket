@@ -30,6 +30,7 @@ import {
   type HostShowDetail,
 } from "@/lib/show-manage-api"
 import { getShowDisplayMeta } from "@/lib/show-display"
+import { ShowTxProgressModal } from "./ShowTxProgressModal"
 import {
   FIXED_PLATFORM_STAKEHOLDER,
   PLATFORM_FEE_BPS,
@@ -80,6 +81,8 @@ export function ShowDetailView({
   const { toast } = useToast()
   const [isSubmittingFinalRegistration, setIsSubmittingFinalRegistration] =
     useState(false)
+  const [activeTxId, setActiveTxId] = useState<number | null>(null)
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false)
   const [selectedDescriptionImage, setSelectedDescriptionImage] = useState<
     string | null
   >(null)
@@ -186,8 +189,15 @@ export function ShowDetailView({
     try {
       setIsSubmittingFinalRegistration(true)
       const response = await confirmShowContracts(showDetail.showId)
-      window.alert(response.responseMessage || "최종등록이 완료되었습니다.")
-      router.refresh()
+      const txId = response.data?.txId
+
+      if (typeof txId === "number" && txId > 0) {
+        setActiveTxId(txId)
+        setIsTxModalOpen(true)
+      } else {
+        window.alert(response.responseMessage || "최종등록이 완료되었습니다.")
+        router.refresh()
+      }
     } catch (error) {
       toast({
         title: "최종등록 실패",
@@ -594,6 +604,20 @@ export function ShowDetailView({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <ShowTxProgressModal
+        txId={activeTxId}
+        open={isTxModalOpen}
+        onClose={() => {
+          setIsTxModalOpen(false)
+          setActiveTxId(null)
+        }}
+        onConfirmed={() => {
+          setIsTxModalOpen(false)
+          setActiveTxId(null)
+          router.refresh()
+        }}
+      />
     </main>
   )
 }
