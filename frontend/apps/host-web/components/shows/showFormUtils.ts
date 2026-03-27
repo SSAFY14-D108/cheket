@@ -161,6 +161,20 @@ function isPlatformStakeholderRecord(stakeholder: HostShowStakeholder) {
   )
 }
 
+function isSelfHostStakeholderRecord(
+  stakeholder: HostShowStakeholder,
+  currentBusinessNo?: string | null
+) {
+  const stakeholderNumber = stakeholder.number?.replace(/\D/g, "") ?? ""
+  const normalizedBusinessNo = currentBusinessNo?.replace(/\D/g, "") ?? ""
+
+  return Boolean(
+    normalizedBusinessNo &&
+    stakeholder.role === "ORGANIZER" &&
+    stakeholderNumber === normalizedBusinessNo
+  )
+}
+
 function toSessionTimestamp(sessionDate: string, sessionStartTime: string) {
   return new Date(
     `${normalizeSessionDateValue(sessionDate)}T${normalizeSessionTimeValue(sessionStartTime)}`
@@ -252,7 +266,10 @@ export function buildInitialGrades(initialData?: HostShowDetail): Grade[] {
   return Array.from(gradeMap.values())
 }
 
-export function buildInitialStakeholders(initialData?: HostShowDetail): Stakeholder[] {
+export function buildInitialStakeholders(
+  initialData?: HostShowDetail,
+  currentBusinessNo?: string | null
+): Stakeholder[] {
   if (!initialData?.stakeholders?.length) {
     return [
       { ...FIXED_PLATFORM_STAKEHOLDER },
@@ -266,6 +283,7 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
     const businessNo = role === "ORGANIZER" ? stakeholder.number || "" : ""
     const phone = role === "ARTIST" ? stakeholder.number || "" : ""
     const isFixed = isPlatformStakeholderRecord(stakeholder)
+    const isSelfHost = isSelfHostStakeholderRecord(stakeholder, currentBusinessNo)
 
     return {
       id: stakeholder.id,
@@ -276,6 +294,7 @@ export function buildInitialStakeholders(initialData?: HostShowDetail): Stakehol
       shareBps: String(stakeholder.shareBps),
       verified: Boolean(stakeholder.id || stakeholder.name),
       isFixed,
+      isSelfHost,
       ...(isFixed
         ? {
             businessNo: FIXED_PLATFORM_STAKEHOLDER.businessNo,

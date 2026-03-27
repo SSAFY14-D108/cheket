@@ -78,12 +78,17 @@ export function SettingsCardPolicies({
       editableStakeholders.map(({ stakeholder, index }) => ({
         id: `stakeholder-${index}`,
         sourceIndex: index,
-        type: stakeholder.role === "ORGANIZER" ? "사업자" : "개인",
+        type: stakeholder.isSelfHost
+          ? "주최사"
+          : stakeholder.role === "ORGANIZER"
+            ? "사업자"
+            : "개인",
         identifier: stakeholder.role === "ORGANIZER" ? stakeholder.businessNo ?? "" : stakeholder.phone ?? "",
         name: stakeholder.name ?? "",
         percentage: stakeholder.shareBps ? String(Number(stakeholder.shareBps) / 100) : "",
         stakeholder,
-      })),
+      }))
+      .sort((left, right) => Number(Boolean(right.stakeholder.isSelfHost)) - Number(Boolean(left.stakeholder.isSelfHost))),
     [editableStakeholders]
   )
   // UI 전용 상태 모델: { id, daysBefore, refundRate }
@@ -156,6 +161,14 @@ export function SettingsCardPolicies({
 
     return base
   }, [stakeholders, remainingShareBps])
+
+  const distributionLegendItems = useMemo(
+    () =>
+      chartData
+        .filter((entry) => entry.value > 0)
+        .sort((left, right) => right.value - left.value),
+    [chartData]
+  )
 
   const handleVerify = async (idx: number) => {
     const stakeholder = stakeholders[idx]
@@ -316,6 +329,34 @@ export function SettingsCardPolicies({
                     현재 합계 {totalShareBps.toLocaleString()} / 10,000 bps ({Math.max(0, remainingShareBps).toLocaleString()} bps 추가 필요)
                   </div>
                 )}
+
+                <div className="rounded-md border bg-background p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold text-foreground">배분 목록</p>
+                    <span className="text-[11px] text-muted-foreground">
+                      {distributionLegendItems.length}개 항목
+                    </span>
+                  </div>
+                  <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+                    {distributionLegendItems.map((entry) => (
+                      <div
+                        key={`${entry.name}-${entry.value}`}
+                        className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-xs"
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span
+                            className="size-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: entry.color }}
+                          />
+                          <span className="truncate text-foreground">{entry.name}</span>
+                        </div>
+                        <span className="shrink-0 font-semibold text-foreground">
+                          {(entry.value / 100).toLocaleString()}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -387,7 +428,7 @@ export function SettingsCardPolicies({
                       onUpdateStakeholder(idx, "phone", "")
                       onUpdateStakeholder(idx, "businessNo", "")
                     }}
-                    disabled={!canEditStakeholders}
+                    disabled={!canEditStakeholders || Boolean(sh.isSelfHost)}
                   >
                     <option value="ORGANIZER">사업자</option>
                     <option value="ARTIST">개인</option>
@@ -398,15 +439,15 @@ export function SettingsCardPolicies({
                   <div className="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)] items-center gap-2 min-w-0">
                     {sh.role === "ORGANIZER" ? (
                       <Input
-                        placeholder="사업자등록번호(- 제외)"
+                        placeholder={sh.isSelfHost ? "자동 연동된 사업자등록번호" : "사업자등록번호(- 제외)"}
                         value={row.identifier}
                         onChange={(event) => {
                           onUpdateStakeholder(idx, "businessNo", formatBusinessNo(event.target.value))
                           onUpdateStakeholder(idx, "verified", false)
                           onUpdateStakeholder(idx, "name", "")
                         }}
-                        className={`h-8 min-w-0 text-xs ${!canEditStakeholders ? "bg-muted/50" : ""}`}
-                        readOnly={!canEditStakeholders}
+                        className={`h-8 min-w-0 text-xs ${!canEditStakeholders || sh.isSelfHost ? "bg-muted/50" : ""}`}
+                        readOnly={!canEditStakeholders || Boolean(sh.isSelfHost)}
                       />
                     ) : (
                       <Input
@@ -421,18 +462,24 @@ export function SettingsCardPolicies({
                         readOnly={!canEditStakeholders}
                       />
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-[72px] px-0 text-xs"
-                      onClick={() => void handleVerify(idx)}
-                      disabled={Boolean(searchingIndexes[idx]) || !canEditStakeholders}
-                    >
-                      <Search className="mr-1 size-3.5" />
-                      {searchingIndexes[idx] ? "조회중" : "조회"}
-                    </Button>
+                    {sh.isSelfHost ? (
+                      <div className="flex h-8 w-[72px] items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-[11px] font-medium text-emerald-700">
+                        자동 연동
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-[72px] px-0 text-xs"
+                        onClick={() => void handleVerify(idx)}
+                        disabled={Boolean(searchingIndexes[idx]) || !canEditStakeholders}
+                      >
+                        <Search className="mr-1 size-3.5" />
+                        {searchingIndexes[idx] ? "조회중" : "조회"}
+                      </Button>
+                    )}
                     <Input
-                      placeholder="조회 시 이름 자동 표시"
+                      placeholder={sh.isSelfHost ? "로그인한 주최사 정보" : "조회 시 이름 자동 표시"}
                       value={row.name}
                       readOnly
                       className="h-8 min-w-0 border-0 bg-muted/60 px-2 text-xs text-muted-foreground shadow-none focus-visible:ring-0"
@@ -477,7 +524,7 @@ export function SettingsCardPolicies({
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => onRemoveStakeholder(idx)}
-                    disabled={!canEditStakeholders}
+                    disabled={!canEditStakeholders || Boolean(sh.isSelfHost)}
                     aria-label={`이해관계자 ${displayIndex + 1} 삭제`}
                   >
                     <Trash2 className="size-3.5" />

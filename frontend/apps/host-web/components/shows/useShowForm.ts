@@ -4,6 +4,7 @@ import { useEffect, useState, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError } from "@/lib/api"
+import { fetchMyCompanyInfo } from "@/lib/mypage-api"
 import {
   createShow,
   fetchShowVenues,
@@ -79,6 +80,78 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const [venueLoadError, setVenueLoadError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  function normalizeBusinessNo(value?: string | null) {
+    return value?.replace(/\D/g, "") ?? ""
+  }
+
+  function upsertSelfHostStakeholder(
+    currentStakeholders: Stakeholder[],
+    companyInfo: { companyName: string; businessNo: string }
+  ) {
+    const normalizedBusinessNo = normalizeBusinessNo(companyInfo.businessNo)
+    const selfHostIndex = currentStakeholders.findIndex(
+      (stakeholder) =>
+        stakeholder.isSelfHost ||
+        (
+          stakeholder.role === "ORGANIZER" &&
+          normalizeBusinessNo(stakeholder.businessNo) === normalizedBusinessNo
+        )
+    )
+
+    const nextSelfHost: Stakeholder = {
+      role: "ORGANIZER",
+      name: companyInfo.companyName,
+      businessNo: companyInfo.businessNo,
+      shareBps:
+        selfHostIndex >= 0 ? currentStakeholders[selfHostIndex].shareBps : "",
+      verified: true,
+      isSelfHost: true,
+    }
+
+    if (selfHostIndex >= 0) {
+      return currentStakeholders.map((stakeholder, index) =>
+        index === selfHostIndex
+          ? {
+              ...stakeholder,
+              ...nextSelfHost,
+              phone: "",
+            }
+          : stakeholder
+      )
+    }
+
+    const organizerPlaceholderIndex = currentStakeholders.findIndex(
+      (stakeholder) =>
+        !stakeholder.isFixed &&
+        !stakeholder.isSelfHost &&
+        stakeholder.role === "ORGANIZER" &&
+        !stakeholder.name.trim() &&
+        !(stakeholder.businessNo?.trim() ?? "") &&
+        !(stakeholder.phone?.trim() ?? "")
+    )
+
+    if (organizerPlaceholderIndex >= 0) {
+      return currentStakeholders.map((stakeholder, index) =>
+        index === organizerPlaceholderIndex
+          ? {
+              ...stakeholder,
+              ...nextSelfHost,
+              phone: "",
+            }
+          : stakeholder
+      )
+    }
+
+    const platformIndex = currentStakeholders.findIndex((stakeholder) => stakeholder.isFixed)
+    const insertIndex = platformIndex >= 0 ? platformIndex + 1 : 0
+
+    return [
+      ...currentStakeholders.slice(0, insertIndex),
+      nextSelfHost,
+      ...currentStakeholders.slice(insertIndex),
+    ]
+  }
+
   useEffect(() => {
     let isMounted = true
 
@@ -123,6 +196,50 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
       isMounted = false
     }
   }, [toast])
+
+  useEffect(() => {
+    if (isContentOnlyEdit) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadMyCompanyInfo = async () => {
+      try {
+        const companyInfo = await fetchMyCompanyInfo()
+
+        if (!isMounted) {
+          return
+        }
+
+        setStakeholders((currentStakeholders) =>
+          upsertSelfHostStakeholder(currentStakeholders, {
+            companyName: companyInfo.companyName,
+            businessNo: companyInfo.businessNo,
+          })
+        )
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+
+        toast({
+          title: "주최사 정보 확인 필요",
+          description:
+            error instanceof ApiError
+              ? error.message
+              : "주최사 정보를 자동으로 불러오지 못했습니다. 이해관계자 정보를 확인해주세요.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    void loadMyCompanyInfo()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isContentOnlyEdit, toast])
 
   useEffect(() => {
     const nextRange = deriveShowRangeFromSessions(sessionInfo, playtime)
