@@ -58,7 +58,7 @@ import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
 
 private const val TAG = "CollectionListWebView"
-private const val COLLECTION_LIST_URL = "https://j14d108.p.ssafy.io/collection"
+private const val COLLECTION_LIST_URL = "https://j14d108.p.ssafy.io/collection/"
 private const val WEB_READY_TIMEOUT_MS = 10_000L
 private const val WEB_TIMEOUT_MESSAGE = "서버에 연결할 수 없습니다."
 
