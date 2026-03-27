@@ -192,7 +192,18 @@ public class ShowMintingServiceImpl implements ShowMintingService {
                 batchMintTicketsForSession(show, session, onChainEventId, txHashes);
             }
 
-            // ========== ⑦ MINTING → MINTED ==========
+            // ========== ⑦ 이벤트 단위 tokenURI 설정 (공연당 1번) ==========
+            // 기존: setTicketTokenURI(tokenId) × 좌석 수 → TX 500개 ≈ 17분
+            // 변경: setEventTokenURI(eventId) × 1 → TX 1개 ≈ 2초
+            if (show.getMetadataIpfsCid() != null && !show.getMetadataIpfsCid().isEmpty()) {
+                final BigInteger finalEventId = onChainEventId;
+                TransactionReceipt uriReceipt = blockchainService.executePlatformTx(() -> blockchainService
+                    .getTicketNFT().setEventTokenURI(finalEventId, "ipfs://" + show.getMetadataIpfsCid()).send());
+                txHashes.add(uriReceipt.getTransactionHash());
+                log.info("[공연 {}] 이벤트 tokenURI 설정 완료 — eventId={}", show.getId(), onChainEventId);
+            }
+
+            // ========== ⑧ MINTING → MINTED ==========
             show.setStatus(ShowStatus.MINTED);
             showRepository.save(show);
             log.info("[공연 {}] MINTING → MINTED 상태 전이 완료", showId);
@@ -432,14 +443,6 @@ public class ShowMintingServiceImpl implements ShowMintingService {
                         SessionSeat ss = batch.get(j);
                         long tokenId = startTokenId.longValue() + j;
                         ss.setOnChainTicketNftId(tokenId);
-
-                        // 티켓 NFT에 공연 메타데이터 CID 설정 (IPFS 포스터/공연 정보 조회용)
-                        if (show.getMetadataIpfsCid() != null && !show.getMetadataIpfsCid().isEmpty()) {
-                            blockchainService.executePlatformTx(() -> blockchainService.getTicketNFT()
-                                .setTicketTokenURI(BigInteger.valueOf(tokenId), "ipfs://" + show.getMetadataIpfsCid())
-                                .send());
-                            log.info("[공연 {}] 티켓 tokenURI 설정 완료 — tokenId={}", show.getId(), tokenId);
-                        }
                     }
                     sessionSeatRepository.saveAll(batch);
                 }

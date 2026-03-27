@@ -101,6 +101,8 @@ public class TicketNFT extends Contract {
 
     public static final String FUNC_SETTICKETTOKENURI = "setTicketTokenURI";
 
+    public static final String FUNC_SETEVENTTOKENURI = "setEventTokenURI";
+
     public static final String FUNC_SUPPORTSINTERFACE = "supportsInterface";
 
     public static final String FUNC_SYMBOL = "symbol";
@@ -797,6 +799,14 @@ public class TicketNFT extends Contract {
     public RemoteFunctionCall<TransactionReceipt> setTicketTokenURI(BigInteger tokenId, String uri) {
         final Function function = new Function(FUNC_SETTICKETTOKENURI,
             Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId),
+                new org.web3j.abi.datatypes.Utf8String(uri)),
+            Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteFunctionCall<TransactionReceipt> setEventTokenURI(BigInteger eventId, String uri) {
+        final Function function = new Function(FUNC_SETEVENTTOKENURI,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId),
                 new org.web3j.abi.datatypes.Utf8String(uri)),
             Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
