@@ -340,8 +340,8 @@ public class HostShowServiceImpl implements HostShowService {
     public void deleteShow(Long hostId, Long showId) {
         // 1. 공연 존재 + 권한 확인
         Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
-        if (show.getStatus() != ShowStatus.DRAFT && show.getStatus() != ShowStatus.PENDING_CONTRACT) {
-            throw new BadRequestException("임시저장 또는 계약 대기 상태의 공연만 삭제할 수 있습니다.");
+        if (show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("계약 대기(PENDING_CONTRACT) 상태의 공연만 삭제할 수 있습니다.");
         }
         if (!show.getHost().getId().equals(hostId)) {
             throw new ForbiddenException("본인이 등록한 공연만 삭제할 수 있습니다.");
