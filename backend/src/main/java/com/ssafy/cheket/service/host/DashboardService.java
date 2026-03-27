@@ -10,7 +10,7 @@ public interface DashboardService {
 
     GetBookingRateResponse getBookingRate(Long hostId, Long showId);
 
-    GetRevenueSplitResponse getRevenueSplit(Long hostId, Long showId);
+    GetRevenueSplitResponse getRevenueSplit(Long loginId, String role, Long showId);
 
     GetReservationsResponse getReservations(Long hostId, Long showId);
 }

@@ -82,11 +82,19 @@ public class DashboardServiceImpl implements DashboardService {
 
     // 수입 배분 조회
     @Override
-    public GetRevenueSplitResponse getRevenueSplit(Long hostId, Long showId) {
+    public GetRevenueSplitResponse getRevenueSplit(Long loginId, String role, Long showId) {
         Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
 
-        if (!show.getHost().getId().equals(hostId))
-            throw new ForbiddenException("본인이 등록한 공연만 볼 수 있습니다.");
+        boolean canAccess = false;
+
+        if ("ROLE_HOST".equals(role)) {
+            canAccess = show.getHost().getId().equals(loginId);
+        } else if ("ROLE_USER".equals(role)) {
+            canAccess = stakeholderRepository.existsByShowIdAndUserId(showId, loginId);
+        }
+
+        if (!canAccess)
+            throw new ForbiddenException("권한이 없습니다.");
 
         Integer totalPrimarySales = ticketRepository.sumPrimarySalesByShowId(showId);
         if (totalPrimarySales == null)

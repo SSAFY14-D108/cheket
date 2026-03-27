@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,9 +43,11 @@ public class DashboardController {
     @GetMapping("/revenue-split")
     @Operation(summary = "수입 배분 조회")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<GetRevenueSplitResponse>> getRevenueSplit(@AuthenticationPrincipal Long hostId,
-        @PathVariable Long showId) {
-        GetRevenueSplitResponse response = dashboardService.getRevenueSplit(hostId, showId);
+    public ResponseEntity<ApiResponse<GetRevenueSplitResponse>> getRevenueSplit(@AuthenticationPrincipal Long loginId,
+        Authentication authentication, @PathVariable Long showId) {
+        String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+            .orElse(null);
+        GetRevenueSplitResponse response = dashboardService.getRevenueSplit(loginId, role, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "수입 배분 조회 완료", response));
     }
 

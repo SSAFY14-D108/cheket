@@ -1441,10 +1441,14 @@ public class BlockchainAsyncWorker {
                 ticketRepository.save(ticket);
 
                 // 처리 실패 후, 온체인 조회 결과 실제 구매 성공이 확인되면 증가
-                Session session = sessionRepository.findById(seat.getSessionId())
-                    .orElseThrow(() -> new BlockchainException("회차를 찾을 수 없습니다."));
+                try {
+                    Session session = sessionRepository.findById(seat.getSessionId())
+                        .orElseThrow(() -> new BlockchainException("회차를 찾을 수 없습니다."));
 
-                showRepository.increaseReservationCount(session.getShowId(), 1);
+                    showRepository.increaseReservationCount(session.getShowId(), 1);
+                } catch (Exception countEx) {
+                    log.error("[온체인 동기화] nftId={} — reservationCount 증가 실패, 구매는 성공", nftId, countEx);
+                }
 
                 log.info("[온체인 동기화] nftId={} — DB 동기화 완료 (SOLD + Ticket 생성)", nftId);
                 return true;
