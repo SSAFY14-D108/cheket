@@ -10,9 +10,7 @@ import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.network.dto.EmailDuplicateRequest
 import com.ssafy.cheket.core.network.dto.SmsSendRequest
 import com.ssafy.cheket.core.network.dto.SmsVerifyRequest
-import com.ssafy.cheket.core.network.dto.LoginRequest
 import com.ssafy.cheket.core.network.dto.SignupRequest
-import com.ssafy.cheket.core.network.AuthTokens
 import com.ssafy.cheket.core.network.service.AuthService
 import com.ssafy.cheket.core.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -202,22 +200,7 @@ class SignupViewModel(
                 )
                 Log.d(TAG, "signup() statusCode=${response.httpStatusCode}")
                 if (response.httpStatusCode in 200..299) {
-                    // 회원가입 성공 후 자동 로그인
-                    try {
-                        val loginResponse = authService.login(LoginRequest(email = state.email, password = state.password))
-                        if (loginResponse.httpStatusCode in 200..299 && loginResponse.data != null) {
-                            authDataStore.onLoginSuccess()
-                            authDataStore.saveTokens(
-                                AuthTokens(
-                                    accessToken = loginResponse.data.accessToken,
-                                    refreshToken = loginResponse.data.refreshToken,
-                                )
-                            )
-                            Log.d(TAG, "signup() auto-login success")
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "signup() auto-login failed (non-critical)", e)
-                    }
+                    Log.d(TAG, "signup() success")
                     _uiState.update { it.copy(isSignupSuccess = true, isLoading = false) }
                 } else {
                     _uiState.update { it.copy(errors = mapOf("signup" to (response.responseMessage ?: "회원가입 실패")), isLoading = false) }

@@ -42,6 +42,8 @@ import com.ssafy.cheket.features.shows.ShowsScreen
 import com.ssafy.cheket.features.show.ShowDetailScreen
 import com.ssafy.cheket.features.home.HomeScreen
 import com.ssafy.cheket.features.mypage.MyPageScreen
+import com.ssafy.cheket.features.mypage.MyShowsScreen
+import com.ssafy.cheket.features.mypage.ShowRevenueScreen
 import com.ssafy.cheket.features.mytickets.MyTicketsScreen
 import com.ssafy.cheket.features.mytickets.QrCheckinScreen
 import com.ssafy.cheket.features.mytickets.TicketDetailScreen
@@ -123,6 +125,8 @@ object Routes {
     const val TX_PROCESSING = "tx_processing/{txId}/{txType}"
     const val NOTIFICATIONS = "notifications"
     const val CONTRACT_APPROVAL = "contract_approval/{showId}/{requestType}"
+    const val MY_SHOWS = "my_shows"
+    const val SHOW_REVENUE = "show_revenue/{showId}"
 
     // Helper functions for building routes with args
     fun showDetail(showId: String) = "show_detail/$showId"
@@ -144,6 +148,7 @@ object Routes {
     fun seatMap(showId: String, sessionId: String = "") = "seat_map/$showId/$sessionId"
     fun txProcessing(txId: Long = 0, txType: String = "TICKET_PURCHASE") = "tx_processing/$txId/$txType"
     fun contractApproval(showId: Long, requestType: String) = "contract_approval/$showId/$requestType"
+    fun showRevenue(showId: Long) = "show_revenue/$showId"
 }
 
 val bottomTabRoutes = listOf(
@@ -332,9 +337,7 @@ fun AppNavGraph(
             slideComposable(Routes.SIGNUP) {
                 SignupScreen(
                     onSignupSuccess = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.LOGIN) { inclusive = true }
-                        }
+                        navController.popBackStack(Routes.LOGIN, inclusive = false)
                     },
                     onBack = { navController.popBackStack() },
                 )
@@ -711,6 +714,7 @@ fun AppNavGraph(
                     onWishlist = { navController.navigate(Routes.WISHLIST) },
                     onWalletHistory = { navController.navigate(Routes.WALLET_HISTORY) },
                     onTxHistory = { navController.navigate(Routes.TX_HISTORY) },
+                    onMyShows = { navController.navigate(Routes.MY_SHOWS) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
                     onLogout = {
                         appContainer.authRepository.logout()
@@ -731,6 +735,22 @@ fun AppNavGraph(
                         NavParams.selectedTicket = ticket
                         navController.navigate(Routes.ticketDetail(ticket.id))
                     },
+                )
+            }
+            slideComposable(Routes.MY_SHOWS) {
+                MyShowsScreen(
+                    onShowClick = { showId -> navController.navigate(Routes.showRevenue(showId)) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            slideComposable(
+                route = Routes.SHOW_REVENUE,
+                arguments = listOf(navArgument("showId") { type = NavType.LongType }),
+            ) { backStackEntry ->
+                val showId = backStackEntry.arguments?.getLong("showId") ?: 0L
+                ShowRevenueScreen(
+                    showId = showId,
+                    onBack = { navController.popBackStack() },
                 )
             }
             slideComposable(Routes.WALLET) {

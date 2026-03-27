@@ -206,119 +206,130 @@ export function SignupForm() {
       : "text-destructive"
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-5 px-6">
-      <h1 className="text-center text-2xl font-bold tracking-tight text-foreground">
-        회원가입
-      </h1>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <LoginInput
-            type="text"
-            placeholder="회사 이름 (예: 체켓엔터테인먼트)"
-            autoComplete="organization"
-            value={form.companyName}
-            onChange={(e) => updateField("companyName", e.target.value)}
-          />
-          {errors.companyName && (
-            <p className="text-sm text-destructive">{errors.companyName}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <div className="flex gap-2">
-            <LoginInput
-              type="text"
-              placeholder="사업자등록번호 (예시: 122-90-38867)"
-              autoComplete="off"
-              inputMode="numeric"
-              value={form.businessNo}
-              onChange={(e) => updateField("businessNo", formatBusinessNo(e.target.value))}
-            />
-            <LoginButton
-              type="button"
-              variant="secondary"
-              className="h-14 w-auto shrink-0 px-4 text-sm"
-              onClick={handleCheckBusinessNo}
-              disabled={isCheckingBusinessNo || isSubmitting}
-            >
-              {isCheckingBusinessNo ? "확인 중..." : "중복확인"}
-            </LoginButton>
-          </div>
-          {errors.businessNo && (
-            <p className="text-sm text-destructive">{errors.businessNo}</p>
-          )}
-          {!errors.businessNo && businessNoHelperMessage && (
-            <p className={`text-sm ${businessNoHelperClassName}`}>
-              {businessNoHelperMessage}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <LoginInput
-            type="email"
-            placeholder="이메일 (예: host@company.com)"
-            autoComplete="email"
-            inputMode="email"
-            value={form.email}
-            onChange={(e) => updateField("email", e.target.value)}
-          />
-          {errors.email && (
-            <p className="text-sm text-destructive">{errors.email}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <LoginInput
-            type="password"
-            placeholder="비밀번호 (8자 이상)"
-            autoComplete="new-password"
-            value={form.password}
-            onChange={(e) => updateField("password", e.target.value)}
-          />
-          {errors.password && (
-            <p className="text-sm text-destructive">{errors.password}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <LoginInput
-            type="password"
-            placeholder="비밀번호 확인"
-            autoComplete="new-password"
-            value={form.passwordConfirm}
-            onChange={(e) => updateField("passwordConfirm", e.target.value)}
-          />
-          {passwordMismatch && (
-            <p className="text-sm text-destructive">비밀번호가 일치하지 않습니다.</p>
-          )}
-          {passwordMatch && (
-            <p className="text-sm text-chart-5">비밀번호가 일치합니다.</p>
-          )}
-          {errors.passwordConfirm && !passwordMismatch && (
-            <p className="text-sm text-destructive">{errors.passwordConfirm}</p>
-          )}
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <p className="text-sm font-medium uppercase tracking-[0.28em] text-black/36">
+          Sign up
+        </p>
+        <div className="space-y-2">
+          <h1 className="text-5xl font-semibold tracking-[-0.06em] text-black">회원가입</h1>
+          <p className="text-sm leading-6 text-black/50">호스트 계정을 생성하세요.</p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <LoginButton
-          type="button"
-          variant="primary"
-          onClick={handleSubmit}
-          disabled={!isFormValid || isSubmitting || isCheckingBusinessNo}
-        >
-          {isSubmitting ? "가입 처리 중..." : "회원가입"}
-        </LoginButton>
-        <LoginButton
-          type="button"
-          variant="secondary"
-          onClick={() => router.push("/")}
-          disabled={isSubmitting}
-        >
-          로그인으로 돌아가기
-        </LoginButton>
+      <div className="relative overflow-hidden rounded-[2rem] border border-black/8 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,255,255,0.8),_rgba(255,255,255,0.95))]" />
+        <div className="relative space-y-8">
+          <div className="space-y-7">
+            <label className="block space-y-1">
+              <LoginInput
+                type="text"
+                placeholder="회사 이름 (예: 체켓엔터테인먼트)"
+                autoComplete="organization"
+                value={form.companyName}
+                onChange={(e) => updateField("companyName", e.target.value)}
+              />
+              {errors.companyName && (
+                <p className="text-sm text-red-600">{errors.companyName}</p>
+              )}
+            </label>
+
+            <label className="block space-y-1">
+              <div className="flex gap-2">
+                <LoginInput
+                  type="text"
+                  placeholder="사업자등록번호 (예시: 122-90-38867)"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  value={form.businessNo}
+                  onChange={(e) => updateField("businessNo", formatBusinessNo(e.target.value))}
+                />
+                <LoginButton
+                  type="button"
+                  variant="secondary"
+                  className="h-14 w-auto shrink-0 px-4 text-sm"
+                  onClick={handleCheckBusinessNo}
+                  disabled={isCheckingBusinessNo || isSubmitting}
+                >
+                  {isCheckingBusinessNo ? "확인 중..." : "중복확인"}
+                </LoginButton>
+              </div>
+              {errors.businessNo && (
+                <p className="text-sm text-red-600">{errors.businessNo}</p>
+              )}
+              {!errors.businessNo && businessNoHelperMessage && (
+                <p className={`text-sm ${businessNoHelperClassName}`}>
+                  {businessNoHelperMessage}
+                </p>
+              )}
+            </label>
+
+            <label className="block space-y-1">
+              <LoginInput
+                type="email"
+                placeholder="이메일 (예: host@company.com)"
+                autoComplete="email"
+                inputMode="email"
+                value={form.email}
+                onChange={(e) => updateField("email", e.target.value)}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-600">{errors.email}</p>
+              )}
+            </label>
+
+            <label className="block space-y-1">
+              <LoginInput
+                type="password"
+                placeholder="비밀번호 (8자 이상)"
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => updateField("password", e.target.value)}
+              />
+              {errors.password && (
+                <p className="text-sm text-red-600">{errors.password}</p>
+              )}
+            </label>
+
+            <label className="block space-y-1">
+              <LoginInput
+                type="password"
+                placeholder="비밀번호 확인"
+                autoComplete="new-password"
+                value={form.passwordConfirm}
+                onChange={(e) => updateField("passwordConfirm", e.target.value)}
+              />
+              {passwordMismatch && (
+                <p className="text-sm text-red-600">비밀번호가 일치하지 않습니다.</p>
+              )}
+              {passwordMatch && (
+                <p className="text-sm text-green-600">비밀번호가 일치합니다.</p>
+              )}
+              {errors.passwordConfirm && !passwordMismatch && (
+                <p className="text-sm text-red-600">{errors.passwordConfirm}</p>
+              )}
+            </label>
+          </div>
+
+          <div className="space-y-4 pt-6">
+            <LoginButton
+              type="button"
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={!isFormValid || isSubmitting || isCheckingBusinessNo}
+            >
+              {isSubmitting ? "가입 처리 중..." : "회원가입"}
+            </LoginButton>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              disabled={isSubmitting}
+              className="flex h-14 w-full items-center justify-center rounded-2xl border border-black/10 px-4 text-sm font-semibold text-black/72 transition-colors hover:bg-black/[0.03]"
+            >
+              로그인으로 돌아가기
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

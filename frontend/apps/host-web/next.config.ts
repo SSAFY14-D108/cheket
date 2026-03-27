@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/collection-preview",
+        destination: process.env.COLLECTION_PREVIEW_URL || "http://localhost:3100/preview",
+      },
+    ]
+  },
 }
 
 export default nextConfig

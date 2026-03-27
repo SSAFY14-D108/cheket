@@ -197,3 +197,31 @@ data class ContractApprovalDto(
 )
 
 // ── Liked Shows — LikedShowDto는 UserDto.kt에 정의 ──
+
+// ── My Shows (참여 공연 목록) ──
+
+data class MyShowDto(
+    @SerializedName("showId") val showId: Long,
+    @SerializedName("title") val title: String,
+    @SerializedName("artist") val artist: String? = null,
+    @SerializedName("posterUrl") val posterUrl: String? = null,
+    @SerializedName("showStartDate") val showStartDate: String? = null,
+    @SerializedName("showEndDate") val showEndDate: String? = null,
+)
+
+// ── Revenue Split (수익 배분 조회) ──
+
+data class RevenueSplitResponse(
+    @SerializedName("showId") val showId: Long,
+    @SerializedName("title") val title: String,
+    @SerializedName("totalRevenue") val totalRevenue: Double,
+    @SerializedName("splits") val splits: List<RevenueSplitInfo>,
+)
+
+data class RevenueSplitInfo(
+    @SerializedName("role") val role: String,       // ORGANIZER, ARTIST
+    @SerializedName("id") val id: Long? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("rateBps") val rateBps: Int,    // basis points (100 = 1%)
+    @SerializedName("amount") val amount: Double,
+)

@@ -12,7 +12,7 @@ object RetrofitClient {
 
     private const val TAG = "RetrofitClient"
     private const val BASE_URL = "https://j14d108.p.ssafy.io/"
-    private const val TIMEOUT_SECONDS = 30L
+    private const val TIMEOUT_SECONDS = 15L
 
     private lateinit var regularClient: OkHttpClient
     private lateinit var refreshClient: OkHttpClient
