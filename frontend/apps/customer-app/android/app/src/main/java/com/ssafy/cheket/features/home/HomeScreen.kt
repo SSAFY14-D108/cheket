@@ -104,6 +104,9 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) isRefreshing = false
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -137,7 +140,6 @@ fun HomeScreen(
             onRefresh = {
                 isRefreshing = true
                 viewModel.refresh()
-                isRefreshing = false
             },
             modifier = Modifier
                 .fillMaxSize()

@@ -58,6 +58,9 @@ fun NotificationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) isRefreshing = false
+    }
 
     Scaffold(
         topBar = { AppHeader(title = "알림", onBack = onBack) },
@@ -99,7 +102,6 @@ fun NotificationScreen(
                     onRefresh = {
                         isRefreshing = true
                         viewModel.loadNotifications()
-                        isRefreshing = false
                     },
                     modifier = Modifier
                         .fillMaxSize()

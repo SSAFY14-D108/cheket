@@ -1,13 +1,18 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import ReactCardFlip from 'react-card-flip'
 import Tilt from 'react-parallax-tilt'
-import { ChevronLeft, ChevronRight, Music2, Settings2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 import type { CollectionTicket } from '@/lib/types'
-import { TicketSparklesAura } from './ticket-sparkles-aura'
+
+const TicketSparklesAura = dynamic(
+  () => import('./ticket-sparkles-aura').then((module) => module.TicketSparklesAura),
+  { ssr: false }
+)
 
 // Re-export Ticket type alias for internal use
 type Ticket = CollectionTicket
@@ -37,27 +42,28 @@ function useNativeTiltBridge() {
       const cardRx = rx * 12
       const cardRy = ry * 12
 
-      document.querySelectorAll('.ticket-holo-tilt').forEach((host) => {
-        const el = host as HTMLElement
-        el.style.setProperty('--mx', `${mx}%`)
-        el.style.setProperty('--my', `${my}%`)
-        el.style.setProperty('--rx', `${rx}deg`)
-        el.style.setProperty('--ry', `${ry}deg`)
-        el.style.setProperty('--posx', `${mx}%`)
-        el.style.setProperty('--posy', `${my}%`)
-        el.style.transform = `perspective(800px) rotateX(${cardRx}deg) rotateY(${cardRy}deg)`
-        el.style.transition = 'transform 0.15s ease-out'
-      })
+      const host = document.querySelector<HTMLElement>('.ticket-holo-tilt.is-native-tilt-target')
+      if (host) {
+        host.style.setProperty('--mx', `${mx}%`)
+        host.style.setProperty('--my', `${my}%`)
+        host.style.setProperty('--rx', `${rx}deg`)
+        host.style.setProperty('--ry', `${ry}deg`)
+        host.style.setProperty('--posx', `${mx}%`)
+        host.style.setProperty('--posy', `${my}%`)
+        host.style.transform = `perspective(800px) rotateX(${cardRx}deg) rotateY(${cardRy}deg)`
+        host.style.transition = 'transform 0.15s ease-out'
+      }
 
-      document.querySelectorAll('.ticket-holo-front-layer').forEach((layer) => {
-        const el = layer as HTMLElement
+      const layer = document.querySelector<HTMLElement>('.ticket-holo-front-layer.is-native-tilt-target')
+      if (layer) {
+        const el = layer
         el.style.setProperty('--mx', `${mx}%`)
         el.style.setProperty('--my', `${my}%`)
         el.style.setProperty('--rx', `${rx}deg`)
         el.style.setProperty('--ry', `${ry}deg`)
         el.style.setProperty('--posx', `${mx}%`)
         el.style.setProperty('--posy', `${my}%`)
-      })
+      }
     }
 
     const handler = (e: Event) => {
@@ -135,6 +141,7 @@ interface FaceProps {
   pokeEffect?: PokeEffect
   paperEffect?: PaperEffect
   numberAura?: NumberAuraType
+  nativeTiltTarget?: boolean
 }
 
 const GRADE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -302,6 +309,7 @@ function TicketFront({
   pokeEffect,
   paperEffect,
   numberAura,
+  nativeTiltTarget = false,
 }: FaceProps) {
   const isMetal = metalEffect === 'gold-foil' || metalEffect === 'silver-foil' || metalEffect === 'rose-foil'
   const metallicClass = metalEffect ? `ticket-metallic-${metalEffect}` : ''
@@ -382,7 +390,7 @@ function TicketFront({
           {enableHolo && !pokeEffect && (
             <div
               ref={holoLayerRef}
-              className="ticket-holo-front-layer"
+              className={`ticket-holo-front-layer${nativeTiltTarget ? ' is-native-tilt-target' : ''}`}
               style={
                 {
                   '--mx': '50%',
@@ -401,7 +409,7 @@ function TicketFront({
           {pokeEffect && (
             <div
               ref={holoLayerRef}
-              className="ticket-holo-front-layer"
+              className={`ticket-holo-front-layer${nativeTiltTarget ? ' is-native-tilt-target' : ''}`}
               style={
                 {
                   '--mx': '50%',
@@ -623,6 +631,7 @@ function CollectibleTicketCard({
   paperEffect,
   displayScale,
   numberAura,
+  nativeTiltTarget = false,
 }: {
   ticket: Ticket
   metalEffect?: MetalEffect
@@ -634,6 +643,7 @@ function CollectibleTicketCard({
   paperEffect?: PaperEffect
   displayScale?: number
   numberAura?: NumberAuraType
+  nativeTiltTarget?: boolean
 }) {
   const showHolo = enableHolo ?? true
   const [flipped, setFlipped] = useState(false)
@@ -756,11 +766,12 @@ function CollectibleTicketCard({
               pokeEffect={pokeEffect}
               paperEffect={paperEffect}
               numberAura={resolvedNumberAura}
+              nativeTiltTarget={nativeTiltTarget}
             />
           ) : (
             <div
               ref={holoHostRef}
-              className="ticket-holo-tilt"
+              className={`ticket-holo-tilt${nativeTiltTarget ? ' is-native-tilt-target' : ''}`}
               style={{ touchAction: 'none' }}
               onPointerEnter={() => setHoloActive(true)}
               onPointerMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
@@ -810,6 +821,7 @@ function CollectibleTicketCard({
                       pokeEffect={pokeEffect}
                       paperEffect={paperEffect}
                       numberAura={resolvedNumberAura}
+                      nativeTiltTarget={nativeTiltTarget}
                     />
                   </div>
                   <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
@@ -857,6 +869,7 @@ function CollectionCoverFlow({
   const normalizedIndex = mod(activeIndex, tickets.length)
   const baseRotation = -activeIndex * angleStep
   const radius = clamp(viewportWidth * 0.31, 112, 152)
+  const fullRenderDistance = 2.2
 
   return (
     <div className="collection-carousel-shell">
@@ -879,6 +892,7 @@ function CollectionCoverFlow({
             const paperEffect = isPaperEffect(effect) ? effect : undefined
             const armRotation = index * angleStep
             const isFocus = absOffset < 0.45
+            const shouldRenderFullCard = absOffset <= fullRenderDistance
 
             const metalEffect =
               effect === 'gold-foil' || effect === 'silver-foil' || effect === 'rose-foil'
@@ -914,17 +928,30 @@ function CollectionCoverFlow({
                     style={{ pointerEvents: isFocus || absOffset <= 1.2 ? 'auto' : 'none' }}
                   >
                     <div className={`collection-carousel-glow${isFocus ? ' is-active' : ''}`} />
-                    <CollectibleTicketCard
-                      ticket={ticket}
-                      metalEffect={metalEffect}
-                      compact={!isFocus}
-                      displayScale={isFocus ? 0.8 : undefined}
-                      holoVariant={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
-                      enableHolo={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none'}
-                      pokeEffect={pokeEffect}
-                      paperEffect={paperEffect}
-                      numberAura={numberAura}
-                    />
+                    {shouldRenderFullCard ? (
+                      <CollectibleTicketCard
+                        ticket={ticket}
+                        metalEffect={metalEffect}
+                        compact={!isFocus}
+                        displayScale={isFocus ? 0.8 : undefined}
+                        holoVariant={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
+                        enableHolo={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none'}
+                        pokeEffect={pokeEffect}
+                        paperEffect={paperEffect}
+                        numberAura={numberAura}
+                        nativeTiltTarget={isFocus}
+                      />
+                    ) : (
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          width: CARD_COMPACT_WIDTH,
+                          height: CARD_COMPACT_HEIGHT,
+                          opacity: 0,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    )}
                   </motion.div>
                 </div>
               </div>
@@ -936,12 +963,19 @@ function CollectionCoverFlow({
   )
 }
 
-export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) {
+export function CollectionScreen({
+  tickets: collected,
+  onInitialVisualReady,
+}: {
+  tickets: Ticket[]
+  onInitialVisualReady?: () => void
+}) {
   useNativeTiltBridge() // Android 가속계 → DeviceOrientation 변환
   const [activeIndex, setActiveIndex] = useState(0)
   const [effectPickerOpen, setEffectPickerOpen] = useState(false)
   const [effectMap, setEffectMap] = useState<Record<string, EffectType>>({})
   const [numberAuraMap, setNumberAuraMap] = useState<Record<string, NumberAuraSetting>>({})
+  const initialVisualReadyRef = useRef(false)
 
   const allEffects: { key: EffectType; label: string }[] = [
     { key: 'none', label: 'None' },
@@ -992,13 +1026,18 @@ export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) 
     })
   }, [collected])
 
+  const ticketLookup = useMemo(
+    () => new Map(collected.map((ticket) => [ticket.id, ticket])),
+    [collected]
+  )
+
   const getEffect = useCallback(
     (ticketId: string): EffectType => {
       if (effectMap[ticketId]) return effectMap[ticketId]
-      const ticket = collected.find((t) => t.id === ticketId)
+      const ticket = ticketLookup.get(ticketId)
       return getTicketEffect(ticketId, ticket?.effect)
     },
-    [effectMap, collected]
+    [effectMap, ticketLookup]
   )
   const getResolvedNumberAura = useCallback(
     (ticketId: string): NumberAuraType => {
@@ -1017,6 +1056,26 @@ export function CollectionScreen({ tickets: collected }: { tickets: Ticket[] }) 
 
   const normalizedActiveIndex = mod(activeIndex, collected.length)
   const activeTicket = collected[normalizedActiveIndex] ?? null
+
+  useEffect(() => {
+    initialVisualReadyRef.current = false
+  }, [collected])
+
+  useEffect(() => {
+    if (initialVisualReadyRef.current || !onInitialVisualReady || !activeTicket) return
+
+    let cancelled = false
+    void preloadPoster(activeTicket.poster, true).then(() => {
+      if (cancelled || initialVisualReadyRef.current) return
+      initialVisualReadyRef.current = true
+      onInitialVisualReady()
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeTicket, onInitialVisualReady])
+
   const handlePrev = useCallback(() => {
     setActiveIndex((prev) => prev - 1)
   }, [])

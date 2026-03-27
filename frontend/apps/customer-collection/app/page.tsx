@@ -1,15 +1,41 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CollectionScreen } from '@/components/cheket/collection-screen'
 import { fetchCollectionTickets } from '@/lib/api'
 import { mapDtoToTicket, type CollectionTicket } from '@/lib/types'
+
+declare global {
+  interface Window {
+    CheketCollectionBridge?: {
+      onAppReady?: () => void
+      onAppError?: (message: string) => void
+    }
+  }
+}
 
 export default function Page() {
   const [tickets, setTickets] = useState<CollectionTicket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const nativeReadySentRef = useRef(false)
+
+  const notifyNativeReady = useCallback(() => {
+    if (nativeReadySentRef.current) return
+    nativeReadySentRef.current = true
+    window.CheketCollectionBridge?.onAppReady?.()
+  }, [])
+
+  const notifyNativeError = useCallback(
+    (message: string) => {
+      window.CheketCollectionBridge?.onAppError?.(message)
+      if (!window.CheketCollectionBridge?.onAppError) {
+        notifyNativeReady()
+      }
+    },
+    [notifyNativeReady]
+  )
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -36,6 +62,18 @@ export default function Page() {
       })
       .finally(() => setLoading(false))
   }, [token])
+
+  useEffect(() => {
+    if (!loading && error) {
+      notifyNativeError(error)
+    }
+  }, [error, loading, notifyNativeError])
+
+  useEffect(() => {
+    if (!loading && !error && tickets.length === 0) {
+      notifyNativeReady()
+    }
+  }, [error, loading, notifyNativeReady, tickets.length])
 
   console.log('[Collection] Rendering CollectionScreen with', tickets.length, 'tickets')
 
@@ -88,5 +126,5 @@ export default function Page() {
     )
   }
 
-  return <CollectionScreen tickets={tickets} />
+  return <CollectionScreen tickets={tickets} onInitialVisualReady={notifyNativeReady} />
 }

@@ -2,6 +2,12 @@ package com.ssafy.cheket.features.mytickets
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,6 +66,10 @@ fun MyTicketsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isRefreshing by remember { mutableStateOf(false) }
+    // 로딩 완료 시 리프레시 인디케이터 숨김
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) isRefreshing = false
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -100,18 +110,38 @@ fun MyTicketsScreen(
                     }
                 }
 
-                Text(
-                    text = "컬렉션",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = V0ForegroundText,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
-                        .gradientBorder(shape = RoundedCornerShape(50))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFE8B4CB),
+                                    Color(0xFFCDB4E8),
+                                    Color(0xFFB4E8D4),
+                                    Color(0xFFABFEFF),
+                                    Color(0xFFFCFCD4),
+                                ),
+                            )
+                        )
                         .clickable(onClick = onCollection)
-                        .background(Color.White)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = "컬렉션",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
             }
 
             PullToRefreshBox(
@@ -119,7 +149,6 @@ fun MyTicketsScreen(
                 onRefresh = {
                     isRefreshing = true
                     viewModel.refreshTickets()
-                    isRefreshing = false
                 },
                 modifier = Modifier.fillMaxSize(),
             ) {

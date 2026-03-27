@@ -6,6 +6,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
@@ -13,39 +16,72 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.zIndex
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import com.ssafy.cheket.CheketApplication
+import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.MutedForeground
 import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
 
 private const val TAG = "CollectionListWebView"
-
 private const val COLLECTION_LIST_URL = "http://j14d108.p.ssafy.io:3100"
+private const val WEB_READY_TIMEOUT_MS = 10_000L
+private const val WEB_TIMEOUT_MESSAGE = "서버에 연결할 수 없습니다."
 
-/**
- * Android 가속계 → WebView tilt Bridge.
- * SensorManager에서 가속계를 읽어 WebView에 JS 이벤트로 전달.
- */
+private class CollectionWebAppBridge(
+    private val onReady: () -> Unit,
+    private val onError: (String?) -> Unit,
+) {
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    @Volatile
+    private var readySignaled = false
+
+    @JavascriptInterface
+    fun onAppReady() {
+        if (readySignaled) return
+        readySignaled = true
+        mainHandler.post(onReady)
+    }
+
+    @JavascriptInterface
+    fun onAppError(message: String?) {
+        mainHandler.post { onError(message) }
+    }
+}
+
 private class TiltSensorBridge(
     context: Context,
     private val webView: WebView,
@@ -61,7 +97,7 @@ private class TiltSensorBridge(
     private val orientation = FloatArray(3)
 
     private var lastSendTime = 0L
-    private val sendInterval = 50L // ~20fps (성능 최적화: 60fps → 20fps)
+    private val sendInterval = 50L
 
     fun start() {
         accelerometer?.let {
@@ -81,11 +117,11 @@ private class TiltSensorBridge(
     override fun onSensorChanged(event: SensorEvent) {
         when (event.sensor.type) {
             Sensor.TYPE_ACCELEROMETER -> {
-                // Low-pass filter for smoothing
                 gravity[0] = 0.8f * gravity[0] + 0.2f * event.values[0]
                 gravity[1] = 0.8f * gravity[1] + 0.2f * event.values[1]
                 gravity[2] = 0.8f * gravity[2] + 0.2f * event.values[2]
             }
+
             Sensor.TYPE_MAGNETIC_FIELD -> {
                 geomagnetic[0] = 0.8f * geomagnetic[0] + 0.2f * event.values[0]
                 geomagnetic[1] = 0.8f * geomagnetic[1] + 0.2f * event.values[1]
@@ -102,11 +138,9 @@ private class TiltSensorBridge(
 
         SensorManager.getOrientation(rotationMatrix, orientation)
 
-        // orientation[1] = pitch (앞뒤 기울기), orientation[2] = roll (좌우 기울기)
-        val pitch = Math.toDegrees(orientation[1].toDouble()).toFloat() // -90 ~ 90
-        val roll = Math.toDegrees(orientation[2].toDouble()).toFloat()  // -180 ~ 180
+        val pitch = Math.toDegrees(orientation[1].toDouble()).toFloat()
+        val roll = Math.toDegrees(orientation[2].toDouble()).toFloat()
 
-        // 카드 tilt에 적합하도록 -15 ~ 15도 범위로 클램핑
         val tiltX = pitch.coerceIn(-15f, 15f)
         val tiltY = roll.coerceIn(-15f, 15f)
 
@@ -118,7 +152,7 @@ private class TiltSensorBridge(
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -126,7 +160,8 @@ private class TiltSensorBridge(
 fun CollectionListWebViewScreen(
     onBack: () -> Unit,
 ) {
-    var isLoading by remember { mutableStateOf(true) }
+    var showOverlay by remember { mutableStateOf(true) }
+    var pageError by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val token = remember {
@@ -140,15 +175,15 @@ fun CollectionListWebViewScreen(
     }
 
     val url = remember(token) {
-        if (token != null) "$COLLECTION_LIST_URL?token=$token"
-        else COLLECTION_LIST_URL
+        if (token != null) "$COLLECTION_LIST_URL?token=$token" else COLLECTION_LIST_URL
     }
-
-    // TiltSensor lifecycle
     val tiltBridge = remember { mutableStateOf<TiltSensorBridge?>(null) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val readyTimeout = remember { mutableStateOf<Runnable?>(null) }
 
     DisposableEffect(Unit) {
         onDispose {
+            readyTimeout.value?.let(mainHandler::removeCallbacks)
             tiltBridge.value?.stop()
         }
     }
@@ -168,54 +203,110 @@ fun CollectionListWebViewScreen(
         })()
     """.trimIndent()
 
+    val revealContent: (WebView) -> Unit = remember(context, tiltBridge) {
+        { webView ->
+            readyTimeout.value?.let(mainHandler::removeCallbacks)
+            readyTimeout.value = null
+            webView.postVisualStateCallback(
+                SystemClock.uptimeMillis(),
+                object : WebView.VisualStateCallback() {
+                    override fun onComplete(requestId: Long) {
+                        Log.d(TAG, "Visual state ready: requestId=$requestId")
+                        pageError = null
+                        showOverlay = false
+                        if (tiltBridge.value == null) {
+                            val bridge = TiltSensorBridge(context, webView)
+                            bridge.start()
+                            tiltBridge.value = bridge
+                            Log.d(TAG, "TiltBridge started after web ready")
+                        }
+                    }
+                },
+            )
+        }
+    }
+
     Scaffold(
-        topBar = { com.ssafy.cheket.core.ui.component.AppHeader(title = "컬렉션", onBack = onBack) },
+        topBar = { AppHeader(title = "컬랙션", onBack = onBack) },
     ) { innerPadding ->
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(Background)
-                .padding(innerPadding)
+                .padding(innerPadding),
         ) {
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
                         setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-                        WebView.setWebContentsDebuggingEnabled(true) // release 시 false로 변경
+                        WebView.setWebContentsDebuggingEnabled(true)
+                        addJavascriptInterface(
+                            CollectionWebAppBridge(
+                                onReady = { revealContent(this) },
+                                onError = { message ->
+                                    Log.e(TAG, "Web app reported error: ${message ?: "unknown"}")
+                                    readyTimeout.value?.let(mainHandler::removeCallbacks)
+                                    readyTimeout.value = null
+                                    pageError = message ?: WEB_TIMEOUT_MESSAGE
+                                    showOverlay = true
+                                },
+                            ),
+                            "CheketCollectionBridge",
+                        )
 
                         webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                Log.d(TAG, "onPageFinished: $url")
-                                isLoading = false
-                                // height fix 즉시 + 2초 후 재적용
-                                view?.evaluateJavascript(heightFixJs) { h ->
-                                    Log.d(TAG, "[FIX] Forced height to $h")
-                                }
-                                view?.postDelayed({
-                                    view.evaluateJavascript(heightFixJs) { h ->
-                                        Log.d(TAG, "[FIX] Re-forced height to $h")
-                                    }
-                                }, 2000)
-
-                                // 가속계 Bridge 시작 (React hydration + API fetch 완료 대기)
-                                view?.postDelayed({
-                                    if (tiltBridge.value == null) {
-                                        val bridge = TiltSensorBridge(ctx, view)
-                                        bridge.start()
-                                        tiltBridge.value = bridge
-                                        Log.d(TAG, "TiltBridge started (delayed)")
-                                    }
-                                }, 3000)
+                            override fun onPageCommitVisible(view: WebView?, url: String?) {
+                                Log.d(TAG, "onPageCommitVisible: $url")
+                                view?.evaluateJavascript(heightFixJs, null)
                             }
 
-                            override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                Log.d(TAG, "onPageFinished: $url")
+                                readyTimeout.value?.let(mainHandler::removeCallbacks)
+                                view?.evaluateJavascript(heightFixJs) { height ->
+                                    Log.d(TAG, "[FIX] Forced height to $height")
+                                }
+                                view?.postDelayed(
+                                    {
+                                        view.evaluateJavascript(heightFixJs) { height ->
+                                            Log.d(TAG, "[FIX] Re-forced height to $height")
+                                        }
+                                    },
+                                    350L,
+                                )
+                                if (view != null) {
+                                    val timeoutRunnable = Runnable {
+                                        if (showOverlay) {
+                                            Log.w(TAG, "Web app ready signal timed out")
+                                            pageError = WEB_TIMEOUT_MESSAGE
+                                            showOverlay = true
+                                        }
+                                    }
+                                    readyTimeout.value = timeoutRunnable
+                                    mainHandler.postDelayed(timeoutRunnable, WEB_READY_TIMEOUT_MS)
+                                }
+                            }
+
+                            override fun onReceivedError(
+                                view: WebView?,
+                                errorCode: Int,
+                                description: String?,
+                                failingUrl: String?,
+                            ) {
                                 Log.e(TAG, "WebView error: code=$errorCode, desc=$description, url=$failingUrl")
+                                readyTimeout.value?.let(mainHandler::removeCallbacks)
+                                readyTimeout.value = null
+                                pageError = description ?: WEB_TIMEOUT_MESSAGE
+                                showOverlay = true
                             }
                         }
 
                         webChromeClient = object : WebChromeClient() {
-                            override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
-                                Log.d(TAG, "JS [${msg?.messageLevel()}] ${msg?.message()} (${msg?.sourceId()}:${msg?.lineNumber()})")
+                            override fun onConsoleMessage(message: ConsoleMessage?): Boolean {
+                                Log.d(
+                                    TAG,
+                                    "JS [${message?.messageLevel()}] ${message?.message()} (${message?.sourceId()}:${message?.lineNumber()})",
+                                )
                                 return true
                             }
                         }
@@ -236,28 +327,16 @@ fun CollectionListWebViewScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            // 진입 애니메이션 오버레이 — WebView 로딩을 가리고 자연스럽게 전환
-            val showOverlay = remember { mutableStateOf(true) }
-            val overlayAlpha by androidx.compose.animation.core.animateFloatAsState(
-                targetValue = if (showOverlay.value) 1f else 0f,
-                animationSpec = androidx.compose.animation.core.tween(
-                    durationMillis = 600,
-                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                ),
+
+            val overlayAlpha by animateFloatAsState(
+                targetValue = if (showOverlay) 1f else 0f,
+                animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
                 label = "overlayFade",
             )
 
-            // height fix 완료 후 + 최소 1.2초 보장 후 오버레이 숨김
-            LaunchedEffect(isLoading) {
-                if (!isLoading) {
-                    kotlinx.coroutines.delay(1200L) // 최소 진입 애니메이션 시간
-                    showOverlay.value = false
-                }
-            }
-
             if (overlayAlpha > 0f) {
                 Box(
-                    Modifier
+                    modifier = Modifier
                         .fillMaxSize()
                         .background(Background.copy(alpha = overlayAlpha))
                         .zIndex(10f),
@@ -267,42 +346,55 @@ fun CollectionListWebViewScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        // 스피너 + 펄스 애니메이션
-                        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                        val pulseScale by infiniteTransition.animateFloat(
-                            initialValue = 0.95f,
-                            targetValue = 1.05f,
-                            animationSpec = infiniteRepeatable(
-                                animation = androidx.compose.animation.core.tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                                repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
-                            ),
-                            label = "scale",
-                        )
+                        if (pageError == null) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                            val pulseScale by infiniteTransition.animateFloat(
+                                initialValue = 0.95f,
+                                targetValue = 1.05f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(800, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse,
+                                ),
+                                label = "scale",
+                            )
 
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(
-                                color = Primary,
-                                strokeWidth = 3.dp,
-                                modifier = Modifier.size(64.dp),
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Primary,
+                                    strokeWidth = 3.dp,
+                                    modifier = Modifier.size(64.dp),
+                                )
+                            }
+
+                            Text(
+                                text = "컬렉션 목록",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = OnBackground.copy(alpha = overlayAlpha),
+                            )
+                            Text(
+                                text = "불러오는 중...",
+                                fontSize = 13.sp,
+                                color = MutedForeground,
+                            )
+                        } else {
+                            Text(
+                                text = "불러오기 실패",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = OnBackground.copy(alpha = overlayAlpha),
+                            )
+                            Text(
+                                text = pageError ?: "컬렉션 목록을 불러올 수 없습니다.",
+                                fontSize = 13.sp,
+                                color = MutedForeground,
                             )
                         }
-
-                        Text(
-                            text = "컬렉션",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = OnBackground.copy(alpha = overlayAlpha),
-                        )
-                        Text(
-                            text = "컬렉션을 불러오는 중...",
-                            fontSize = 13.sp,
-                            color = MutedForeground,
-                        )
                     }
                 }
             }

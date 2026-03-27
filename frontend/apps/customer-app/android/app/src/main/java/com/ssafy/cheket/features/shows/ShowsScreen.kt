@@ -159,114 +159,101 @@ fun ShowsScreen(
         containerColor = Background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            Surface(
-                color = Background,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                ) {
-                    AppHeader(
-                        title = "공연",
-                        actions = {
-                            IconButton(
-                                onClick = {
-                                    if (isSearchMode) {
-                                        viewModel.onSearchChange("")
-                                        viewModel.onSearchSubmit()
-                                        focusManager.clearFocus()
-                                    }
-                                    isSearchMode = !isSearchMode
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = if (isSearchMode) Icons.Default.Close else Icons.Default.Search,
-                                    contentDescription = if (isSearchMode) "검색 닫기" else "검색",
-                                    tint = Color(0xFF24332F),
-                                )
+            AppHeader(
+                title = "공연",
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (isSearchMode) {
+                                viewModel.onSearchChange("")
+                                viewModel.onSearchSubmit()
+                                focusManager.clearFocus()
                             }
+                            isSearchMode = !isSearchMode
                         },
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    )
-                    {
-                        if (isSearchMode) {
-                            SearchField(
-                                query = uiState.searchQuery,
-                                onValueChange = viewModel::onSearchChange,
-                                autoFocus = true,
-                                onSubmit = {
-                                    viewModel.onSearchSubmit()
-                                    focusManager.clearFocus()
-                                },
-                                onClear = {
-                                    viewModel.onSearchChange("")
-                                    viewModel.onSearchSubmit()
-                                },
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            SortDropdownButton(
-                                selectedSort = uiState.sortBy,
-                                expanded = isSortMenuOpen,
-                                onExpandedChange = { isSortMenuOpen = it },
-                                onSortChange = {
-                                    viewModel.onSortChange(it)
-                                    isSortMenuOpen = false
-                                },
-                            )
-                            RegionSummaryButton(
-                                summary = regionSummaryText(uiState.selectedRegions),
-                                hasSelection = uiState.selectedRegions.isNotEmpty(),
-                                onClick = {
-                                    pendingRegions = uiState.selectedRegions
-                                    isRegionSheetOpen = true
-                                },
-                            )
-
-                            if (viewModel.hasActiveFilters()) {
-                                TextButton(onClick = viewModel::resetFilters) {
-                                    Text(
-                                        text = "필터 초기화",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MutedForeground,
-                                    )
-                                }
-                            }
-                        }
-
-                        FilterSummaryRow(
-                            totalCount = uiState.totalElements,
-                            selectedRegions = uiState.selectedRegions,
-                            selectedSort = uiState.sortBy.label,
+                    ) {
+                        Icon(
+                            imageVector = if (isSearchMode) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (isSearchMode) "검색 닫기" else "검색",
+                            tint = Color(0xFF24332F),
                         )
                     }
-                }
-            }
+                },
+            )
         },
     ) { innerPadding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = viewModel::refresh,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Background)
-                .padding(innerPadding)
-                ,
+                .padding(innerPadding),
+        ) {
+            // 검색/정렬/지역 필터 (content 안에 배치)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isSearchMode) {
+                    SearchField(
+                        query = uiState.searchQuery,
+                        onValueChange = viewModel::onSearchChange,
+                        autoFocus = true,
+                        onSubmit = {
+                            viewModel.onSearchSubmit()
+                            focusManager.clearFocus()
+                        },
+                        onClear = {
+                            viewModel.onSearchChange("")
+                            viewModel.onSearchSubmit()
+                        },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SortDropdownButton(
+                        selectedSort = uiState.sortBy,
+                        expanded = isSortMenuOpen,
+                        onExpandedChange = { isSortMenuOpen = it },
+                        onSortChange = {
+                            viewModel.onSortChange(it)
+                            isSortMenuOpen = false
+                        },
+                    )
+                    RegionSummaryButton(
+                        summary = regionSummaryText(uiState.selectedRegions),
+                        hasSelection = uiState.selectedRegions.isNotEmpty(),
+                        onClick = {
+                            pendingRegions = uiState.selectedRegions
+                            isRegionSheetOpen = true
+                        },
+                    )
+
+                    if (viewModel.hasActiveFilters()) {
+                        TextButton(onClick = viewModel::resetFilters) {
+                            Text(
+                                text = "필터 초기화",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MutedForeground,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 공연 목록
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
         ) {
             if (uiState.shows.isEmpty() && !uiState.isLoading) {
                 EmptyState(
@@ -325,6 +312,7 @@ fun ShowsScreen(
                 }
             }
         }
+        } // Column
     }
 }
 
@@ -497,19 +485,11 @@ private fun FilterSummaryRow(
     selectedRegions: List<RegionOption>,
     selectedSort: String,
 ) {
-    val regionText = if (selectedRegions.isEmpty()) "전체 지역" else regionSummaryText(selectedRegions)
-
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "$regionText · $selectedSort",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF35584F),
-        )
         Text(
             text = "총 ${totalCount}개",
             fontSize = 12.sp,

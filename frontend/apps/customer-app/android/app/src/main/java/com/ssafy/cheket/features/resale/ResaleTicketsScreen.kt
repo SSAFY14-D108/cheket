@@ -135,7 +135,6 @@ fun ResaleTicketsScreen(
                     onRefresh = {
                         isRefreshing = true
                         viewModel.load(sort = sortMode.apiValue)
-                        isRefreshing = false
                     },
                     modifier = Modifier
                         .fillMaxSize()

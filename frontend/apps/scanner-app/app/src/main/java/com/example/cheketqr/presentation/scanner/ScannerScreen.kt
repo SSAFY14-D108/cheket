@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun ScannerRoute(
     modifier: Modifier = Modifier,
+    onLogout: () -> Unit = {},
     viewModel: ScannerViewModel = viewModel(factory = ScannerViewModelFactory)
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -69,7 +70,8 @@ fun ScannerRoute(
             permissionLauncher.launch(Manifest.permission.CAMERA)
         },
         onQrDetected = viewModel::onQrDetected,
-        onDismissDialog = viewModel::dismissDialog
+        onDismissDialog = viewModel::dismissDialog,
+        onLogout = onLogout,
     )
 }
 
@@ -79,7 +81,8 @@ private fun ScannerScreen(
     state: ScannerUiState,
     onRequestPermission: () -> Unit,
     onQrDetected: (String) -> Unit,
-    onDismissDialog: () -> Unit
+    onDismissDialog: () -> Unit,
+    onLogout: () -> Unit = {},
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         if (state.hasCameraPermission) {
@@ -94,6 +97,21 @@ private fun ScannerScreen(
                     .align(Alignment.TopCenter)
                     .padding(top = 44.dp)
             )
+
+            // 로그아웃 버튼 (우측 상단)
+            TextButton(
+                onClick = onLogout,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 48.dp, end = 12.dp),
+            ) {
+                Text(
+                    text = "로그아웃",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
         } else {
             PermissionGuide(
                 modifier = Modifier.align(Alignment.Center),

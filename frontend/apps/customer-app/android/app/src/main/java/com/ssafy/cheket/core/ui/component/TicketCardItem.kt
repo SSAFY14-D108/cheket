@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,15 +39,29 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
         verticalAlignment = Alignment.Top,
     ) {
         // Poster — h-20 w-20 rounded-lg (80x80)
-        AsyncImage(
-            model = ticket.poster,
-            contentDescription = ticket.showName,
-            contentScale = ContentScale.Crop,
+        Box(
             modifier = Modifier
                 .size(80.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(Muted),
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            if (ticket.poster.isNotBlank()) {
+                AsyncImage(
+                    model = ticket.poster,
+                    contentDescription = ticket.showName,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Outlined.MusicNote,
+                    contentDescription = null,
+                    tint = MutedForeground,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+        }
 
         Column(
             modifier = Modifier
