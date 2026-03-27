@@ -42,9 +42,6 @@ public interface StakeholderRepository extends JpaRepository<Stakeholder, Long> 
           AND s.approvalStatus = :status
           AND sh.showEndDate > :now
         """)
-    boolean existsActiveApprovedStakeholderByUserId(
-        @Param("userId") Long userId,
-        @Param("status") ApprovalStatus status,
-        @Param("now") LocalDateTime now
-    );
+    boolean existsActiveApprovedStakeholderByUserId(@Param("userId") Long userId,
+        @Param("status") ApprovalStatus status, @Param("now") LocalDateTime now);
 }

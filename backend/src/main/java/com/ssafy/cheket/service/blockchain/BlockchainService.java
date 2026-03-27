@@ -170,8 +170,8 @@ public class BlockchainService {
     /**
      * 플랫폼 지갑 TX 직렬화 실행기
      *
-     * 플랫폼 지갑(단일 계정)에서 보내는 모든 상태 변경 TX는 이 메서드를 통해 실행해야 한다.
-     * ReentrantLock으로 한 번에 하나의 TX만 전송 → Nonce 충돌 방지
+     * 플랫폼 지갑(단일 계정)에서 보내는 모든 상태 변경 TX는 이 메서드를 통해 실행해야 한다. ReentrantLock으로 한 번에 하나의
+     * TX만 전송 → Nonce 충돌 방지
      *
      * 사용자 지갑 TX(approve 등)는 지갑별로 별도 RawTransactionManager를 생성하므로 락 불필요.
      */

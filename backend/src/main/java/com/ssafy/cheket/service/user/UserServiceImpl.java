@@ -114,7 +114,8 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(() -> new NotFoundException("존재하지 않는 유저입니다."));
 
         // 종료되지 않은 공연의 APPROVED 이해관계자인 경우 탈퇴 불가
-        if (stakeholderRepository.existsActiveApprovedStakeholderByUserId(userId, ApprovalStatus.APPROVED, LocalDateTime.now())) {
+        if (stakeholderRepository.existsActiveApprovedStakeholderByUserId(userId, ApprovalStatus.APPROVED,
+            LocalDateTime.now())) {
             throw new ConflictException("진행 중인 공연의 이해관계자로 등록되어 있어 탈퇴할 수 없습니다.");
         }
 

@@ -277,11 +277,10 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         log.info("[공연 {}] EventNFT 발행 시작 — totalSupply={}," + " maxPerWallet={}, stakeholders={}", show.getId(),
             totalSupply, show.getPurchaseLimit(), stakeholderTokenIds.size());
 
-        TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
-            blockchainService.getEventNFT()
-                .createEvent(stakeholderTokenIds, metadataCID, BigInteger.valueOf(totalSupply),
-                    BigInteger.valueOf(show.getPurchaseLimit()), BigInteger.valueOf(10000), bookingStart, bookingEnd)
-                .send());
+        TransactionReceipt receipt = blockchainService.executePlatformTx(() -> blockchainService.getEventNFT()
+            .createEvent(stakeholderTokenIds, metadataCID, BigInteger.valueOf(totalSupply),
+                BigInteger.valueOf(show.getPurchaseLimit()), BigInteger.valueOf(10000), bookingStart, bookingEnd)
+            .send());
 
         List<EventNFT.EventCreatedEventResponse> events = blockchainService.getEventNFT()
             .getEventCreatedEvents(receipt);
@@ -311,9 +310,8 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
         log.info("[회차 {}] addSession 시작 — ticketSupply={}", session.getId(), ticketSupply);
 
-        TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
-            blockchainService.getEventNFT()
-                .addSession(onChainEventId, sessionTimestamp, BigInteger.valueOf(ticketSupply)).send());
+        TransactionReceipt receipt = blockchainService.executePlatformTx(() -> blockchainService.getEventNFT()
+            .addSession(onChainEventId, sessionTimestamp, BigInteger.valueOf(ticketSupply)).send());
 
         List<EventNFT.SessionAddedEventResponse> events = blockchainService.getEventNFT()
             .getSessionAddedEvents(receipt);
@@ -417,12 +415,11 @@ public class ShowMintingServiceImpl implements ShowMintingService {
                 log.info("[공연 {}][회차 {}] 배치 발행: {} {}열 {}번~{}번 ({}개)", show.getId(), session.getId(),
                     section.getSectionName(), firstSeat.getRowNum(), startSeatNum, startSeatNum + count - 1, count);
 
-                TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
-                    blockchainService.getTicketNFT()
-                        .batchMintTickets(platformAddress, onChainEventId, onChainSessionId, section.getSectionName(),
-                            BigInteger.valueOf(firstSeat.getRowNum()), BigInteger.valueOf(startSeatNum),
-                            BigInteger.valueOf(count), grade.getGradeName(), BigInteger.valueOf(grade.getPrice()))
-                        .send());
+                TransactionReceipt receipt = blockchainService.executePlatformTx(() -> blockchainService.getTicketNFT()
+                    .batchMintTickets(platformAddress, onChainEventId, onChainSessionId, section.getSectionName(),
+                        BigInteger.valueOf(firstSeat.getRowNum()), BigInteger.valueOf(startSeatNum),
+                        BigInteger.valueOf(count), grade.getGradeName(), BigInteger.valueOf(grade.getPrice()))
+                    .send());
 
                 List<TicketNFT.BatchTicketMintedEventResponse> mintEvents = blockchainService.getTicketNFT()
                     .getBatchTicketMintedEvents(receipt);
@@ -438,10 +435,9 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
                         // 티켓 NFT에 공연 메타데이터 CID 설정 (IPFS 포스터/공연 정보 조회용)
                         if (show.getMetadataIpfsCid() != null && !show.getMetadataIpfsCid().isEmpty()) {
-                            blockchainService.executePlatformTx(() ->
-                                blockchainService.getTicketNFT()
-                                    .setTicketTokenURI(BigInteger.valueOf(tokenId), "ipfs://" + show.getMetadataIpfsCid())
-                                    .send());
+                            blockchainService.executePlatformTx(() -> blockchainService.getTicketNFT()
+                                .setTicketTokenURI(BigInteger.valueOf(tokenId), "ipfs://" + show.getMetadataIpfsCid())
+                                .send());
                             log.info("[공연 {}] 티켓 tokenURI 설정 완료 — tokenId={}", show.getId(), tokenId);
                         }
                     }

@@ -70,17 +70,17 @@ public class BlockchainScheduler {
     /**
      * PENDING_TX 고착 좌석 자동 복원
      *
-     * 구매/환불 중 블록체인 실패 + DB 복원 실패가 겹치면 좌석이 PENDING_TX로 영구 고착될 수 있음.
-     * 15분 이상 PENDING_TX 상태인 좌석을 찾아서 복원:
-     * - Ticket 레코드 존재 → 환불 중 고착 → SOLD 복원
-     * - Ticket 레코드 없음 → 구매 중 고착 → AVAILABLE 복원
+     * 구매/환불 중 블록체인 실패 + DB 복원 실패가 겹치면 좌석이 PENDING_TX로 영구 고착될 수 있음. 15분 이상
+     * PENDING_TX 상태인 좌석을 찾아서 복원: - Ticket 레코드 존재 → 환불 중 고착 → SOLD 복원 - Ticket 레코드
+     * 없음 → 구매 중 고착 → AVAILABLE 복원
      */
     @Scheduled(fixedDelay = 600000)
     public void recoverStuckPendingTxSeats() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
         List<SessionSeat> stuckSeats = sessionSeatRepository.findStuckPendingTxSeats(threshold);
 
-        if (stuckSeats.isEmpty()) return;
+        if (stuckSeats.isEmpty())
+            return;
 
         log.warn("[좌석 복원 스케줄러] PENDING_TX 고착 좌석 {}개 발견", stuckSeats.size());
 
