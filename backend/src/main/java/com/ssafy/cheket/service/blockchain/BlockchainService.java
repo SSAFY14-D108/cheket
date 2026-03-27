@@ -30,6 +30,8 @@ import org.web3j.tx.gas.StaticGasProvider;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 블록체인 서비스 — 7개 컨트랙트 통합 관리
@@ -85,6 +87,9 @@ public class BlockchainService {
     // 플랫폼 지갑 정보
     private Credentials platformCredentials;
     private String platformAddress;
+
+    // 플랫폼 지갑 Nonce 충돌 방지 락 — 플랫폼 지갑에서 보내는 TX는 반드시 이 락을 통해 직렬화
+    private final ReentrantLock nonceLock = new ReentrantLock();
 
     // SSAFY 네트워크: gasPrice = 0
     private static final StaticGasProvider GAS_PROVIDER = new StaticGasProvider(BigInteger.ZERO,
@@ -160,6 +165,23 @@ public class BlockchainService {
 
     public String getPlatformWalletAddress() {
         return platformAddress;
+    }
+
+    /**
+     * 플랫폼 지갑 TX 직렬화 실행기
+     *
+     * 플랫폼 지갑(단일 계정)에서 보내는 모든 상태 변경 TX는 이 메서드를 통해 실행해야 한다. ReentrantLock으로 한 번에 하나의
+     * TX만 전송 → Nonce 충돌 방지
+     *
+     * 사용자 지갑 TX(approve 등)는 지갑별로 별도 RawTransactionManager를 생성하므로 락 불필요.
+     */
+    public <T> T executePlatformTx(Callable<T> txCall) throws Exception {
+        nonceLock.lock();
+        try {
+            return txCall.call();
+        } finally {
+            nonceLock.unlock();
+        }
     }
 
     /**

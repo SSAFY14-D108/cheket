@@ -32,6 +32,9 @@ public class Stakeholder {
     @Column(name = "stakeholder_nft_id")
     private Long stakeholderNftId;
 
+    @Column(name = "tx_hash", length = 100)
+    private String txHash;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private StakeholderRole role;

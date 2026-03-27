@@ -30,6 +30,10 @@ public class Settlement {
     @Column(name = "tx_hash", nullable = false, length = 100)
     private String txHash;
 
+    // 실제 분배된 SSF 금액 (Paid 이벤트에서 추출)
+    @Column(name = "amount", nullable = false)
+    private Long amount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

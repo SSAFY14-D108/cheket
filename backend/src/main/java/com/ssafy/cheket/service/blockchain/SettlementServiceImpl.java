@@ -1,15 +1,19 @@
 package com.ssafy.cheket.service.blockchain;
 
+import com.ssafy.cheket.blockchain.contract.Settlement.PaidEventResponse;
 import com.ssafy.cheket.entity.settlement.Settlement;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.host.HostRepository;
 import com.ssafy.cheket.repository.settlement.SettlementRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
+import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * SettlementServiceImpl — 1차 판매금 자동 정산 구현체
@@ -48,6 +53,9 @@ public class SettlementServiceImpl implements SettlementService {
     private final ShowRepository showRepository;
     private final StakeholderRepository stakeholderRepository;
     private final SettlementRepository settlementRepository;
+    private final WalletRepository walletRepository;
+    private final UserRepository userRepository;
+    private final HostRepository hostRepository;
 
     @Override
     public List<Long> finalizeCompletedSessions() {
@@ -238,14 +246,20 @@ public class SettlementServiceImpl implements SettlementService {
             log.info("[정산] 시작 — showId={}, sessionId={}, " + "onChainSessionId={}, eventNftId={}, " + "예치금={} SSF",
                 show.getId(), session.getId(), onChainSessionId, eventNftId, deposits);
 
-            TransactionReceipt receipt = blockchainService.getSettlement().finalizeSession(onChainSessionId, eventNftId)
-                .send();
+            TransactionReceipt receipt = blockchainService.executePlatformTx(
+                () -> blockchainService.getSettlement().finalizeSession(onChainSessionId, eventNftId).send());
 
             String txHash = receipt.getTransactionHash();
             log.info("[정산] 완료 — sessionId={}, txHash={}, " + "총 {} SSF 분배", session.getId(), txHash, deposits);
 
-            // 정산 이력 저장 — 이해관계자별 1건씩
-            saveSettlementHistory(show, session, txHash, stakeholders);
+            // 정산 이력 저장 — 이해관계자별 1건씩 (Paid 이벤트에서 실제 수령액 파싱)
+            saveSettlementHistory(show, session, txHash, stakeholders, receipt);
+
+            // EventNFT.finalizeSession() — onlyOwner이므로 백엔드(플랫폼 지갑)에서 별도 호출
+            // Settlement 컨트랙트는 onlyOwner 권한이 없어 직접 호출 불가
+            blockchainService
+                .executePlatformTx(() -> blockchainService.getEventNFT().finalizeSession(onChainSessionId).send());
+            log.info("[정산] EventNFT.finalizeSession 완료 — onChainSessionId={}", onChainSessionId);
 
         } catch (Exception e) {
             throw new BlockchainException("정산 실패 — sessionId=" + session.getId() + ": " + e.getMessage());
@@ -253,20 +267,53 @@ public class SettlementServiceImpl implements SettlementService {
     }
 
     /**
-     * 정산 이력을 settlements 테이블에 저장
-     *
-     * 해당 공연의 모든 이해관계자(Stakeholder)마다 1건씩 기록 → 같은 txHash지만, 누구에게 분배됐는지 개별 추적 가능
+     * 정산 이력을 settlements 테이블에 저장 Paid 이벤트에서 지갑별 실제 수령액 파싱 → amount 저장
      */
-    private void saveSettlementHistory(Show show, Session session, String txHash, List<Stakeholder> stakeholders) {
+    private void saveSettlementHistory(Show show, Session session, String txHash, List<Stakeholder> stakeholders,
+        TransactionReceipt receipt) {
+
+        // Paid 이벤트에서 지갑주소 → 수령액 맵 구성
+        Map<String, Long> walletToAmount = new HashMap<>();
+        try {
+            List<PaidEventResponse> paidEvents = blockchainService.getSettlement().getPaidEvents(receipt);
+            walletToAmount = paidEvents.stream()
+                .collect(Collectors.toMap(e -> e.stakeholder.toLowerCase(), e -> e.amount.longValue(), (a, b) -> a));
+        } catch (Exception e) {
+            log.warn("[정산 이력] Paid 이벤트 파싱 실패 — amount=0으로 저장: {}", e.getMessage());
+        }
 
         for (Stakeholder stakeholder : stakeholders) {
+            // 이해관계자 지갑 주소 조회
+            String walletAddress = resolveWalletAddress(stakeholder);
+            Long amount = walletAddress != null ? walletToAmount.getOrDefault(walletAddress.toLowerCase(), 0L) : 0L;
+
             Settlement settlement = Settlement.builder().showId(show.getId()).sessionId(session.getId())
-                .stakeholderId(stakeholder.getId()).txHash(txHash).build();
+                .stakeholderId(stakeholder.getId()).txHash(txHash).amount(amount).build();
 
             settlementRepository.save(settlement);
 
-            log.info("[정산 이력] 저장 — sessionId={}, " + "stakeholderId={} ({}), txHash={}", session.getId(),
-                stakeholder.getId(), stakeholder.getRole(), txHash);
+            log.info("[정산 이력] 저장 — sessionId={}, stakeholderId={} ({}), amount={} SSF, txHash={}", session.getId(),
+                stakeholder.getId(), stakeholder.getRole(), amount, txHash);
+        }
+    }
+
+    /**
+     * Stakeholder의 지갑 주소 조회 (user → wallet, host → wallet, 플랫폼 → platformWallet)
+     */
+    private String resolveWalletAddress(Stakeholder stakeholder) {
+        try {
+            if (stakeholder.getUserId() != null) {
+                return userRepository.findByIdAndDeletedAtIsNull(stakeholder.getUserId())
+                    .flatMap(u -> walletRepository.findById(u.getWalletId())).map(w -> w.getAddress()).orElse(null);
+            } else if (stakeholder.getHostId() != null) {
+                return hostRepository.findById(stakeholder.getHostId())
+                    .flatMap(h -> walletRepository.findById(h.getWalletId())).map(w -> w.getAddress()).orElse(null);
+            } else {
+                return blockchainService.getPlatformWalletAddress();
+            }
+        } catch (Exception e) {
+            log.warn("[정산 이력] 지갑 주소 조회 실패 — stakeholderId={}: {}", stakeholder.getId(), e.getMessage());
+            return null;
         }
     }
 

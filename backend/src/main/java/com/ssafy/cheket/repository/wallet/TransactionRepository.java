@@ -40,4 +40,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByUserIdAndType(@Param("userId") Long userId,
         @Param("type") Transaction.TransactionType type);
 
+    // 탈퇴 블록: 처리 중인 환불 TX 존재 여부 확인
+    @Query("""
+        SELECT COUNT(t) > 0
+        FROM Transaction t
+        WHERE t.buyerId = :userId
+          AND t.type = com.ssafy.cheket.entity.transaction.Transaction$TransactionType.REFUND
+          AND t.txStatus IN (
+              com.ssafy.cheket.entity.transaction.Transaction$TxStatus.PENDING,
+              com.ssafy.cheket.entity.transaction.Transaction$TxStatus.SUBMITTED
+          )
+        """)
+    boolean existsPendingRefundByUserId(@Param("userId") Long userId);
+
 }

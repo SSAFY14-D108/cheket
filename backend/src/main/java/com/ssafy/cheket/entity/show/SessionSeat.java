@@ -4,6 +4,8 @@ import com.ssafy.cheket.enums.SeatStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,4 +31,13 @@ public class SessionSeat {
 
     @Column(name = "on_chain_ticket_nft_id")
     private Long onChainTicketNftId;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

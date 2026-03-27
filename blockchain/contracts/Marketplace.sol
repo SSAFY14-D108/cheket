@@ -32,6 +32,13 @@ interface IMarketplaceTicketNFT {
         address to
     ) external;
 
+    // 특정 지갑의 현재 보유 수 조회 (maxPerWallet 검증용)
+    function getWalletTicketCount(
+        uint256 eventId,
+        uint256 sessionId,
+        address wallet
+    ) external view returns (uint256);
+
     // NFT 소유권 이전
     function transferFrom(address from, address to, uint256 tokenId) external;
 
@@ -40,6 +47,23 @@ interface IMarketplaceTicketNFT {
 
     // 티켓 상태 조회 (VALID인 티켓만 양도 허용)
     function getTicketStatus(uint256 tokenId) external view returns (uint8);
+}
+
+/**
+ * @dev EventNFT에서 양도 시 필요한 함수 (maxPerWallet 조회)
+ */
+interface IMarketplaceEventNFT {
+    // 이벤트 정보 조회
+    // 반환: (metadataCID, totalSupply, maxPerWallet, resaleCapBps, ...)
+    function getEventInfo(uint256 eventId) external view returns (
+        string memory metadataCID,
+        uint256 totalSupply,
+        uint256 maxPerWallet,
+        uint256 resaleCapBps,
+        uint256 sessionCount,
+        uint256 createdAt,
+        bool isActive
+    );
 }
 
 /**
@@ -93,6 +117,8 @@ contract Marketplace is Ownable {
     IERC721 public ticketNFT;
     // TicketNFT 컨트랙트 주소 (커스텀 인터페이스용)
     address public ticketNFTAddress;
+    // EventNFT 컨트랙트 주소 (maxPerWallet 조회용)
+    address public eventNFTAddress;
 
     // ========== 이벤트 (블록체인 로그) ==========
 
@@ -126,6 +152,15 @@ contract Marketplace is Ownable {
         ticketNFTAddress = _ticketNFT;
         // ticketNFT: ERC-721 표준 인터페이스 (transferFrom, ownerOf)
         // ticketNFTAddress: 커스텀 함수 호출용 (updateWalletTicketCount, getTicket)
+    }
+
+    /**
+     * @notice EventNFT 주소 설정 (배포 후 setContracts 호출)
+     * maxPerWallet on-chain 검증에 사용
+     */
+    function setEventNFT(address _eventNFT) external onlyOwner {
+        require(_eventNFT != address(0), "Invalid EventNFT");
+        eventNFTAddress = _eventNFT;
     }
 
     // ========== 지정 양도 (무료 1:1 전송) ==========
@@ -189,10 +224,19 @@ contract Marketplace is Ownable {
 
         ticket.transferFrom(from, to, ticketId);
 
-        // ========== walletTicketCount 갱신 ==========
+        // ========== walletTicketCount 갱신 + maxPerWallet on-chain 검증 ==========
         // ERC-721 transferFrom()은 커스텀 매핑(walletTicketCount)을 갱신하지 않음
         // → 수동으로 from -1, to +1 처리해야 maxPerWallet이 정확하게 작동
         (uint256 eventId, uint256 sessionId, , , , , , , ) = ticket.tickets(ticketId);
+
+        // maxPerWallet 검증 — 받는 사람(to)이 해당 회차 구매 한도를 초과하지 않는지 확인
+        // 백엔드 검증(5단계)에 더해 on-chain에서도 이중 강제
+        if (eventNFTAddress != address(0)) {
+            (, , uint256 maxPerWallet, , , , ) = IMarketplaceEventNFT(eventNFTAddress).getEventInfo(eventId);
+            uint256 currentCount = ticket.getWalletTicketCount(eventId, sessionId, to);
+            require(currentCount + 1 <= maxPerWallet, "Recipient exceeds max per wallet");
+        }
+
         ticket.updateWalletTicketCount(eventId, sessionId, from, to);
 
         // ========== 이벤트 로그 ==========

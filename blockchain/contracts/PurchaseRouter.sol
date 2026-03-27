@@ -168,6 +168,9 @@ contract PurchaseRouter is Ownable {
     // → transferFrom(platformWallet, buyer, ticketId) 에서 from으로 사용
     address public platformWallet;
 
+    // setContracts() 1회 제한 플래그
+    bool private _contractsInitialized;
+
     // ========== 이벤트 (블록체인 로그) ==========
 
     // 구매 완료 시 발생 → 백엔드 Event Listener가 감지 → DB 업데이트
@@ -228,14 +231,14 @@ contract PurchaseRouter is Ownable {
         address _settlement,
         address _eventNFT
     ) external onlyOwner {
-        // onlyOwner = 플랫폼(owner)만 호출 가능
-        // 해커가 가짜 주소로 바꿀 수 없음
+        require(!_contractsInitialized, "Already initialized");
         require(_ticketNFT != address(0), "Invalid TicketNFT");
         require(_settlement != address(0), "Invalid Settlement");
         require(_eventNFT != address(0), "Invalid EventNFT");
-        ticketNFTAddress = _ticketNFT;      // storage에 영구 저장
-        settlementAddress = _settlement;    // storage에 영구 저장
-        eventNFTAddress = _eventNFT;        // storage에 영구 저장
+        ticketNFTAddress = _ticketNFT;
+        settlementAddress = _settlement;
+        eventNFTAddress = _eventNFT;
+        _contractsInitialized = true;
     }
 
     // ========== 핵심: 티켓 구매 (1 TX 원자적 처리) ==========
@@ -289,10 +292,14 @@ contract PurchaseRouter is Ownable {
         uint256 price = ticketNFT.getPrice(ticketId);
         require(price > 0, "Invalid ticket price");
 
-        // ========== ❷ 티켓 정보에서 eventId 조회 ==========
+        // ========== ❷ 티켓 정보에서 eventId, sessionId 조회 및 검증 ==========
         // tickets() = TicketNFT의 public mapping 자동 getter
         // struct를 개별 값으로 반환하므로 ABI 불일치 없음
-        (uint256 eventId, , , , , , , , ) = ticketNFT.tickets(ticketId);
+        (uint256 eventId, uint256 ticketSessionId, , , , , , , ) = ticketNFT.tickets(ticketId);
+
+        // 파라미터로 받은 sessionId와 티켓 실제 sessionId 일치 검증
+        // 불일치 시 잘못된 session의 deposit이 기록되어 정산/환불 오류 발생
+        require(ticketSessionId == sessionId, "Session mismatch");
 
         // ========== ❸ 예매 가능 여부 — 백엔드에서 검증 (온체인 검증 제거) ==========
         // 예매 기간 검증은 백엔드에서 처리 (DB 기준)

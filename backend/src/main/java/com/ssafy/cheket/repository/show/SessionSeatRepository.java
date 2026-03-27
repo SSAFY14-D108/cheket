@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> {
@@ -69,6 +70,15 @@ public interface SessionSeatRepository extends JpaRepository<SessionSeat, Long> 
 
     // 특정 회차의 모든 좌석 조회 (배치 민팅 시 사용)
     List<SessionSeat> findBySessionId(Long sessionId);
+
+    // PENDING_TX 좀비 좌석 복원: threshold 이전에 PENDING_TX로 고착된 좌석 조회
+    // Ticket 존재 여부로 복원 상태 판단 (EXISTS → 환불 중 고착 → SOLD, 없음 → 구매 중 고착 → AVAILABLE)
+    @Query("""
+        SELECT ss FROM SessionSeat ss
+        WHERE ss.status = com.ssafy.cheket.enums.SeatStatus.PENDING_TX
+          AND ss.updatedAt < :threshold
+        """)
+    List<SessionSeat> findStuckPendingTxSeats(@Param("threshold") LocalDateTime threshold);
 
     @Query(value = """
         select

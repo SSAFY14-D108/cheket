@@ -11,9 +11,14 @@ import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 import com.ssafy.cheket.entity.notification.Notification;
 import com.ssafy.cheket.entity.user.User;
 import com.ssafy.cheket.entity.wallet.Wallet;
+import com.ssafy.cheket.enums.ApprovalStatus;
+import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.exception.common.*;
 import com.ssafy.cheket.repository.notification.NotificationRepository;
+import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
+import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import com.ssafy.cheket.service.wallet.WalletService;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +44,9 @@ public class UserServiceImpl implements UserService {
     private final WalletRepository walletRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final NotificationRepository notificationRepository;
+    private final StakeholderRepository stakeholderRepository;
+    private final TransactionRepository transactionRepository;
+    private final TicketRepository ticketRepository;
 
     private final WalletService walletService;
     private final JwtTokenProvider jwtTokenProvider;
@@ -104,6 +112,23 @@ public class UserServiceImpl implements UserService {
     public void withdrawUser(Long userId, String accessToken, String refreshToken) {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new NotFoundException("존재하지 않는 유저입니다."));
+
+        // 종료되지 않은 공연의 APPROVED 이해관계자인 경우 탈퇴 불가
+        if (stakeholderRepository.existsActiveApprovedStakeholderByUserId(userId, ApprovalStatus.APPROVED,
+            LocalDateTime.now())) {
+            throw new ConflictException("진행 중인 공연의 이해관계자로 등록되어 있어 탈퇴할 수 없습니다.");
+        }
+
+        // 처리 중인 환불 TX가 있는 경우 탈퇴 불가
+        if (transactionRepository.existsPendingRefundByUserId(userId)) {
+            throw new ConflictException("처리 중인 환불이 있어 탈퇴할 수 없습니다. 환불 완료 후 다시 시도해주세요.");
+        }
+
+        // 리세일 등록 중인 티켓이 있는 경우 탈퇴 불가
+        if (ticketRepository.existsByUserIdAndResaleStatus(userId, ResaleStatus.LISTED)) {
+            throw new ConflictException("리세일 등록 중인 티켓이 있어 탈퇴할 수 없습니다. 등록을 취소한 후 다시 시도해주세요.");
+        }
+
         user.setDeletedAt(LocalDateTime.now());
 
         // Access Token 블랙리스트
