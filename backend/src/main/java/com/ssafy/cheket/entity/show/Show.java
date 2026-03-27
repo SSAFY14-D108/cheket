@@ -82,4 +82,8 @@ public class Show {
 
     @Column(name = "event_nft_id")
     private Long eventNftId;
+
+    @Builder.Default
+    @Column(name = "reservation_count", nullable = false)
+    private Integer reservationCount = 0;
 }
