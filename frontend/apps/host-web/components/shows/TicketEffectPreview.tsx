@@ -70,11 +70,12 @@ export function TicketEffectPreview({
         if (posterUrl) sendPoster(posterUrl)
     }, [effectName, posterUrl, sendEffect, sendPoster])
 
-    // iframe src: 포스터가 http(s) URL이면 쿼리로 전달, data URL이면 postMessage로
+    // iframe src: 환경변수 기반 direct URL, fallback은 rewrite 프록시
+    const previewBase = process.env.NEXT_PUBLIC_COLLECTION_PREVIEW_URL || "/collection-preview"
     const posterParam = posterUrl && !posterUrl.startsWith("data:")
         ? `&poster=${encodeURIComponent(posterUrl)}`
         : ""
-    const iframeSrc = `/collection-preview?effect=${encodeURIComponent(effectName)}${posterParam}`
+    const iframeSrc = `${previewBase}?effect=${encodeURIComponent(effectName)}${posterParam}`
 
     return (
         <div className="flex items-center gap-2 mt-1">

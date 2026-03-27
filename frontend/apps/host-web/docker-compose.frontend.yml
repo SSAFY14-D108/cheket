@@ -5,10 +5,10 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: https://j14d108.p.ssafy.io
+        NEXT_PUBLIC_COLLECTION_PREVIEW_URL: https://j14d108.p.ssafy.io:3100/preview
     container_name: cheket_host_web
     environment:
       TZ: Asia/Seoul
-      COLLECTION_PREVIEW_URL: http://cheket_collection:3100/preview
     ports:
       - "3000:3000"
     restart: unless-stopped

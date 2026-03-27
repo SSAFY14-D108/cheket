@@ -24,7 +24,6 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [nativeSeedUsed, setNativeSeedUsed] = useState(false)
-  const [isNativeHost, setIsNativeHost] = useState(false)
   const nativeReadySentRef = useRef(false)
 
   const notifyNativeReady = useCallback(() => {
@@ -44,7 +43,6 @@ export default function Page() {
   )
 
   useEffect(() => {
-    setIsNativeHost(Boolean(window.CheketCollectionBridge || window.CheketCollectionDataBridge))
     const nativeDataBridge = window.CheketCollectionDataBridge
     if (nativeDataBridge?.hasInitialCollectionTickets?.()) {
       try {
@@ -151,11 +149,5 @@ export default function Page() {
     )
   }
 
-  return (
-    <CollectionScreen
-      tickets={tickets}
-      onInitialVisualReady={notifyNativeReady}
-      disableParallaxTilt={isNativeHost}
-    />
-  )
+  return <CollectionScreen tickets={tickets} onInitialVisualReady={notifyNativeReady} />
 }
