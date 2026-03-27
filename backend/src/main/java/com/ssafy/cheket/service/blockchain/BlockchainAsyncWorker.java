@@ -308,14 +308,20 @@ public class BlockchainAsyncWorker {
                 // 전체 실패
                 updateTransactionFailed(txId, "구매 실패 — " + e.getMessage());
             } else if (soldCount > 0 && failedCount > 0) {
-                // 일부 성공
+                // 일부 성공 — 실패 좌석 번호 추출해서 description에 포함
+                String failedSeatNos = seats.stream().filter(s -> s.getStatus() != SeatStatus.SOLD).map(s -> {
+                    Seat seatInfo = seatRepository.findById(s.getSeatId()).orElse(null);
+                    return seatInfo != null ? seatInfo.getSeatNo() : "id:" + s.getId();
+                }).collect(java.util.stream.Collectors.joining(", "));
                 Transaction tx = transactionRepository.findById(txId).orElse(null);
                 if (tx != null) {
                     tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
-                    tx.setDescription(String.format("블록체인 확정 — 일부 구매 완료 (%d/%d매)", soldCount, seats.size()));
+                    tx.setDescription(String.format("블록체인 확정 — 일부 구매 완료 (%d/%d매), 실패 좌석: [%s]", soldCount, seats.size(),
+                        failedSeatNos));
                     transactionRepository.save(tx);
                 }
-                log.warn("[티켓 구매 비동기] 일부 성공 — txId={}, 성공={}매, 실패={}매", txId, soldCount, failedCount);
+                log.warn("[티켓 구매 비동기] 일부 성공 — txId={}, 성공={}매, 실패={}매, 실패좌석=[{}]", txId, soldCount, failedCount,
+                    failedSeatNos);
             } else if (soldCount > 0) {
                 // 전체 성공 (온체인 동기화로 복구)
                 Transaction tx = transactionRepository.findById(txId).orElse(null);
@@ -346,13 +352,20 @@ public class BlockchainAsyncWorker {
             if (!anySynced && soldCount2 == 0) {
                 updateTransactionFailed(txId, "티켓 구매 실패 — " + e.getMessage());
             } else if (soldCount2 > 0 && failedCount2 > 0) {
+                // 일부 성공 — 실패 좌석 번호 추출해서 description에 포함
+                String failedSeatNos2 = seats.stream().filter(s -> s.getStatus() != SeatStatus.SOLD).map(s -> {
+                    Seat seatInfo = seatRepository.findById(s.getSeatId()).orElse(null);
+                    return seatInfo != null ? seatInfo.getSeatNo() : "id:" + s.getId();
+                }).collect(java.util.stream.Collectors.joining(", "));
                 Transaction tx = transactionRepository.findById(txId).orElse(null);
                 if (tx != null) {
                     tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
-                    tx.setDescription(String.format("블록체인 확정 — 일부 구매 완료 (%d/%d매)", soldCount2, seats.size()));
+                    tx.setDescription(String.format("블록체인 확정 — 일부 구매 완료 (%d/%d매), 실패 좌석: [%s]", soldCount2,
+                        seats.size(), failedSeatNos2));
                     transactionRepository.save(tx);
                 }
-                log.warn("[티켓 구매 비동기] 일부 성공 — txId={}, 성공={}매, 실패={}매", txId, soldCount2, failedCount2);
+                log.warn("[티켓 구매 비동기] 일부 성공 — txId={}, 성공={}매, 실패={}매, 실패좌석=[{}]", txId, soldCount2, failedCount2,
+                    failedSeatNos2);
             } else if (soldCount2 > 0) {
                 Transaction tx = transactionRepository.findById(txId).orElse(null);
                 if (tx != null) {
@@ -958,7 +971,12 @@ public class BlockchainAsyncWorker {
 
             // Escrow.createDeal(seller, ticketId, ssfAmount, originalPrice, resaleCapBps,
             // deadline)
-            long resaleCapBps = 11000L; // 110% (원가의 110%까지 허용, 기본값)
+            // resaleCapBps: EventNFT 온체인에서 조회 (createEvent 시 설정된 값 사용)
+            // → 현재 10000 (100%) — 원가 상한
+            var ticketInfo = blockchainService.getTicketNFT().tickets(BigInteger.valueOf(onChainTicketNftId)).send();
+            BigInteger onChainEventId = ticketInfo.component1();
+            var eventInfo = blockchainService.getEventNFT().getEventInfo(onChainEventId).send();
+            long resaleCapBps = eventInfo.component4().longValue();
 
             TransactionReceipt receipt = blockchainService.executePlatformTx(() -> blockchainService.getEscrow()
                 .createDeal(sellerAddress, BigInteger.valueOf(onChainTicketNftId), BigInteger.valueOf(resalePrice),

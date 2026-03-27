@@ -255,6 +255,12 @@ public class SettlementServiceImpl implements SettlementService {
             // 정산 이력 저장 — 이해관계자별 1건씩 (Paid 이벤트에서 실제 수령액 파싱)
             saveSettlementHistory(show, session, txHash, stakeholders, receipt);
 
+            // EventNFT.finalizeSession() — onlyOwner이므로 백엔드(플랫폼 지갑)에서 별도 호출
+            // Settlement 컨트랙트는 onlyOwner 권한이 없어 직접 호출 불가
+            blockchainService
+                .executePlatformTx(() -> blockchainService.getEventNFT().finalizeSession(onChainSessionId).send());
+            log.info("[정산] EventNFT.finalizeSession 완료 — onChainSessionId={}", onChainSessionId);
+
         } catch (Exception e) {
             throw new BlockchainException("정산 실패 — sessionId=" + session.getId() + ": " + e.getMessage());
         }

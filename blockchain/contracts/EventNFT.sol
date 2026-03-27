@@ -273,9 +273,9 @@ contract EventNFT is ERC721, Ownable {
         require(daysArray.length > 0, "Empty policy");
         require(daysArray.length == rateBpsArray.length, "Array length mismatch");
 
-        // 기존 정책 삭제 후 새로 설정
-        // delete = storage 배열을 비움 (길이 0으로 초기화)
-        delete refundPolicies[eventId];
+        // 환불 정책은 1회만 설정 가능 (투명성 보장)
+        // 티켓 구매자가 신뢰하는 환불 정책을 구매 후 변경 불가
+        require(refundPolicies[eventId].length == 0, "Policy already set");
 
         for (uint256 i = 0; i < daysArray.length; i++) {
             require(rateBpsArray[i] <= 10000, "Invalid refund rate");
@@ -380,6 +380,11 @@ contract EventNFT is ERC721, Ownable {
         // 정책을 위에서부터 순서대로 검사
         RefundRule[] storage rules = refundPolicies[eventId];
         // storage = 블록체인에서 직접 참조 (복사 안 함)
+
+        // 환불 정책이 없으면 100% 환불
+        if (rules.length == 0) {
+            return 10000;
+        }
 
         for (uint256 i = 0; i < rules.length; i++) {
             if (daysLeft >= rules[i].daysRemaining) {
