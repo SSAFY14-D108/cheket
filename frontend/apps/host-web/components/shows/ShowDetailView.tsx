@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -27,6 +27,7 @@ import {
   approveShowContract,
   confirmShowContracts,
   deleteShow,
+  fetchShowContracts,
   type HostShowContractApproval,
   type HostShowDetail,
   rejectShowContract,
@@ -151,6 +152,7 @@ export function ShowDetailView({
   const [selectedDescriptionImage, setSelectedDescriptionImage] = useState<
     string | null
   >(null)
+  const isRefreshingApprovalsRef = useRef(false)
 
   useEffect(() => {
     setLocalContractApprovals(contractApprovals)
@@ -159,6 +161,63 @@ export function ShowDetailView({
   useEffect(() => {
     setHasStartedFinalRegistration(showDetail.status !== "PENDING_CONTRACT")
   }, [showDetail.status])
+
+  const isPendingContract = showDetail.status === "PENDING_CONTRACT"
+
+  useEffect(() => {
+    if (!isPendingContract || hasStartedFinalRegistration || isTxModalOpen) {
+      return
+    }
+
+    let isCancelled = false
+
+    const refreshContractApprovals = async () => {
+      if (isRefreshingApprovalsRef.current) {
+        return
+      }
+
+      isRefreshingApprovalsRef.current = true
+
+      try {
+        const latestApprovals = await fetchShowContracts(showDetail.showId)
+
+        if (!isCancelled) {
+          setLocalContractApprovals(latestApprovals)
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error("이해관계자 승인 현황을 갱신하지 못했습니다.", error)
+        }
+      } finally {
+        isRefreshingApprovalsRef.current = false
+      }
+    }
+
+    const handleWindowFocus = () => {
+      void refreshContractApprovals()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshContractApprovals()
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshContractApprovals()
+    }, 3000)
+
+    window.addEventListener("focus", handleWindowFocus)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      isCancelled = true
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", handleWindowFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      isRefreshingApprovalsRef.current = false
+    }
+  }, [hasStartedFinalRegistration, isPendingContract, isTxModalOpen, showDetail.showId])
 
   const displayMeta = getShowDisplayMeta(showDetail)
   const visibleStakeholders = showDetail.stakeholders.filter((stakeholder) => {
@@ -193,7 +252,6 @@ export function ShowDetailView({
   const hasRejectedContract = rejectedCount > 0
   const isAllApproved =
     hasContracts && approvedCount === localContractApprovals.length
-  const isPendingContract = showDetail.status === "PENDING_CONTRACT"
   const hasHostPendingApproval = localContractApprovals.some(
     (approval) =>
       approval.userType === "HOST" && approval.approvalStatus === "PENDING",
