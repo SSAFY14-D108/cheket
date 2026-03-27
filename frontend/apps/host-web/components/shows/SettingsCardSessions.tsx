@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { formatDateTimeWithWeekday } from "@/lib/utils"
 import { DateTimePicker } from "@/components/common/DateTimePicker"
 import type { SessionItem } from "./showFormTypes"
 
@@ -24,7 +25,7 @@ function formatDateTimeValue(value: string, emptyText: string) {
     return emptyText
   }
 
-  return value.replace("T", " ")
+  return formatDateTimeWithWeekday(value)
 }
 
 function AutoCalculatedField({

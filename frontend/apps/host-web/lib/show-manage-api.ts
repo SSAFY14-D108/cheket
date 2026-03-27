@@ -11,6 +11,20 @@ interface ApiMessageResponse {
   responseMessage: string
 }
 
+interface TxIdResponseData {
+  txId?: number
+}
+
+export type TxStatus = "PENDING" | "SUBMITTED" | "CONFIRMED" | "FAILED"
+
+export interface TxStatusResponse {
+  txId: number
+  status: TxStatus
+  txHash?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface HostShowVenueInfo {
   venueId: number
   name: string
@@ -382,6 +396,14 @@ function buildShowContractsConfirmPath(showId: string | number) {
   return `/api/v1/hosts/shows/${showId}/contracts/confirm`
 }
 
+function buildShowContractApprovePath(showId: string | number) {
+  return `/api/v1/shows/contracts/${showId}/approve`
+}
+
+function buildShowContractRejectPath(showId: string | number) {
+  return `/api/v1/shows/contracts/${showId}/reject`
+}
+
 function buildTicketEffectsPath() {
   return "/api/v1/hosts/shows/effect"
 }
@@ -397,6 +419,10 @@ function buildCreateShowPath() {
 function buildShowSectionsPath(venueId: string | number) {
   // 공연장 구역 목록 조회
   return `/api/v1/hosts/venues/${venueId}/sections`
+}
+
+function buildTxStatusPath(txId: string | number) {
+  return `/api/v1/wallets/transactions/${txId}`
 }
 
 export async function fetchShowDetail(showId: string | number) {
@@ -421,8 +447,30 @@ export async function fetchShowContracts(showId: string | number) {
 }
 
 export async function confirmShowContracts(showId: string | number) {
-  const response = await apiFetch<ApiMessageResponse>(
+  const response = await apiFetch<ApiResponse<TxIdResponseData>>(
     buildShowContractsConfirmPath(showId),
+    {
+      method: "POST",
+    },
+  )
+
+  return response
+}
+
+export async function approveShowContract(showId: string | number) {
+  const response = await apiFetch<ApiMessageResponse>(
+    buildShowContractApprovePath(showId),
+    {
+      method: "POST",
+    },
+  )
+
+  return response
+}
+
+export async function rejectShowContract(showId: string | number) {
+  const response = await apiFetch<ApiMessageResponse>(
+    buildShowContractRejectPath(showId),
     {
       method: "POST",
     },
@@ -513,4 +561,27 @@ export async function deleteShow(showId: string | number) {
   })
 
   return response
+}
+
+export async function fetchTxStatus(txId: string | number) {
+  const response = await apiFetch<ApiResponse<Record<string, unknown>>>(
+    buildTxStatusPath(txId),
+    {
+      method: "GET",
+    },
+  )
+
+  const raw = response.data ?? {}
+  const status =
+    raw.status === "SUBMITTED" || raw.status === "CONFIRMED" || raw.status === "FAILED"
+      ? raw.status
+      : "PENDING"
+
+  return {
+    txId: typeof raw.txId === "number" ? raw.txId : Number(txId),
+    status,
+    txHash: typeof raw.txHash === "string" ? raw.txHash : undefined,
+    createdAt: typeof raw.createdAt === "string" ? raw.createdAt : undefined,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : undefined,
+  } satisfies TxStatusResponse
 }
