@@ -11,6 +11,10 @@ interface ApiMessageResponse {
   responseMessage: string
 }
 
+interface CreateShowResponseData {
+  showId: number
+}
+
 interface TxIdResponseData {
   txId?: number
 }
@@ -521,12 +525,12 @@ export async function createShow(payload: CreateShowPayload) {
     formData.append("descriptionImages", imageFile)
   })
 
-  const response = await apiFetch<ApiResponse<number>>(buildCreateShowPath(), {
+  const response = await apiFetch<ApiResponse<CreateShowResponseData>>(buildCreateShowPath(), {
     method: "POST",
     body: formData,
   })
 
-  return response.data
+  return response.data?.showId
 }
 
 export async function updateShow(showId: string | number, payload: UpdateShowPayload) {

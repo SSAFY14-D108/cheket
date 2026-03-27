@@ -244,7 +244,7 @@ export function ShowTxProgressModal({
             </Badge>
           </div>
           <DialogDescription className="mt-2 text-sm leading-relaxed text-slate-600">
-            공연 정보를 스마트 컨트랙트에 기록하고 있습니다. 이 과정은 보통 수 초에서 수십 초가 소요됩니다.
+            공연 정보를 스마트 컨트랙트에 기록하고 있습니다. 보통 10초~1분 내에 완료되며, 최대 3분까지 소요될 수 있습니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -495,6 +495,9 @@ export function ShowTxProgressModal({
                 트랜잭션 처리에 실패했습니다.
               </p>
             </div>
+            <p className="mt-2 text-xs leading-5 text-amber-700">
+              네트워크 상태를 확인하고 잠시 후 다시 시도해 주세요. 문제가 계속되면 관리자에게 문의해 주세요.
+            </p>
           </div>
         ) : null}
 

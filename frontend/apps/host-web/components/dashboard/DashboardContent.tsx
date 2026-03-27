@@ -19,6 +19,10 @@ function formatEthAmount(value: number) {
   })
 }
 
+function formatSharePercent(rateBps: number) {
+  return `${(rateBps / 100).toFixed(rateBps % 100 === 0 ? 0 : 1)}%`
+}
+
 export function DashboardContent({ data }: DashboardContentProps) {
   if (!data) {
     return (
@@ -189,7 +193,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
                 <SegmentedBar title="참여자별 배분" segments={revenueSegments} />
               </div>
 
-              <div className="mt-5 space-y-2">
+              <div className="mt-5 max-h-80 space-y-2 overflow-y-auto pr-1">
                 {(revenueSplit.splits ?? []).map((split, index) => (
                   <div
                     key={`${split.displayName || split.role}-${split.amount}-${index}`}
@@ -203,10 +207,17 @@ export function DashboardContent({ data }: DashboardContentProps) {
                             REVENUE_SPLIT_COLORS[index % REVENUE_SPLIT_COLORS.length],
                         }}
                       />
-                      <span className="text-black/72">{split.displayName || split.role}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-black/72">
+                          {split.displayName || split.role}
+                        </p>
+                        <p className="mt-0.5 text-xs text-black/42">
+                          {formatEthAmount(split.amount)} SSF
+                        </p>
+                      </div>
                     </div>
-                    <span className="font-semibold text-black">
-                      {formatEthAmount(split.amount)} SSF
+                    <span className="shrink-0 font-semibold text-black">
+                      {formatSharePercent(split.rateBps)}
                     </span>
                   </div>
                 ))}
