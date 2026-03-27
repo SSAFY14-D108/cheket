@@ -27,6 +27,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(s.artist) like lower(concat('%', :keyword, '%'))
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
+          and s.status != 'PENDING_CONTRACT'
         """)
     Page<Show> search(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, Pageable pageable);
@@ -91,6 +92,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(s.artist) like lower(concat('%', :keyword, '%'))
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
+          and s.status != 'PENDING_CONTRACT'
         """)
     Page<Show> searchOrderByPopular(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, Pageable pageable);
@@ -109,6 +111,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
           and s.reservationEndDate > :now
+          and s.status != 'PENDING_CONTRACT'
         """)
     Page<Show> searchOrderByDeadline(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, @Param("now") LocalDateTime now, Pageable pageable);
@@ -127,6 +130,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
           and s.reservationStartDate > :now
+          and s.status != 'PENDING_CONTRACT'
         """)
     Page<Show> searchOrderByOpenSoon(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, @Param("now") LocalDateTime now, Pageable pageable);
