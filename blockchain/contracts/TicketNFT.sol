@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 // → ERC-721 NFT 표준 구현체
 // → ownerOf(), transferFrom(), _safeMint() 등 제공
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-// → tokenURI() 기능 추가 — IPFS 메타데이터 CID 저장/조회
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 // → onlyOwner modifier 제공
@@ -37,11 +35,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * 100개씩 묶어서 1 TX로 처리
  * SSAFY 네트워크 gasPrice=0이므로 비용 부담 없음
  */
-contract TicketNFT is ERC721, ERC721URIStorage, Ownable {
+contract TicketNFT is ERC721, Ownable {
     // is ERC721 = ERC721을 상속 (Java의 extends)
-    // is ERC721URIStorage = tokenURI 기능 추가 (IPFS 메타데이터)
     // is Ownable = Ownable을 상속 (onlyOwner 사용 가능)
-    // Solidity는 다중 상속 가능
+    // ERC721URIStorage 제거 → eventTokenURIs mapping으로 대체 (per-event URI)
 
     // ========== 상태 변수 (전부 storage = 블록체인 영구 저장) ==========
 
@@ -618,27 +615,38 @@ contract TicketNFT is ERC721, ERC721URIStorage, Ownable {
         tickets[tokenId].status = TicketStatus.VALID;
     }
 
+    // ========== 이벤트 단위 tokenURI (per-token → per-event로 변경) ==========
+
     /**
-     * @notice 티켓 NFT에 메타데이터 URI 설정 (IPFS CID)
-     * 민팅 후 백엔드에서 호출하여 공연 메타데이터 CID를 설정
+     * eventId → IPFS 메타데이터 URI
+     * 같은 공연의 모든 티켓이 동일한 URI를 공유 → 저장 TX 1개로 충분
+     * 기존: setTicketTokenURI(tokenId) × 좌석 수 → TX 500개
+     * 변경: setEventTokenURI(eventId)  × 1       → TX 1개
+     */
+    mapping(uint256 => string) private eventTokenURIs;
+
+    /**
+     * @notice 이벤트 단위 메타데이터 URI 설정
+     * 민팅 후 백엔드에서 공연당 1번만 호출
      * Blockscout/지갑에서 tokenURI()로 조회 시 포스터/공연 정보 표시
      */
-    function setTicketTokenURI(uint256 tokenId, string memory uri) external onlyAuthorized {
-        _setTokenURI(tokenId, uri);
+    function setEventTokenURI(uint256 eventId, string calldata uri) external onlyOwner {
+        eventTokenURIs[eventId] = uri;
     }
 
-    // ========== ERC721URIStorage override (다중 상속 충돌 해결) ==========
+    // ========== tokenURI override ==========
 
-    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(tokenId);
+    /**
+     * tokenURI(tokenId) → tickets[tokenId].eventId → eventTokenURIs[eventId]
+     * Blockscout/지갑이 이 함수를 호출 → IPFS URI 반환 → 포스터 표시
+     */
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        uint256 eventId = tickets[tokenId].eventId;
+        return eventTokenURIs[eventId];
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721URIStorage) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
         return super.supportsInterface(interfaceId);
-    }
-
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
     }
 
     // ========== 조회 함수 (view = 가스비 0, 무료 호출) ==========

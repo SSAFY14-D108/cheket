@@ -381,6 +381,11 @@ contract EventNFT is ERC721, Ownable {
         RefundRule[] storage rules = refundPolicies[eventId];
         // storage = 블록체인에서 직접 참조 (복사 안 함)
 
+        // 환불 정책이 없으면 100% 환불
+        if (rules.length == 0) {
+            return 10000;
+        }
+
         for (uint256 i = 0; i < rules.length; i++) {
             if (daysLeft >= rules[i].daysRemaining) {
                 return rules[i].refundRateBps;
