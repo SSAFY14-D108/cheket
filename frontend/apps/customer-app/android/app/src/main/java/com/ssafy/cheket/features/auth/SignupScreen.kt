@@ -1,6 +1,14 @@
 package com.ssafy.cheket.features.auth
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,10 +31,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -36,10 +43,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -74,28 +85,8 @@ fun SignupScreen(
     }
 
     if (uiState.isLoading) {
-        AlertDialog(
-            onDismissRequest = {},
-            confirmButton = {},
-            icon = {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp),
-                    color = MutedForeground,
-                    strokeWidth = 3.dp,
-                )
-            },
-            text = {
-                Text(
-                    text = "회원가입 처리 중...",
-                    fontSize = 15.sp,
-                    color = OnBackground,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            },
-            containerColor = White,
-            shape = RoundedCornerShape(16.dp),
-        )
+        SignupLoadingScreen()
+        return
     }
 
     Scaffold(
@@ -207,6 +198,14 @@ private fun SignupStepOne(
                 text = if (uiState.codeSent) "재전송" else "SMS 전송",
                 onClick = viewModel::sendSms,
                 modifier = Modifier.height(52.dp),
+            )
+        }
+        if (uiState.codeSent) {
+            Text(
+                text = "인증번호를 발송했어요.",
+                fontSize = 12.sp,
+                color = MutedForeground,
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }
@@ -362,3 +361,66 @@ private fun signupInputColors() = OutlinedTextFieldDefaults.colors(
     focusedContainerColor = AuthInputBackground,
     unfocusedContainerColor = AuthInputBackground,
 )
+
+@Composable
+private fun SignupLoadingScreen() {
+    val infiniteTransition = rememberInfiniteTransition(label = "signupLoading")
+    val rotationY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "rotationY",
+    )
+    val floatOffset by infiniteTransition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "float",
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Image(
+                painter = painterResource(id = com.ssafy.cheket.R.drawable.cheket_ticket_logo),
+                contentDescription = "처리 중",
+                modifier = Modifier
+                    .size(140.dp)
+                    .offset(y = floatOffset.dp)
+                    .graphicsLayer {
+                        this.rotationY = rotationY
+                        cameraDistance = 12f * density
+                    },
+            )
+
+            Text(
+                text = "계정을 생성하고 있어요",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = OnBackground,
+                textAlign = TextAlign.Center,
+            )
+
+            Text(
+                text = "지갑 생성까지 잠시 시간이 걸릴 수 있어요.\n화면을 닫지 마세요.",
+                fontSize = 14.sp,
+                color = MutedForeground,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+            )
+        }
+    }
+}

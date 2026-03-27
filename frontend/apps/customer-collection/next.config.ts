@@ -8,6 +8,23 @@ const nextConfig: NextConfig = {
       { protocol: 'http', hostname: '**' },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/preview',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://j14d108.p.ssafy.io http://j14d108.p.ssafy.io http://localhost:*",
+          },
+        ],
+      },
+    ]
+  },
   async rewrites() {
     return [
       {

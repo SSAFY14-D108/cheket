@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Warning
@@ -93,6 +94,7 @@ fun MyPageScreen(
     onWishlist: () -> Unit,
     onWalletHistory: () -> Unit = {},
     onTxHistory: () -> Unit = {},
+    onMyShows: () -> Unit = {},
     onSettings: () -> Unit = {},
     onLogout: () -> Unit,
     onWithdrawSuccess: () -> Unit = onLogout,
@@ -248,6 +250,7 @@ fun MyPageScreen(
                         onCollection = onCollection,
                         onWishlist = onWishlist,
                         onTxHistory = onTxHistory,
+                        onMyShows = onMyShows,
                         onSettings = onSettings,
                     )
 
@@ -295,13 +298,6 @@ private fun ProfileHero(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "마이페이지",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TertiaryText,
-                        letterSpacing = 1.4.sp,
-                    )
                     Text(
                         text = name,
                         fontSize = 24.sp,
@@ -449,6 +445,7 @@ private fun MenuList(
     onCollection: () -> Unit,
     onWishlist: () -> Unit,
     onTxHistory: () -> Unit,
+    onMyShows: () -> Unit,
     onSettings: () -> Unit,
 ) {
     Column(
@@ -486,6 +483,13 @@ private fun MenuList(
             title = "거래 내역",
             subtitle = "거래와 정산 내역을 확인하세요",
             onClick = onTxHistory,
+        )
+        MenuDivider()
+        MenuRow(
+            icon = Icons.Outlined.MusicNote,
+            title = "참여 공연",
+            subtitle = "아티스트로 참여한 공연과 정산을 확인하세요",
+            onClick = onMyShows,
         )
         MenuDivider()
         MenuRow(

@@ -3,13 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CollectionScreen } from '@/components/cheket/collection-screen'
 import { fetchCollectionTickets } from '@/lib/api'
-import { mapDtoToTicket, type CollectionTicket } from '@/lib/types'
+import { mapDtoToTicket, type CollectionTicket, type CollectionTicketDto } from '@/lib/types'
 
 declare global {
   interface Window {
     CheketCollectionBridge?: {
       onAppReady?: () => void
       onAppError?: (message: string) => void
+    }
+    CheketCollectionDataBridge?: {
+      hasInitialCollectionTickets?: () => boolean
+      getInitialCollectionTicketsJson?: () => string | null
     }
   }
 }
@@ -19,6 +23,8 @@ export default function Page() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [nativeSeedUsed, setNativeSeedUsed] = useState(false)
+  const [isNativeHost, setIsNativeHost] = useState(false)
   const nativeReadySentRef = useRef(false)
 
   const notifyNativeReady = useCallback(() => {
@@ -38,6 +44,21 @@ export default function Page() {
   )
 
   useEffect(() => {
+    setIsNativeHost(Boolean(window.CheketCollectionBridge || window.CheketCollectionDataBridge))
+    const nativeDataBridge = window.CheketCollectionDataBridge
+    if (nativeDataBridge?.hasInitialCollectionTickets?.()) {
+      try {
+        const rawJson = nativeDataBridge.getInitialCollectionTicketsJson?.()
+        const dtos = rawJson ? (JSON.parse(rawJson) as CollectionTicketDto[]) : []
+        setTickets(dtos.map(mapDtoToTicket))
+        setNativeSeedUsed(true)
+        setLoading(false)
+        return
+      } catch (err) {
+        console.error('[Collection] Failed to parse native seed:', err)
+      }
+    }
+
     const params = new URLSearchParams(window.location.search)
     const t = params.get('token')
     if (t) setToken(t)
@@ -48,6 +69,10 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
+    if (nativeSeedUsed) {
+      setLoading(false)
+      return
+    }
     if (!token) { setLoading(false); return }
     localStorage.setItem('cheket_token', token)
     console.log('[Collection] Fetching with token:', token.substring(0, 20) + '...')
@@ -61,7 +86,7 @@ export default function Page() {
         setError(err.message)
       })
       .finally(() => setLoading(false))
-  }, [token])
+  }, [nativeSeedUsed, token])
 
   useEffect(() => {
     if (!loading && error) {
@@ -126,5 +151,11 @@ export default function Page() {
     )
   }
 
-  return <CollectionScreen tickets={tickets} onInitialVisualReady={notifyNativeReady} />
+  return (
+    <CollectionScreen
+      tickets={tickets}
+      onInitialVisualReady={notifyNativeReady}
+      disableParallaxTilt={isNativeHost}
+    />
+  )
 }

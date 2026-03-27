@@ -8,6 +8,7 @@ services:
     container_name: cheket_host_web
     environment:
       TZ: Asia/Seoul
+      COLLECTION_PREVIEW_URL: http://cheket_collection:3100/preview
     ports:
       - "3000:3000"
     restart: unless-stopped

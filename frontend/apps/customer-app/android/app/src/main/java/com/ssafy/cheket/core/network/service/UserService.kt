@@ -25,4 +25,7 @@ interface UserService {
 
     @POST("api/v1/users/fcm-token")
     suspend fun saveFcmToken(@Body request: FcmTokenRequest): ApiResponse<Unit>
+
+    @GET("api/v1/users/my-shows")
+    suspend fun getMyShows(): ApiResponse<List<MyShowDto>>
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useCallback } from "react"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,7 +10,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import Image from "next/image"
 
 export interface TicketEffect {
     id: number
@@ -30,38 +30,51 @@ export function TicketEffectPreview({
     ticketEffects
 }: TicketEffectPreviewProps) {
     const selectedEffect = ticketEffects.find((effect) => effect.id.toString() === selectedEffectId)
-    const normalizedEffectKey = selectedEffect?.effect?.trim().toLowerCase() || ""
+    const iframeRef = useRef<HTMLIFrameElement>(null)
 
-    // 기본 포스터 (업로드 안 했을 때)
-    const displayImage = posterUrl || "/placeholder.svg"
-    const shouldBypassOptimization =
-        displayImage.startsWith("data:") ||
-        displayImage.startsWith("http://") ||
-        displayImage.startsWith("https://")
-
-    // 효과 매핑 함수 (각 effect 문자열에 따른 CSS 스타일/클래스)
-    const getEffectClasses = (effectStr: string) => {
-        switch (effectStr) {
-            case 'glow1':
-                // 반짝이는 네온 테두리 효과
-                return "shadow-[0_0_15px_rgba(124,110,240,0.8)] border-primary/80 animate-pulse"
-            case 'glow2':
-                // 빛이 스쳐지나가는 홀로그램 스타일 (CSS 애니메이션은 아래 <style>에서 정의)
-                return "effect-glow2 border-white/40"
-            case 'glow3':
-                // 색조가 변하는 효과
-                return "animate-[hue-rotate_3s_infinite_linear] border-purple-400 border-2"
-            case 'glow4':
-                // 부드럽게 밝아졌다 어두워지는 효과 + 대비 증가
-                return "animate-[pulse_2s_ease-in-out_infinite] brightness-125 contrast-125 border-yellow-400 border-2"
-            default:
-                return "border-transparent"
-        }
-    }
+    const effectName = selectedEffect?.effect?.trim() || "none"
 
     const currentEffectName = selectedEffectId
         ? selectedEffect?.effect?.toUpperCase() || '선택 안됨'
         : '선택 안됨'
+
+    // 효과 변경 → postMessage
+    const sendEffect = useCallback((name: string) => {
+        iframeRef.current?.contentWindow?.postMessage(
+            { type: 'setEffect', effect: name },
+            '*',
+        )
+    }, [])
+
+    // 포스터 변경 → postMessage
+    const sendPoster = useCallback((url: string) => {
+        iframeRef.current?.contentWindow?.postMessage(
+            { type: 'setPoster', poster: url },
+            '*',
+        )
+    }, [])
+
+    // 효과가 바뀔 때 postMessage
+    useEffect(() => {
+        sendEffect(effectName)
+    }, [effectName, sendEffect])
+
+    // 포스터가 바뀔 때 postMessage
+    useEffect(() => {
+        if (posterUrl) sendPoster(posterUrl)
+    }, [posterUrl, sendPoster])
+
+    // iframe 로드 완료 시 현재 상태 전달
+    const handleIframeLoad = useCallback(() => {
+        sendEffect(effectName)
+        if (posterUrl) sendPoster(posterUrl)
+    }, [effectName, posterUrl, sendEffect, sendPoster])
+
+    // iframe src: 포스터가 http(s) URL이면 쿼리로 전달, data URL이면 postMessage로
+    const posterParam = posterUrl && !posterUrl.startsWith("data:")
+        ? `&poster=${encodeURIComponent(posterUrl)}`
+        : ""
+    const iframeSrc = `/collection-preview?effect=${encodeURIComponent(effectName)}${posterParam}`
 
     return (
         <div className="flex items-center gap-2 mt-1">
@@ -78,32 +91,24 @@ export function TicketEffectPreview({
                     </Button>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-md w-full">
+                <DialogContent className="max-w-lg w-full">
                     <DialogHeader>
                         <DialogTitle>티켓 효과 미리보기 설정</DialogTitle>
                     </DialogHeader>
 
                     <div className="flex items-start gap-6 p-4 bg-muted/30 rounded-lg mt-2">
-                        {/* 왼쪽: 실시간 티켓 미리보기 화면 */}
-                        <div className="flex-shrink-0 flex flex-col items-center gap-2 w-[120px]">
-                            <div
-                                className={`relative w-full aspect-[3/4] rounded-md overflow-hidden bg-muted transition-all duration-300 border-2 ${selectedEffectId ? getEffectClasses(normalizedEffectKey) : 'border-transparent shadow-sm'}`}
-                            >
-                                <Image
-                                    src={displayImage}
-                                    alt="티켓 미리보기"
-                                    fill
-                                    className="object-cover"
-                                    unoptimized={shouldBypassOptimization}
+                        {/* 왼쪽: iframe 실시간 미리보기 */}
+                        <div className="flex-shrink-0 flex flex-col items-center gap-2 w-[150px]">
+                            <div className="relative w-[150px] h-[290px] rounded-lg overflow-hidden bg-muted border border-border">
+                                <iframe
+                                    ref={iframeRef}
+                                    src={iframeSrc}
+                                    onLoad={handleIframeLoad}
+                                    title="티켓 효과 미리보기"
+                                    className="absolute inset-0 w-full h-full border-0"
+                                    style={{ background: 'transparent' }}
+                                    sandbox="allow-scripts allow-same-origin"
                                 />
-                                {normalizedEffectKey === 'glow2' && (
-                                    <div className="absolute inset-0 z-10 pointer-events-none shimmer-overlay" />
-                                )}
-                                {!posterUrl && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs font-medium backdrop-blur-[2px]">
-                                        포스터 없음
-                                    </div>
-                                )}
                             </div>
                             <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1">
                                 {currentEffectName}
@@ -115,7 +120,7 @@ export function TicketEffectPreview({
                             <Label className="text-xs text-muted-foreground">적용할 효과를 선택하세요</Label>
                             <div className="flex flex-wrap gap-2">
                                 <div
-                                    onClick={() => onSelectEffect('')} // 선택 해제용 (옵션)
+                                    onClick={() => onSelectEffect('')}
                                     className={`flex items-center justify-center h-9 px-3 min-w-[70px] text-xs font-semibold rounded-md cursor-pointer transition-all border ${!selectedEffectId
                                             ? 'border-muted-foreground bg-muted-foreground text-background shadow-md'
                                             : 'border-border bg-background hover:bg-muted text-foreground'
@@ -143,31 +148,6 @@ export function TicketEffectPreview({
                     </div>
                 </DialogContent>
             </Dialog>
-
-            {/* 커스텀 CSS 키프레임 */}
-            <style jsx>{`
-                @keyframes shimmer {
-                    0% { transform: translateX(-150%) skewX(-15deg); }
-                    50% { transform: translateX(150%) skewX(-15deg); }
-                    100% { transform: translateX(150%) skewX(-15deg); }
-                }
-                .shimmer-overlay {
-                    background: linear-gradient(
-                        90deg,
-                        transparent,
-                        rgba(255, 255, 255, 0.4),
-                        transparent
-                    );
-                    animation: shimmer 2.5s infinite;
-                }
-                .effect-glow2 {
-                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4) inset;
-                }
-                @keyframes hue-rotate {
-                    0% { filter: hue-rotate(0deg); }
-                    100% { filter: hue-rotate(360deg); }
-                }
-            `}</style>
         </div>
     )
 }
