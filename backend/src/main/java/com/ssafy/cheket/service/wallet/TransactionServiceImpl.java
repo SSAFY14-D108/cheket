@@ -1,10 +1,19 @@
 package com.ssafy.cheket.service.wallet;
 
 import com.ssafy.cheket.dto.wallet.response.TransactionResponse;
+import com.ssafy.cheket.entity.settlement.Settlement;
+import com.ssafy.cheket.entity.settlement.Stakeholder;
+import com.ssafy.cheket.entity.show.Session;
+import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.transaction.Transaction;
 import com.ssafy.cheket.entity.transaction.Transaction.TransactionType;
 import com.ssafy.cheket.entity.transaction.Transaction.TxStatus;
+import com.ssafy.cheket.enums.StakeholderRole;
 import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.repository.settlement.SettlementRepository;
+import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.show.SessionRepository;
+import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ssafy.cheket.exception.common.NotFoundException;
 
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * 트랜잭션 상태 관리 구현체
@@ -31,6 +43,12 @@ import java.util.Map;
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final SettlementRepository settlementRepository;
+    private final StakeholderRepository stakeholderRepository;
+    private final ShowRepository showRepository;
+    private final SessionRepository sessionRepository;
+
+    private static final DateTimeFormatter SESSION_FMT = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
 
     /**
      * 트랜잭션 생성 (PENDING 상태, txHash = null)
@@ -115,25 +133,108 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional(readOnly = true)
     public List<TransactionResponse> getTransactions(Long userId, String type) {
-        List<Transaction> transactions;
+        boolean isSettlementOnly = "SETTLEMENT".equalsIgnoreCase(type);
+        boolean isNoFilter = (type == null || type.isEmpty());
 
-        if (type != null && !type.isEmpty()) {
-            try {
-                Transaction.TransactionType txType = Transaction.TransactionType.valueOf(type.toUpperCase());
-                transactions = transactionRepository.findByUserIdAndType(userId, txType);
-            } catch (IllegalArgumentException e) { // Java에서 잘못된 값이 전달됐을 때 발생하는 예외
-                throw new BadRequestException("잘못된 거래 유형입니다.");
+        // ── 일반 거래 내역 ──────────────────────────────────────────────────────────
+        List<TransactionResponse> txList = List.of();
+        if (!isSettlementOnly) {
+            List<Transaction> transactions;
+            if (isNoFilter) {
+                transactions = transactionRepository.findByUserId(userId);
+            } else {
+                try {
+                    TransactionType txType = TransactionType.valueOf(type.toUpperCase());
+                    transactions = transactionRepository.findByUserIdAndType(userId, txType);
+                } catch (IllegalArgumentException e) {
+                    throw new BadRequestException("잘못된 거래 유형입니다.");
+                }
             }
-        } else {
-            transactions = transactionRepository.findByUserId(userId);
+            txList = transactions.stream()
+                .map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(), tx.getDescription(),
+                    tx.getTxStatus().name(), tx.getTxHash(), tx.getBlockNumber(), tx.getSellerId(), tx.getBuyerId(),
+                    tx.getCreatedAt()))
+                .toList();
         }
 
-        // entity를 dto로 변환해서 사용
-        return transactions.stream()
-            .map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(), tx.getDescription(),
-                tx.getTxStatus().name(), tx.getTxHash(), tx.getBlockNumber(), tx.getSellerId(), tx.getBuyerId(),
-                tx.getCreatedAt()))
+        // ── 정산 이력 (type 없음 or SETTLEMENT 필터) ─────────────────────────────────
+        List<TransactionResponse> settlementList = List.of();
+        if (isNoFilter || isSettlementOnly) {
+            settlementList = settlementRepository.findByUserIdOrHostId(userId).stream().map(this::toSettlementResponse)
+                .toList();
+        }
+
+        // ── 합산 후 최신순 정렬 ─────────────────────────────────────────────────────
+        return Stream.concat(txList.stream(), settlementList.stream())
+            .sorted(
+                Comparator.comparing(TransactionResponse::createdAt, Comparator.nullsLast(Comparator.reverseOrder())))
             .toList();
+    }
+
+    /**
+     * Settlement 엔티티 → TransactionResponse 변환
+     * description 예시: "[BTS 월드투어] 2026.03.22 19:00 회차 정산 수령 · 주최자 72%"
+     */
+    private TransactionResponse toSettlementResponse(Settlement s) {
+        // 공연 제목 조회
+        String showTitle = showRepository.findById(s.getShowId())
+            .map(Show::getTitle)
+            .orElse("알 수 없는 공연");
+
+        // 회차 시작 시간 조회
+        String sessionTime = sessionRepository.findById(s.getSessionId())
+            .map(session -> session.getSessionStartTime().format(SESSION_FMT))
+            .orElse("날짜 미상");
+
+        // 역할 및 분배율 조회
+        String roleLabel = "플랫폼";
+        String shareLabel = "";
+        try {
+            Stakeholder stakeholder = stakeholderRepository.findById(s.getStakeholderId()).orElse(null);
+            if (stakeholder != null) {
+                roleLabel = resolveRoleLabel(stakeholder);
+                // shareBps 7200 → "72%", 800 → "8%"
+                int percent = stakeholder.getShareBps() / 100;
+                int fraction = stakeholder.getShareBps() % 100;  // 소수점 처리 (예: 3333 → 33.33%)
+                shareLabel = fraction == 0
+                    ? " " + percent + "%"
+                    : " " + percent + "." + String.format("%02d", fraction) + "%";
+            }
+        } catch (Exception e) {
+            log.warn("[거래내역] stakeholder 조회 실패 — stakeholderId={}: {}", s.getStakeholderId(), e.getMessage());
+        }
+
+        String description = "[" + showTitle + "] " + sessionTime + " 회차 정산 수령 · " + roleLabel + shareLabel;
+
+        return new TransactionResponse(
+            s.getId(),
+            "SETTLEMENT",
+            s.getAmount(),
+            description,
+            "CONFIRMED",
+            s.getTxHash(),
+            null,   // blockNumber 없음
+            null,   // sellerId 없음
+            null,   // buyerId 없음
+            s.getCreatedAt()
+        );
+    }
+
+    /**
+     * Stakeholder 역할 → 한국어 레이블 변환
+     * userId/hostId 둘 다 null이면 플랫폼 (enum에 PLATFORM 없음)
+     */
+    private String resolveRoleLabel(Stakeholder stakeholder) {
+        if (stakeholder.getUserId() == null && stakeholder.getHostId() == null) {
+            return "플랫폼";
+        }
+        if (stakeholder.getRole() == null) {
+            return "이해관계자";
+        }
+        return switch (stakeholder.getRole()) {
+            case ORGANIZER -> "주최자";
+            case ARTIST    -> "아티스트";
+        };
     }
 
     @Override
