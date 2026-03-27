@@ -122,15 +122,15 @@ public class QrTokenServiceImpl implements QrTokenService {
         // ── 4+5단계: 온체인 소유권 검증 + 티켓 정보 조회 (병렬) ──
         // 두 RPC 호출을 동시에 실행하여 응답 시간 ~50% 단축
         // 둘 다 성공해야 입장 허용
-        CompletableFuture<Void> ownershipFuture = CompletableFuture.runAsync(
-            () -> verifyOnChainOwnership(ticket, userId));
-        CompletableFuture<TicketNFT.TicketInfo> ticketInfoFuture = CompletableFuture.supplyAsync(
-            () -> getOnChainTicketInfo(ticket));
+        CompletableFuture<Void> ownershipFuture = CompletableFuture
+            .runAsync(() -> verifyOnChainOwnership(ticket, userId));
+        CompletableFuture<TicketNFT.TicketInfo> ticketInfoFuture = CompletableFuture
+            .supplyAsync(() -> getOnChainTicketInfo(ticket));
 
         TicketNFT.TicketInfo onChainTicket;
         try {
-            ownershipFuture.join();   // 소유권 검증 완료 대기
-            onChainTicket = ticketInfoFuture.join();  // 티켓 정보 조회 완료 대기
+            ownershipFuture.join(); // 소유권 검증 완료 대기
+            onChainTicket = ticketInfoFuture.join(); // 티켓 정보 조회 완료 대기
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof ForbiddenException) {

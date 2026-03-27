@@ -158,15 +158,13 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new BlockchainException("공연을 찾을 수 없습니다: " + showId));
 
-        // 이미 발행됐거나 발행 중이면 스킵
-        if (show.getStatus() != ShowStatus.DRAFT) {
-            log.warn("공연 {}는 DRAFT 상태가 아닙니다 (현재: {})", showId, show.getStatus());
+        // ========== ① DRAFT → MINTING (원자적, 중복 요청 방지) ==========
+        int updated = showRepository.updateStatusToMintingIfDraft(showId);
+        if (updated == 0) {
+            log.warn("공연 {}는 DRAFT 상태가 아닙니다 (현재: {}) — 중복 요청 무시", showId, show.getStatus());
             return Map.of("message", "이미 민팅되었거나 진행 중입니다", "showId", showId, "status", show.getStatus().name());
         }
-
-        // ========== ① DRAFT → MINTING ==========
-        show.setStatus(ShowStatus.MINTING);
-        showRepository.save(show);
+        show.setStatus(ShowStatus.MINTING); // 엔티티 캐시 동기화
         log.info("[공연 {}] DRAFT → MINTING 상태 전이", showId);
 
         List<String> txHashes = new java.util.ArrayList<>();
