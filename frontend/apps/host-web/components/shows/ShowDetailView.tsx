@@ -81,10 +81,12 @@ function getActionStatusMeta({
   showStatus,
   isAllApproved,
   hasRejectedContract,
+  hasStartedFinalRegistration,
 }: {
   showStatus: string
   isAllApproved: boolean
   hasRejectedContract: boolean
+  hasStartedFinalRegistration: boolean
 }) {
   if (hasRejectedContract) {
     return {
@@ -95,6 +97,13 @@ function getActionStatusMeta({
 
   switch (showStatus) {
     case "PENDING_CONTRACT":
+      if (hasStartedFinalRegistration) {
+        return {
+          label: "최종등록 완료",
+          hint: "최종등록 요청이 접수되어 블록체인 등록 결과를 반영하고 있습니다.",
+        }
+      }
+
       return isAllApproved
         ? {
             label: "최종등록 가능",
@@ -270,6 +279,7 @@ export function ShowDetailView({
     showStatus: showDetail.status,
     isAllApproved,
     hasRejectedContract,
+    hasStartedFinalRegistration,
   })
 
   const summaryItems = [

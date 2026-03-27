@@ -40,7 +40,7 @@ interface ShowFormProps {
 }
 
 const STEP_LABELS = ["기본 정보", "일정 / 장소", "티켓 설정", "정산 / 정책"];
-const SETTLEMENT_CONFIRM_TEXT = "이해관계자의  정책을 확인했습니다.";
+const SETTLEMENT_CONFIRM_TEXT = "이해관계자의 수수료율 및 정책을 확인했습니다.";
 
 function formatSharePercent(shareBps: string) {
   return `${((Number(shareBps) || 0) / 100).toLocaleString("ko-KR", {
