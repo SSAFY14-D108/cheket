@@ -28,23 +28,17 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
 
 /**
- * <p>
- * Auto generated code.
- * <p>
- * <strong>Do not modify!</strong>
- * <p>
- * Please use the <a href="https://docs.web3j.io/command_line.html">web3j
- * command line tools</a>, or the
- * org.web3j.codegen.SolidityFunctionWrapperGenerator in the <a href=
- * "https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen
- * module</a> to update.
+ * <p>Auto generated code.
+ * <p><strong>Do not modify!</strong>
+ * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
+ * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * <a href="https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen module</a> to update.
  *
- * <p>
- * Generated with web3j version 4.12.3.
+ * <p>Generated with web3j version 4.12.3.
  */
 @SuppressWarnings("rawtypes")
 public class Marketplace extends Contract {
-    public static final String BINARY = "0x608060405234801561001057600080fd5b5060405161138f38038061138f83398181016040528101906100329190610274565b61004e61004361014560201b60201c565b61014d60201b60201c565b600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff16036100bd576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016100b4906102fe565b60405180910390fd5b80600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555080600260006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505061031e565b600033905090565b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff169050816000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055508173ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e060405160405180910390a35050565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b600061024182610216565b9050919050565b61025181610236565b811461025c57600080fd5b50565b60008151905061026e81610248565b92915050565b60006020828403121561028a57610289610211565b5b60006102988482850161025f565b91505092915050565b600082825260208201905092915050565b7f496e76616c6964205469636b65744e4654000000000000000000000000000000600082015250565b60006102e86011836102a1565b91506102f3826102b2565b602082019050919050565b60006020820190508181036000830152610317816102db565b9050919050565b6110628061032d6000396000f3fe608060405234801561001057600080fd5b50600436106100625760003560e01c8063715018a6146100675780638da5cb5b14610071578063b393391b1461008f578063c77836f9146100ad578063f2fde38b146100cb578063f83d1791146100e7575b600080fd5b61006f610103565b005b610079610117565b604051610086919061081c565b60405180910390f35b610097610140565b6040516100a49190610896565b60405180910390f35b6100b5610166565b6040516100c2919061081c565b60405180910390f35b6100e560048036038101906100e091906108f1565b61018c565b005b61010160048036038101906100fc9190610954565b61020f565b005b61010b610691565b610115600061070f565b565b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b600260009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b610194610691565b600073ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff1603610203576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016101fa90610a2a565b60405180910390fd5b61020c8161070f565b50565b610217610691565b6000600260009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1690508373ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff16636352211e846040518263ffffffff1660e01b815260040161028e9190610a59565b602060405180830381865afa1580156102ab573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906102cf9190610a89565b73ffffffffffffffffffffffffffffffffffffffff1614610325576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161031c90610b02565b60405180910390fd5b600073ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff1603610394576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161038b90610b6e565b60405180910390fd5b8373ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff1603610402576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016103f990610bda565b60405180910390fd5b60008173ffffffffffffffffffffffffffffffffffffffff1663fb87774c846040518263ffffffff1660e01b815260040161043d9190610a59565b602060405180830381865afa15801561045a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061047e9190610c33565b60ff16146104c1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016104b890610cac565b60405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166323b872dd8585856040518463ffffffff1660e01b81526004016104fe93929190610ccc565b600060405180830381600087803b15801561051857600080fd5b505af115801561052c573d6000803e3d6000fd5b505050506000808273ffffffffffffffffffffffffffffffffffffffff166350b44712856040518263ffffffff1660e01b815260040161056c9190610a59565b600060405180830381865afa158015610589573d6000803e3d6000fd5b505050506040513d6000823e3d601f19601f820116820180604052508101906105b29190610e79565b50505050505050915091508273ffffffffffffffffffffffffffffffffffffffff16639b7377fa838389896040518563ffffffff1660e01b81526004016105fc9493929190610f7b565b600060405180830381600087803b15801561061657600080fd5b505af115801561062a573d6000803e3d6000fd5b505050508473ffffffffffffffffffffffffffffffffffffffff168673ffffffffffffffffffffffffffffffffffffffff16857f36e6fb4a154c9e03594558e15cd127b42b861ef40280d618b1e9c2ee5fde206a60405160405180910390a4505050505050565b6106996107d3565b73ffffffffffffffffffffffffffffffffffffffff166106b7610117565b73ffffffffffffffffffffffffffffffffffffffff161461070d576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016107049061100c565b60405180910390fd5b565b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff169050816000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055508173ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e060405160405180910390a35050565b600033905090565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000610806826107db565b9050919050565b610816816107fb565b82525050565b6000602082019050610831600083018461080d565b92915050565b6000819050919050565b600061085c610857610852846107db565b610837565b6107db565b9050919050565b600061086e82610841565b9050919050565b600061088082610863565b9050919050565b61089081610875565b82525050565b60006020820190506108ab6000830184610887565b92915050565b6000604051905090565b600080fd5b600080fd5b6108ce816107fb565b81146108d957600080fd5b50565b6000813590506108eb816108c5565b92915050565b600060208284031215610907576109066108bb565b5b6000610915848285016108dc565b91505092915050565b6000819050919050565b6109318161091e565b811461093c57600080fd5b50565b60008135905061094e81610928565b92915050565b60008060006060848603121561096d5761096c6108bb565b5b600061097b868287016108dc565b935050602061098c868287016108dc565b925050604061099d8682870161093f565b9150509250925092565b600082825260208201905092915050565b7f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160008201527f6464726573730000000000000000000000000000000000000000000000000000602082015250565b6000610a146026836109a7565b9150610a1f826109b8565b604082019050919050565b60006020820190508181036000830152610a4381610a07565b9050919050565b610a538161091e565b82525050565b6000602082019050610a6e6000830184610a4a565b92915050565b600081519050610a83816108c5565b92915050565b600060208284031215610a9f57610a9e6108bb565b5b6000610aad84828501610a74565b91505092915050565b7f4e6f74207469636b6574206f776e657200000000000000000000000000000000600082015250565b6000610aec6010836109a7565b9150610af782610ab6565b602082019050919050565b60006020820190508181036000830152610b1b81610adf565b9050919050565b7f496e76616c696420616464726573730000000000000000000000000000000000600082015250565b6000610b58600f836109a7565b9150610b6382610b22565b602082019050919050565b60006020820190508181036000830152610b8781610b4b565b9050919050565b7f43616e6e6f74207472616e7366657220746f2073656c66000000000000000000600082015250565b6000610bc46017836109a7565b9150610bcf82610b8e565b602082019050919050565b60006020820190508181036000830152610bf381610bb7565b9050919050565b600060ff82169050919050565b610c1081610bfa565b8114610c1b57600080fd5b50565b600081519050610c2d81610c07565b92915050565b600060208284031215610c4957610c486108bb565b5b6000610c5784828501610c1e565b91505092915050565b7f5469636b6574206e6f742076616c696400000000000000000000000000000000600082015250565b6000610c966010836109a7565b9150610ca182610c60565b602082019050919050565b60006020820190508181036000830152610cc581610c89565b9050919050565b6000606082019050610ce1600083018661080d565b610cee602083018561080d565b610cfb6040830184610a4a565b949350505050565b600081519050610d1281610928565b92915050565b600080fd5b600080fd5b6000601f19601f8301169050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b610d6b82610d22565b810181811067ffffffffffffffff82111715610d8a57610d89610d33565b5b80604052505050565b6000610d9d6108b1565b9050610da98282610d62565b919050565b600067ffffffffffffffff821115610dc957610dc8610d33565b5b610dd282610d22565b9050602081019050919050565b60005b83811015610dfd578082015181840152602081019050610de2565b60008484015250505050565b6000610e1c610e1784610dae565b610d93565b905082815260208101848484011115610e3857610e37610d1d565b5b610e43848285610ddf565b509392505050565b600082601f830112610e6057610e5f610d18565b5b8151610e70848260208601610e09565b91505092915050565b60008060008060008060008060006101208a8c031215610e9c57610e9b6108bb565b5b6000610eaa8c828d01610d03565b9950506020610ebb8c828d01610d03565b98505060408a015167ffffffffffffffff811115610edc57610edb6108c0565b5b610ee88c828d01610e4b565b9750506060610ef98c828d01610d03565b9650506080610f0a8c828d01610d03565b95505060a08a015167ffffffffffffffff811115610f2b57610f2a6108c0565b5b610f378c828d01610e4b565b94505060c0610f488c828d01610d03565b93505060e0610f598c828d01610c1e565b925050610100610f6b8c828d01610d03565b9150509295985092959850929598565b6000608082019050610f906000830187610a4a565b610f9d6020830186610a4a565b610faa604083018561080d565b610fb7606083018461080d565b95945050505050565b7f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572600082015250565b6000610ff66020836109a7565b915061100182610fc0565b602082019050919050565b6000602082019050818103600083015261102581610fe9565b905091905056fea2646970667358221220ef5a8f667965f7124e871b6174f7d8dc7e670243e848fc2da38375d07ee8988f64736f6c634300081c0033";
+    public static final String BINARY = "0x60803461010657601f61085c38819003918201601f19168301916001600160401b0383118484101761010b5780849260209460405283398101031261010657516001600160a01b038116908190036101065760008054336001600160a01b03198216811783556040519290916001600160a01b0316907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09080a381156100d05750600180546001600160a01b0319908116831790915560028054909116909117905560405161073a90816101228239f35b62461bcd60e51b8152602060048201526011602482015270125b9d985b1a5908151a58dad95d139195607a1b6044820152606490fd5b600080fd5b634e487b7160e01b600052604160045260246000fdfe6080604052600436101561001257600080fd5b6000803560e01c8063715018a6146105815780638da5cb5b1461055a578063b393391b14610531578063c77836f914610508578063f2fde38b146104425763f83d17911461005f57600080fd5b3461043f57606036600319011261043f576100786105db565b6024356001600160a01b038116919082900361043d576044356100996106ac565b6002546040516331a9108f60e11b815260048101839052926001600160a01b0390911690602084602481855afa9384156102c05786946103f9575b506001600160a01b0390811693168390036103c157831561038a5782841461034557604051633ee1ddd360e21b815260048101839052602081602481855afa80156102c0578690610307575b60ff9150166102cf57803b156102cb576040516323b872dd60e01b8152836004820152846024820152826044820152858160648183865af180156102c0576102ac575b50849060405163285a238960e11b81528360048201528281602481855afa80156102a1578391849161021e575b50823b1561020f5760848492836040519586948593634db9bbfd60e11b8552600485015260248401528960448401528a60648401525af18015610213576101fa575b50807f36e6fb4a154c9e03594558e15cd127b42b861ef40280d618b1e9c2ee5fde206a91a480f35b81610204916105f6565b61020f5783386101d2565b8380fd5b6040513d84823e3d90fd5b9150503d8084833e61023081836105f6565b8101906101208183031261020f57805190602081015192604082015167ffffffffffffffff811161029d578161026791840161063c565b5060a08201519167ffffffffffffffff831161029d5761028e60e09261029594830161063c565b500161062e565b509038610190565b8680fd5b6040513d85823e3d90fd5b856102b9919692966105f6565b9338610163565b6040513d88823e3d90fd5b8480fd5b60405162461bcd60e51b815260206004820152601060248201526f151a58dad95d081b9bdd081d985b1a5960821b6044820152606490fd5b506020813d60201161033d575b81610321602093836105f6565b810103126103395761033460ff9161062e565b610120565b8580fd5b3d9150610314565b60405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e496e76616c6964206164647265737360881b6044820152606490fd5b60405162461bcd60e51b815260206004820152601060248201526f2737ba103a34b1b5b2ba1037bbb732b960811b6044820152606490fd5b9093506020813d602011610435575b81610415602093836105f6565b8101031261033957516001600160a01b03811681036103395792386100d4565b3d9150610408565b825b80fd5b503461043f57602036600319011261043f5761045c6105db565b6104646106ac565b6001600160a01b031680156104b45781546001600160a01b03198116821783556001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08380a380f35b60405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b6064820152608490fd5b503461043f578060031936011261043f576002546040516001600160a01b039091168152602090f35b503461043f578060031936011261043f576001546040516001600160a01b039091168152602090f35b503461043f578060031936011261043f57546040516001600160a01b039091168152602090f35b503461043f578060031936011261043f5761059a6106ac565b80546001600160a01b03198116825581906001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a380f35b600435906001600160a01b03821682036105f157565b600080fd5b90601f8019910116810190811067ffffffffffffffff82111761061857604052565b634e487b7160e01b600052604160045260246000fd5b519060ff821682036105f157565b81601f820112156105f15780519067ffffffffffffffff82116106185760405192610671601f8401601f1916602001856105f6565b828452602083830101116105f15760005b82811061069757505060206000918301015290565b80602080928401015182828701015201610682565b6000546001600160a01b031633036106c057565b606460405162461bcd60e51b815260206004820152602060248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152fdfea2646970667358221220d90710821fb0874e875e2c2803b464cacc5eed6f423a0a5843b4776efc8be06664736f6c634300081c0033";
 
     private static String librariesLinkedBinary;
 
@@ -60,45 +54,40 @@ public class Marketplace extends Contract {
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
-    public static final Event DIRECTTRANSFERRED_EVENT = new Event("DirectTransferred",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {
-        }, new TypeReference<Address>(true) {
-        }, new TypeReference<Address>(true) {
-        }));;
+    public static final Event DIRECTTRANSFERRED_EVENT = new Event("DirectTransferred", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}));
+    ;
 
-    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred",
-        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
-        }, new TypeReference<Address>(true) {
-        }));;
+    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}));
+    ;
 
     @Deprecated
-    protected Marketplace(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
-        BigInteger gasLimit) {
+    protected Marketplace(String contractAddress, Web3j web3j, Credentials credentials,
+            BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     protected Marketplace(String contractAddress, Web3j web3j, Credentials credentials,
-        ContractGasProvider contractGasProvider) {
+            ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     @Deprecated
-    protected Marketplace(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        BigInteger gasPrice, BigInteger gasLimit) {
+    protected Marketplace(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
-    protected Marketplace(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        ContractGasProvider contractGasProvider) {
+    protected Marketplace(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
     public static List<DirectTransferredEventResponse> getDirectTransferredEvents(
-        TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(DIRECTTRANSFERRED_EVENT,
-            transactionReceipt);
-        ArrayList<DirectTransferredEventResponse> responses = new ArrayList<DirectTransferredEventResponse>(
-            valueList.size());
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(DIRECTTRANSFERRED_EVENT, transactionReceipt);
+        ArrayList<DirectTransferredEventResponse> responses = new ArrayList<DirectTransferredEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             DirectTransferredEventResponse typedResponse = new DirectTransferredEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -120,23 +109,22 @@ public class Marketplace extends Contract {
         return typedResponse;
     }
 
-    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(EthFilter filter) {
+    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(
+            EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getDirectTransferredEventFromLog(log));
     }
 
-    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(DefaultBlockParameter startBlock,
-        DefaultBlockParameter endBlock) {
+    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(
+            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(DIRECTTRANSFERRED_EVENT));
         return directTransferredEventFlowable(filter);
     }
 
     public static List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(
-        TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT,
-            transactionReceipt);
-        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(
-            valueList.size());
+            TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT, transactionReceipt);
+        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             OwnershipTransferredEventResponse typedResponse = new OwnershipTransferredEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -156,113 +144,112 @@ public class Marketplace extends Contract {
         return typedResponse;
     }
 
-    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(EthFilter filter) {
+    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
+            EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getOwnershipTransferredEventFromLog(log));
     }
 
     public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
-        DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(OWNERSHIPTRANSFERRED_EVENT));
         return ownershipTransferredEventFlowable(filter);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> directTransfer(String from, String to, BigInteger ticketId) {
-        final Function function = new Function(FUNC_DIRECTTRANSFER,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
-                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(ticketId)),
-            Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> directTransfer(String from, String to,
+            BigInteger ticketId) {
+        final Function function = new Function(
+                FUNC_DIRECTTRANSFER, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
+                new org.web3j.abi.datatypes.Address(160, to), 
+                new org.web3j.abi.datatypes.generated.Uint256(ticketId)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<String> owner() {
-        final Function function = new Function(FUNC_OWNER, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }));
+        final Function function = new Function(FUNC_OWNER, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<TransactionReceipt> renounceOwnership() {
-        final Function function = new Function(FUNC_RENOUNCEOWNERSHIP, Arrays.<Type>asList(),
-            Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(
+                FUNC_RENOUNCEOWNERSHIP, 
+                Arrays.<Type>asList(), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<String> ticketNFT() {
-        final Function function = new Function(FUNC_TICKETNFT, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }));
+        final Function function = new Function(FUNC_TICKETNFT, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> ticketNFTAddress() {
-        final Function function = new Function(FUNC_TICKETNFTADDRESS, Arrays.<Type>asList(),
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
-            }));
+        final Function function = new Function(FUNC_TICKETNFTADDRESS, 
+                Arrays.<Type>asList(), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<TransactionReceipt> transferOwnership(String newOwner) {
-        final Function function = new Function(FUNC_TRANSFEROWNERSHIP,
-            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)),
-            Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(
+                FUNC_TRANSFEROWNERSHIP, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)), 
+                Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     @Deprecated
-    public static Marketplace load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
-        BigInteger gasLimit) {
+    public static Marketplace load(String contractAddress, Web3j web3j, Credentials credentials,
+            BigInteger gasPrice, BigInteger gasLimit) {
         return new Marketplace(contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     @Deprecated
-    public static Marketplace load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        BigInteger gasPrice, BigInteger gasLimit) {
+    public static Marketplace load(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
         return new Marketplace(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
     public static Marketplace load(String contractAddress, Web3j web3j, Credentials credentials,
-        ContractGasProvider contractGasProvider) {
+            ContractGasProvider contractGasProvider) {
         return new Marketplace(contractAddress, web3j, credentials, contractGasProvider);
     }
 
-    public static Marketplace load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-        ContractGasProvider contractGasProvider) {
+    public static Marketplace load(String contractAddress, Web3j web3j,
+            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
         return new Marketplace(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
     public static RemoteCall<Marketplace> deploy(Web3j web3j, Credentials credentials,
-        ContractGasProvider contractGasProvider, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder
-            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, credentials, contractGasProvider, getDeploymentBinary(),
-            encodedConstructor);
+            ContractGasProvider contractGasProvider, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, credentials, contractGasProvider, getDeploymentBinary(), encodedConstructor);
     }
 
     public static RemoteCall<Marketplace> deploy(Web3j web3j, TransactionManager transactionManager,
-        ContractGasProvider contractGasProvider, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder
-            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, transactionManager, contractGasProvider,
-            getDeploymentBinary(), encodedConstructor);
+            ContractGasProvider contractGasProvider, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, transactionManager, contractGasProvider, getDeploymentBinary(), encodedConstructor);
     }
 
     @Deprecated
-    public static RemoteCall<Marketplace> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice,
-        BigInteger gasLimit, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder
-            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(),
-            encodedConstructor);
+    public static RemoteCall<Marketplace> deploy(Web3j web3j, Credentials credentials,
+            BigInteger gasPrice, BigInteger gasLimit, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(), encodedConstructor);
     }
 
     @Deprecated
     public static RemoteCall<Marketplace> deploy(Web3j web3j, TransactionManager transactionManager,
-        BigInteger gasPrice, BigInteger gasLimit, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder
-            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(),
-            encodedConstructor);
+            BigInteger gasPrice, BigInteger gasLimit, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(), encodedConstructor);
     }
 
     public static void linkLibraries(List<Contract.LinkReference> references) {
