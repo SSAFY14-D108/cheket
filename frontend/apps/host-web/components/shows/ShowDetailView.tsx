@@ -75,6 +75,61 @@ function getContractStatusMeta(status: HostShowContractApproval["approvalStatus"
   }
 }
 
+function getActionStatusMeta({
+  showStatus,
+  isAllApproved,
+  hasRejectedContract,
+}: {
+  showStatus: string
+  isAllApproved: boolean
+  hasRejectedContract: boolean
+}) {
+  if (hasRejectedContract) {
+    return {
+      label: "수정 필요",
+      hint: "거절된 이해관계자가 있어 공연 수정 후 다시 승인 절차를 진행해야 합니다.",
+    }
+  }
+
+  switch (showStatus) {
+    case "PENDING_CONTRACT":
+      return isAllApproved
+        ? {
+            label: "최종등록 가능",
+            hint: "모든 이해관계자 승인이 완료되어 최종등록을 진행할 수 있습니다.",
+          }
+        : {
+            label: "승인 대기",
+            hint: "아직 승인 대기 중인 이해관계자가 있어 최종등록 버튼이 비활성화됩니다.",
+          }
+    case "DRAFT":
+      return {
+        label: "최종등록 완료",
+        hint: "최종등록이 완료되어 블록체인 등록 대기 상태입니다.",
+      }
+    case "MINTING":
+      return {
+        label: "블록체인 등록 중",
+        hint: "스마트 컨트랙트와 티켓 민팅을 진행하고 있습니다.",
+      }
+    case "MINTED":
+      return {
+        label: "등록 완료",
+        hint: "온체인 등록이 완료되어 운영 가능한 상태입니다.",
+      }
+    case "CANCELLED":
+      return {
+        label: "취소됨",
+        hint: "취소된 공연입니다.",
+      }
+    default:
+      return {
+        label: "상태 확인 필요",
+        hint: "공연 상태를 다시 확인해주세요.",
+      }
+  }
+}
+
 export function ShowDetailView({
   showDetail,
   contractApprovals,
@@ -142,14 +197,11 @@ export function ShowDetailView({
   const confirmButtonDisabled =
     !hasRejectedContract &&
     (!isAllApproved || isSubmittingFinalRegistration || isSubmittingContractDecision)
-
-  const actionHint = hasRejectedContract
-    ? "거절된 이해관계자가 있어 공연 수정 후 다시 승인 절차를 진행해야 합니다."
-    : !isPendingContract
-      ? "최종 등록 이후에는 공연명, 상세 설명, 포스터와 설명 이미지만 수정할 수 있습니다."
-      : isAllApproved
-        ? "모든 이해관계자 승인이 완료되어 최종등록을 진행할 수 있습니다."
-        : "아직 승인 대기 중인 이해관계자가 있어 최종등록 버튼이 비활성화됩니다."
+  const actionStatusMeta = getActionStatusMeta({
+    showStatus: showDetail.status,
+    isAllApproved,
+    hasRejectedContract,
+  })
 
   const summaryItems = [
     {
@@ -400,15 +452,11 @@ export function ShowDetailView({
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-black/50">현재 상태</span>
                   <span className="text-sm font-semibold text-black">
-                    {hasRejectedContract
-                      ? "수정 필요"
-                      : isAllApproved
-                        ? "최종등록 가능"
-                        : "승인 대기"}
+                    {actionStatusMeta.label}
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-black/56">
-                  {actionHint}
+                  {actionStatusMeta.hint}
                 </p>
               </div>
 
@@ -693,7 +741,7 @@ export function ShowDetailView({
                 </div>
 
                 <div className="rounded-[1.25rem] bg-[#f7f7f8] px-5 py-4 text-sm leading-6 text-black/58">
-                  {actionHint}
+                  {actionStatusMeta.hint}
                 </div>
               </DetailSection>
             ) : null}
