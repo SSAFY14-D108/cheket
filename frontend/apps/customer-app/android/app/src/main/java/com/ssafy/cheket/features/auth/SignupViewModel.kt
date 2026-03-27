@@ -10,7 +10,9 @@ import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.network.dto.EmailDuplicateRequest
 import com.ssafy.cheket.core.network.dto.SmsSendRequest
 import com.ssafy.cheket.core.network.dto.SmsVerifyRequest
+import com.ssafy.cheket.core.network.dto.LoginRequest
 import com.ssafy.cheket.core.network.dto.SignupRequest
+import com.ssafy.cheket.core.network.AuthTokens
 import com.ssafy.cheket.core.network.service.AuthService
 import com.ssafy.cheket.core.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +34,8 @@ data class SignupUiState(
     // Step 2
     val password: String = "",
     val passwordConfirm: String = "",
+    val showPassword: Boolean = false,
+    val showPasswordConfirm: Boolean = false,
     val agreedAll: Boolean = false,
     // State
     val errors: Map<String, String> = emptyMap(),
@@ -42,6 +46,7 @@ data class SignupUiState(
 class SignupViewModel(
     private val authRepository: AuthRepository,
     private val authService: AuthService,
+    private val authDataStore: com.ssafy.cheket.core.network.AuthDataStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
@@ -97,6 +102,14 @@ class SignupViewModel(
 
     fun onPasswordConfirmChange(value: String) {
         _uiState.update { it.copy(passwordConfirm = value, errors = it.errors - "passwordConfirm") }
+    }
+
+    fun togglePasswordVisibility() {
+        _uiState.update { it.copy(showPassword = !it.showPassword) }
+    }
+
+    fun togglePasswordConfirmVisibility() {
+        _uiState.update { it.copy(showPasswordConfirm = !it.showPasswordConfirm) }
     }
 
     fun toggleAgreed() {
@@ -192,6 +205,22 @@ class SignupViewModel(
                 )
                 Log.d(TAG, "signup() statusCode=${response.httpStatusCode}")
                 if (response.httpStatusCode in 200..299) {
+                    // 회원가입 성공 후 자동 로그인
+                    try {
+                        val loginResponse = authService.login(LoginRequest(email = state.email, password = state.password))
+                        if (loginResponse.httpStatusCode in 200..299 && loginResponse.data != null) {
+                            authDataStore.onLoginSuccess()
+                            authDataStore.saveTokens(
+                                AuthTokens(
+                                    accessToken = loginResponse.data.accessToken,
+                                    refreshToken = loginResponse.data.refreshToken,
+                                )
+                            )
+                            Log.d(TAG, "signup() auto-login success")
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "signup() auto-login failed (non-critical)", e)
+                    }
                     _uiState.update { it.copy(isSignupSuccess = true, isLoading = false) }
                 } else {
                     _uiState.update { it.copy(errors = mapOf("signup" to (response.responseMessage ?: "회원가입 실패")), isLoading = false) }
@@ -209,7 +238,7 @@ class SignupViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                SignupViewModel(app.appContainer.authRepository, app.appContainer.authService)
+                SignupViewModel(app.appContainer.authRepository, app.appContainer.authService, app.authDataStore)
             }
         }
     }

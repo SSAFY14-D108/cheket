@@ -20,8 +20,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -38,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,6 +71,31 @@ fun SignupScreen(
 
     LaunchedEffect(uiState.isSignupSuccess) {
         if (uiState.isSignupSuccess) onSignupSuccess()
+    }
+
+    if (uiState.isLoading) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            icon = {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    color = MutedForeground,
+                    strokeWidth = 3.dp,
+                )
+            },
+            text = {
+                Text(
+                    text = "회원가입 처리 중...",
+                    fontSize = 15.sp,
+                    color = OnBackground,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+            },
+            containerColor = White,
+            shape = RoundedCornerShape(16.dp),
+        )
     }
 
     Scaffold(
@@ -225,7 +255,16 @@ private fun SignupStepTwo(
             value = uiState.password,
             onValueChange = viewModel::onPasswordChange,
             placeholder = { Text("비밀번호 (6자 이상)", fontSize = 14.sp) },
-            visualTransformation = PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = viewModel::togglePasswordVisibility) {
+                    Icon(
+                        imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (uiState.showPassword) "숨기기" else "보기",
+                        tint = MutedForeground,
+                    )
+                }
+            },
+            visualTransformation = if (uiState.showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
             shape = AuthFieldShape,
             colors = signupInputColors(),
@@ -238,7 +277,16 @@ private fun SignupStepTwo(
             value = uiState.passwordConfirm,
             onValueChange = viewModel::onPasswordConfirmChange,
             placeholder = { Text("비밀번호를 다시 입력해 주세요", fontSize = 14.sp) },
-            visualTransformation = PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = viewModel::togglePasswordConfirmVisibility) {
+                    Icon(
+                        imageVector = if (uiState.showPasswordConfirm) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (uiState.showPasswordConfirm) "숨기기" else "보기",
+                        tint = MutedForeground,
+                    )
+                }
+            },
+            visualTransformation = if (uiState.showPasswordConfirm) VisualTransformation.None else PasswordVisualTransformation(),
             singleLine = true,
             shape = AuthFieldShape,
             colors = signupInputColors(),
