@@ -28,13 +28,19 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
 
 /**
- * <p>Auto generated code.
- * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen module</a> to update.
+ * <p>
+ * Auto generated code.
+ * <p>
+ * <strong>Do not modify!</strong>
+ * <p>
+ * Please use the <a href="https://docs.web3j.io/command_line.html">web3j
+ * command line tools</a>, or the
+ * org.web3j.codegen.SolidityFunctionWrapperGenerator in the <a href=
+ * "https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen
+ * module</a> to update.
  *
- * <p>Generated with web3j version 4.12.3.
+ * <p>
+ * Generated with web3j version 4.12.3.
  */
 @SuppressWarnings("rawtypes")
 public class Marketplace extends Contract {
@@ -54,40 +60,45 @@ public class Marketplace extends Contract {
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
-    public static final Event DIRECTTRANSFERRED_EVENT = new Event("DirectTransferred", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}));
-    ;
+    public static final Event DIRECTTRANSFERRED_EVENT = new Event("DirectTransferred",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {
+        }, new TypeReference<Address>(true) {
+        }, new TypeReference<Address>(true) {
+        }));;
 
-    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}));
-    ;
+    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
+        }, new TypeReference<Address>(true) {
+        }));;
 
     @Deprecated
-    protected Marketplace(String contractAddress, Web3j web3j, Credentials credentials,
-            BigInteger gasPrice, BigInteger gasLimit) {
+    protected Marketplace(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
+        BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     protected Marketplace(String contractAddress, Web3j web3j, Credentials credentials,
-            ContractGasProvider contractGasProvider) {
+        ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     @Deprecated
-    protected Marketplace(String contractAddress, Web3j web3j,
-            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+    protected Marketplace(String contractAddress, Web3j web3j, TransactionManager transactionManager,
+        BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
-    protected Marketplace(String contractAddress, Web3j web3j,
-            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+    protected Marketplace(String contractAddress, Web3j web3j, TransactionManager transactionManager,
+        ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
     public static List<DirectTransferredEventResponse> getDirectTransferredEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(DIRECTTRANSFERRED_EVENT, transactionReceipt);
-        ArrayList<DirectTransferredEventResponse> responses = new ArrayList<DirectTransferredEventResponse>(valueList.size());
+        TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(DIRECTTRANSFERRED_EVENT,
+            transactionReceipt);
+        ArrayList<DirectTransferredEventResponse> responses = new ArrayList<DirectTransferredEventResponse>(
+            valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             DirectTransferredEventResponse typedResponse = new DirectTransferredEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -109,22 +120,23 @@ public class Marketplace extends Contract {
         return typedResponse;
     }
 
-    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(
-            EthFilter filter) {
+    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getDirectTransferredEventFromLog(log));
     }
 
-    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+    public Flowable<DirectTransferredEventResponse> directTransferredEventFlowable(DefaultBlockParameter startBlock,
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(DIRECTTRANSFERRED_EVENT));
         return directTransferredEventFlowable(filter);
     }
 
     public static List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT, transactionReceipt);
-        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(valueList.size());
+        TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT,
+            transactionReceipt);
+        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(
+            valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             OwnershipTransferredEventResponse typedResponse = new OwnershipTransferredEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -144,112 +156,113 @@ public class Marketplace extends Contract {
         return typedResponse;
     }
 
-    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
-            EthFilter filter) {
+    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getOwnershipTransferredEventFromLog(log));
     }
 
     public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(OWNERSHIPTRANSFERRED_EVENT));
         return ownershipTransferredEventFlowable(filter);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> directTransfer(String from, String to,
-            BigInteger ticketId) {
-        final Function function = new Function(
-                FUNC_DIRECTTRANSFER, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
-                new org.web3j.abi.datatypes.Address(160, to), 
-                new org.web3j.abi.datatypes.generated.Uint256(ticketId)), 
-                Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> directTransfer(String from, String to, BigInteger ticketId) {
+        final Function function = new Function(FUNC_DIRECTTRANSFER,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
+                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(ticketId)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<String> owner() {
-        final Function function = new Function(FUNC_OWNER, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
+        final Function function = new Function(FUNC_OWNER, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<TransactionReceipt> renounceOwnership() {
-        final Function function = new Function(
-                FUNC_RENOUNCEOWNERSHIP, 
-                Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_RENOUNCEOWNERSHIP, Arrays.<Type>asList(),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<String> ticketNFT() {
-        final Function function = new Function(FUNC_TICKETNFT, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
+        final Function function = new Function(FUNC_TICKETNFT, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> ticketNFTAddress() {
-        final Function function = new Function(FUNC_TICKETNFTADDRESS, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
+        final Function function = new Function(FUNC_TICKETNFTADDRESS, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<TransactionReceipt> transferOwnership(String newOwner) {
-        final Function function = new Function(
-                FUNC_TRANSFEROWNERSHIP, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_TRANSFEROWNERSHIP,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     @Deprecated
-    public static Marketplace load(String contractAddress, Web3j web3j, Credentials credentials,
-            BigInteger gasPrice, BigInteger gasLimit) {
+    public static Marketplace load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
+        BigInteger gasLimit) {
         return new Marketplace(contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     @Deprecated
-    public static Marketplace load(String contractAddress, Web3j web3j,
-            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+    public static Marketplace load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
+        BigInteger gasPrice, BigInteger gasLimit) {
         return new Marketplace(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
     public static Marketplace load(String contractAddress, Web3j web3j, Credentials credentials,
-            ContractGasProvider contractGasProvider) {
+        ContractGasProvider contractGasProvider) {
         return new Marketplace(contractAddress, web3j, credentials, contractGasProvider);
     }
 
-    public static Marketplace load(String contractAddress, Web3j web3j,
-            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+    public static Marketplace load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
+        ContractGasProvider contractGasProvider) {
         return new Marketplace(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
     public static RemoteCall<Marketplace> deploy(Web3j web3j, Credentials credentials,
-            ContractGasProvider contractGasProvider, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, credentials, contractGasProvider, getDeploymentBinary(), encodedConstructor);
+        ContractGasProvider contractGasProvider, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder
+            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, credentials, contractGasProvider, getDeploymentBinary(),
+            encodedConstructor);
     }
 
     public static RemoteCall<Marketplace> deploy(Web3j web3j, TransactionManager transactionManager,
-            ContractGasProvider contractGasProvider, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, transactionManager, contractGasProvider, getDeploymentBinary(), encodedConstructor);
+        ContractGasProvider contractGasProvider, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder
+            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, transactionManager, contractGasProvider,
+            getDeploymentBinary(), encodedConstructor);
     }
 
     @Deprecated
-    public static RemoteCall<Marketplace> deploy(Web3j web3j, Credentials credentials,
-            BigInteger gasPrice, BigInteger gasLimit, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(), encodedConstructor);
+    public static RemoteCall<Marketplace> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice,
+        BigInteger gasLimit, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder
+            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(),
+            encodedConstructor);
     }
 
     @Deprecated
     public static RemoteCall<Marketplace> deploy(Web3j web3j, TransactionManager transactionManager,
-            BigInteger gasPrice, BigInteger gasLimit, String _ticketNFT) {
-        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
-        return deployRemoteCall(Marketplace.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(), encodedConstructor);
+        BigInteger gasPrice, BigInteger gasLimit, String _ticketNFT) {
+        String encodedConstructor = FunctionEncoder
+            .encodeConstructor(Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, _ticketNFT)));
+        return deployRemoteCall(Marketplace.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(),
+            encodedConstructor);
     }
 
     public static void linkLibraries(List<Contract.LinkReference> references) {

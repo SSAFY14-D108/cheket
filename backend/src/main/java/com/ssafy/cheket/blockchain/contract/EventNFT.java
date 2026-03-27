@@ -35,13 +35,19 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
 
 /**
- * <p>Auto generated code.
- * <p><strong>Do not modify!</strong>
- * <p>Please use the <a href="https://docs.web3j.io/command_line.html">web3j command line tools</a>,
- * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
- * <a href="https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen module</a> to update.
+ * <p>
+ * Auto generated code.
+ * <p>
+ * <strong>Do not modify!</strong>
+ * <p>
+ * Please use the <a href="https://docs.web3j.io/command_line.html">web3j
+ * command line tools</a>, or the
+ * org.web3j.codegen.SolidityFunctionWrapperGenerator in the <a href=
+ * "https://github.com/hyperledger-web3j/web3j/tree/main/codegen">codegen
+ * module</a> to update.
  *
- * <p>Generated with web3j version 4.12.3.
+ * <p>
+ * Generated with web3j version 4.12.3.
  */
 @SuppressWarnings("rawtypes")
 public class EventNFT extends Contract {
@@ -115,59 +121,73 @@ public class EventNFT extends Contract {
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
-    public static final Event APPROVAL_EVENT = new Event("Approval", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}));
-    ;
+    public static final Event APPROVAL_EVENT = new Event("Approval",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
+        }, new TypeReference<Address>(true) {
+        }, new TypeReference<Uint256>(true) {
+        }));;
 
-    public static final Event APPROVALFORALL_EVENT = new Event("ApprovalForAll", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Bool>() {}));
-    ;
+    public static final Event APPROVALFORALL_EVENT = new Event("ApprovalForAll",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
+        }, new TypeReference<Address>(true) {
+        }, new TypeReference<Bool>() {
+        }));;
 
-    public static final Event EVENTCREATED_EVENT = new Event("EventCreated", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {}, new TypeReference<Utf8String>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
-    ;
+    public static final Event EVENTCREATED_EVENT = new Event("EventCreated",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {
+        }, new TypeReference<Utf8String>() {
+        }, new TypeReference<Uint256>() {
+        }, new TypeReference<Uint256>() {
+        }));;
 
-    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}));
-    ;
+    public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
+        }, new TypeReference<Address>(true) {
+        }));;
 
-    public static final Event REFUNDPOLICYSET_EVENT = new Event("RefundPolicySet", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {}, new TypeReference<Uint256>() {}));
-    ;
+    public static final Event REFUNDPOLICYSET_EVENT = new Event("RefundPolicySet",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {
+        }, new TypeReference<Uint256>() {
+        }));;
 
-    public static final Event SESSIONADDED_EVENT = new Event("SessionAdded", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {}, new TypeReference<Uint256>(true) {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
-    ;
+    public static final Event SESSIONADDED_EVENT = new Event("SessionAdded",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>(true) {
+        }, new TypeReference<Uint256>(true) {
+        }, new TypeReference<Uint256>() {
+        }, new TypeReference<Uint256>() {
+        }));;
 
-    public static final Event TRANSFER_EVENT = new Event("Transfer", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}));
-    ;
+    public static final Event TRANSFER_EVENT = new Event("Transfer",
+        Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {
+        }, new TypeReference<Address>(true) {
+        }, new TypeReference<Uint256>(true) {
+        }));;
 
     @Deprecated
-    protected EventNFT(String contractAddress, Web3j web3j, Credentials credentials,
-            BigInteger gasPrice, BigInteger gasLimit) {
+    protected EventNFT(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
+        BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     protected EventNFT(String contractAddress, Web3j web3j, Credentials credentials,
-            ContractGasProvider contractGasProvider) {
+        ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     @Deprecated
-    protected EventNFT(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-            BigInteger gasPrice, BigInteger gasLimit) {
+    protected EventNFT(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice,
+        BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
     protected EventNFT(String contractAddress, Web3j web3j, TransactionManager transactionManager,
-            ContractGasProvider contractGasProvider) {
+        ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static List<ApprovalEventResponse> getApprovalEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVAL_EVENT, transactionReceipt);
+    public static List<ApprovalEventResponse> getApprovalEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVAL_EVENT,
+            transactionReceipt);
         ArrayList<ApprovalEventResponse> responses = new ArrayList<ApprovalEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             ApprovalEventResponse typedResponse = new ApprovalEventResponse();
@@ -195,15 +215,15 @@ public class EventNFT extends Contract {
     }
 
     public Flowable<ApprovalEventResponse> approvalEventFlowable(DefaultBlockParameter startBlock,
-            DefaultBlockParameter endBlock) {
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(APPROVAL_EVENT));
         return approvalEventFlowable(filter);
     }
 
-    public static List<ApprovalForAllEventResponse> getApprovalForAllEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVALFORALL_EVENT, transactionReceipt);
+    public static List<ApprovalForAllEventResponse> getApprovalForAllEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(APPROVALFORALL_EVENT,
+            transactionReceipt);
         ArrayList<ApprovalForAllEventResponse> responses = new ArrayList<ApprovalForAllEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             ApprovalForAllEventResponse typedResponse = new ApprovalForAllEventResponse();
@@ -230,16 +250,16 @@ public class EventNFT extends Contract {
         return web3j.ethLogFlowable(filter).map(log -> getApprovalForAllEventFromLog(log));
     }
 
-    public Flowable<ApprovalForAllEventResponse> approvalForAllEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+    public Flowable<ApprovalForAllEventResponse> approvalForAllEventFlowable(DefaultBlockParameter startBlock,
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(APPROVALFORALL_EVENT));
         return approvalForAllEventFlowable(filter);
     }
 
-    public static List<EventCreatedEventResponse> getEventCreatedEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(EVENTCREATED_EVENT, transactionReceipt);
+    public static List<EventCreatedEventResponse> getEventCreatedEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(EVENTCREATED_EVENT,
+            transactionReceipt);
         ArrayList<EventCreatedEventResponse> responses = new ArrayList<EventCreatedEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             EventCreatedEventResponse typedResponse = new EventCreatedEventResponse();
@@ -268,17 +288,19 @@ public class EventNFT extends Contract {
         return web3j.ethLogFlowable(filter).map(log -> getEventCreatedEventFromLog(log));
     }
 
-    public Flowable<EventCreatedEventResponse> eventCreatedEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+    public Flowable<EventCreatedEventResponse> eventCreatedEventFlowable(DefaultBlockParameter startBlock,
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(EVENTCREATED_EVENT));
         return eventCreatedEventFlowable(filter);
     }
 
     public static List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT, transactionReceipt);
-        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(valueList.size());
+        TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(OWNERSHIPTRANSFERRED_EVENT,
+            transactionReceipt);
+        ArrayList<OwnershipTransferredEventResponse> responses = new ArrayList<OwnershipTransferredEventResponse>(
+            valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             OwnershipTransferredEventResponse typedResponse = new OwnershipTransferredEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -298,22 +320,22 @@ public class EventNFT extends Contract {
         return typedResponse;
     }
 
-    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
-            EthFilter filter) {
+    public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(EthFilter filter) {
         return web3j.ethLogFlowable(filter).map(log -> getOwnershipTransferredEventFromLog(log));
     }
 
     public Flowable<OwnershipTransferredEventResponse> ownershipTransferredEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(OWNERSHIPTRANSFERRED_EVENT));
         return ownershipTransferredEventFlowable(filter);
     }
 
-    public static List<RefundPolicySetEventResponse> getRefundPolicySetEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(REFUNDPOLICYSET_EVENT, transactionReceipt);
-        ArrayList<RefundPolicySetEventResponse> responses = new ArrayList<RefundPolicySetEventResponse>(valueList.size());
+    public static List<RefundPolicySetEventResponse> getRefundPolicySetEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(REFUNDPOLICYSET_EVENT,
+            transactionReceipt);
+        ArrayList<RefundPolicySetEventResponse> responses = new ArrayList<RefundPolicySetEventResponse>(
+            valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             RefundPolicySetEventResponse typedResponse = new RefundPolicySetEventResponse();
             typedResponse.log = eventValues.getLog();
@@ -337,16 +359,16 @@ public class EventNFT extends Contract {
         return web3j.ethLogFlowable(filter).map(log -> getRefundPolicySetEventFromLog(log));
     }
 
-    public Flowable<RefundPolicySetEventResponse> refundPolicySetEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+    public Flowable<RefundPolicySetEventResponse> refundPolicySetEventFlowable(DefaultBlockParameter startBlock,
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(REFUNDPOLICYSET_EVENT));
         return refundPolicySetEventFlowable(filter);
     }
 
-    public static List<SessionAddedEventResponse> getSessionAddedEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(SESSIONADDED_EVENT, transactionReceipt);
+    public static List<SessionAddedEventResponse> getSessionAddedEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(SESSIONADDED_EVENT,
+            transactionReceipt);
         ArrayList<SessionAddedEventResponse> responses = new ArrayList<SessionAddedEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             SessionAddedEventResponse typedResponse = new SessionAddedEventResponse();
@@ -375,16 +397,16 @@ public class EventNFT extends Contract {
         return web3j.ethLogFlowable(filter).map(log -> getSessionAddedEventFromLog(log));
     }
 
-    public Flowable<SessionAddedEventResponse> sessionAddedEventFlowable(
-            DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+    public Flowable<SessionAddedEventResponse> sessionAddedEventFlowable(DefaultBlockParameter startBlock,
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(SESSIONADDED_EVENT));
         return sessionAddedEventFlowable(filter);
     }
 
-    public static List<TransferEventResponse> getTransferEvents(
-            TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);
+    public static List<TransferEventResponse> getTransferEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = staticExtractEventParametersWithLog(TRANSFER_EVENT,
+            transactionReceipt);
         ArrayList<TransferEventResponse> responses = new ArrayList<TransferEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
             TransferEventResponse typedResponse = new TransferEventResponse();
@@ -412,437 +434,442 @@ public class EventNFT extends Contract {
     }
 
     public Flowable<TransferEventResponse> transferEventFlowable(DefaultBlockParameter startBlock,
-            DefaultBlockParameter endBlock) {
+        DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(TRANSFER_EVENT));
         return transferEventFlowable(filter);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> addSession(BigInteger eventId,
-            BigInteger sessionTimestamp, BigInteger ticketSupply) {
-        final Function function = new Function(
-                FUNC_ADDSESSION, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId), 
-                new org.web3j.abi.datatypes.generated.Uint256(sessionTimestamp), 
-                new org.web3j.abi.datatypes.generated.Uint256(ticketSupply)), 
-                Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> addSession(BigInteger eventId, BigInteger sessionTimestamp,
+        BigInteger ticketSupply) {
+        final Function function = new Function(FUNC_ADDSESSION,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId),
+                new org.web3j.abi.datatypes.generated.Uint256(sessionTimestamp),
+                new org.web3j.abi.datatypes.generated.Uint256(ticketSupply)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<TransactionReceipt> approve(String to, BigInteger tokenId) {
-        final Function function = new Function(
-                FUNC_APPROVE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to), 
-                new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_APPROVE,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to),
+                new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<BigInteger> balanceOf(String owner) {
-        final Function function = new Function(FUNC_BALANCEOF, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        final Function function = new Function(FUNC_BALANCEOF,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> createEvent(List<BigInteger> stakeholderTokenIds,
-            String metadataCID, BigInteger totalSupply, BigInteger maxPerWallet,
-            BigInteger resaleCapBps, BigInteger bookingStartTime, BigInteger bookingEndTime) {
-        final Function function = new Function(
-                FUNC_CREATEEVENT, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.DynamicArray<org.web3j.abi.datatypes.generated.Uint256>(
+    public RemoteFunctionCall<TransactionReceipt> createEvent(List<BigInteger> stakeholderTokenIds, String metadataCID,
+        BigInteger totalSupply, BigInteger maxPerWallet, BigInteger resaleCapBps, BigInteger bookingStartTime,
+        BigInteger bookingEndTime) {
+        final Function function = new Function(FUNC_CREATEEVENT,
+            Arrays
+                .<Type>asList(
+                    new org.web3j.abi.datatypes.DynamicArray<org.web3j.abi.datatypes.generated.Uint256>(
                         org.web3j.abi.datatypes.generated.Uint256.class,
-                        org.web3j.abi.Utils.typeMap(stakeholderTokenIds, org.web3j.abi.datatypes.generated.Uint256.class)), 
-                new org.web3j.abi.datatypes.Utf8String(metadataCID), 
-                new org.web3j.abi.datatypes.generated.Uint256(totalSupply), 
-                new org.web3j.abi.datatypes.generated.Uint256(maxPerWallet), 
-                new org.web3j.abi.datatypes.generated.Uint256(resaleCapBps), 
-                new org.web3j.abi.datatypes.generated.Uint256(bookingStartTime), 
-                new org.web3j.abi.datatypes.generated.Uint256(bookingEndTime)), 
-                Collections.<TypeReference<?>>emptyList());
+                        org.web3j.abi.Utils.typeMap(stakeholderTokenIds,
+                            org.web3j.abi.datatypes.generated.Uint256.class)),
+                    new org.web3j.abi.datatypes.Utf8String(metadataCID),
+                    new org.web3j.abi.datatypes.generated.Uint256(totalSupply),
+                    new org.web3j.abi.datatypes.generated.Uint256(maxPerWallet),
+                    new org.web3j.abi.datatypes.generated.Uint256(resaleCapBps),
+                    new org.web3j.abi.datatypes.generated.Uint256(bookingStartTime),
+                    new org.web3j.abi.datatypes.generated.Uint256(bookingEndTime)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<TransactionReceipt> deactivateEvent(BigInteger eventId) {
-        final Function function = new Function(
-                FUNC_DEACTIVATEEVENT, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_DEACTIVATEEVENT,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<BigInteger> eventSessions(BigInteger param0, BigInteger param1) {
-        final Function function = new Function(FUNC_EVENTSESSIONS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0), 
-                new org.web3j.abi.datatypes.generated.Uint256(param1)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        final Function function = new Function(FUNC_EVENTSESSIONS,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0),
+                new org.web3j.abi.datatypes.generated.Uint256(param1)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteFunctionCall<Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>> events(
-            BigInteger param0) {
-        final Function function = new Function(FUNC_EVENTS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}, new TypeReference<Uint256>() {}));
-        return new RemoteFunctionCall<Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>>(function,
-                new Callable<Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>>() {
-                    @Override
-                    public Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger> call(
-                            ) throws Exception {
-                        List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>(
-                                (String) results.get(0).getValue(), 
-                                (BigInteger) results.get(1).getValue(), 
-                                (BigInteger) results.get(2).getValue(), 
-                                (BigInteger) results.get(3).getValue(), 
-                                (BigInteger) results.get(4).getValue(), 
-                                (BigInteger) results.get(5).getValue(), 
-                                (Boolean) results.get(6).getValue(), 
-                                (BigInteger) results.get(7).getValue());
-                    }
-                });
+        BigInteger param0) {
+        final Function function = new Function(FUNC_EVENTS,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Bool>() {
+            }, new TypeReference<Uint256>() {
+            }));
+        return new RemoteFunctionCall<Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>>(
+            function,
+            new Callable<Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>>() {
+                @Override
+                public Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger> call()
+                    throws Exception {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple8<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean, BigInteger>(
+                        (String) results.get(0).getValue(), (BigInteger) results.get(1).getValue(),
+                        (BigInteger) results.get(2).getValue(), (BigInteger) results.get(3).getValue(),
+                        (BigInteger) results.get(4).getValue(), (BigInteger) results.get(5).getValue(),
+                        (Boolean) results.get(6).getValue(), (BigInteger) results.get(7).getValue());
+                }
+            });
     }
 
     public RemoteFunctionCall<TransactionReceipt> finalizeSession(BigInteger sessionId) {
-        final Function function = new Function(
-                FUNC_FINALIZESESSION, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(sessionId)), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_FINALIZESESSION,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(sessionId)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<String> getApproved(BigInteger tokenId) {
-        final Function function = new Function(FUNC_GETAPPROVED, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
+        final Function function = new Function(FUNC_GETAPPROVED,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>> getEventInfo(
-            BigInteger eventId) {
-        final Function function = new Function(FUNC_GETEVENTINFO, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
-        return new RemoteFunctionCall<Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>>(function,
-                new Callable<Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>>() {
-                    @Override
-                    public Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean> call(
-                            ) throws Exception {
-                        List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>(
-                                (String) results.get(0).getValue(), 
-                                (BigInteger) results.get(1).getValue(), 
-                                (BigInteger) results.get(2).getValue(), 
-                                (BigInteger) results.get(3).getValue(), 
-                                (BigInteger) results.get(4).getValue(), 
-                                (BigInteger) results.get(5).getValue(), 
-                                (Boolean) results.get(6).getValue());
-                    }
-                });
+        BigInteger eventId) {
+        final Function function = new Function(FUNC_GETEVENTINFO,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Bool>() {
+            }));
+        return new RemoteFunctionCall<Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>>(
+            function,
+            new Callable<Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>>() {
+                @Override
+                public Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean> call()
+                    throws Exception {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple7<String, BigInteger, BigInteger, BigInteger, BigInteger, BigInteger, Boolean>(
+                        (String) results.get(0).getValue(), (BigInteger) results.get(1).getValue(),
+                        (BigInteger) results.get(2).getValue(), (BigInteger) results.get(3).getValue(),
+                        (BigInteger) results.get(4).getValue(), (BigInteger) results.get(5).getValue(),
+                        (Boolean) results.get(6).getValue());
+                }
+            });
     }
 
-    public RemoteFunctionCall<Tuple2<List<BigInteger>, List<BigInteger>>> getRefundPolicies(
-            BigInteger eventId) {
-        final Function function = new Function(FUNC_GETREFUNDPOLICIES, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Uint256>>() {}, new TypeReference<DynamicArray<Uint256>>() {}));
+    public RemoteFunctionCall<Tuple2<List<BigInteger>, List<BigInteger>>> getRefundPolicies(BigInteger eventId) {
+        final Function function = new Function(FUNC_GETREFUNDPOLICIES,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Uint256>>() {
+            }, new TypeReference<DynamicArray<Uint256>>() {
+            }));
         return new RemoteFunctionCall<Tuple2<List<BigInteger>, List<BigInteger>>>(function,
-                new Callable<Tuple2<List<BigInteger>, List<BigInteger>>>() {
-                    @Override
-                    public Tuple2<List<BigInteger>, List<BigInteger>> call() throws Exception {
-                        List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple2<List<BigInteger>, List<BigInteger>>(
-                                convertToNative((List<Uint256>) results.get(0).getValue()), 
-                                convertToNative((List<Uint256>) results.get(1).getValue()));
-                    }
-                });
+            new Callable<Tuple2<List<BigInteger>, List<BigInteger>>>() {
+                @Override
+                public Tuple2<List<BigInteger>, List<BigInteger>> call() throws Exception {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple2<List<BigInteger>, List<BigInteger>>(
+                        convertToNative((List<Uint256>) results.get(0).getValue()),
+                        convertToNative((List<Uint256>) results.get(1).getValue()));
+                }
+            });
     }
 
-    public RemoteFunctionCall<BigInteger> getRefundRate(BigInteger eventId,
-            BigInteger sessionTimestamp) {
-        final Function function = new Function(FUNC_GETREFUNDRATE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId), 
-                new org.web3j.abi.datatypes.generated.Uint256(sessionTimestamp)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+    public RemoteFunctionCall<BigInteger> getRefundRate(BigInteger eventId, BigInteger sessionTimestamp) {
+        final Function function = new Function(FUNC_GETREFUNDRATE,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId),
+                new org.web3j.abi.datatypes.generated.Uint256(sessionTimestamp)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>> getSession(
-            BigInteger sessionId) {
-        final Function function = new Function(FUNC_GETSESSION, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(sessionId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
+    public RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>> getSession(BigInteger sessionId) {
+        final Function function = new Function(FUNC_GETSESSION,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(sessionId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Bool>() {
+            }));
         return new RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>(function,
-                new Callable<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>() {
-                    @Override
-                    public Tuple4<BigInteger, BigInteger, BigInteger, Boolean> call() throws
-                            Exception {
-                        List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple4<BigInteger, BigInteger, BigInteger, Boolean>(
-                                (BigInteger) results.get(0).getValue(), 
-                                (BigInteger) results.get(1).getValue(), 
-                                (BigInteger) results.get(2).getValue(), 
-                                (Boolean) results.get(3).getValue());
-                    }
-                });
+            new Callable<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>() {
+                @Override
+                public Tuple4<BigInteger, BigInteger, BigInteger, Boolean> call() throws Exception {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple4<BigInteger, BigInteger, BigInteger, Boolean>(
+                        (BigInteger) results.get(0).getValue(), (BigInteger) results.get(1).getValue(),
+                        (BigInteger) results.get(2).getValue(), (Boolean) results.get(3).getValue());
+                }
+            });
     }
 
     public RemoteFunctionCall<List> getSessionIds(BigInteger eventId) {
-        final Function function = new Function(FUNC_GETSESSIONIDS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Uint256>>() {}));
-        return new RemoteFunctionCall<List>(function,
-                new Callable<List>() {
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public List call() throws Exception {
-                        List<Type> result = (List<Type>) executeCallSingleValueReturn(function, List.class);
-                        return convertToNative(result);
-                    }
-                });
+        final Function function = new Function(FUNC_GETSESSIONIDS,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Uint256>>() {
+            }));
+        return new RemoteFunctionCall<List>(function, new Callable<List>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public List call() throws Exception {
+                List<Type> result = (List<Type>) executeCallSingleValueReturn(function, List.class);
+                return convertToNative(result);
+            }
+        });
     }
 
     public RemoteFunctionCall<List> getStakeholderTokenIds(BigInteger eventId) {
-        final Function function = new Function(FUNC_GETSTAKEHOLDERTOKENIDS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Uint256>>() {}));
-        return new RemoteFunctionCall<List>(function,
-                new Callable<List>() {
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public List call() throws Exception {
-                        List<Type> result = (List<Type>) executeCallSingleValueReturn(function, List.class);
-                        return convertToNative(result);
-                    }
-                });
+        final Function function = new Function(FUNC_GETSTAKEHOLDERTOKENIDS,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Uint256>>() {
+            }));
+        return new RemoteFunctionCall<List>(function, new Callable<List>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public List call() throws Exception {
+                List<Type> result = (List<Type>) executeCallSingleValueReturn(function, List.class);
+                return convertToNative(result);
+            }
+        });
     }
 
     public RemoteFunctionCall<Boolean> isApprovedForAll(String owner, String operator) {
-        final Function function = new Function(FUNC_ISAPPROVEDFORALL, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner), 
-                new org.web3j.abi.datatypes.Address(160, operator)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
+        final Function function = new Function(FUNC_ISAPPROVEDFORALL,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner),
+                new org.web3j.abi.datatypes.Address(160, operator)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
     public RemoteFunctionCall<Boolean> isBookingOpen(BigInteger eventId) {
-        final Function function = new Function(FUNC_ISBOOKINGOPEN, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
+        final Function function = new Function(FUNC_ISBOOKINGOPEN,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
     public RemoteFunctionCall<String> name() {
-        final Function function = new Function(FUNC_NAME, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        final Function function = new Function(FUNC_NAME, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> owner() {
-        final Function function = new Function(FUNC_OWNER, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
+        final Function function = new Function(FUNC_OWNER, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> ownerOf(BigInteger tokenId) {
-        final Function function = new Function(FUNC_OWNEROF, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
+        final Function function = new Function(FUNC_OWNEROF,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
-    public RemoteFunctionCall<Tuple2<BigInteger, BigInteger>> refundPolicies(BigInteger param0,
-            BigInteger param1) {
-        final Function function = new Function(FUNC_REFUNDPOLICIES, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0), 
-                new org.web3j.abi.datatypes.generated.Uint256(param1)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
+    public RemoteFunctionCall<Tuple2<BigInteger, BigInteger>> refundPolicies(BigInteger param0, BigInteger param1) {
+        final Function function = new Function(FUNC_REFUNDPOLICIES,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0),
+                new org.web3j.abi.datatypes.generated.Uint256(param1)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }));
         return new RemoteFunctionCall<Tuple2<BigInteger, BigInteger>>(function,
-                new Callable<Tuple2<BigInteger, BigInteger>>() {
-                    @Override
-                    public Tuple2<BigInteger, BigInteger> call() throws Exception {
-                        List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple2<BigInteger, BigInteger>(
-                                (BigInteger) results.get(0).getValue(), 
-                                (BigInteger) results.get(1).getValue());
-                    }
-                });
+            new Callable<Tuple2<BigInteger, BigInteger>>() {
+                @Override
+                public Tuple2<BigInteger, BigInteger> call() throws Exception {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple2<BigInteger, BigInteger>((BigInteger) results.get(0).getValue(),
+                        (BigInteger) results.get(1).getValue());
+                }
+            });
     }
 
     public RemoteFunctionCall<TransactionReceipt> renounceOwnership() {
-        final Function function = new Function(
-                FUNC_RENOUNCEOWNERSHIP, 
-                Arrays.<Type>asList(), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_RENOUNCEOWNERSHIP, Arrays.<Type>asList(),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to,
-            BigInteger tokenId) {
-        final Function function = new Function(
-                FUNC_safeTransferFrom, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
-                new org.web3j.abi.datatypes.Address(160, to), 
-                new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
-                Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to, BigInteger tokenId) {
+        final Function function = new Function(FUNC_safeTransferFrom,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
+                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to,
-            BigInteger tokenId, byte[] data) {
-        final Function function = new Function(
-                FUNC_safeTransferFrom, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
-                new org.web3j.abi.datatypes.Address(160, to), 
-                new org.web3j.abi.datatypes.generated.Uint256(tokenId), 
-                new org.web3j.abi.datatypes.DynamicBytes(data)), 
-                Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> safeTransferFrom(String from, String to, BigInteger tokenId,
+        byte[] data) {
+        final Function function = new Function(FUNC_safeTransferFrom,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
+                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(tokenId),
+                new org.web3j.abi.datatypes.DynamicBytes(data)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>> sessions(
-            BigInteger param0) {
-        final Function function = new Function(FUNC_SESSIONS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
+    public RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>> sessions(BigInteger param0) {
+        final Function function = new Function(FUNC_SESSIONS,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Uint256>() {
+            }, new TypeReference<Bool>() {
+            }));
         return new RemoteFunctionCall<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>(function,
-                new Callable<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>() {
-                    @Override
-                    public Tuple4<BigInteger, BigInteger, BigInteger, Boolean> call() throws
-                            Exception {
-                        List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple4<BigInteger, BigInteger, BigInteger, Boolean>(
-                                (BigInteger) results.get(0).getValue(), 
-                                (BigInteger) results.get(1).getValue(), 
-                                (BigInteger) results.get(2).getValue(), 
-                                (Boolean) results.get(3).getValue());
-                    }
-                });
+            new Callable<Tuple4<BigInteger, BigInteger, BigInteger, Boolean>>() {
+                @Override
+                public Tuple4<BigInteger, BigInteger, BigInteger, Boolean> call() throws Exception {
+                    List<Type> results = executeCallMultipleValueReturn(function);
+                    return new Tuple4<BigInteger, BigInteger, BigInteger, Boolean>(
+                        (BigInteger) results.get(0).getValue(), (BigInteger) results.get(1).getValue(),
+                        (BigInteger) results.get(2).getValue(), (Boolean) results.get(3).getValue());
+                }
+            });
     }
 
-    public RemoteFunctionCall<TransactionReceipt> setApprovalForAll(String operator,
-            Boolean approved) {
-        final Function function = new Function(
-                FUNC_SETAPPROVALFORALL, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, operator), 
-                new org.web3j.abi.datatypes.Bool(approved)), 
-                Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> setApprovalForAll(String operator, Boolean approved) {
+        final Function function = new Function(FUNC_SETAPPROVALFORALL,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, operator),
+                new org.web3j.abi.datatypes.Bool(approved)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> setRefundPolicy(BigInteger eventId,
-            List<BigInteger> daysArray, List<BigInteger> rateBpsArray) {
-        final Function function = new Function(
-                FUNC_SETREFUNDPOLICY, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId), 
+    public RemoteFunctionCall<TransactionReceipt> setRefundPolicy(BigInteger eventId, List<BigInteger> daysArray,
+        List<BigInteger> rateBpsArray) {
+        final Function function = new Function(FUNC_SETREFUNDPOLICY,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(eventId),
                 new org.web3j.abi.datatypes.DynamicArray<org.web3j.abi.datatypes.generated.Uint256>(
-                        org.web3j.abi.datatypes.generated.Uint256.class,
-                        org.web3j.abi.Utils.typeMap(daysArray, org.web3j.abi.datatypes.generated.Uint256.class)), 
+                    org.web3j.abi.datatypes.generated.Uint256.class,
+                    org.web3j.abi.Utils.typeMap(daysArray, org.web3j.abi.datatypes.generated.Uint256.class)),
                 new org.web3j.abi.datatypes.DynamicArray<org.web3j.abi.datatypes.generated.Uint256>(
-                        org.web3j.abi.datatypes.generated.Uint256.class,
-                        org.web3j.abi.Utils.typeMap(rateBpsArray, org.web3j.abi.datatypes.generated.Uint256.class))), 
-                Collections.<TypeReference<?>>emptyList());
+                    org.web3j.abi.datatypes.generated.Uint256.class,
+                    org.web3j.abi.Utils.typeMap(rateBpsArray, org.web3j.abi.datatypes.generated.Uint256.class))),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<Boolean> supportsInterface(byte[] interfaceId) {
-        final Function function = new Function(FUNC_SUPPORTSINTERFACE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes4(interfaceId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
+        final Function function = new Function(FUNC_SUPPORTSINTERFACE,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Bytes4(interfaceId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
     public RemoteFunctionCall<String> symbol() {
-        final Function function = new Function(FUNC_SYMBOL, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        final Function function = new Function(FUNC_SYMBOL, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<String> tokenURI(BigInteger tokenId) {
-        final Function function = new Function(FUNC_TOKENURI, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        final Function function = new Function(FUNC_TOKENURI,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteFunctionCall<BigInteger> totalEvents() {
-        final Function function = new Function(FUNC_TOTALEVENTS, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        final Function function = new Function(FUNC_TOTALEVENTS, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteFunctionCall<BigInteger> totalSessions() {
-        final Function function = new Function(FUNC_TOTALSESSIONS, 
-                Arrays.<Type>asList(), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+        final Function function = new Function(FUNC_TOTALSESSIONS, Arrays.<Type>asList(),
+            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+            }));
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> transferFrom(String from, String to,
-            BigInteger tokenId) {
-        final Function function = new Function(
-                FUNC_TRANSFERFROM, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
-                new org.web3j.abi.datatypes.Address(160, to), 
-                new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
-                Collections.<TypeReference<?>>emptyList());
+    public RemoteFunctionCall<TransactionReceipt> transferFrom(String from, String to, BigInteger tokenId) {
+        final Function function = new Function(FUNC_TRANSFERFROM,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
+                new org.web3j.abi.datatypes.Address(160, to), new org.web3j.abi.datatypes.generated.Uint256(tokenId)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<TransactionReceipt> transferOwnership(String newOwner) {
-        final Function function = new Function(
-                FUNC_TRANSFEROWNERSHIP, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)), 
-                Collections.<TypeReference<?>>emptyList());
+        final Function function = new Function(FUNC_TRANSFEROWNERSHIP,
+            Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, newOwner)),
+            Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
 
     @Deprecated
-    public static EventNFT load(String contractAddress, Web3j web3j, Credentials credentials,
-            BigInteger gasPrice, BigInteger gasLimit) {
+    public static EventNFT load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice,
+        BigInteger gasLimit) {
         return new EventNFT(contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     @Deprecated
-    public static EventNFT load(String contractAddress, Web3j web3j,
-            TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+    public static EventNFT load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
+        BigInteger gasPrice, BigInteger gasLimit) {
         return new EventNFT(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
     public static EventNFT load(String contractAddress, Web3j web3j, Credentials credentials,
-            ContractGasProvider contractGasProvider) {
+        ContractGasProvider contractGasProvider) {
         return new EventNFT(contractAddress, web3j, credentials, contractGasProvider);
     }
 
-    public static EventNFT load(String contractAddress, Web3j web3j,
-            TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+    public static EventNFT load(String contractAddress, Web3j web3j, TransactionManager transactionManager,
+        ContractGasProvider contractGasProvider) {
         return new EventNFT(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
     public static RemoteCall<EventNFT> deploy(Web3j web3j, Credentials credentials,
-            ContractGasProvider contractGasProvider) {
+        ContractGasProvider contractGasProvider) {
         return deployRemoteCall(EventNFT.class, web3j, credentials, contractGasProvider, getDeploymentBinary(), "");
     }
 
     public static RemoteCall<EventNFT> deploy(Web3j web3j, TransactionManager transactionManager,
-            ContractGasProvider contractGasProvider) {
-        return deployRemoteCall(EventNFT.class, web3j, transactionManager, contractGasProvider, getDeploymentBinary(), "");
+        ContractGasProvider contractGasProvider) {
+        return deployRemoteCall(EventNFT.class, web3j, transactionManager, contractGasProvider, getDeploymentBinary(),
+            "");
     }
 
     @Deprecated
-    public static RemoteCall<EventNFT> deploy(Web3j web3j, Credentials credentials,
-            BigInteger gasPrice, BigInteger gasLimit) {
+    public static RemoteCall<EventNFT> deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice,
+        BigInteger gasLimit) {
         return deployRemoteCall(EventNFT.class, web3j, credentials, gasPrice, gasLimit, getDeploymentBinary(), "");
     }
 
     @Deprecated
-    public static RemoteCall<EventNFT> deploy(Web3j web3j, TransactionManager transactionManager,
-            BigInteger gasPrice, BigInteger gasLimit) {
-        return deployRemoteCall(EventNFT.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(), "");
+    public static RemoteCall<EventNFT> deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice,
+        BigInteger gasLimit) {
+        return deployRemoteCall(EventNFT.class, web3j, transactionManager, gasPrice, gasLimit, getDeploymentBinary(),
+            "");
     }
 
     public static void linkLibraries(List<Contract.LinkReference> references) {
