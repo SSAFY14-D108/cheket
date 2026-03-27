@@ -783,6 +783,8 @@ export function ShowDetailView({
       <ShowTxProgressModal
         txId={activeTxId}
         open={isTxModalOpen}
+        showDetail={showDetail}
+        contractApprovals={localContractApprovals}
         onClose={() => {
           setIsTxModalOpen(false)
           setActiveTxId(null)
