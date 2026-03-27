@@ -171,4 +171,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // 온체인 NFT ID로 티켓 조회 - 온체인/DB 동기화 시 사용
     Optional<Ticket> findByTicketNftId(Long ticketNftId);
+
+    // 탈퇴 블록: 리세일 등록 중인 티켓 존재 여부 확인
+    boolean existsByUserIdAndResaleStatus(Long userId, com.ssafy.cheket.enums.ResaleStatus resaleStatus);
 }
