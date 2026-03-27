@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DateTimePicker } from "@/components/common/DateTimePicker";
 import { ApiError } from "@/lib/api";
+import { formatDateTimeWithWeekday } from "@/lib/utils";
 import { fetchMyWalletBalance } from "@/lib/mypage-api";
 import { type HostShowDetail } from "@/lib/show-manage-api";
 import { DescriptionEditor } from "./DescriptionEditor";
@@ -27,6 +28,7 @@ import { SettingsCardPolicies } from "./SettingsCardPolicies";
 import { SettingsCardSessions } from "./SettingsCardSessions";
 import { SettingsCardTickets } from "./SettingsCardTickets";
 import {
+  deriveReservationEndFromSessions,
   getReservationStartMinDate,
   PLATFORM_FEE_BPS,
   PLATFORM_TOTAL_BPS,
@@ -147,6 +149,13 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     () => (showStartAt ? new Date(showStartAt) : undefined),
     [showStartAt],
   );
+  const reservationDeadlineLabel = useMemo(() => {
+    const calculatedCloseAt = closeAt || deriveReservationEndFromSessions(sessionInfo);
+
+    return calculatedCloseAt
+      ? formatDateTimeWithWeekday(calculatedCloseAt)
+      : "마지막 회차를 선택하면 자동으로 계산됩니다.";
+  }, [closeAt, sessionInfo]);
   const sessionMinDate = useMemo(() => getReservationStartMinDate(), []);
   const stakeholderShareBps = useMemo(
     () =>
@@ -651,9 +660,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
                     </Label>
                     <div className="rounded-md bg-muted/20 px-4 py-3">
                       <div className="text-[15px] font-medium leading-relaxed text-foreground">
-                        {closeAt
-                          ? closeAt.replace("T", " ")
-                          : "마지막 회차를 선택하면 자동으로 계산됩니다."}
+                        {reservationDeadlineLabel}
                       </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
