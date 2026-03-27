@@ -227,7 +227,7 @@ fun CollectionListWebViewScreen(
     }
 
     Scaffold(
-        topBar = { AppHeader(title = "컬랙션", onBack = onBack) },
+        topBar = { AppHeader(title = "컬렉션", onBack = onBack) },
     ) { innerPadding ->
         Box(
             modifier = Modifier

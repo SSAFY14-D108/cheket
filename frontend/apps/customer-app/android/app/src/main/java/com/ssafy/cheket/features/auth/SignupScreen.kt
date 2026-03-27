@@ -209,6 +209,14 @@ private fun SignupStepOne(
                 modifier = Modifier.height(52.dp),
             )
         }
+        if (uiState.codeSent) {
+            Text(
+                text = "인증번호를 발송했어요.",
+                fontSize = 12.sp,
+                color = MutedForeground,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 
     if (uiState.codeSent) {

@@ -255,7 +255,18 @@ fun ShowsScreen(
                     .fillMaxWidth()
                     .weight(1f),
         ) {
-            if (uiState.shows.isEmpty() && !uiState.isLoading) {
+            if (uiState.isLoading && uiState.shows.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(36.dp),
+                        strokeWidth = 3.dp,
+                        color = Primary,
+                    )
+                }
+            } else if (uiState.shows.isEmpty()) {
                 EmptyState(
                     title = "공연을 찾을 수 없어요",
                     description = "검색어나 지역 필터를 바꿔서 다시 찾아보세요.",

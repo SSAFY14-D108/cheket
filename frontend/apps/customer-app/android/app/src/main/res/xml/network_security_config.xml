@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <!-- 로컬 개발용: 에뮬레이터에서 localhost WebView 허용 -->
+    <!-- 로컬 개발 서버 -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">192.168.100.69</domain>
         <domain includeSubdomains="true">j14d108.p.ssafy.io</domain>
+    </domain-config>
+    <!-- 외부 이미지 (KOPIS 공연 포스터) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">www.kopis.or.kr</domain>
+        <domain includeSubdomains="true">kopis.or.kr</domain>
     </domain-config>
 </network-security-config>
