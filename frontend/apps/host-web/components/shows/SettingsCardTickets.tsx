@@ -54,6 +54,10 @@ function isGradeComplete(grade: Grade) {
   )
 }
 
+function sanitizeNonNegativeInteger(value: string) {
+  return value.replace(/[^\d]/g, "")
+}
+
 function getVenueMapImg(id: string) {
   switch (id) {
     case "1":
@@ -261,8 +265,11 @@ export function SettingsCardTickets({
             <Input
               type="number"
               inputMode="numeric"
+              min="1"
               value={purchaseLimit}
-              onChange={(event) => onChangePurchaseLimit(event.target.value)}
+              onChange={(event) =>
+                onChangePurchaseLimit(sanitizeNonNegativeInteger(event.target.value))
+              }
               className={`h-11 w-[140px] rounded-2xl text-center text-lg font-semibold ${
                 !purchaseLimit && showErrors
                   ? "border-destructive bg-destructive/5 focus-visible:ring-destructive"
@@ -494,10 +501,10 @@ export function SettingsCardTickets({
                           placeholder="가격(예: 15 SSF)"
                           value={activeGrade.price ? Number(activeGrade.price).toLocaleString() : ""}
                           onChange={(event) => {
-                            const rawValue = event.target.value.replace(/,/g, "")
-                            if (!Number.isNaN(Number(rawValue))) {
-                              onUpdateGrade(safeActiveGradeIndex, "price", rawValue)
-                            }
+                            const rawValue = sanitizeNonNegativeInteger(
+                              event.target.value.replace(/,/g, "")
+                            )
+                            onUpdateGrade(safeActiveGradeIndex, "price", rawValue)
                           }}
                           className={`h-11 rounded-2xl pr-12 text-sm ${
                             (!activeGrade.price || Number(activeGrade.price) <= 0) && showErrors
