@@ -108,6 +108,22 @@ export function LoginForm() {
             </label>
           </div>
 
+          <div className="flex items-center justify-end gap-3 text-xs text-black/36">
+            <button
+              type="button"
+              className="transition-colors hover:text-black/52"
+            >
+              아이디 찾기
+            </button>
+            <span className="text-black/18">|</span>
+            <button
+              type="button"
+              className="transition-colors hover:text-black/52"
+            >
+              비밀번호 찾기
+            </button>
+          </div>
+
           {errorMessage ? (
             <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               {errorMessage}
