@@ -16,7 +16,6 @@
  *   - PurchaseRouter.setContracts(ticketNFT, settlement, eventNFT)
  *   - Settlement.setContracts(eventNFT, stakeholderNFT, ticketNFT, platformWallet)
  *   - Settlement.setPurchaseRouter(purchaseRouter)
- *   - Escrow.setEventNFT(eventNFT)
  *   - TicketNFT.setAuthorizedCaller(purchaseRouter, true)
  *   - TicketNFT.setAuthorizedCaller(settlement, true)
  *   - TicketNFT.setAuthorizedCaller(escrow, true)
@@ -117,12 +116,6 @@ async function main() {
   await tx.wait();
   console.log("    ✅ 완료");
 
-  // ========== Escrow.setEventNFT ==========
-  console.log("Escrow.setEventNFT...");
-  tx = await escrow.setEventNFT(eventNFTAddress);
-  await tx.wait();
-  console.log("    ✅ 완료");
-
   // ========== TicketNFT.setAuthorizedCaller (4개) ==========
   console.log("TicketNFT.setAuthorizedCaller(PurchaseRouter)...");
   tx = await ticketNFT.setAuthorizedCaller(purchaseRouterAddress, true);
@@ -147,6 +140,12 @@ async function main() {
   // ========== TicketNFT.setApprovalForAll (PurchaseRouter가 플랫폼 NFT 전송 가능) ==========
   console.log("TicketNFT.setApprovalForAll(PurchaseRouter)...");
   tx = await ticketNFT.setApprovalForAll(purchaseRouterAddress, true);
+  await tx.wait();
+  console.log("    ✅ 완료");
+
+  // ========== Marketplace.setEventNFT (maxPerWallet on-chain 검증용) ==========
+  console.log("Marketplace.setEventNFT(EventNFT)...");
+  tx = await marketplace.setEventNFT(eventNFTAddress);
   await tx.wait();
   console.log("    ✅ 완료");
 

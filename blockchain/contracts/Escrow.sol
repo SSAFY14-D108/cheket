@@ -13,6 +13,31 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 // → transferFrom(), ownerOf() 등 호출 가능
 
 /**
+ * @dev Escrow가 TicketNFT에서 추가로 호출하는 함수들
+ *      - tickets(): eventId/sessionId 조회 (walletTicketCount 갱신에 필요)
+ *      - updateWalletTicketCount(): 리세일 구매 시 구매 한도 카운터 이전
+ */
+interface IEscrowTicketNFT is IERC721 {
+    function tickets(uint256 tokenId) external view returns (
+        uint256 eventId,
+        uint256 sessionId,
+        string memory seatSection,
+        uint256 rowNum,
+        uint256 seatNum,
+        string memory gradeName,
+        uint256 price,
+        uint8 status,
+        uint256 mintedAt
+    );
+    function updateWalletTicketCount(
+        uint256 eventId,
+        uint256 sessionId,
+        address from,
+        address to
+    ) external;
+}
+
+/**
  * @title Escrow (리세일 전용 — 기획안 5.7, 7.6)
  * @notice 리세일 시 SSF와 TicketNFT를 동시에 예치하고 원자적으로 정산
  *
@@ -71,8 +96,8 @@ contract Escrow is Ownable {
 
     // SSF 토큰 컨트랙트
     IERC20 public ssfToken;
-    // TicketNFT 컨트랙트
-    IERC721 public ticketNFT;
+    // TicketNFT 컨트랙트 (IEscrowTicketNFT로 확장 — tickets() 및 updateWalletTicketCount() 호출 가능)
+    IEscrowTicketNFT public ticketNFT;
 
     // ========== 거래(Deal) 구조체 ==========
 
@@ -201,9 +226,9 @@ contract Escrow is Ownable {
         ssfToken = IERC20(_ssfToken);
         // "이 주소의 컨트랙트를 ERC-20으로 취급"
         // → ssfToken.transfer(), ssfToken.transferFrom() 호출 가능
-        ticketNFT = IERC721(_ticketNFT);
-        // "이 주소의 컨트랙트를 ERC-721로 취급"
-        // → ticketNFT.transferFrom(), ticketNFT.ownerOf() 호출 가능
+        ticketNFT = IEscrowTicketNFT(_ticketNFT);
+        // "이 주소의 컨트랙트를 IEscrowTicketNFT로 취급"
+        // → ticketNFT.transferFrom(), ticketNFT.tickets(), ticketNFT.updateWalletTicketCount() 호출 가능
     }
 
     // ========== 리세일 등록 (판매자 → NFT 예치) ==========
@@ -404,6 +429,12 @@ contract Escrow is Ownable {
         //   _balances[buyer] += 1
         //
         // Escrow가 NFT 소유자이므로 approve 불필요 (자기 NFT를 보내는 것)
+
+        // ========== walletTicketCount 갱신 ==========
+        // 리세일 구매 시 판매자 → 구매자로 카운터 이전
+        // 미갱신 시: 판매자는 카운트 차감 없이 재구매 가능 → 인당 구매 한도 우회 버그
+        (uint256 eventId, uint256 sessionId, , , , , , , ) = ticketNFT.tickets(deal.ticketId);
+        ticketNFT.updateWalletTicketCount(eventId, sessionId, deal.seller, buyer);
 
         // ========== 원자적 보장 ==========
         // ❶ 또는 ❷ 중 하나라도 실패 → 전부 revert
