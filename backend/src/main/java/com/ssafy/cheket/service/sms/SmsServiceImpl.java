@@ -6,6 +6,7 @@ import com.ssafy.cheket.exception.common.SmsSendFailedException;
 import com.ssafy.cheket.exception.common.TooManyRequestsException;
 import com.ssafy.cheket.repository.auth.AuthRepository;
 import com.ssafy.cheket.repository.redis.AuthRedisRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import net.nurigo.sdk.NurigoApp;
@@ -30,6 +31,7 @@ public class SmsServiceImpl implements SmsService {
 
     private final AuthRedisRepository authRedisRepository;
     private final AuthRepository authRepository;
+    private final UserRepository userRepository;
 
     @Value("${solapi.api-key}")
     private String apiKey;
@@ -49,6 +51,10 @@ public class SmsServiceImpl implements SmsService {
 
         if (!PHONENUMBER.matcher(phoneNumber).matches()) {
             throw new BadRequestException("전화번호의 형식이 올바르지 않습니다. 예) 010-1234-5678");
+        }
+
+        if (userRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new BadRequestException("잘못된 요청입니다.");
         }
 
         if (authRedisRepository.existsSmsCooldown(phoneNumber)) {
