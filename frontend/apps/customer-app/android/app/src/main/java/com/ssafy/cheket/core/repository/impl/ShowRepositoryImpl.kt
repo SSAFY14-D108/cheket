@@ -126,7 +126,12 @@ class ShowRepositoryImpl(
             }
         } catch (e: Exception) {
             Log.e(TAG, "getBannerSlides() recommendations failed, falling back to ranking", e)
-            buildRankingBannerSlides()
+            try {
+                buildRankingBannerSlides()
+            } catch (e2: Exception) {
+                Log.e(TAG, "getBannerSlides() ranking fallback also failed", e2)
+                emptyList()
+            }
         }
         emit(slides)
     }

@@ -13,6 +13,7 @@ import com.ssafy.cheket.core.repository.ResaleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
@@ -44,26 +45,32 @@ class HomeViewModel(
     private fun load() {
         // 1. 배너 (추천 API 시도 후 실패 시 랭킹 fallback)
         viewModelScope.launch {
-            showRepository.getBannerSlides().collect {
-                Log.d(TAG, "getBannerSlides() received ${it.size} items")
-                _uiState.value = _uiState.value.copy(bannerSlides = it)
-            }
+            showRepository.getBannerSlides()
+                .catch { e -> Log.e(TAG, "getBannerSlides() error", e) }
+                .collect {
+                    Log.d(TAG, "getBannerSlides() received ${it.size} items")
+                    _uiState.value = _uiState.value.copy(bannerSlides = it)
+                }
         }
 
         // 2. 랭킹 (인기순 top 5)
         viewModelScope.launch {
-            showRepository.getRankingItems().collect {
-                Log.d(TAG, "getRankingItems() received ${it.size} items")
-                _uiState.value = _uiState.value.copy(rankingItems = it)
-            }
+            showRepository.getRankingItems()
+                .catch { e -> Log.e(TAG, "getRankingItems() error", e) }
+                .collect {
+                    Log.d(TAG, "getRankingItems() received ${it.size} items")
+                    _uiState.value = _uiState.value.copy(rankingItems = it)
+                }
         }
 
         // 3. 오픈 예정
         viewModelScope.launch {
-            showRepository.getOpenSchedule().collect {
-                Log.d(TAG, "getOpenSchedule() received ${it.size} items")
-                _uiState.value = _uiState.value.copy(openSchedule = it)
-            }
+            showRepository.getOpenSchedule()
+                .catch { e -> Log.e(TAG, "getOpenSchedule() error", e) }
+                .collect {
+                    Log.d(TAG, "getOpenSchedule() received ${it.size} items")
+                    _uiState.value = _uiState.value.copy(openSchedule = it)
+                }
         }
 
         // 4. 찜한 공연
@@ -79,10 +86,15 @@ class HomeViewModel(
 
         // 5. 리세일 할인
         viewModelScope.launch {
-            resaleRepository.getResaleItems().collect {
-                Log.d(TAG, "getResaleItems() received ${it.size} items")
-                _uiState.value = _uiState.value.copy(resaleItems = it, isLoading = false)
-            }
+            resaleRepository.getResaleItems()
+                .catch { e ->
+                    Log.e(TAG, "getResaleItems() error", e)
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+                .collect {
+                    Log.d(TAG, "getResaleItems() received ${it.size} items")
+                    _uiState.value = _uiState.value.copy(resaleItems = it, isLoading = false)
+                }
         }
     }
 
