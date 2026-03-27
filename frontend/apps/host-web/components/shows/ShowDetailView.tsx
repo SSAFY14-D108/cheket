@@ -32,6 +32,7 @@ import {
   rejectShowContract,
 } from "@/lib/show-manage-api"
 import { getShowDisplayMeta } from "@/lib/show-display"
+import { formatDateTimeWithWeekday, formatDateWithWeekday } from "@/lib/utils"
 import { ShowTxProgressModal } from "./ShowTxProgressModal"
 import {
   FIXED_PLATFORM_STAKEHOLDER,
@@ -45,7 +46,7 @@ interface ShowDetailViewProps {
 }
 
 function formatDateTime(value: string) {
-  return value.slice(0, 16).replace("T", " ")
+  return formatDateTimeWithWeekday(value)
 }
 
 function formatPercentFromBps(value: number) {
@@ -396,7 +397,8 @@ export function ShowDetailView({
                     {showDetail.venue.name}
                   </span>
                   <span className="rounded-full bg-black/[0.04] px-3 py-1.5">
-                    {showDetail.show.showStartDate} - {showDetail.show.showEndDate}
+                    {formatDateWithWeekday(showDetail.show.showStartDate)} -{" "}
+                    {formatDateWithWeekday(showDetail.show.showEndDate)}
                   </span>
                 </div>
               </div>
@@ -539,7 +541,7 @@ export function ShowDetailView({
               <InfoRow label="공연명" value={showDetail.title} />
               <InfoRow
                 label="공연 기간"
-                value={`${showDetail.show.showStartDate} ~ ${showDetail.show.showEndDate}`}
+                value={`${formatDateWithWeekday(showDetail.show.showStartDate)} ~ ${formatDateWithWeekday(showDetail.show.showEndDate)}`}
                 icon={<Calendar className="size-4 text-black/40" />}
               />
               <InfoRow
@@ -633,7 +635,7 @@ export function ShowDetailView({
                           Session {index + 1}
                         </p>
                         <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-black">
-                          {session.sessionDate} {session.sessionStartDate}
+                          {formatDateWithWeekday(session.sessionDate)} {session.sessionStartDate}
                         </p>
                       </div>
                       <div className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black/72">

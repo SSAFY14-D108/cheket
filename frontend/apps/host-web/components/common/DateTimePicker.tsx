@@ -6,6 +6,7 @@ import { ko } from "date-fns/locale"
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { formatDateTimeWithWeekday } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -255,7 +256,7 @@ export function DateTimePicker({
           <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
           <span className="truncate">
             {date && value
-              ? `${format(date, "yyyy.MM.dd", { locale: ko })} ${hour}:${minute}`
+              ? formatDateTimeWithWeekday(value)
               : placeholder}
           </span>
         </Button>

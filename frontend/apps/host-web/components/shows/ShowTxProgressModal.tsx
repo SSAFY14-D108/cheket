@@ -28,6 +28,7 @@ import {
   type HostShowDetail,
   type TxStatus,
 } from "@/lib/show-manage-api"
+import { formatDateWithWeekday } from "@/lib/utils"
 import {
   FIXED_PLATFORM_STAKEHOLDER,
   PLATFORM_FEE_BPS,
@@ -408,7 +409,8 @@ export function ShowTxProgressModal({
                   <div className="flex items-start justify-between gap-3">
                     <span>공연 기간</span>
                     <span className="text-right text-slate-950">
-                      {showDetail.show.showStartDate} - {showDetail.show.showEndDate}
+                      {formatDateWithWeekday(showDetail.show.showStartDate)} -{" "}
+                      {formatDateWithWeekday(showDetail.show.showEndDate)}
                     </span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
