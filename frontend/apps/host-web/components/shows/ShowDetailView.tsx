@@ -195,6 +195,7 @@ export function ShowDetailView({
   const canEditShow = showDetail.status !== "CANCELLED"
   const canConfirmShow = isPendingContract
   const isSubmittingContractDecision = contractDecisionAction !== null
+  const isActionLocked = isTxModalOpen || isSubmittingFinalRegistration
   const confirmButtonDisabled =
     !hasRejectedContract &&
     (!isAllApproved || isSubmittingFinalRegistration || isSubmittingContractDecision)
@@ -490,8 +491,12 @@ export function ShowDetailView({
                       type="button"
                       onClick={handleFinalRegistration}
                       disabled={confirmButtonDisabled}
-                      variant="outline"
-                      className="h-12 w-full rounded-full text-sm font-semibold"
+                      variant={confirmButtonDisabled ? "outline" : "default"}
+                      className={`h-12 w-full rounded-full text-sm font-semibold ${
+                        confirmButtonDisabled
+                          ? "border-black/10 bg-white text-black/40"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700"
+                      }`}
                     >
                       {isSubmittingFinalRegistration ? "처리중..." : "최종등록"}
                     </Button>
@@ -515,6 +520,7 @@ export function ShowDetailView({
                   <Button
                     type="button"
                     onClick={handleEdit}
+                    disabled={isActionLocked}
                     className="h-12 w-full rounded-full text-sm font-semibold"
                   >
                     공연 수정
@@ -523,6 +529,7 @@ export function ShowDetailView({
                 <Button
                   type="button"
                   onClick={handleDelete}
+                  disabled={isActionLocked}
                   variant="outline"
                   className="h-12 w-full rounded-full border-destructive text-sm font-semibold text-destructive hover:bg-destructive hover:text-primary-foreground"
                 >
