@@ -24,6 +24,7 @@ import com.ssafy.cheket.repository.show.projection.SessionListProjection;
 import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -81,12 +83,17 @@ public class ShowServiceImpl implements ShowService {
     @Override
     public GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword, int page,
         int size) {
+
+        long totalStart = System.currentTimeMillis();
+
         List<Integer> normalizedRegions = (regions == null) ? List.of() : regions;
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
         ShowSort normalizedSort = (sort == null) ? ShowSort.POPULAR : sort;
         Pageable pageable;
         Page<Show> result;
         LocalDateTime now = LocalDateTime.now();
+
+        long queryStart = System.currentTimeMillis();
 
         switch (normalizedSort) {
             case POPULAR -> {
@@ -115,7 +122,14 @@ public class ShowServiceImpl implements ShowService {
             default -> throw new BadRequestException("지원하지 않는 정렬입니다.");
         }
 
+        long queryEnd = System.currentTimeMillis();
+
         List<ShowItem> items = result.getContent().stream().map(this::toShowItem).toList();
+
+        long mappingEnd = System.currentTimeMillis();
+
+        log.info("[SHOW_PERF] sort={}, query={}ms, mapping={}ms, total={}ms, count={}", normalizedSort,
+            queryEnd - queryStart, mappingEnd - queryEnd, mappingEnd - totalStart, result.getNumberOfElements());
 
         return new GetShowListResponse<>(items, result.getNumber(), result.getSize(), result.getTotalElements(),
             result.getTotalPages());
