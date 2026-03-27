@@ -5,12 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import ReactCardFlip from 'react-card-flip'
-import Tilt from 'react-parallax-tilt'
 import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
 import type { CollectionTicket } from '@/lib/types'
 
 const TicketSparklesAura = dynamic(
   () => import('./ticket-sparkles-aura').then((module) => module.TicketSparklesAura),
+  { ssr: false }
+)
+const LazyParallaxTilt = dynamic(
+  () => import('react-parallax-tilt'),
   { ssr: false }
 )
 
@@ -105,10 +108,10 @@ const CARD_COMPACT_SCALE = CARD_COMPACT_WIDTH / CARD_WIDTH
 const decodedPosterCache = new Set<string>()
 const decodingPosterCache = new Map<string, Promise<void>>()
 
-type HoloVariant = 'rainbow' | 'aurora' | 'prism' | 'cosmos' | 'sunset' | 'neon'
+export type HoloVariant = 'rainbow' | 'aurora' | 'prism' | 'cosmos' | 'sunset' | 'neon'
 const HOLO_VARIANTS: HoloVariant[] = ['rainbow', 'aurora', 'prism', 'cosmos', 'sunset', 'neon']
 
-type PokeEffect =
+export type PokeEffect =
   | 'poke-holo'
   | 'poke-galaxy'
   | 'poke-v'
@@ -122,10 +125,10 @@ type PokeEffect =
   | 'poke-gallery-holo'
   | 'poke-gallery-v'
 
-type PaperEffect = 'paper-cotton' | 'paper-crumpled'
+export type PaperEffect = 'paper-cotton' | 'paper-crumpled'
 
-type EffectType = 'none' | 'gold-foil' | 'silver-foil' | 'rose-foil' | HoloVariant | PokeEffect | PaperEffect
-type MetalEffect = 'gold-foil' | 'silver-foil' | 'rose-foil'
+export type EffectType = 'none' | 'gold-foil' | 'silver-foil' | 'rose-foil' | HoloVariant | PokeEffect | PaperEffect
+export type MetalEffect = 'gold-foil' | 'silver-foil' | 'rose-foil'
 type NumberAuraType = 'none' | 'aura-rare' | 'milestone-rare' | 'spark-rare'
 type NumberAuraSetting = 'auto' | NumberAuraType
 
@@ -165,6 +168,33 @@ function clamp(value: number, min: number, max: number) {
 function mod(value: number, length: number) {
   if (length === 0) return 0
   return ((value % length) + length) % length
+}
+
+function getWindowIndices(length: number, center: number, radius: number) {
+  const indices = new Set<number>()
+  if (length === 0) return indices
+  for (let offset = -radius; offset <= radius; offset += 1) {
+    indices.add(mod(center + offset, length))
+  }
+  return indices
+}
+
+function getAnimatedWindowIndices(length: number, start: number, end: number, radius: number) {
+  const indices = new Set<number>()
+  if (length === 0) return indices
+
+  const travel = Math.abs(end - start)
+  if (travel >= length) {
+    return new Set(Array.from({ length }, (_, index) => index))
+  }
+
+  const direction = end >= start ? 1 : -1
+  for (let center = start; center !== end; center += direction) {
+    getWindowIndices(length, center, radius).forEach((index) => indices.add(index))
+  }
+  getWindowIndices(length, end, radius).forEach((index) => indices.add(index))
+
+  return indices
 }
 
 function getGrade(grade: string) {
@@ -257,7 +287,7 @@ const EFFECT_NAME_MAP: Record<string, EffectType> = {
   'Neon': 'neon',
 }
 
-function getTicketEffect(ticketId: string, apiEffect?: string | null): EffectType {
+export function getTicketEffect(ticketId: string, apiEffect?: string | null): EffectType {
   // API에서 지정한 이펙트가 있으면 매핑
   if (apiEffect) {
     const mapped = EFFECT_NAME_MAP[apiEffect]
@@ -289,11 +319,11 @@ function getNumberAura(ticketId: string): NumberAuraType {
   return 'none'
 }
 
-function isPokeEffect(effect: EffectType): effect is PokeEffect {
+export function isPokeEffect(effect: EffectType): effect is PokeEffect {
   return effect !== 'none' && effect.startsWith('poke-')
 }
 
-function isPaperEffect(effect: EffectType): effect is PaperEffect {
+export function isPaperEffect(effect: EffectType): effect is PaperEffect {
   return effect === 'paper-cotton' || effect === 'paper-crumpled'
 }
 
@@ -620,7 +650,7 @@ function SeatBox({
   )
 }
 
-function CollectibleTicketCard({
+export function CollectibleTicketCard({
   ticket,
   metalEffect,
   compact = false,
@@ -632,6 +662,7 @@ function CollectibleTicketCard({
   displayScale,
   numberAura,
   nativeTiltTarget = false,
+  disableParallaxTilt = false,
 }: {
   ticket: Ticket
   metalEffect?: MetalEffect
@@ -644,6 +675,7 @@ function CollectibleTicketCard({
   displayScale?: number
   numberAura?: NumberAuraType
   nativeTiltTarget?: boolean
+  disableParallaxTilt?: boolean
 }) {
   const showHolo = enableHolo ?? true
   const [flipped, setFlipped] = useState(false)
@@ -772,35 +804,45 @@ function CollectibleTicketCard({
             <div
               ref={holoHostRef}
               className={`ticket-holo-tilt${nativeTiltTarget ? ' is-native-tilt-target' : ''}`}
-              style={{ touchAction: 'none' }}
-              onPointerEnter={() => setHoloActive(true)}
-              onPointerMove={(event) => updateHoloFromPointer(event.clientX, event.clientY)}
-              onPointerLeave={() => {
-                setHoloActive(false)
-                const host = holoHostRef.current
-                if (host) {
-                  host.style.setProperty('--mx', '50%')
-                  host.style.setProperty('--my', '50%')
-                  host.style.setProperty('--rx', '0deg')
-                  host.style.setProperty('--ry', '0deg')
-                  host.style.setProperty('--posx', '50%')
-                  host.style.setProperty('--posy', '50%')
-                  host.style.setProperty('--dx', '0%')
-                  host.style.setProperty('--dy', '0%')
-                  host.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg)'
-                  host.style.transition = 'transform 0.3s ease-out'
-                }
-                const layer = holoLayerRef.current
-                if (!layer) return
-                layer.style.setProperty('--mx', '50%')
-                layer.style.setProperty('--my', '50%')
-                layer.style.setProperty('--rx', '0deg')
-                layer.style.setProperty('--ry', '0deg')
-                layer.style.setProperty('--posx', '50%')
-                layer.style.setProperty('--posy', '50%')
-              }}
+              style={{ touchAction: disableParallaxTilt ? 'manipulation' : 'none' }}
+              onPointerEnter={disableParallaxTilt ? undefined : () => setHoloActive(true)}
+              onPointerMove={
+                disableParallaxTilt
+                  ? undefined
+                  : (event) => {
+                      updateHoloFromPointer(event.clientX, event.clientY)
+                    }
+              }
+              onPointerLeave={
+                disableParallaxTilt
+                  ? undefined
+                  : () => {
+                      setHoloActive(false)
+                      const host = holoHostRef.current
+                      if (host) {
+                        host.style.setProperty('--mx', '50%')
+                        host.style.setProperty('--my', '50%')
+                        host.style.setProperty('--rx', '0deg')
+                        host.style.setProperty('--ry', '0deg')
+                        host.style.setProperty('--posx', '50%')
+                        host.style.setProperty('--posy', '50%')
+                        host.style.setProperty('--dx', '0%')
+                        host.style.setProperty('--dy', '0%')
+                        host.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg)'
+                        host.style.transition = 'transform 0.3s ease-out'
+                      }
+                      const layer = holoLayerRef.current
+                      if (!layer) return
+                      layer.style.setProperty('--mx', '50%')
+                      layer.style.setProperty('--my', '50%')
+                      layer.style.setProperty('--rx', '0deg')
+                      layer.style.setProperty('--ry', '0deg')
+                      layer.style.setProperty('--posx', '50%')
+                      layer.style.setProperty('--posy', '50%')
+                    }
+              }
             >
-              <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
+              {disableParallaxTilt ? (
                 <ReactCardFlip
                   isFlipped={flipped}
                   flipDirection="horizontal"
@@ -828,7 +870,37 @@ function CollectibleTicketCard({
                     <TicketBack ticket={ticket} onFlip={() => {}} numberAura={resolvedNumberAura} />
                   </div>
                 </ReactCardFlip>
-            </Tilt>
+              ) : (
+                <LazyParallaxTilt tiltMaxAngleX={10} tiltMaxAngleY={10} perspective={1200} scale={1.02} transitionSpeed={220} glareEnable={false}>
+                  <ReactCardFlip
+                    isFlipped={flipped}
+                    flipDirection="horizontal"
+                    flipSpeedFrontToBack={0.7}
+                    flipSpeedBackToFront={0.7}
+                    containerStyle={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
+                  >
+                    <div key="front" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+                      <TicketFront
+                        ticket={ticket}
+                        onFlip={() => {}}
+                        metalEffect={metalEffect}
+                        eagerLoad
+                        enableHolo={showHolo}
+                        holoActive={holoActive}
+                        holoVariant={holoVariant}
+                        holoLayerRef={holoLayerRef}
+                        pokeEffect={pokeEffect}
+                        paperEffect={paperEffect}
+                        numberAura={resolvedNumberAura}
+                        nativeTiltTarget={nativeTiltTarget}
+                      />
+                    </div>
+                    <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+                      <TicketBack ticket={ticket} onFlip={() => {}} numberAura={resolvedNumberAura} />
+                    </div>
+                  </ReactCardFlip>
+                </LazyParallaxTilt>
+              )}
             </div>
           )}
       </div>
@@ -839,15 +911,21 @@ function CollectibleTicketCard({
 function CollectionCoverFlow({
   tickets,
   activeIndex,
+  settledIndex,
+  transitionOriginIndex,
   onActiveIndexChange,
   getEffect,
   getNumberAura,
+  disableParallaxTilt = false,
 }: {
   tickets: Ticket[]
   activeIndex: number
+  settledIndex: number
+  transitionOriginIndex: number
   onActiveIndexChange: (index: number) => void
   getEffect: (ticketId: string) => EffectType
   getNumberAura: (ticketId: string) => NumberAuraType
+  disableParallaxTilt?: boolean
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [viewportWidth, setViewportWidth] = useState(360)
@@ -869,7 +947,21 @@ function CollectionCoverFlow({
   const normalizedIndex = mod(activeIndex, tickets.length)
   const baseRotation = -activeIndex * angleStep
   const radius = clamp(viewportWidth * 0.31, 112, 152)
-  const fullRenderDistance = 2.2
+  const renderRadius = 3
+  const renderedIndexSet = useMemo(() => {
+    if (tickets.length <= renderRadius * 2 + 1) {
+      return new Set(tickets.map((_, index) => index))
+    }
+
+    const animatedWindow = getAnimatedWindowIndices(tickets.length, transitionOriginIndex, activeIndex, renderRadius)
+    const settledWindow = getAnimatedWindowIndices(tickets.length, settledIndex, activeIndex, renderRadius)
+    settledWindow.forEach((index) => animatedWindow.add(index))
+    return animatedWindow
+  }, [activeIndex, settledIndex, tickets.length, transitionOriginIndex])
+  const renderedIndices = useMemo(
+    () => tickets.map((_, index) => index).filter((index) => renderedIndexSet.has(index)),
+    [renderedIndexSet, tickets]
+  )
 
   return (
     <div className="collection-carousel-shell">
@@ -879,7 +971,8 @@ function CollectionCoverFlow({
           animate={{ rotateY: baseRotation }}
           transition={{ type: 'spring', stiffness: 120, damping: 20, mass: 0.9 }}
         >
-          {tickets.map((ticket, index) => {
+          {renderedIndices.map((index) => {
+            const ticket = tickets[index]
             const rawOffset = index - normalizedIndex
             const offset =
               tickets.length > 0
@@ -892,7 +985,6 @@ function CollectionCoverFlow({
             const paperEffect = isPaperEffect(effect) ? effect : undefined
             const armRotation = index * angleStep
             const isFocus = absOffset < 0.45
-            const shouldRenderFullCard = absOffset <= fullRenderDistance
 
             const metalEffect =
               effect === 'gold-foil' || effect === 'silver-foil' || effect === 'rose-foil'
@@ -928,30 +1020,19 @@ function CollectionCoverFlow({
                     style={{ pointerEvents: isFocus || absOffset <= 1.2 ? 'auto' : 'none' }}
                   >
                     <div className={`collection-carousel-glow${isFocus ? ' is-active' : ''}`} />
-                    {shouldRenderFullCard ? (
-                      <CollectibleTicketCard
-                        ticket={ticket}
-                        metalEffect={metalEffect}
-                        compact={!isFocus}
-                        displayScale={isFocus ? 0.8 : undefined}
-                        holoVariant={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
-                        enableHolo={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none'}
-                        pokeEffect={pokeEffect}
-                        paperEffect={paperEffect}
-                        numberAura={numberAura}
-                        nativeTiltTarget={isFocus}
-                      />
-                    ) : (
-                      <div
-                        aria-hidden="true"
-                        style={{
-                          width: CARD_COMPACT_WIDTH,
-                          height: CARD_COMPACT_HEIGHT,
-                          opacity: 0,
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    )}
+                    <CollectibleTicketCard
+                      ticket={ticket}
+                      metalEffect={metalEffect}
+                      compact={!isFocus}
+                      displayScale={isFocus ? 0.8 : undefined}
+                      holoVariant={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none' ? (effect as HoloVariant) : 'rainbow'}
+                      enableHolo={!pokeEffect && !paperEffect && effect !== 'gold-foil' && effect !== 'silver-foil' && effect !== 'rose-foil' && effect !== 'none'}
+                      pokeEffect={pokeEffect}
+                      paperEffect={paperEffect}
+                      numberAura={numberAura}
+                      nativeTiltTarget={isFocus}
+                      disableParallaxTilt={disableParallaxTilt}
+                    />
                   </motion.div>
                 </div>
               </div>
@@ -966,16 +1047,21 @@ function CollectionCoverFlow({
 export function CollectionScreen({
   tickets: collected,
   onInitialVisualReady,
+  disableParallaxTilt = false,
 }: {
   tickets: Ticket[]
   onInitialVisualReady?: () => void
+  disableParallaxTilt?: boolean
 }) {
   useNativeTiltBridge() // Android 가속계 → DeviceOrientation 변환
   const [activeIndex, setActiveIndex] = useState(0)
+  const [settledIndex, setSettledIndex] = useState(0)
+  const [transitionOriginIndex, setTransitionOriginIndex] = useState(0)
   const [effectPickerOpen, setEffectPickerOpen] = useState(false)
   const [effectMap, setEffectMap] = useState<Record<string, EffectType>>({})
   const [numberAuraMap, setNumberAuraMap] = useState<Record<string, NumberAuraSetting>>({})
   const initialVisualReadyRef = useRef(false)
+  const previousActiveIndexRef = useRef(0)
 
   const allEffects: { key: EffectType; label: string }[] = [
     { key: 'none', label: 'None' },
@@ -1014,11 +1100,31 @@ export function CollectionScreen({
   useEffect(() => {
     if (collected.length === 0) {
       setActiveIndex(0)
+      setSettledIndex(0)
+      setTransitionOriginIndex(0)
+      previousActiveIndexRef.current = 0
       return
     }
 
     setActiveIndex((prev) => mod(prev, collected.length))
+    setSettledIndex((prev) => mod(prev, collected.length))
+    setTransitionOriginIndex((prev) => mod(prev, collected.length))
+    previousActiveIndexRef.current = mod(previousActiveIndexRef.current, collected.length)
   }, [collected.length])
+
+  useEffect(() => {
+    if (collected.length === 0) return
+
+    setTransitionOriginIndex(previousActiveIndexRef.current)
+    previousActiveIndexRef.current = activeIndex
+
+    const timeoutId = window.setTimeout(() => {
+      setSettledIndex(activeIndex)
+      setTransitionOriginIndex(activeIndex)
+    }, 420)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [activeIndex, collected.length])
 
   useEffect(() => {
     collected.forEach((ticket, index) => {
@@ -1203,9 +1309,12 @@ export function CollectionScreen({
                 <CollectionCoverFlow
                   tickets={collected}
                   activeIndex={activeIndex}
+                  settledIndex={settledIndex}
+                  transitionOriginIndex={transitionOriginIndex}
                   onActiveIndexChange={setActiveIndex}
                   getEffect={getEffect}
                   getNumberAura={getResolvedNumberAura}
+                  disableParallaxTilt={disableParallaxTilt}
                 />
               </div>
               <button

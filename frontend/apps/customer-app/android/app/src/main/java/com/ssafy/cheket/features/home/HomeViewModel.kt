@@ -39,6 +39,7 @@ class HomeViewModel(
     }
 
     fun refresh() {
+        _uiState.value = _uiState.value.copy(isLoading = true)
         load()
     }
 

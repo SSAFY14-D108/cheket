@@ -68,4 +68,8 @@ interface ShowService {
     /** 계약 거절 */
     @POST("api/v1/shows/contracts/{showId}/reject")
     suspend fun rejectContract(@Path("showId") showId: Long): ApiResponse<Unit>
+
+    /** 수익 배분 조회 */
+    @GET("api/v1/hosts/shows/{showId}/dashboard/revenue-split")
+    suspend fun getRevenueSplit(@Path("showId") showId: Long): ApiResponse<RevenueSplitResponse>
 }

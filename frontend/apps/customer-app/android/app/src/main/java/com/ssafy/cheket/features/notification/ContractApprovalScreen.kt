@@ -225,7 +225,7 @@ fun ContractApprovalScreen(
 
                             // 사람 stakeholders (id가 있는 것)
                             stakeholders.filter { it.id != null }.forEach { sh ->
-                                val isMe = sh.id?.toLong() == currentUserId
+                                val isMe = sh.role == "ARTIST" && sh.id?.toLong() == currentUserId
                                 StakeholderRow(sh, isMe)
                             }
 

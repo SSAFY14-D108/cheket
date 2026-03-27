@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.network.safeCall
 import com.ssafy.cheket.core.network.dto.TransferRequest
+import com.ssafy.cheket.core.network.service.AuthService
 import com.ssafy.cheket.core.network.service.TicketService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,13 +21,27 @@ data class TransferUiState(
     val formattedPhone: String = "",
     val phoneError: String? = null,
     val isSubmitting: Boolean = false,
+    val isSearching: Boolean = false,
+    /** 수신자 확인 다이얼로그 — non-null이면 표시 */
+    val recipientConfirm: RecipientConfirm? = null,
+)
+
+data class RecipientConfirm(
+    val name: String,
+    val phone: String,
 )
 
 class TransferViewModel(
     private val ticketService: TicketService,
+    private val authService: AuthService,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransferUiState())
     val uiState: StateFlow<TransferUiState> = _uiState.asStateFlow()
+
+    /** 양도 시 사용할 콜백 (확인 다이얼로그 OK 후 실행) */
+    private var pendingTicketId: String? = null
+    private var pendingOnSuccess: ((String, Long?) -> Unit)? = null
+    private var pendingOnFailure: ((String, String) -> Unit)? = null
 
     fun onPhoneChange(raw: String) {
         val digits = raw.filter { it.isDigit() }.take(11)
@@ -37,7 +52,10 @@ class TransferViewModel(
         )
     }
 
-    fun submitTransfer(
+    /**
+     * 양도 버튼 → 먼저 수신자 조회, 확인 다이얼로그 표시
+     */
+    fun requestTransfer(
         ticketId: String,
         onSuccess: (String, Long?) -> Unit,
         onFailure: (String, String) -> Unit,
@@ -47,6 +65,70 @@ class TransferViewModel(
             _uiState.value = state.copy(phoneError = "전화번호를 정확히 입력해주세요.")
             return
         }
+
+        pendingTicketId = ticketId
+        pendingOnSuccess = onSuccess
+        pendingOnFailure = onFailure
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSearching = true, phoneError = null)
+
+            val result = safeCall {
+                authService.searchUser(
+                    userType = "USER",
+                    number = state.formattedPhone,
+                )
+            }
+
+            result
+                .onSuccess { response ->
+                    Log.d(TAG, "searchUser() statusCode=${response.httpStatusCode}")
+                    if (response.httpStatusCode in 200..299 && response.data != null) {
+                        _uiState.value = _uiState.value.copy(
+                            isSearching = false,
+                            recipientConfirm = RecipientConfirm(
+                                name = response.data.name,
+                                phone = response.data.number,
+                            ),
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isSearching = false,
+                            phoneError = response.responseMessage ?: "해당 전화번호의 사용자를 찾을 수 없습니다.",
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "searchUser() failed", throwable)
+                    _uiState.value = _uiState.value.copy(
+                        isSearching = false,
+                        phoneError = "사용자 조회에 실패했습니다.",
+                    )
+                }
+        }
+    }
+
+    /** 확인 다이얼로그에서 "양도하기" 클릭 */
+    fun confirmTransfer() {
+        val ticketId = pendingTicketId ?: return
+        val onSuccess = pendingOnSuccess ?: return
+        val onFailure = pendingOnFailure ?: return
+
+        dismissConfirmDialog()
+        submitTransfer(ticketId, onSuccess, onFailure)
+    }
+
+    /** 확인 다이얼로그 닫기 */
+    fun dismissConfirmDialog() {
+        _uiState.value = _uiState.value.copy(recipientConfirm = null)
+    }
+
+    private fun submitTransfer(
+        ticketId: String,
+        onSuccess: (String, Long?) -> Unit,
+        onFailure: (String, String) -> Unit,
+    ) {
+        val state = _uiState.value
 
         val ticketIdLong = ticketId.toLongOrNull()
         if (ticketIdLong == null) {
@@ -95,7 +177,7 @@ class TransferViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CheketApplication
-                TransferViewModel(app.appContainer.ticketService)
+                TransferViewModel(app.appContainer.ticketService, app.appContainer.authService)
             }
         }
     }

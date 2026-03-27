@@ -82,6 +82,22 @@ fun TransferScreen(
             ?: MockDataSource.mockTickets.find { it.id == ticketId }
     }
 
+    // 수신자 확인 다이얼로그
+    uiState.recipientConfirm?.let { confirm ->
+        com.ssafy.cheket.core.ui.component.CheketDialog(
+            title = "양도 확인",
+            message = "${confirm.name} (${confirm.phone})\n에게 티켓을 양도합니다.",
+            confirmText = "양도하기",
+            dismissText = "취소",
+            onConfirm = {
+                NavParams.recipientName = confirm.name
+                NavParams.recipientPhone = confirm.phone
+                viewModel.confirmTransfer()
+            },
+            onDismiss = viewModel::dismissConfirmDialog,
+        )
+    }
+
     Scaffold(
         topBar = {
             AppHeader(
@@ -229,10 +245,7 @@ fun TransferScreen(
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    NavParams.recipientName = ""
-                    NavParams.recipientPhone = uiState.formattedPhone
-
-                    viewModel.submitTransfer(
+                    viewModel.requestTransfer(
                         ticketId = ticketId,
                         onSuccess = { id, txId ->
                             NavParams.transferFailureReason = ""
@@ -251,9 +264,17 @@ fun TransferScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                enabled = !uiState.isSubmitting,
+                enabled = !uiState.isSubmitting && !uiState.isSearching,
             ) {
-                if (uiState.isSubmitting) {
+                if (uiState.isSearching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = White,
+                        strokeWidth = 2.dp,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("사용자 확인 중...", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                } else if (uiState.isSubmitting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
                         color = White,

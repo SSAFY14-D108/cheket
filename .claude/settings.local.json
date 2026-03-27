@@ -1,7 +1,7 @@
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
+  },
   "permissions": {
     "allow": [
       "Read(C:/Users/SSAFY/Documents/S14P21D108/**)",
@@ -74,7 +74,21 @@
       "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -type f -name Show*.java)",
       "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -name *Controller.java -type f)",
       "Bash(find C:UsersSSAFYDocumentsS14P21D108_backend -name *.java)",
-      "mcp__Desktop_Commander__write_file"
+      "mcp__Desktop_Commander__write_file",
+      "Bash(python3 -c \":*)",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_backend -type f -name *Jwt* -o -name *Token* -o -name *Security*)",
+      "Bash(grep -E \"\\\\.java$\")",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_backend -type f -name *AuthController* -o -name *Auth*Controller*)",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_backend -type f \\\\\\(-name .env* -o -name *.env \\\\\\))",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_backend -type f \\\\\\(-name README* -o -name readme* \\\\\\))",
+      "Bash(grep -r TransferRequest C:UsersSSAFYDocumentsS14P21D108_frontendfrontendappscustomer-appandroid --include=*.kt)",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/host-web -type f \\\\\\(-name *login* -o -name *signup* -o -name *sign-up* -o -name *register* \\\\\\) ! -path */.next/* ! -path */node_modules/*)",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/host-web -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js -o -name *.css -o -name *.module.css \\\\\\) ! -path */.next/* ! -path */node_modules/* ! -path */.git/*)",
+      "Bash(grep -r \"LoginForm\\\\|SignupForm\\\\|LoginButton\\\\|LoginInput\" /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/host-web --include=*.tsx --include=*.ts ! -path */.next/* ! -path */node_modules/*)",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/host-web -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\) ! -path */.next/* ! -path */node_modules/* ! -path */.git/*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx next:*)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

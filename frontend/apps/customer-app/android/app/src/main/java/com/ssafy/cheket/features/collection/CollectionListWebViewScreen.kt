@@ -35,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import com.google.gson.Gson
 import com.ssafy.cheket.CheketApplication
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.ui.theme.Background
@@ -56,9 +58,15 @@ import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
 
 private const val TAG = "CollectionListWebView"
-private const val COLLECTION_LIST_URL = "http://j14d108.p.ssafy.io:3100"
+private const val COLLECTION_LIST_URL = "https://j14d108.p.ssafy.io/collection"
 private const val WEB_READY_TIMEOUT_MS = 10_000L
 private const val WEB_TIMEOUT_MESSAGE = "서버에 연결할 수 없습니다."
+
+private sealed interface NativeCollectionSeedState {
+    data object Loading : NativeCollectionSeedState
+    data class Ready(val json: String) : NativeCollectionSeedState
+    data object Failed : NativeCollectionSeedState
+}
 
 private class CollectionWebAppBridge(
     private val onReady: () -> Unit,
@@ -80,6 +88,17 @@ private class CollectionWebAppBridge(
     fun onAppError(message: String?) {
         mainHandler.post { onError(message) }
     }
+}
+
+private class CollectionDataBridge(
+    private val hasInitialTickets: () -> Boolean,
+    private val getInitialTicketsJson: () -> String?,
+) {
+    @JavascriptInterface
+    fun hasInitialCollectionTickets(): Boolean = hasInitialTickets()
+
+    @JavascriptInterface
+    fun getInitialCollectionTicketsJson(): String? = getInitialTicketsJson()
 }
 
 private class TiltSensorBridge(
@@ -162,6 +181,7 @@ fun CollectionListWebViewScreen(
 ) {
     var showOverlay by remember { mutableStateOf(true) }
     var pageError by remember { mutableStateOf<String?>(null) }
+    var nativeSeedState by remember { mutableStateOf<NativeCollectionSeedState>(NativeCollectionSeedState.Loading) }
 
     val context = LocalContext.current
     val token = remember {
@@ -180,11 +200,25 @@ fun CollectionListWebViewScreen(
     val tiltBridge = remember { mutableStateOf<TiltSensorBridge?>(null) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val readyTimeout = remember { mutableStateOf<Runnable?>(null) }
+    val app = remember(context) { context.applicationContext as CheketApplication }
 
     DisposableEffect(Unit) {
         onDispose {
             readyTimeout.value?.let(mainHandler::removeCallbacks)
             tiltBridge.value?.stop()
+        }
+    }
+
+    LaunchedEffect(app) {
+        nativeSeedState = NativeCollectionSeedState.Loading
+        try {
+            val response = app.appContainer.ticketService.getCollectionTickets()
+            val payload = response.data ?: emptyList()
+            nativeSeedState = NativeCollectionSeedState.Ready(Gson().toJson(payload))
+            Log.d(TAG, "Loaded native collection seed: count=${payload.size}")
+        } catch (e: Exception) {
+            nativeSeedState = NativeCollectionSeedState.Failed
+            Log.e(TAG, "Failed to load native collection seed", e)
         }
     }
 
@@ -227,7 +261,7 @@ fun CollectionListWebViewScreen(
     }
 
     Scaffold(
-        topBar = { AppHeader(title = "컬랙션", onBack = onBack) },
+        topBar = { AppHeader(title = "컬렉션", onBack = onBack) },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -235,98 +269,111 @@ fun CollectionListWebViewScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-                        WebView.setWebContentsDebuggingEnabled(true)
-                        addJavascriptInterface(
-                            CollectionWebAppBridge(
-                                onReady = { revealContent(this) },
-                                onError = { message ->
-                                    Log.e(TAG, "Web app reported error: ${message ?: "unknown"}")
+            if (nativeSeedState != NativeCollectionSeedState.Loading) {
+                AndroidView(
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                            WebView.setWebContentsDebuggingEnabled(true)
+                            addJavascriptInterface(
+                                CollectionWebAppBridge(
+                                    onReady = { revealContent(this) },
+                                    onError = { message ->
+                                        Log.e(TAG, "Web app reported error: ${message ?: "unknown"}")
+                                        readyTimeout.value?.let(mainHandler::removeCallbacks)
+                                        readyTimeout.value = null
+                                        pageError = message ?: WEB_TIMEOUT_MESSAGE
+                                        showOverlay = true
+                                    },
+                                ),
+                                "CheketCollectionBridge",
+                            )
+                            addJavascriptInterface(
+                                CollectionDataBridge(
+                                    hasInitialTickets = {
+                                        nativeSeedState is NativeCollectionSeedState.Ready
+                                    },
+                                    getInitialTicketsJson = {
+                                        (nativeSeedState as? NativeCollectionSeedState.Ready)?.json
+                                    },
+                                ),
+                                "CheketCollectionDataBridge",
+                            )
+
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageCommitVisible(view: WebView?, url: String?) {
+                                    Log.d(TAG, "onPageCommitVisible: $url")
+                                    view?.evaluateJavascript(heightFixJs, null)
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    Log.d(TAG, "onPageFinished: $url")
+                                    readyTimeout.value?.let(mainHandler::removeCallbacks)
+                                    view?.evaluateJavascript(heightFixJs) { height ->
+                                        Log.d(TAG, "[FIX] Forced height to $height")
+                                    }
+                                    view?.postDelayed(
+                                        {
+                                            view.evaluateJavascript(heightFixJs) { height ->
+                                                Log.d(TAG, "[FIX] Re-forced height to $height")
+                                            }
+                                        },
+                                        350L,
+                                    )
+                                    if (view != null) {
+                                        val timeoutRunnable = Runnable {
+                                            if (showOverlay) {
+                                                Log.w(TAG, "Web app ready signal timed out")
+                                                pageError = WEB_TIMEOUT_MESSAGE
+                                                showOverlay = true
+                                            }
+                                        }
+                                        readyTimeout.value = timeoutRunnable
+                                        mainHandler.postDelayed(timeoutRunnable, WEB_READY_TIMEOUT_MS)
+                                    }
+                                }
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    errorCode: Int,
+                                    description: String?,
+                                    failingUrl: String?,
+                                ) {
+                                    Log.e(TAG, "WebView error: code=$errorCode, desc=$description, url=$failingUrl")
                                     readyTimeout.value?.let(mainHandler::removeCallbacks)
                                     readyTimeout.value = null
-                                    pageError = message ?: WEB_TIMEOUT_MESSAGE
+                                    pageError = description ?: WEB_TIMEOUT_MESSAGE
                                     showOverlay = true
-                                },
-                            ),
-                            "CheketCollectionBridge",
-                        )
-
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageCommitVisible(view: WebView?, url: String?) {
-                                Log.d(TAG, "onPageCommitVisible: $url")
-                                view?.evaluateJavascript(heightFixJs, null)
-                            }
-
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                Log.d(TAG, "onPageFinished: $url")
-                                readyTimeout.value?.let(mainHandler::removeCallbacks)
-                                view?.evaluateJavascript(heightFixJs) { height ->
-                                    Log.d(TAG, "[FIX] Forced height to $height")
-                                }
-                                view?.postDelayed(
-                                    {
-                                        view.evaluateJavascript(heightFixJs) { height ->
-                                            Log.d(TAG, "[FIX] Re-forced height to $height")
-                                        }
-                                    },
-                                    350L,
-                                )
-                                if (view != null) {
-                                    val timeoutRunnable = Runnable {
-                                        if (showOverlay) {
-                                            Log.w(TAG, "Web app ready signal timed out")
-                                            pageError = WEB_TIMEOUT_MESSAGE
-                                            showOverlay = true
-                                        }
-                                    }
-                                    readyTimeout.value = timeoutRunnable
-                                    mainHandler.postDelayed(timeoutRunnable, WEB_READY_TIMEOUT_MS)
                                 }
                             }
 
-                            override fun onReceivedError(
-                                view: WebView?,
-                                errorCode: Int,
-                                description: String?,
-                                failingUrl: String?,
-                            ) {
-                                Log.e(TAG, "WebView error: code=$errorCode, desc=$description, url=$failingUrl")
-                                readyTimeout.value?.let(mainHandler::removeCallbacks)
-                                readyTimeout.value = null
-                                pageError = description ?: WEB_TIMEOUT_MESSAGE
-                                showOverlay = true
+                            webChromeClient = object : WebChromeClient() {
+                                override fun onConsoleMessage(message: ConsoleMessage?): Boolean {
+                                    Log.d(
+                                        TAG,
+                                        "JS [${message?.messageLevel()}] ${message?.message()} (${message?.sourceId()}:${message?.lineNumber()})",
+                                    )
+                                    return true
+                                }
                             }
-                        }
 
-                        webChromeClient = object : WebChromeClient() {
-                            override fun onConsoleMessage(message: ConsoleMessage?): Boolean {
-                                Log.d(
-                                    TAG,
-                                    "JS [${message?.messageLevel()}] ${message?.message()} (${message?.sourceId()}:${message?.lineNumber()})",
-                                )
-                                return true
+                            settings.apply {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true
+                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                useWideViewPort = true
+                                loadWithOverviewMode = true
+                                setSupportZoom(false)
+                                builtInZoomControls = false
                             }
-                        }
 
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            useWideViewPort = true
-                            loadWithOverviewMode = true
-                            setSupportZoom(false)
-                            builtInZoomControls = false
+                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                            loadUrl(url)
                         }
-
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        loadUrl(url)
-                    }
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
             val overlayAlpha by animateFloatAsState(
                 targetValue = if (showOverlay) 1f else 0f,
