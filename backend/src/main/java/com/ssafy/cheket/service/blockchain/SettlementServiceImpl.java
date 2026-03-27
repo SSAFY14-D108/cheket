@@ -238,8 +238,8 @@ public class SettlementServiceImpl implements SettlementService {
             log.info("[정산] 시작 — showId={}, sessionId={}, " + "onChainSessionId={}, eventNftId={}, " + "예치금={} SSF",
                 show.getId(), session.getId(), onChainSessionId, eventNftId, deposits);
 
-            TransactionReceipt receipt = blockchainService.getSettlement().finalizeSession(onChainSessionId, eventNftId)
-                .send();
+            TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
+                blockchainService.getSettlement().finalizeSession(onChainSessionId, eventNftId).send());
 
             String txHash = receipt.getTransactionHash();
             log.info("[정산] 완료 — sessionId={}, txHash={}, " + "총 {} SSF 분배", session.getId(), txHash, deposits);

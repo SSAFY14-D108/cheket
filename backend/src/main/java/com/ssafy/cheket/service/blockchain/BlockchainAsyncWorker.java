@@ -193,6 +193,7 @@ public class BlockchainAsyncWorker {
 
             // 성공한 좌석 추적
             List<PurchasedSeatInfo> purchasedSeats = new ArrayList<>();
+            final String finalBuyerAddress = buyerAddress;
 
             for (int i = 0; i < seats.size(); i++) {
                 SessionSeat seat = seats.get(i);
@@ -207,10 +208,12 @@ public class BlockchainAsyncWorker {
                 boolean success = false;
                 receipt = null;
 
+                final BigInteger finalTicketNftId = ticketNftId;
                 for (int attempt = 1; attempt <= maxRetry; attempt++) {
                     try {
-                        receipt = blockchainService.getPurchaseRouter()
-                            .purchaseTicket(buyerAddress, ticketNftId, onChainSessionId).send();
+                        receipt = blockchainService.executePlatformTx(() ->
+                            blockchainService.getPurchaseRouter()
+                                .purchaseTicket(finalBuyerAddress, finalTicketNftId, onChainSessionId).send());
                         success = true;
                         break;
                     } catch (Exception retryErr) {
@@ -450,8 +453,9 @@ public class BlockchainAsyncWorker {
             log.info("[양도 비동기] directTransfer 호출 — from={}, to={}, nftId={}", senderAddress, receiverAddress,
                 onChainTicketNftId);
 
-            TransactionReceipt receipt = blockchainService.getMarketplace()
-                .directTransfer(senderAddress, receiverAddress, BigInteger.valueOf(onChainTicketNftId)).send();
+            TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
+                blockchainService.getMarketplace()
+                    .directTransfer(senderAddress, receiverAddress, BigInteger.valueOf(onChainTicketNftId)).send());
 
             String txHash = receipt.getTransactionHash();
             log.info("[양도 비동기] directTransfer 블록 확정 완료 — txHash={}", txHash);
@@ -604,8 +608,9 @@ public class BlockchainAsyncWorker {
             transactionRepository.save(tx);
             log.info("[티켓 환불 비동기] Transaction → SUBMITTED");
 
-            TransactionReceipt refundReceipt = blockchainService.getSettlement()
-                .refund(sessionIdValue, ownerAddress, ticketNftIdValue).send();
+            TransactionReceipt refundReceipt = blockchainService.executePlatformTx(() ->
+                blockchainService.getSettlement()
+                    .refund(sessionIdValue, ownerAddress, ticketNftIdValue).send());
             String txHash = refundReceipt.getTransactionHash();
             log.info("[티켓 환불 비동기] Settlement.refund 블록 확정 — txHash={}", txHash);
 
@@ -735,7 +740,8 @@ public class BlockchainAsyncWorker {
                 log.info("[StakeholderNFT 발행 비동기] mint 호출 — {}/{}, wallet={}, role={}, shareBps={}", i + 1,
                     stakeholders.size(), walletAddress, role, shareBps);
 
-                receipt = blockchainService.getStakeholderNFT().mint(walletAddress, role, shareBps, eventNftId).send();
+                receipt = blockchainService.executePlatformTx(() ->
+                    blockchainService.getStakeholderNFT().mint(walletAddress, role, shareBps, eventNftId).send());
 
                 lastTxHash = receipt.getTransactionHash();
 
@@ -953,11 +959,12 @@ public class BlockchainAsyncWorker {
             // deadline)
             long resaleCapBps = 11000L; // 110% (원가의 110%까지 허용, 기본값)
 
-            TransactionReceipt receipt = blockchainService.getEscrow()
-                .createDeal(sellerAddress, BigInteger.valueOf(onChainTicketNftId), BigInteger.valueOf(resalePrice),
-                    BigInteger.valueOf(originalPrice), BigInteger.valueOf(resaleCapBps),
-                    BigInteger.valueOf(deadlineUnix))
-                .send();
+            TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
+                blockchainService.getEscrow()
+                    .createDeal(sellerAddress, BigInteger.valueOf(onChainTicketNftId), BigInteger.valueOf(resalePrice),
+                        BigInteger.valueOf(originalPrice), BigInteger.valueOf(resaleCapBps),
+                        BigInteger.valueOf(deadlineUnix))
+                    .send());
 
             String txHash = receipt.getTransactionHash();
             log.info("[리세일 등록 비동기] createDeal 블록 확정 — txHash={}", txHash);
@@ -1057,8 +1064,8 @@ public class BlockchainAsyncWorker {
             // ② Escrow.cancelDeal() — 플랫폼 키로 서명
             log.info("[리세일 취소 비동기] cancelDeal 호출 — dealId={}", onChainDealId);
 
-            TransactionReceipt receipt = blockchainService.getEscrow().cancelDeal(BigInteger.valueOf(onChainDealId))
-                .send();
+            TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
+                blockchainService.getEscrow().cancelDeal(BigInteger.valueOf(onChainDealId)).send());
 
             String txHash = receipt.getTransactionHash();
             log.info("[리세일 취소 비동기] cancelDeal 블록 확정 — txHash={}", txHash);
@@ -1210,8 +1217,9 @@ public class BlockchainAsyncWorker {
 
             log.info("[리세일 구매 비동기] buyAndSettle 호출 — dealId={}, buyer={}", onChainDealId, buyerAddress);
 
-            TransactionReceipt receipt = blockchainService.getEscrow()
-                .buyAndSettle(buyerAddress, BigInteger.valueOf(onChainDealId)).send();
+            TransactionReceipt receipt = blockchainService.executePlatformTx(() ->
+                blockchainService.getEscrow()
+                    .buyAndSettle(buyerAddress, BigInteger.valueOf(onChainDealId)).send());
 
             String txHash = receipt.getTransactionHash();
             log.info("[리세일 구매 비동기] buyAndSettle 블록 확정 — txHash={}", txHash);

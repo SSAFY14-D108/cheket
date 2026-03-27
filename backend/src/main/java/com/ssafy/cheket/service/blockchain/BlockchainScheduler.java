@@ -1,10 +1,15 @@
 package com.ssafy.cheket.service.blockchain;
 
+import com.ssafy.cheket.enums.SeatStatus;
+import com.ssafy.cheket.entity.show.SessionSeat;
+import com.ssafy.cheket.repository.show.SessionSeatRepository;
+import com.ssafy.cheket.repository.ticket.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -25,6 +30,8 @@ public class BlockchainScheduler {
 
     private final ShowMintingService showMintingService;
     private final SettlementService settlementService;
+    private final SessionSeatRepository sessionSeatRepository;
+    private final TicketRepository ticketRepository;
 
     // ========== ① 민팅 스케줄러 (매일 새벽 3시) ==========
 
@@ -58,6 +65,36 @@ public class BlockchainScheduler {
      * (onChainSessionId IS NOT NULL) ③ 아직 정산 안 됨 (온체인 isFinalized == false) ④ 예치금
      * 있음 (sessionDeposits > 0)
      */
+    // ========== ③ PENDING_TX 좀비 좌석 복원 (10분마다) ==========
+
+    /**
+     * PENDING_TX 고착 좌석 자동 복원
+     *
+     * 구매/환불 중 블록체인 실패 + DB 복원 실패가 겹치면 좌석이 PENDING_TX로 영구 고착될 수 있음.
+     * 15분 이상 PENDING_TX 상태인 좌석을 찾아서 복원:
+     * - Ticket 레코드 존재 → 환불 중 고착 → SOLD 복원
+     * - Ticket 레코드 없음 → 구매 중 고착 → AVAILABLE 복원
+     */
+    @Scheduled(fixedDelay = 600000)
+    public void recoverStuckPendingTxSeats() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
+        List<SessionSeat> stuckSeats = sessionSeatRepository.findStuckPendingTxSeats(threshold);
+
+        if (stuckSeats.isEmpty()) return;
+
+        log.warn("[좌석 복원 스케줄러] PENDING_TX 고착 좌석 {}개 발견", stuckSeats.size());
+
+        for (SessionSeat seat : stuckSeats) {
+            boolean hasTicket = ticketRepository.existsBySessionSeatId(seat.getId());
+            SeatStatus restoreStatus = hasTicket ? SeatStatus.SOLD : SeatStatus.AVAILABLE;
+            seat.setStatus(restoreStatus);
+            log.warn("[좌석 복원] sessionSeatId={} → {} (Ticket 존재: {})", seat.getId(), restoreStatus, hasTicket);
+        }
+
+        sessionSeatRepository.saveAll(stuckSeats);
+        log.warn("[좌석 복원 스케줄러] {}개 좌석 복원 완료", stuckSeats.size());
+    }
+
     @Scheduled(cron = "0 0 9 * * *")
     public void scheduleSettlement() {
         log.info("[정산 스케줄러] 실행 시작");

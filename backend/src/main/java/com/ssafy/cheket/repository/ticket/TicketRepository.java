@@ -174,4 +174,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // 탈퇴 블록: 리세일 등록 중인 티켓 존재 여부 확인
     boolean existsByUserIdAndResaleStatus(Long userId, com.ssafy.cheket.enums.ResaleStatus resaleStatus);
+
+    // 좌석 복원: sessionSeatId로 Ticket 존재 여부 확인 (환불 중 고착 판별)
+    boolean existsBySessionSeatId(Long sessionSeatId);
 }
