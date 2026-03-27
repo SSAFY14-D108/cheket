@@ -3,6 +3,7 @@ package com.ssafy.cheket.features.purchase
 import android.util.Log
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,7 +23,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -188,14 +191,6 @@ fun TransactionProcessingScreen(
                     TxStatus.FAILED -> FailedContent(
                         errorMessage = errorMessage ?: "트랜잭션 처리에 실패했습니다",
                         txHash = txHash,
-                        onRetry = {
-                            currentStatus = TxStatus.PENDING
-                            elapsedSeconds = 0
-                            txHash = null
-                            txAmount = null
-                            description = null
-                            errorMessage = null
-                        },
                         onBack = onBack,
                     )
                 }
@@ -215,77 +210,57 @@ private fun ProcessingContent(
     elapsedSeconds: Int,
     txType: String,
 ) {
-    // Animated spinning ring
-    val infiniteTransition = rememberInfiniteTransition(label = "spin")
-    val rotation by infiniteTransition.animateFloat(
+    // 로고 Y축 회전 (뒤집기 효과)
+    val infiniteTransition = rememberInfiniteTransition(label = "logoFlip")
+    val rotationY by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
+            animation = tween(2500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
-        label = "rotation",
+        label = "rotationY",
     )
 
-    val progress by animateFloatAsState(
-        targetValue = when (status) {
-            TxStatus.PENDING -> 0.3f
-            TxStatus.SUBMITTED -> 0.7f
-            else -> 1f
-        },
-        animationSpec = tween(800),
-        label = "progress",
+    // 위아래 살짝 떠다니는 효과
+    val floatOffset by infiniteTransition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "float",
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Spinning progress ring with elapsed time
+        // 체켓 로고 회전 애니메이션
         Box(
-            modifier = Modifier.size(112.dp),
+            modifier = Modifier.size(160.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Canvas(modifier = Modifier.fillMaxSize().rotate(rotation)) {
-                val stroke = 6.dp.toPx()
-                val radius = (size.minDimension - stroke) / 2f
-                val topLeft = Offset(stroke / 2f, stroke / 2f)
-                val arcSize = Size(radius * 2f, radius * 2f)
-
-                drawArc(
-                    color = ProgressTrack,
-                    startAngle = 0f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                )
-                drawArc(
-                    color = ProgressActive,
-                    startAngle = -90f,
-                    sweepAngle = progress * 270f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                )
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "${elapsedSeconds}s",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = V0Fg,
-                )
-                Text(
-                    text = "경과",
-                    fontSize = 11.sp,
-                    color = V0Muted,
-                )
-            }
+            Image(
+                painter = painterResource(id = com.ssafy.cheket.R.drawable.cheket_ticket_logo),
+                contentDescription = "처리 중",
+                modifier = Modifier
+                    .size(140.dp)
+                    .offset(y = floatOffset.dp)
+                    .graphicsLayer {
+                        this.rotationY = rotationY
+                        cameraDistance = 12f * density
+                    },
+            )
         }
+
+        // 경과 시간
+        Text(
+            text = "${elapsedSeconds}초 경과",
+            fontSize = 13.sp,
+            color = V0Muted,
+        )
 
         // 메인 상태 텍스트 — description 매핑 우선, 없으면 status 기반 매핑
         Text(
@@ -297,7 +272,7 @@ private fun ProcessingContent(
         )
 
         Text(
-            text = "${txTypeLabel(txType)} 처리를 진행하고 있어요.\n잠시만 기다려 주세요.",
+            text = "${txTypeLabel(txType)} 처리를 진행하고 있어요.\n30초~1분 정도 소요됩니다.",
             fontSize = 14.sp,
             color = V0Muted,
             textAlign = TextAlign.Center,
@@ -438,7 +413,6 @@ private fun ConfirmedContent(
 private fun FailedContent(
     errorMessage: String,
     txHash: String?,
-    onRetry: () -> Unit,
     onBack: () -> Unit,
 ) {
     Column(
@@ -468,7 +442,7 @@ private fun FailedContent(
         )
 
         Text(
-            text = errorMessage,
+            text = "관리자에게 문의하세요",
             fontSize = 14.sp,
             color = V0Muted,
             textAlign = TextAlign.Center,
@@ -489,37 +463,20 @@ private fun FailedContent(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "다시 시도",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = V0Fg,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .gradientBorder(shape = RoundedCornerShape(12.dp))
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White)
-                .clickable(onClick = onRetry)
-                .padding(vertical = 16.dp),
-        )
-        Text(
-            text = "이전 화면으로",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = V0Fg,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .elevatedSurface()
-                .clickable(onClick = onBack)
-                .padding(vertical = 14.dp),
-        )
-    }
+    Text(
+        text = "이전 화면으로",
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = V0Fg,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .gradientBorder(shape = RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .clickable(onClick = onBack)
+            .padding(vertical = 16.dp),
+    )
 }
 
 // ─── Shared Components ────────────────────────────────────────────

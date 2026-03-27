@@ -180,34 +180,43 @@ class ShowsViewModel(
             val keyword = s.searchQuery.trim().ifBlank { null }
             val regions = s.selectedRegions.map { it.apiValue }.ifEmpty { null }
 
-            val result = showRepository.getShowsPage(
-                regions = regions,
-                sort = s.sortBy.apiValue,
-                keyword = keyword,
-                page = page,
-                size = PAGE_SIZE,
-            )
+            try {
+                val result = showRepository.getShowsPage(
+                    regions = regions,
+                    sort = s.sortBy.apiValue,
+                    keyword = keyword,
+                    page = page,
+                    size = PAGE_SIZE,
+                )
 
-            val mergedShows = if (append) {
-                val existingIds = s.shows.map { it.id }.toSet()
-                s.shows + result.shows.filter { it.id !in existingIds }
-            } else result.shows
-            val hasMore = when {
-                result.totalElements > 0 -> mergedShows.size < result.totalElements
-                else -> result.shows.size >= PAGE_SIZE
+                val mergedShows = if (append) {
+                    val existingIds = s.shows.map { it.id }.toSet()
+                    s.shows + result.shows.filter { it.id !in existingIds }
+                } else result.shows
+                val hasMore = when {
+                    result.totalElements > 0 -> mergedShows.size < result.totalElements
+                    else -> result.shows.size >= PAGE_SIZE
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    shows = mergedShows,
+                    currentPage = result.page,
+                    totalPages = result.totalPages,
+                    totalElements = result.totalElements,
+                    isLoading = false,
+                    isLoadingMore = false,
+                    isRefreshing = false,
+                    hasMore = hasMore,
+                )
+                Log.d(TAG, "loadShows() page=${result.page}/${result.totalPages}, total=${result.totalElements}, count=${result.shows.size}")
+            } catch (e: Exception) {
+                Log.e(TAG, "loadShows() failed", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isLoadingMore = false,
+                    isRefreshing = false,
+                )
             }
-
-            _uiState.value = _uiState.value.copy(
-                shows = mergedShows,
-                currentPage = result.page,
-                totalPages = result.totalPages,
-                totalElements = result.totalElements,
-                isLoading = false,
-                isLoadingMore = false,
-                isRefreshing = false,
-                hasMore = hasMore,
-            )
-            Log.d(TAG, "loadShows() page=${result.page}/${result.totalPages}, total=${result.totalElements}, count=${result.shows.size}")
         }
     }
 

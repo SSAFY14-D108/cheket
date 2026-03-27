@@ -358,44 +358,7 @@ private fun PaymentMainContent(
                     )
                 }
 
-                // ── 4. 테스트 실패 시뮬레이션 토글 (v0: elevated-surface-soft) ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .elevatedSurfaceSoft(RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Science,
-                            null,
-                            tint = V0Muted,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            "테스트용 실패 시뮬레이션",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = V0Muted,
-                        )
-                    }
-                    Switch(
-                        checked = uiState.simulateFailure,
-                        onCheckedChange = { onToggleFailure() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = V0SwitchTrack,
-                            uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = V0Muted.copy(alpha = 0.3f),
-                        ),
-                    )
-                }
+
 
                 // ── 5. 결제 진행하기 CTA (v0: gradient-border-button) ──
                 Button(

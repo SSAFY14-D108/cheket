@@ -153,7 +153,7 @@ class SignupViewModel(
                 if (response.httpStatusCode in 200..299 && response.data?.verified == true) {
                     _uiState.update { it.copy(codeVerified = true, errors = emptyMap()) }
                 } else {
-                    _uiState.update { it.copy(errors = it.errors + ("code" to "인증번호가 올바르지 않습니다.")) }
+                    _uiState.update { it.copy(errors = it.errors + ("code" to (response.responseMessage ?: "인증번호가 올바르지 않습니다."))) }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "verifyCode() error", e)
