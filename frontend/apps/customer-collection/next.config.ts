@@ -3,6 +3,7 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   output: 'standalone',
   basePath: '/collection',
+  trailingSlash: true,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
