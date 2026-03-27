@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -41,7 +40,7 @@ interface ShowFormProps {
 }
 
 const STEP_LABELS = ["기본 정보", "일정 / 장소", "티켓 설정", "정산 / 정책"];
-const SETTLEMENT_CONFIRM_TEXT = "정산 정책을 확인했고 그대로 공연을 등록합니다.";
+const SETTLEMENT_CONFIRM_TEXT = "이해관계자의 수수료율 및 정책을 확인했습니다.";
 
 function formatSharePercent(shareBps: string) {
   return `${((Number(shareBps) || 0) / 100).toLocaleString("ko-KR", {
@@ -761,24 +760,28 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               </div>
             </div>
           </div>
-          <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">총 정산 비율</span>
-              <span className="font-semibold">
-                {PLATFORM_TOTAL_BPS.toLocaleString()}bps
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">플랫폼 수수료</span>
-              <span className="font-semibold">
-                {PLATFORM_FEE_BPS.toLocaleString()}bps
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">참여자 정산 비율</span>
-              <span className="font-semibold">
-                {stakeholderShareBps.toLocaleString()}bps
-              </span>
+          <div className="space-y-2">
+            <Label>수수료율 요약</Label>
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border bg-background p-3">
+              {settlementSummaryItems.map((item) => (
+                <div
+                  key={`${item.name}-${item.shareText}`}
+                  className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm"
+                >
+                  <span
+                    className={
+                      item.isFixed
+                        ? "font-semibold text-foreground"
+                        : "text-foreground"
+                    }
+                  >
+                    {item.name}
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {item.shareText}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
           <div className="space-y-2">
@@ -807,51 +810,17 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
               </label>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>정산 비율 요약</Label>
-            <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border bg-background p-3">
-              {settlementSummaryItems.map((item) => (
-                <div
-                  key={`${item.name}-${item.shareText}`}
-                  className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm"
-                >
-                  <span
-                    className={
-                      item.isFixed
-                        ? "font-semibold text-foreground"
-                        : "text-foreground"
-                    }
-                  >
-                    {item.name}
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {item.shareText}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsConfirmOpen(false);
-                setIsSettlementConfirmed(false);
-              }}
-            >
-              취소
-            </Button>
-            <Button
-              onClick={() => {
-                if (!canConfirmCreate) return;
-                setIsConfirmOpen(false);
-                void handleSubmit();
-              }}
-              disabled={!canConfirmCreate || isSubmitting}
-            >
-              {isSubmitting ? "등록 중..." : "확인 후 등록"}
-            </Button>
-          </DialogFooter>
+          <Button
+            onClick={() => {
+              if (!canConfirmCreate) return;
+              setIsConfirmOpen(false);
+              void handleSubmit();
+            }}
+            disabled={!canConfirmCreate || isSubmitting}
+            className="h-11 w-full"
+          >
+            {isSubmitting ? "등록 중..." : "확인 후 등록"}
+          </Button>
         </DialogContent>
       </Dialog>
     </>

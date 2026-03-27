@@ -73,19 +73,19 @@ function getTxStatusMeta(status: TxStatus) {
     case "CONFIRMED":
       return {
         badgeLabel: "CONFIRMED",
-        badgeClassName: "rounded-full border-emerald-200 bg-white/80 text-emerald-800",
+        badgeClassName: "rounded-full border-slate-300 bg-white/90 text-slate-800",
         title: "공연 등록이 블록체인에 확정되었습니다.",
         description: "계약 요약과 트랜잭션 정보가 온체인 기준으로 잠기고 있습니다.",
-        progressClassName: "bg-emerald-500",
+        progressClassName: "bg-slate-900",
         progressValue: "100%",
       }
     case "SUBMITTED":
       return {
         badgeLabel: "SUBMITTED",
-        badgeClassName: "rounded-full border-emerald-200 bg-white/80 text-emerald-800",
+        badgeClassName: "rounded-full border-slate-300 bg-white/90 text-slate-800",
         title: "블록에 포함되어 최종 확정을 기다리고 있습니다.",
         description: "트랜잭션이 네트워크에 제출되었고 현재 처리 순서를 밟고 있습니다.",
-        progressClassName: "bg-emerald-500",
+        progressClassName: "bg-slate-800",
         progressValue: "68%",
       }
     case "FAILED":
@@ -100,10 +100,10 @@ function getTxStatusMeta(status: TxStatus) {
     default:
       return {
         badgeLabel: "PENDING",
-        badgeClassName: "rounded-full border-emerald-200 bg-white/80 text-emerald-800",
+        badgeClassName: "rounded-full border-slate-300 bg-white/90 text-slate-800",
         title: "트랜잭션을 제출하고 블록체인 등록을 시작합니다.",
         description: "공연 계약 정보를 묶어 스마트 컨트랙트에 반영할 준비를 하고 있습니다.",
-        progressClassName: "bg-emerald-500",
+        progressClassName: "bg-slate-700",
         progressValue: "34%",
       }
   }
@@ -231,10 +231,10 @@ export function ShowTxProgressModal({
         showCloseButton={false}
         className="max-w-5xl gap-0 overflow-hidden rounded-3xl border-black/10 bg-white p-0 sm:min-h-[720px] sm:max-w-5xl"
       >
-        <DialogHeader className="border-b border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_40%),linear-gradient(135deg,_rgba(236,253,245,0.96),_rgba(239,246,255,0.95))] px-6 py-6">
+        <DialogHeader className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_40%),linear-gradient(135deg,_rgba(250,250,250,0.98),_rgba(241,245,249,0.95))] px-6 py-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-emerald-600" />
+              <ShieldCheck className="size-5 text-slate-700" />
               <DialogTitle className="text-lg font-semibold text-slate-950">
                 블록체인 등록 진행 중
               </DialogTitle>
@@ -250,13 +250,13 @@ export function ShowTxProgressModal({
 
         <div className="grid gap-0 lg:min-h-[580px] lg:grid-cols-[minmax(0,1.25fr)_360px]">
           <div className="flex min-h-[420px] flex-col">
-            <div className="flex-1 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,250,252,0.98))] px-6 py-8">
+            <div className="flex-1 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] px-6 py-8">
               <div className="flex h-full flex-col">
-                <div className="rounded-[1.75rem] border border-emerald-100 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_40%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] px-5 py-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.35)]">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.06),_transparent_38%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] px-5 py-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.25)]">
                   <div className="flex items-start gap-4">
                     <div
                       className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${
-                        isFailed ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                        isFailed ? "bg-amber-100 text-amber-700" : "bg-slate-900 text-white"
                       }`}
                     >
                       {isTerminal && !isFailed ? (
@@ -281,7 +281,7 @@ export function ShowTxProgressModal({
                       <span>Progress</span>
                       <span>{statusMeta.progressValue}</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-emerald-50">
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${statusMeta.progressClassName}`}
                         style={{ width: statusMeta.progressValue }}
@@ -304,7 +304,7 @@ export function ShowTxProgressModal({
                         {index < TX_STEPS.length - 1 ? (
                           <div
                             className={`absolute left-[1.45rem] top-12 h-[calc(100%+0.75rem)] w-0.5 ${
-                              isComplete ? "bg-emerald-300" : "bg-slate-200"
+                              isComplete ? "bg-slate-500" : "bg-slate-200"
                             }`}
                           />
                         ) : null}
@@ -312,9 +312,9 @@ export function ShowTxProgressModal({
                         <div
                           className={`absolute left-0 top-1 flex size-12 items-center justify-center rounded-2xl border ${
                             isComplete
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              ? "border-slate-900 bg-slate-900 text-white"
                               : isCurrent
-                                ? "border-emerald-200 bg-white text-emerald-600 shadow-[0_12px_30px_-22px_rgba(16,185,129,0.9)]"
+                                ? "border-slate-300 bg-white text-slate-900 shadow-[0_14px_30px_-22px_rgba(15,23,42,0.45)]"
                                 : "border-slate-200 bg-white text-slate-300"
                           }`}
                         >
@@ -330,9 +330,9 @@ export function ShowTxProgressModal({
                         <div
                           className={`rounded-[1.6rem] border px-5 py-4 transition-all ${
                             isComplete
-                              ? "border-emerald-100 bg-emerald-50/70"
+                              ? "border-slate-200 bg-slate-50/90"
                               : isCurrent
-                                ? "border-emerald-200 bg-white shadow-[0_20px_45px_-30px_rgba(16,185,129,0.45)]"
+                                ? "border-slate-300 bg-white shadow-[0_20px_45px_-30px_rgba(15,23,42,0.28)]"
                                 : "border-slate-200 bg-white/75"
                           }`}
                         >
@@ -347,9 +347,9 @@ export function ShowTxProgressModal({
                             <span
                               className={`text-[11px] font-medium uppercase tracking-[0.14em] ${
                                 isComplete
-                                  ? "text-emerald-600"
+                                  ? "text-slate-700"
                                   : isCurrent
-                                    ? "text-emerald-500"
+                                    ? "text-slate-600"
                                     : "text-slate-300"
                               }`}
                             >
@@ -377,9 +377,9 @@ export function ShowTxProgressModal({
                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">TX ID</p>
                   <p className="mt-2 font-mono text-sm text-slate-900">{txId ?? "-"}</p>
                 </div>
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 shadow-[0_12px_30px_-24px_rgba(16,185,129,0.25)]">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-500">TX Hash</p>
-                  <p className="mt-2 font-mono text-sm text-emerald-800">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.2)]">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">TX Hash</p>
+                  <p className="mt-2 font-mono text-sm text-slate-800">
                     {formatHash(txHash)}
                   </p>
                 </div>
@@ -392,7 +392,7 @@ export function ShowTxProgressModal({
 
           <aside className="border-t border-slate-100 bg-[#f7f7f8] px-6 py-6 lg:border-t-0 lg:border-l lg:border-slate-100">
             <div className="flex items-center gap-2">
-              <ScrollText className="size-4 text-emerald-600" />
+              <ScrollText className="size-4 text-slate-700" />
               <h3 className="text-sm font-semibold text-slate-950">계약 등록 요약</h3>
             </div>
 
@@ -448,9 +448,9 @@ export function ShowTxProgressModal({
                       </span>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-3 py-2">
-                    <span className="text-sm text-emerald-800">플랫폼 수수료</span>
-                    <span className="text-sm font-semibold text-emerald-900">
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-100 px-3 py-2">
+                    <span className="text-sm text-slate-700">플랫폼 수수료</span>
+                    <span className="text-sm font-semibold text-slate-950">
                       {formatPercentFromBps(PLATFORM_FEE_BPS)}
                     </span>
                   </div>
@@ -507,7 +507,7 @@ export function ShowTxProgressModal({
               <Button
                 type="button"
                 onClick={onConfirmed}
-                className="h-12 w-full rounded-full bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700"
+                className="h-12 w-full rounded-full bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
               >
                 확인
               </Button>

@@ -16,6 +16,7 @@ export interface Stakeholder {
     shareBps: string
     verified?: boolean
     isFixed?: boolean
+    isSelfHost?: boolean
 }
 
 export interface RefundItem {
