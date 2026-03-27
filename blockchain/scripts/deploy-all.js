@@ -16,7 +16,6 @@
  *   - PurchaseRouter.setContracts(ticketNFT, settlement, eventNFT)
  *   - Settlement.setContracts(eventNFT, stakeholderNFT, ticketNFT, platformWallet)
  *   - Settlement.setPurchaseRouter(purchaseRouter)
- *   - Escrow.setEventNFT(eventNFT)
  *   - TicketNFT.setAuthorizedCaller(purchaseRouter, true)
  *   - TicketNFT.setAuthorizedCaller(settlement, true)
  *   - TicketNFT.setAuthorizedCaller(escrow, true)
@@ -114,12 +113,6 @@ async function main() {
   // ========== Settlement.setPurchaseRouter ==========
   console.log("Settlement.setPurchaseRouter...");
   tx = await settlement.setPurchaseRouter(purchaseRouterAddress);
-  await tx.wait();
-  console.log("    ✅ 완료");
-
-  // ========== Escrow.setEventNFT ==========
-  console.log("Escrow.setEventNFT...");
-  tx = await escrow.setEventNFT(eventNFTAddress);
   await tx.wait();
   console.log("    ✅ 완료");
 
