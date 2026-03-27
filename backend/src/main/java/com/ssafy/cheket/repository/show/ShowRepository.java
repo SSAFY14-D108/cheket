@@ -154,6 +154,16 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
     List<PurchaseSessionSeatProjection> findPurchaseSessionSeats(@Param("showId") Long showId,
         @Param("sessionId") Long sessionId, @Param("sessionSeatIds") List<Long> sessionSeatIds);
 
+    // 민팅 상태 원자적 변경 (DRAFT → MINTING, 중복 요청 방지)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Show s
+        set s.status = com.ssafy.cheket.enums.ShowStatus.MINTING
+        where s.id = :showId
+          and s.status = com.ssafy.cheket.enums.ShowStatus.DRAFT
+        """)
+    int updateStatusToMintingIfDraft(@Param("showId") Long showId);
+
     // 예매수 증가
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
