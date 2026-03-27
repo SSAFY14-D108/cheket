@@ -268,6 +268,9 @@ public class BlockchainAsyncWorker {
                 purchasedSeats.add(new PurchasedSeatInfo(seat, ticket, ticketNftId));
             }
 
+            // 공연의 예매 수 증가
+            showRepository.increaseReservationCount(showId, purchasedSeats.size());
+
             // ========== ⑤ Transaction → CONFIRMED ==========
             tx.setTxHash(lastTxHash); // purchase tx로 수정
             tx.setTxStatus(Transaction.TxStatus.CONFIRMED);
@@ -635,6 +638,12 @@ public class BlockchainAsyncWorker {
 
             sessionSeat.setStatus(SeatStatus.AVAILABLE);
             sessionSeatRepository.save(sessionSeat);
+
+            // 공연의 예매 수 감소
+            Session session = sessionRepository.findById(sessionSeat.getSessionId())
+                .orElseThrow(() -> new BlockchainException("회차를 찾을 수 없습니다."));
+
+            showRepository.decreaseReservationCount(session.getShowId(), 1);
 
             // 온체인 검증 — NFT가 플랫폼에 반환됐는지
             verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getPlatformWalletAddress(), "환불");
@@ -1402,6 +1411,12 @@ public class BlockchainAsyncWorker {
                     .numbering(generateTicketNumber()).ticketNftId(seat.getOnChainTicketNftId())
                     .resaleStatus(ResaleStatus.AVAILABLE).build();
                 ticketRepository.save(ticket);
+
+                // 처리 실패 후, 온체인 조회 결과 실제 구매 성공이 확인되면 증가
+                Session session = sessionRepository.findById(seat.getSessionId())
+                    .orElseThrow(() -> new BlockchainException("회차를 찾을 수 없습니다."));
+
+                showRepository.increaseReservationCount(session.getShowId(), 1);
 
                 log.info("[온체인 동기화] nftId={} — DB 동기화 완료 (SOLD + Ticket 생성)", nftId);
                 return true;

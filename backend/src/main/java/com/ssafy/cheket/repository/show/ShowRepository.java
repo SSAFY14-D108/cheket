@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -27,7 +28,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(s.artist) like lower(concat('%', :keyword, '%'))
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
-          and s.status != 'PENDING_CONTRACT'
+          and s.status <> com.ssafy.cheket.enums.ShowStatus.PENDING_CONTRACT
         """)
     Page<Show> search(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, Pageable pageable);
@@ -64,35 +65,20 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         @Param("now") LocalDateTime now);
 
     // 인기순(예매수)
-    @EntityGraph(attributePaths = {"venue"})
+    @EntityGraph(attributePaths = {"venue", "venue.region"})
     @Query(value = """
         select s
         from Show s
         join s.venue v
-        left join Session sess on sess.showId = s.id
-        left join SessionSeat ss on ss.sessionId = sess.id
-        left join Ticket t on t.sessionSeatId = ss.id
         where (:regionCount = 0 or v.region.code in :regions)
+          and s.status <> com.ssafy.cheket.enums.ShowStatus.PENDING_CONTRACT
           and (
                 :keyword is null
                 or lower(s.title) like lower(concat('%', :keyword, '%'))
                 or lower(s.artist) like lower(concat('%', :keyword, '%'))
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
-        group by s
-        order by count(t.id) desc, s.id desc
-        """, countQuery = """
-        select count(s)
-        from Show s
-        join s.venue v
-        where (:regionCount = 0 or v.region.code in :regions)
-          and (
-                :keyword is null
-                or lower(s.title) like lower(concat('%', :keyword, '%'))
-                or lower(s.artist) like lower(concat('%', :keyword, '%'))
-                or lower(v.name) like lower(concat('%', :keyword, '%'))
-          )
-          and s.status != 'PENDING_CONTRACT'
+        order by s.reservationCount desc, s.id desc
         """)
     Page<Show> searchOrderByPopular(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, Pageable pageable);
@@ -111,7 +97,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
           and s.reservationEndDate > :now
-          and s.status != 'PENDING_CONTRACT'
+          and s.status <> com.ssafy.cheket.enums.ShowStatus.PENDING_CONTRACT
         """)
     Page<Show> searchOrderByDeadline(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, @Param("now") LocalDateTime now, Pageable pageable);
@@ -130,7 +116,7 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
           and s.reservationStartDate > :now
-          and s.status != 'PENDING_CONTRACT'
+          and s.status <> com.ssafy.cheket.enums.ShowStatus.PENDING_CONTRACT
         """)
     Page<Show> searchOrderByOpenSoon(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
         @Param("keyword") String keyword, @Param("now") LocalDateTime now, Pageable pageable);
@@ -167,5 +153,27 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         """, nativeQuery = true)
     List<PurchaseSessionSeatProjection> findPurchaseSessionSeats(@Param("showId") Long showId,
         @Param("sessionId") Long sessionId, @Param("sessionSeatIds") List<Long> sessionSeatIds);
+
+    // 예매수 증가
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Show s
+        set s.reservationCount = s.reservationCount + :count
+        where s.id = :showId
+        """)
+    int increaseReservationCount(@Param("showId") Long showId, @Param("count") int count);
+
+    // 예매수 감소
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Show s
+        set s.reservationCount =
+            case
+                when s.reservationCount >= :count then s.reservationCount - :count
+                else 0
+            end
+        where s.id = :showId
+        """)
+    int decreaseReservationCount(@Param("showId") Long showId, @Param("count") int count);
 
 }

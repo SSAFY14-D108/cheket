@@ -25,7 +25,7 @@ public class ApiPerformanceFilter extends OncePerRequestFilter {
         } finally {
             long elapsed = System.currentTimeMillis() - start;
 
-            if (request.getRequestURI().contains("/shows")) {
+            if ("GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/shows".equals(request.getRequestURI())) {
                 log.info("[API] {} {} {}ms", request.getMethod(), request.getRequestURI(), elapsed);
             }
         }
