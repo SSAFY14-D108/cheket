@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
@@ -105,6 +106,7 @@ public class BlockchainAsyncWorker {
      * FAILED
      */
     @Async
+    @Transactional
     public void processOnChainPurchase(Long txId, Long userId, Long showId, Long sessionId, List<Long> sessionSeatIds,
         Long onChainSessionIdValue) {
         log.info("[티켓 구매 비동기] 시작 — txId={}", txId);
@@ -543,6 +545,7 @@ public class BlockchainAsyncWorker {
      * Transaction/Ticket/Seat 상태 반영
      */
     @Async
+    @Transactional
     public void processOnChainRefund(Long txId, Long userId, Long ticketId, Long onChainSessionId,
         Long onChainTicketNftId) {
         log.info("[티켓 환불 비동기] 시작 — txId={}, ticketId={}, userId={}", txId, ticketId, userId);

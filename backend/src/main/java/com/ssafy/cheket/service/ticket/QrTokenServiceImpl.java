@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @Slf4j
 @Service
@@ -117,12 +119,29 @@ public class QrTokenServiceImpl implements QrTokenService {
             throw new BadRequestException("이미 입장 처리된 티켓입니다.");
         }
 
-        // ── 4단계: 온체인 NFT 소유권 검증 ──
-        // DB가 아닌 블록체인에서 직접 확인 → 위변조 불가능
-        verifyOnChainOwnership(ticket, userId);
+        // ── 4+5단계: 온체인 소유권 검증 + 티켓 정보 조회 (병렬) ──
+        // 두 RPC 호출을 동시에 실행하여 응답 시간 ~50% 단축
+        // 둘 다 성공해야 입장 허용
+        CompletableFuture<Void> ownershipFuture = CompletableFuture.runAsync(
+            () -> verifyOnChainOwnership(ticket, userId));
+        CompletableFuture<TicketNFT.TicketInfo> ticketInfoFuture = CompletableFuture.supplyAsync(
+            () -> getOnChainTicketInfo(ticket));
 
-        // ── 5단계: 온체인에서 티켓 정보 조회 (상태 + 좌석 정보 한 번에) ──
-        TicketNFT.TicketInfo onChainTicket = getOnChainTicketInfo(ticket);
+        TicketNFT.TicketInfo onChainTicket;
+        try {
+            ownershipFuture.join();   // 소유권 검증 완료 대기
+            onChainTicket = ticketInfoFuture.join();  // 티켓 정보 조회 완료 대기
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof ForbiddenException) {
+                throw (ForbiddenException) cause;
+            } else if (cause instanceof BadRequestException) {
+                throw (BadRequestException) cause;
+            } else if (cause instanceof NotFoundException) {
+                throw (NotFoundException) cause;
+            }
+            throw new BadRequestException("블록체인 검증에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        }
 
         // ── 6단계: 온체인 좌석 정보와 DB 좌석 정보 비교 ──
         CheckInTicketProjection dbInfo = ticketRepository.findCheckInInfoByTicketId(ticketId);
