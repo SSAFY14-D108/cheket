@@ -706,7 +706,7 @@ public class HostShowServiceImpl implements HostShowService {
             .toList();
 
         Transaction tx = Transaction.builder().type(Transaction.TransactionType.STAKEHOLDER_MINT).amount(0L)
-            .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(hostId).build();
+            .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).build();
         tx = transactionRepository.save(tx);
         Long txId = tx.getId();
 

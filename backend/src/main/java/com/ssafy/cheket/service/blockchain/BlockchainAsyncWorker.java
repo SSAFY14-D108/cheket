@@ -636,6 +636,9 @@ public class BlockchainAsyncWorker {
             tx.setDescription("블록체인 확정 — 환불 완료");
             transactionRepository.save(tx);
 
+            // 자식 레코드 먼저 삭제 (FK 제약: resales, ticket_transfer → tickets)
+            resaleEntityRepository.deleteByTicketId(ticketId);
+            ticketTransferRepository.deleteByTicketId(ticketId);
             ticketRepository.delete(ticket);
 
             sessionSeat.setStatus(SeatStatus.AVAILABLE);
@@ -753,6 +756,7 @@ public class BlockchainAsyncWorker {
                     BigInteger tokenId = ((StakeholderMintedEventResponse) event).tokenId;
 
                     stakeholder.setStakeholderNftId(tokenId.longValue());
+                    stakeholder.setTxHash(lastTxHash);
                     stakeholderRepository.save(stakeholder);
 
                     log.info("[StakeholderNFT 발행 비동기] 발행 완료 — tokenId={}, wallet={}, role={}, shareBps={}", tokenId,

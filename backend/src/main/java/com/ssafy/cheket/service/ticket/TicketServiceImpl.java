@@ -217,24 +217,24 @@ public class TicketServiceImpl implements TicketService {
         // ② 환불 정책 검증
         List<RefundPolicy> refundPolicies = refundPolicyRepository
             .findByShowIdOrderByDaysRemainingDesc(session.getShowId());
-        if (refundPolicies.isEmpty()) {
-            throw new ConflictException("환불 정책이 등록되지 않은 공연입니다.");
-        }
 
-        LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        long remain = ChronoUnit.DAYS.between(now, session.getSessionDate().toLocalDate());
+        if (!refundPolicies.isEmpty()) {
+            LocalDate now = LocalDate.now(ZoneId.of("Asia/Seoul"));
+            long remain = ChronoUnit.DAYS.between(now, session.getSessionDate().toLocalDate());
 
-        RefundPolicy targetPolicy = null;
-        for (RefundPolicy policy : refundPolicies) {
-            if (policy.getDaysRemaining() <= remain) {
-                targetPolicy = policy;
-                break;
+            RefundPolicy targetPolicy = null;
+            for (RefundPolicy policy : refundPolicies) {
+                if (policy.getDaysRemaining() <= remain) {
+                    targetPolicy = policy;
+                    break;
+                }
+            }
+
+            if (targetPolicy == null) {
+                throw new ConflictException("환불 가능 기간이 지났습니다.");
             }
         }
-
-        if (targetPolicy == null) {
-            throw new ConflictException("환불 가능한 기간이 아닙니다.");
-        }
+        // 환불 정책 없음 → 컨트랙트 기본값(100%) 적용
 
         // ③ 좌석 → PENDING_TX
         sessionSeat.setStatus(SeatStatus.PENDING_TX);

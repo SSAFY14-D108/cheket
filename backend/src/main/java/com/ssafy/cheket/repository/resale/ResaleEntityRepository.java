@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ResaleEntityRepository extends JpaRepository<Resale, Long> {
 
     java.util.Optional<Resale> findByTicketIdAndStatus(Long ticketId, Resale.ResaleListingStatus status);
+
+    void deleteByTicketId(Long ticketId);
 }
