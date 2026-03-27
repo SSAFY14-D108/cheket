@@ -91,9 +91,9 @@ public class BlockchainService {
     // 플랫폼 지갑 Nonce 충돌 방지 락 — 플랫폼 지갑에서 보내는 TX는 반드시 이 락을 통해 직렬화
     private final ReentrantLock nonceLock = new ReentrantLock();
 
-    // SSAFY 네트워크: gasPrice = 0
+    // SSAFY 네트워크: gasPrice = 0, gasLimit 충분히 설정 (batchMint 100개 기준)
     private static final StaticGasProvider GAS_PROVIDER = new StaticGasProvider(BigInteger.ZERO,
-        BigInteger.valueOf(3000000));
+        BigInteger.valueOf(100_000_000));
 
     public BlockchainService(Web3j web3j) {
         this.web3j = web3j;
