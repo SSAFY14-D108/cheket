@@ -174,6 +174,9 @@ contract Settlement is Ownable {
     // 아무나 recordDeposit을 호출하면 가짜 입금 기록이 생김
     address public purchaseRouter;
 
+    // setContracts() 1회 제한 플래그
+    bool private _contractsInitialized;
+
     // ========== 회차별 입금 관리 ==========
 
     /**
@@ -323,16 +326,16 @@ contract Settlement is Ownable {
         address _ticketNFT,
         address _platformWallet
     ) external onlyOwner {
-        // onlyOwner = 플랫폼(owner)만 호출 가능
-        // 해커가 가짜 주소로 바꿀 수 없음
+        require(!_contractsInitialized, "Already initialized");
         require(_eventNFT != address(0), "Invalid EventNFT");
         require(_stakeholderNFT != address(0), "Invalid StakeholderNFT");
         require(_ticketNFT != address(0), "Invalid TicketNFT");
         require(_platformWallet != address(0), "Invalid platform wallet");
-        eventNFTAddress = _eventNFT;             // storage에 영구 저장
-        stakeholderNFTAddress = _stakeholderNFT;  // storage에 영구 저장
-        ticketNFTAddress = _ticketNFT;            // storage에 영구 저장
-        platformWallet = _platformWallet;          // storage에 영구 저장
+        eventNFTAddress = _eventNFT;
+        stakeholderNFTAddress = _stakeholderNFT;
+        ticketNFTAddress = _ticketNFT;
+        platformWallet = _platformWallet;
+        _contractsInitialized = true;
     }
 
     /**
@@ -633,18 +636,21 @@ contract Settlement is Ownable {
         // StakeholderNFT 컨트랙트 연결
         ISettlementStakeholderNFT stakeholderNFT = ISettlementStakeholderNFT(stakeholderNFTAddress);
 
-        // bps 합계 검증 (10000 = 100%)
-        // 공연 등록 시 이미 검증되었지만, 방어적으로 한번 더 확인
+        // ========== stakeholder 정보 1회 읽기 + 검증 (루프 최적화) ==========
+        // 기존: bps 합계 검증 루프 + 분배 루프 = 외부 호출 2N번
+        // 변경: 1번 루프에서 wallet/bps를 memory 배열에 캐싱 → 외부 호출 N번
+        address[] memory wallets = new address[](stakeholderIds.length);
+        uint256[] memory bpsArray = new uint256[](stakeholderIds.length);
         uint256 totalBps = 0;
+
         for (uint256 i = 0; i < stakeholderIds.length; i++) {
-            (, , uint256 shareBps, ) = stakeholderNFT.getStakeholder(stakeholderIds[i]);
-            // StakeholderNFT에서 직접 읽음 (on-chain)
-            // 백엔드가 전달한 게 아님 → 조작 불가
-            // (wallet, role, shareBps, eventNftId) 중 shareBps만 사용
-            totalBps += shareBps;
+            (wallets[i], , bpsArray[i], ) = stakeholderNFT.getStakeholder(stakeholderIds[i]);
+            // on-chain에서 직접 읽음 → 백엔드 조작 불가
+            require(wallets[i] != address(0), "Invalid stakeholder wallet");
+            // wallet이 0x0이면 SSF가 burn되는 것을 방지
+            totalBps += bpsArray[i];
         }
         require(totalBps == 10000, "Total bps must be 10000");
-        // 합계가 100%가 아니면 뭔가 잘못된 것 → revert
 
         // ========== 정산 완료 표시 ==========
         sessionFinalized[sessionId] = true;
@@ -654,54 +660,41 @@ contract Settlement is Ownable {
 
         // ========== 정산 기록 생성 (on-chain 영구 기록) ==========
         uint256 settlementId = _nextSettlementId++;
-        // 현재 값 사용 후 +1 (0, 1, 2, 3...)
 
         settlements[settlementId] = SettlementRecord({
             eventId: eventId,
             sessionId: sessionId,
             totalAmount: totalAmount,
-            settledAt: block.timestamp     // 현재 블록 시각 (초 단위)
+            settledAt: block.timestamp
         });
-        // on-chain에 영구 기록
-        // 누구나 getSettlement(0)으로 "이 회차에서 얼마가 정산되었는지" 확인 가능
 
-        // ========== SSF 분배 실행 ==========
+        // ========== SSF 분배 실행 (memory 배열 사용 → 외부 호출 없음) ==========
         uint256 distributed = 0;
-        // 지금까지 분배한 SSF 누적 (반올림 오차 처리용)
 
-        for (uint256 i = 0; i < stakeholderIds.length; i++) {
-            // StakeholderNFT에서 지갑 주소와 비율을 on-chain에서 직접 읽기
-            (address wallet, , uint256 shareBps, ) =
-                stakeholderNFT.getStakeholder(stakeholderIds[i]);
-
-            uint256 share = (totalAmount * shareBps) / 10000;
-            // 예: 1,250,000 × 7200 / 10000 = 900,000
+        for (uint256 i = 0; i < wallets.length; i++) {
+            uint256 share;
 
             // 마지막 stakeholder = 나머지 전부 (반올림 오차 방지)
-            if (i == stakeholderIds.length - 1) {
+            if (i == wallets.length - 1) {
                 share = totalAmount - distributed;
-                // 예: 1,250,001 - 1,150,000 = 100,001
-                // → 1 SSF도 컨트랙트에 안 남음
+                // 예: 1,250,001 - 1,150,000 = 100,001 → 1 SSF도 안 남음
+            } else {
+                share = (totalAmount * bpsArray[i]) / 10000;
+                // 예: 1,250,000 × 7200 / 10000 = 900,000
             }
 
             // 분배 금액 기록 (on-chain 영구 보존)
-            distributions[settlementId][wallet] = share;
-            // 누구나 getDistribution(0, 주최자지갑)으로 조회 가능
-            // → "주최자가 실제로 900,000 SSF 받았는지" 투명하게 검증
+            distributions[settlementId][wallets[i]] = share;
 
             // SSF 전송: Settlement → stakeholder 지갑
-            bool success = ssfToken.transfer(wallet, share);
-            // transfer = 이 컨트랙트 잔고에서 직접 보냄 (approve 불필요)
+            bool success = ssfToken.transfer(wallets[i], share);
             require(success, "SSF transfer failed");
-            // 전송 실패하면 전체 TX revert
-            // → 일부만 분배되고 나머지는 안 되는 일 없음 (원자적)
+            // 전송 실패하면 전체 TX revert → 원자적 보장
 
-            emit Paid(settlementId, wallet, share, shareBps);
-            // 로그: "정산 #0에서 주최자에게 900,000 SSF (72%) 분배"
-            // 백엔드 Event Listener → DB 기록 + Push 알림
+            emit Paid(settlementId, wallets[i], share, bpsArray[i]);
+            // 백엔드 Event Listener → DB 기록
 
             distributed += share;
-            // 누적: 900,000 → 1,150,000 → 1,250,001
         }
 
         // ========== EventNFT 정산 완료 표시 ==========

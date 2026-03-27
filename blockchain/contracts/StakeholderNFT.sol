@@ -221,8 +221,26 @@ contract StakeholderNFT is ERC721, Ownable {
 
     function totalSupply() external view returns (uint256) {
         return _nextTokenId;
-        //  storage에서 읽음 → uint256은 값 타입
-        //  → 스택으로 복사해서 반환 (저렴)
-        //  → memory/calldata 명시 불필요
+    }
+
+    // ========== 지갑 주소 변경 ==========
+
+    /**
+     * @notice 이해관계자 지갑 주소 변경 (분실/교체 시)
+     *
+     * [왜 필요한가?]
+     * Soulbound이라 토큰 이전 불가
+     * → 지갑 키 분실 시 정산금이 접근 불가 지갑으로 영구 전송됨
+     * → 플랫폼(owner)만 변경 가능하도록 제한 (신뢰 기반 운영)
+     *
+     * onlyOwner = 플랫폼만 호출 가능 (이해관계자 본인 신원 확인 후 처리)
+     *
+     * @param tokenId 변경할 StakeholderNFT tokenId
+     * @param newWallet 새 지갑 주소
+     */
+    function updateWallet(uint256 tokenId, address newWallet) external onlyOwner {
+        require(newWallet != address(0), "Invalid wallet address");
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        stakeholders[tokenId].wallet = newWallet;
     }
 }

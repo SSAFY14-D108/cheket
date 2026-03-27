@@ -641,6 +641,7 @@ contract TicketNFT is ERC721, Ownable {
      * Blockscout/지갑이 이 함수를 호출 → IPFS URI 반환 → 포스터 표시
      */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
         uint256 eventId = tickets[tokenId].eventId;
         return eventTokenURIs[eventId];
     }
