@@ -48,7 +48,11 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
         select s
         from Show s
         join s.venue v
-        where s.status = com.ssafy.cheket.enums.ShowStatus.MINTED
+        where s.status in (
+                com.ssafy.cheket.enums.ShowStatus.DRAFT,
+                com.ssafy.cheket.enums.ShowStatus.MINTING,
+                com.ssafy.cheket.enums.ShowStatus.MINTED
+              )
           and s.showEndDate >= :now
           and (
                 :excludeLiked = false
