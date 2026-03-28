@@ -4,12 +4,9 @@ import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.resale.request.CreateResaleRequest;
 import com.ssafy.cheket.dto.ticket.request.PurchaseTicketRequest;
 import com.ssafy.cheket.dto.ticket.request.TransferTicketRequest;
-import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
-import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
+import com.ssafy.cheket.dto.ticket.response.*;
 import com.ssafy.cheket.dto.common.TxIdResponse;
 import com.ssafy.cheket.dto.ticket.request.CheckInRequest;
-import com.ssafy.cheket.dto.ticket.response.CheckInResponse;
-import com.ssafy.cheket.dto.ticket.response.QrTokenResponse;
 import com.ssafy.cheket.service.ticket.QrTokenService;
 import com.ssafy.cheket.service.ticket.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -67,6 +64,15 @@ public class TicketController {
         @AuthenticationPrincipal Long userId) {
         List<GetUsedAndExpiredTicketResponse> response = ticketService.getUsedAndExpiredTickets(userId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "티켓 컬렉션 목록 조회에 성공했습니다.", response));
+    }
+
+    @GetMapping("/tickets/collection/onchain")
+    @Operation(summary = "보관함 온체인 정보 포함 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetCollectionOnchainResponse>>> getCollectionWithOnchain(
+        @AuthenticationPrincipal Long userId) {
+        List<GetCollectionOnchainResponse> response = ticketService.getCollectionWithOnchain(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "보관함 온체인 정보 조회에 성공했습니다.", response));
     }
 
     @PostMapping("/tickets/{ticketId}/transfer")

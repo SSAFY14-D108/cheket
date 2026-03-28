@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.ticket;
 
+import com.ssafy.cheket.dto.ticket.response.GetCollectionOnchainResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 import com.ssafy.cheket.dto.queue.SeatAccessMeta;
@@ -33,17 +34,23 @@ import com.ssafy.cheket.repository.ticket.projection.UsedAndExpiredTicketProject
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
 import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
+import com.ssafy.cheket.service.blockchain.BlockchainService;
+import com.ssafy.cheket.blockchain.contract.TicketNFT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @Slf4j
 @Service
@@ -63,6 +70,7 @@ public class TicketServiceImpl implements TicketService {
     private final UserRepository userRepository;
     private final WalletService walletService;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
+    private final BlockchainService blockchainService;
 
     // ========== 티켓 구매 ==========
 
@@ -278,7 +286,7 @@ public class TicketServiceImpl implements TicketService {
                 new GetUpcomingTicketResponse.ShowInfo(ticket.getShowId(), ticket.getShowName(),
                     ticket.getSessionDate(), ticket.getVenueName()),
                 ticket.getPrice(), ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade(),
-                ticket.getStatus(), ticket.getMetadataIpfsCid(),
+                ticket.getStatus(), ticket.getPosterIpfsCid(), ticket.getMetadataIpfsCid(),
                 (ticket.getResalePrice() == null) ? 0 : ticket.getResalePrice()))
             .toList();
     }
@@ -458,6 +466,68 @@ public class TicketServiceImpl implements TicketService {
         });
 
         return txId;
+    }
+
+    @Override
+    public List<GetCollectionOnchainResponse> getCollectionWithOnchain(Long userId) {
+        // 1) 기존 DB 조회 (동일)
+        List<UsedAndExpiredTicketProjection> tickets = ticketRepository.findUsedAndExpiredTicketsByUserId(userId);
+
+        // 2) ticketNftId가 있는 티켓만 온체인 조회
+        return tickets.stream().map(t -> {
+            Ticket ticket = ticketRepository.findById(t.getTicketId()).orElse(null);
+
+            GetCollectionOnchainResponse.OnchainInfo onchain = null;
+            if (ticket != null && ticket.getTicketNftId() != null) {
+                try {
+                    onchain = fetchOnchainInfo(ticket.getTicketNftId());
+                } catch (Exception e) {
+                    log.warn("온체인 조회 실패 ticketNftId={}", ticket.getTicketNftId(), e);
+                }
+            }
+
+            return new GetCollectionOnchainResponse(t.getTicketId(), t.getNumbering(), t.getPosterUrl(),
+                new GetCollectionOnchainResponse.ShowInfo(t.getShowId(), t.getShowName(), t.getSessionDate(),
+                    t.getVenueName(), t.getEffect()),
+                t.getSeatId(), t.getSectionName(), t.getSeatNo(), t.getGrade(), onchain);
+        }).toList();
+    }
+
+    private GetCollectionOnchainResponse.OnchainInfo fetchOnchainInfo(Long ticketNftId) {
+        BigInteger tokenId = BigInteger.valueOf(ticketNftId);
+
+        // 병렬 조회
+        CompletableFuture<String> ownerFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return blockchainService.getTicketNFT().ownerOf(tokenId).send();
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        });
+        CompletableFuture<String> uriFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return blockchainService.getTicketNFT().tokenURI(tokenId).send();
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        });
+        CompletableFuture<TicketNFT.TicketInfo> infoFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return blockchainService.getTicketNFT().getTicket(tokenId).send();
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        });
+
+        String owner = ownerFuture.join();
+        String uri = uriFuture.join();
+        TicketNFT.TicketInfo info = infoFuture.join();
+
+        String[] statuses = {"VALID", "USED", "EXPIRED", "REFUNDED"};
+        String statusStr = statuses[info.status.intValue()];
+
+        return new GetCollectionOnchainResponse.OnchainInfo(ticketNftId, owner, uri, statusStr, info.price.longValue(),
+            info.mintedAt.longValue());
     }
 
 }

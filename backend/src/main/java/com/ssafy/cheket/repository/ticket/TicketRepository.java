@@ -31,7 +31,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                 seat.seatNo as seatNo,
                 sg.gradeName as grade,
                 t.resaleStatus as status,
-                t.metadataIpfsCid as metadataIpfsCid,
+                sh.posterIpfsCid as posterIpfsCid,
+                sh.metadataIpfsCid as metadataIpfsCid,
                 rs.resalePrice as resalePrice
             from Ticket t
             join SessionSeat ss on ss.id = t.sessionSeatId

@@ -1,5 +1,6 @@
 package com.ssafy.cheket.service.ticket;
 
+import com.ssafy.cheket.dto.ticket.response.GetCollectionOnchainResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUpcomingTicketResponse;
 import com.ssafy.cheket.dto.ticket.response.GetUsedAndExpiredTicketResponse;
 
@@ -24,5 +25,8 @@ public interface TicketService {
 
     // 리세일 등록
     Long createResale(Long userId, Long ticketId, int resalePrice);
+
+    // 보관함 온체인 정보 포함 조회
+    List<GetCollectionOnchainResponse> getCollectionWithOnchain(Long userId);
 
 }
