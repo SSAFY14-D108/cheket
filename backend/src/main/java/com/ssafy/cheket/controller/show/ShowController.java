@@ -30,9 +30,10 @@ public class ShowController {
     @Operation(summary = "공연 목록 조회")
     public ResponseEntity<ApiResponse<GetShowListResponse<ShowItem>>> getShowList(
         @RequestParam(required = false) List<Integer> regions, @RequestParam(required = false) ShowSort sort,
-        @RequestParam(required = false) String keyword, @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size) {
-        GetShowListResponse<ShowItem> response = showService.getShowList(regions, sort, keyword, page, size);
+        @RequestParam(required = false) String keyword, @RequestParam(defaultValue = "false") boolean includeEnded,
+        @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        GetShowListResponse<ShowItem> response = showService.getShowList(regions, sort, keyword, includeEnded, page,
+            size);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연 목록 조회 완료", response));
     }
 

@@ -81,8 +81,8 @@ public class ShowServiceImpl implements ShowService {
 
     // 공연 검색 및 목록 조회
     @Override
-    public GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword, int page,
-        int size) {
+    public GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword,
+        boolean includeEnded, int page, int size) {
 
         List<Integer> normalizedRegions = (regions == null) ? List.of() : regions;
         String normalized = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
@@ -95,13 +95,13 @@ public class ShowServiceImpl implements ShowService {
             case POPULAR -> {
                 pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100));
                 result = showRepository.searchOrderByPopular(normalizedRegions, (long) normalizedRegions.size(),
-                    normalized, pageable);
+                    normalized, includeEnded, now, pageable);
             }
             case LATEST -> {
                 pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
                     Sort.by(Sort.Direction.DESC, "createdAt"));
                 result = showRepository.search(normalizedRegions, (long) normalizedRegions.size(), normalized,
-                    pageable);
+                    includeEnded, now, pageable);
             }
             case OPEN_SOON -> {
                 pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100),
