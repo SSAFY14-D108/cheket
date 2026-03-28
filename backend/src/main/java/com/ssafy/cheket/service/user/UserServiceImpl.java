@@ -7,6 +7,7 @@ import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
+import com.ssafy.cheket.dto.user.response.GetMyShowsResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 import com.ssafy.cheket.entity.notification.Notification;
 import com.ssafy.cheket.entity.user.User;
@@ -195,5 +196,11 @@ public class UserServiceImpl implements UserService {
             throw new ForbiddenException("해당 알림에 접근할 수 없습니다.");
 
         notification.setRead(true);
+    }
+
+    // 내가 참여한 공연 목록 조회
+    @Override
+    public List<GetMyShowsResponse> getMyShows(Long userId) {
+        return stakeholderRepository.findMyShows(userId, ApprovalStatus.APPROVED);
     }
 }

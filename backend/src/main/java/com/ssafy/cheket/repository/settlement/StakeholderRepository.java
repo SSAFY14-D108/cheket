@@ -1,5 +1,6 @@
 package com.ssafy.cheket.repository.settlement;
 
+import com.ssafy.cheket.dto.user.response.GetMyShowsResponse;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.enums.ApprovalStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,4 +45,22 @@ public interface StakeholderRepository extends JpaRepository<Stakeholder, Long> 
         """)
     boolean existsActiveApprovedStakeholderByUserId(@Param("userId") Long userId,
         @Param("status") ApprovalStatus status, @Param("now") LocalDateTime now);
+
+    @Query("""
+            select distinct new com.ssafy.cheket.dto.user.response.GetMyShowsResponse(
+                s.id,
+                s.title,
+                s.artist,
+                s.posterUrl,
+                s.showStartDate,
+                s.showEndDate
+            )
+            from Stakeholder st
+            join Show s on st.showId = s.id
+            where st.userId = :userId
+              and st.approvalStatus = :approvalStatus
+            order by s.showStartDate desc
+        """)
+    List<GetMyShowsResponse> findMyShows(@Param("userId") Long userId,
+        @Param("approvalStatus") ApprovalStatus approvalStatus);
 }

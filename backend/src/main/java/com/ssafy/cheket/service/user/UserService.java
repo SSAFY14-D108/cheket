@@ -6,6 +6,7 @@ import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
 import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
+import com.ssafy.cheket.dto.user.response.GetMyShowsResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 
 import java.util.List;
@@ -26,4 +27,6 @@ public interface UserService {
     List<GetNotificationsResponse> getNotifications(Long userId);
 
     void readNotification(Long userId, Long notificationId);
+
+    List<GetMyShowsResponse> getMyShows(Long userId);
 }
