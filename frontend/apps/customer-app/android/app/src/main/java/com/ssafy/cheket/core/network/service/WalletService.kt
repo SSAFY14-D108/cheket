@@ -12,7 +12,9 @@ interface WalletService {
     suspend fun refreshBalance(): ApiResponse<BalanceResponse>
 
     @GET("api/v1/wallets/transactions")
-    suspend fun getTransactions(): ApiResponse<List<TransactionDto>>
+    suspend fun getTransactions(
+        @Query("type") type: String? = null,
+    ): ApiResponse<List<TransactionDto>>
 
     @GET("api/v1/wallets/transactions/{txId}")
     suspend fun getTransactionStatus(@Path("txId") txId: Long): ApiResponse<TxStatusDto>
