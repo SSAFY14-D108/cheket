@@ -27,7 +27,7 @@ public class RecommendationAiClient {
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
-    @Value("${ai.server.base-url")
+    @Value("${ai.server.base-url}")
     private String baseUrl;
 
     public RecommendationResponsePayload recommend(RecommendationRequestPayload payload) {

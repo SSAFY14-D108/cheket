@@ -9,6 +9,7 @@ import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
 import com.ssafy.cheket.dto.user.request.UserSignupRequest;
 import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
 import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.user.response.GetMyShowsResponse;
 import com.ssafy.cheket.dto.user.response.GetProfileResponse;
 import com.ssafy.cheket.service.notification.NotificationService;
 import com.ssafy.cheket.service.user.UserService;
@@ -109,5 +110,13 @@ public class UserController {
         notificationService.createNotification(createRequest, request.data());
 
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "테스트 알림 발송 완료", null));
+    }
+
+    @GetMapping("/my-shows")
+    @Operation(summary = "내가 참여한 공연 목록")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetMyShowsResponse>>> getMyShows(@AuthenticationPrincipal Long userId) {
+        List<GetMyShowsResponse> response = userService.getMyShows(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "내가 참여한 공연 목록 조회에 성공했습니다.", response));
     }
 }
