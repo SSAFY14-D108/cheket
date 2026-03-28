@@ -107,10 +107,18 @@ public class TicketController {
     }
 
     @PostMapping("/tickets/check-in")
-    @Operation(summary = "QR 입장 검증 + 체크인", description = "검증 앱에서 QR 스캔 후 온체인 소유권 검증 + 체크인 처리")
+    @Operation(summary = "QR 입장 검증 + 체크인 (DB)", description = "검증 앱에서 QR 스캔 후 DB 기반 소유권 검증 + 체크인 처리")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(@RequestBody CheckInRequest request) {
         CheckInResponse response = qrTokenService.verifyAndCheckIn(request.qrToken());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "입장이 확인되었습니다.", response));
+    }
+
+    @PostMapping("/tickets/check-in/onchain")
+    @Operation(summary = "QR 입장 검증 + 체크인 (온체인)", description = "검증 앱에서 QR 스캔 후 온체인 소유권 검증 + 체크인 처리")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<CheckInResponse>> checkInOnchain(@RequestBody CheckInRequest request) {
+        CheckInResponse response = qrTokenService.verifyAndCheckInOnchain(request.qrToken());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "입장이 확인되었습니다.", response));
     }
 

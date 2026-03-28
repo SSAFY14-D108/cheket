@@ -174,13 +174,11 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(showId);
 
-        List<Long> hostIds = stakeholders.stream()
-            .filter(s -> s.getRole() == StakeholderRole.ORGANIZER).map(Stakeholder::getHostId)
-            .filter(Objects::nonNull).distinct().toList();
+        List<Long> hostIds = stakeholders.stream().filter(s -> s.getRole() == StakeholderRole.ORGANIZER)
+            .map(Stakeholder::getHostId).filter(Objects::nonNull).distinct().toList();
 
-        List<Long> userIds = stakeholders.stream()
-            .filter(s -> s.getRole() == StakeholderRole.ARTIST).map(Stakeholder::getUserId)
-            .filter(Objects::nonNull).distinct().toList();
+        List<Long> userIds = stakeholders.stream().filter(s -> s.getRole() == StakeholderRole.ARTIST)
+            .map(Stakeholder::getUserId).filter(Objects::nonNull).distinct().toList();
 
         Map<Long, Host> hostMap = hostIds.isEmpty()
             ? Collections.emptyMap()
@@ -227,8 +225,8 @@ public class DashboardServiceImpl implements DashboardService {
                     stakeholder.getShareBps(), amount, onchain);
             })).toList();
 
-        List<GetRevenueSplitOnchainResponse.SplitOnchainInfo> splits = futures.stream()
-            .map(CompletableFuture::join).toList();
+        List<GetRevenueSplitOnchainResponse.SplitOnchainInfo> splits = futures.stream().map(CompletableFuture::join)
+            .toList();
 
         return new GetRevenueSplitOnchainResponse(show.getId(), show.getTitle(), totalRevenue, splits);
     }
