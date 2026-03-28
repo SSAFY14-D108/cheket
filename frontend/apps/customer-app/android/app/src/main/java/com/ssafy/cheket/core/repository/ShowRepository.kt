@@ -15,6 +15,7 @@ interface ShowRepository {
         regions: List<Int>? = null,
         sort: String? = null,
         keyword: String? = null,
+        includeEnded: Boolean? = null,
         page: Int = 0,
         size: Int = 20,
     ): ShowPage

@@ -269,6 +269,13 @@ fun TicketDetailScreen(
                         value = ticket.numbering.ifBlank { ticket.id },
                     )
 
+                    ticket.posterIpfsCid?.let {
+                        NftInfoRow(
+                            label = "Poster CID",
+                            value = it,
+                        )
+                    }
+
                     ticket.metadataIpfsCid?.let {
                         NftInfoRow(
                             label = "Metadata CID",

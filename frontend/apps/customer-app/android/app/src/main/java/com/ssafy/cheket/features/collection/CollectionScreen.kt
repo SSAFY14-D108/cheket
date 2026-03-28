@@ -1,3 +1,5 @@
+// NOTE: 미사용 화면. 네이티브 Compose 컬렉션 뷰어였으나,
+// CollectionListWebViewScreen(customer-collection 웹앱 WebView)으로 대체됨.
 package com.ssafy.cheket.features.collection
 
 import androidx.compose.animation.core.*

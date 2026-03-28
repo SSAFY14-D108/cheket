@@ -16,6 +16,7 @@ class FakeShowRepository : ShowRepository {
         regions: List<Int>?,
         sort: String?,
         keyword: String?,
+        includeEnded: Boolean?,
         page: Int,
         size: Int,
     ): ShowPage {

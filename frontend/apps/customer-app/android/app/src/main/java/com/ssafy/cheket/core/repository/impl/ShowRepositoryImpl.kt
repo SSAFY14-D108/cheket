@@ -74,15 +74,17 @@ class ShowRepositoryImpl(
         regions: List<Int>?,
         sort: String?,
         keyword: String?,
+        includeEnded: Boolean?,
         page: Int,
         size: Int,
     ): ShowPage {
-        Log.d(TAG, "getShowsPage(regions=$regions, sort=$sort, keyword=$keyword, page=$page, size=$size)")
+        Log.d(TAG, "getShowsPage(regions=$regions, sort=$sort, keyword=$keyword, includeEnded=$includeEnded, page=$page, size=$size)")
         return try {
             val response = showService.getShows(
                 regions = regions,
                 sort = sort,
                 keyword = keyword,
+                includeEnded = includeEnded,
                 page = page,
                 size = size,
             )

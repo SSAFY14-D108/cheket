@@ -1,3 +1,12 @@
+export interface OnchainInfo {
+  tokenId: number
+  ownerAddress: string
+  tokenURI: string
+  onchainStatus: string // "VALID" | "USED" | "EXPIRED" | "REFUNDED"
+  price: number
+  mintedAt: number // Unix timestamp
+}
+
 export interface CollectionTicket {
   id: string
   eventId: string
@@ -11,9 +20,10 @@ export interface CollectionTicket {
   numbering: string
   status: 'USED'
   effect?: string | null
+  onchain?: OnchainInfo | null
 }
 
-// Backend API response shape
+// Backend API response shape (onchain version)
 export interface CollectionTicketDto {
   ticketId: number
   numbering: string
@@ -29,6 +39,14 @@ export interface CollectionTicketDto {
   sectionName: string
   seatNo: string
   grade: string
+  onchain?: {
+    tokenId: number
+    ownerAddress: string
+    tokenURI: string
+    onchainStatus: string
+    price: number
+    mintedAt: number
+  } | null
 }
 
 export interface ApiResponse<T> {
@@ -51,5 +69,6 @@ export function mapDtoToTicket(dto: CollectionTicketDto): CollectionTicket {
     numbering: dto.numbering,
     status: 'USED',
     effect: dto.show.effect ?? null,
+    onchain: dto.onchain ?? null,
   }
 }

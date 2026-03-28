@@ -21,7 +21,7 @@ interface ScannerApiService {
         @Body request: RefreshTokenRequest,
     ): Response<ApiEnvelope<HostLoginResponse>>
 
-    @POST("/api/v1/tickets/check-in")
+    @POST("/api/v1/tickets/check-in/onchain")
     suspend fun checkIn(
         @Body request: CheckInRequest,
     ): Response<ApiEnvelope<CheckInResponse>>

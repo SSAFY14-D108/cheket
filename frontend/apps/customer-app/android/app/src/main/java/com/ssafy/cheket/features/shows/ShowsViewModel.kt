@@ -52,6 +52,7 @@ data class ShowsUiState(
     val searchQuery: String = "",
     val sortBy: SortOption = SortOption.POPULAR,
     val selectedRegions: List<RegionOption> = emptyList(),
+    val includeEnded: Boolean = false,
     val isLoading: Boolean = true,
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -158,14 +159,20 @@ class ShowsViewModel(
         loadShows(page = 0)
     }
 
-    fun resetFilters() {
-        Log.d(TAG, "resetFilters()")
-        _uiState.value = _uiState.value.copy(selectedRegions = emptyList())
+    fun onIncludeEndedChange(includeEnded: Boolean) {
+        Log.d(TAG, "onIncludeEndedChange() includeEnded=$includeEnded")
+        _uiState.value = _uiState.value.copy(includeEnded = includeEnded)
         loadShows(page = 0)
     }
 
-    fun hasActiveFilters(): Boolean = _uiState.value.selectedRegions.isNotEmpty()
-    fun activeFilterCount(): Int = _uiState.value.selectedRegions.size
+    fun resetFilters() {
+        Log.d(TAG, "resetFilters()")
+        _uiState.value = _uiState.value.copy(selectedRegions = emptyList(), includeEnded = false)
+        loadShows(page = 0)
+    }
+
+    fun hasActiveFilters(): Boolean = _uiState.value.selectedRegions.isNotEmpty() || _uiState.value.includeEnded
+    fun activeFilterCount(): Int = _uiState.value.selectedRegions.size + if (_uiState.value.includeEnded) 1 else 0
 
     private fun loadShows(page: Int = 0, append: Boolean = false) {
         viewModelScope.launch {
@@ -179,12 +186,14 @@ class ShowsViewModel(
 
             val keyword = s.searchQuery.trim().ifBlank { null }
             val regions = s.selectedRegions.map { it.apiValue }.ifEmpty { null }
+            val includeEnded = if (s.includeEnded) true else null
 
             try {
                 val result = showRepository.getShowsPage(
                     regions = regions,
                     sort = s.sortBy.apiValue,
                     keyword = keyword,
+                    includeEnded = includeEnded,
                     page = page,
                     size = PAGE_SIZE,
                 )

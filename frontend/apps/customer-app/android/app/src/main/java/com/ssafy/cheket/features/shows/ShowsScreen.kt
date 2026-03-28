@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -233,6 +235,31 @@ fun ShowsScreen(
                             isRegionSheetOpen = true
                         },
                     )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            viewModel.onIncludeEndedChange(!uiState.includeEnded)
+                        },
+                    ) {
+                        Checkbox(
+                            checked = uiState.includeEnded,
+                            onCheckedChange = viewModel::onIncludeEndedChange,
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Primary,
+                                uncheckedColor = MutedForeground,
+                            ),
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = "종료 포함",
+                            fontSize = 11.sp,
+                            color = if (uiState.includeEnded) OnBackground else MutedForeground,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                    }
 
                     if (viewModel.hasActiveFilters()) {
                         TextButton(onClick = viewModel::resetFilters) {
