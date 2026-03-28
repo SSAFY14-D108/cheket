@@ -10,7 +10,8 @@ import java.util.List;
 
 public interface ShowService {
 
-    GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword, int page, int size);
+    GetShowListResponse<ShowItem> getShowList(List<Integer> regions, ShowSort sort, String keyword,
+        boolean includeEnded, int page, int size);
 
     GetShowDetailResponse getShowDetail(Long showId, Long userId);
 

@@ -29,9 +29,11 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
           and s.status <> com.ssafy.cheket.enums.ShowStatus.PENDING_CONTRACT
+          and (:includeEnded = true or s.showEndDate >= :now)
         """)
     Page<Show> search(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
-        @Param("keyword") String keyword, Pageable pageable);
+        @Param("keyword") String keyword, @Param("includeEnded") boolean includeEnded, @Param("now") LocalDateTime now,
+        Pageable pageable);
 
     @Query("""
         select s
@@ -78,10 +80,12 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
                 or lower(s.artist) like lower(concat('%', :keyword, '%'))
                 or lower(v.name) like lower(concat('%', :keyword, '%'))
           )
+          and (:includeEnded = true or s.showEndDate >= :now)
         order by s.reservationCount desc, s.id desc
         """)
     Page<Show> searchOrderByPopular(@Param("regions") List<Integer> regions, @Param("regionCount") Long regionCount,
-        @Param("keyword") String keyword, Pageable pageable);
+        @Param("keyword") String keyword, @Param("includeEnded") boolean includeEnded, @Param("now") LocalDateTime now,
+        Pageable pageable);
 
     // 마감 임박순
     @EntityGraph(attributePaths = {"venue"})
