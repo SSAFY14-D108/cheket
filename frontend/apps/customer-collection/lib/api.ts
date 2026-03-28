@@ -27,7 +27,7 @@ async function fetchWithRetry(
 
 export async function fetchCollectionTickets(token: string): Promise<CollectionTicketDto[]> {
   const res = await fetchWithRetry(
-    `${API_BASE}/proxy/api/v1/tickets/collection`,
+    `${API_BASE}/proxy/api/v1/tickets/collection/onchain`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

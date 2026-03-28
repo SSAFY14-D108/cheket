@@ -1,3 +1,4 @@
+// NOTE: 미사용 화면. Routes.ARCHIVE로 네비게이션하는 코드가 앱에 없음.
 package com.ssafy.cheket.features.collection
 
 import androidx.compose.foundation.background

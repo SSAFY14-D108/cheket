@@ -73,9 +73,20 @@ data class Ticket(
     val status: TicketStatus,
     val resalePrice: Int? = null,
     val metadataIpfsCid: String? = null,
+    val posterIpfsCid: String? = null,
     val attendedDate: String? = null,
     val numbering: String = "",
     val effect: String? = null,
+    val onchain: OnchainInfo? = null,
+)
+
+data class OnchainInfo(
+    val tokenId: Long,
+    val ownerAddress: String,
+    val tokenURI: String,
+    val onchainStatus: String,
+    val price: Long,
+    val mintedAt: Long,
 )
 
 data class User(

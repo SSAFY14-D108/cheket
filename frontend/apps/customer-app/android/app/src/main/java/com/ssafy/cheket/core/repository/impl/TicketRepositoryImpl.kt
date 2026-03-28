@@ -1,8 +1,10 @@
 package com.ssafy.cheket.core.repository.impl
 
 import android.util.Log
+import com.ssafy.cheket.core.model.OnchainInfo
 import com.ssafy.cheket.core.model.Ticket
 import com.ssafy.cheket.core.model.TicketStatus
+import com.ssafy.cheket.core.network.dto.OnchainInfoDto
 import com.ssafy.cheket.core.network.dto.UpcomingTicketDto
 import com.ssafy.cheket.core.network.service.TicketService
 import com.ssafy.cheket.core.repository.TicketRepository
@@ -62,8 +64,9 @@ class TicketRepositoryImpl(
                     seatLabel = "${dto.sectionName} ${dto.seatNo}",
                     grade = dto.grade,
                     originalPrice = 0,
-                    status = TicketStatus.USED,
+                    status = mapOnchainStatus(dto.onchain?.onchainStatus),
                     effect = dto.show.effect,
+                    onchain = dto.onchain?.let(::mapOnchainInfo),
                 )
             } ?: emptyList()
             emit(tickets)
@@ -105,8 +108,26 @@ class TicketRepositoryImpl(
             status = mapTicketStatus(dto.status),
             resalePrice = dto.resalePrice,
             metadataIpfsCid = dto.metadataIpfsCid,
+            posterIpfsCid = dto.posterIpfsCid,
             effect = dto.show.effect,
         )
+    }
+
+    private fun mapOnchainInfo(dto: OnchainInfoDto): OnchainInfo = OnchainInfo(
+        tokenId = dto.tokenId,
+        ownerAddress = dto.ownerAddress,
+        tokenURI = dto.tokenURI,
+        onchainStatus = dto.onchainStatus,
+        price = dto.price,
+        mintedAt = dto.mintedAt,
+    )
+
+    private fun mapOnchainStatus(status: String?): TicketStatus = when (status?.uppercase()) {
+        "VALID" -> TicketStatus.AVAILABLE
+        "USED" -> TicketStatus.USED
+        "EXPIRED" -> TicketStatus.EXPIRED
+        "REFUNDED" -> TicketStatus.EXPIRED
+        else -> TicketStatus.USED
     }
 
     private fun mapTicketStatus(status: String): TicketStatus = when (status.uppercase()) {
