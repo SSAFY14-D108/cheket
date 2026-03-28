@@ -136,6 +136,7 @@ type NumberAuraSetting = 'auto' | NumberAuraType
 interface FaceProps {
   ticket: Ticket
   onFlip: () => void
+  onShowOnchain?: () => void
   metalEffect?: MetalEffect
   eagerLoad?: boolean
   holoActive?: boolean
@@ -500,9 +501,8 @@ function TicketFront({
   )
 }
 
-function TicketBack({ ticket, onFlip, numberAura }: FaceProps) {
+function TicketBack({ ticket, onFlip, onShowOnchain, numberAura }: FaceProps) {
   const grade = getGrade(ticket.grade)
-  const [showOnchain, setShowOnchain] = useState(false)
 
   return (
     <div
@@ -567,9 +567,9 @@ function TicketBack({ ticket, onFlip, numberAura }: FaceProps) {
             </div>
           </div>
 
-          {ticket.onchain && (
+          {ticket.onchain && onShowOnchain && (
             <button
-              onClick={(e) => { e.stopPropagation(); setShowOnchain(true) }}
+              onClick={(e) => { e.stopPropagation(); onShowOnchain() }}
               style={{
                 marginTop: 'auto',
                 display: 'flex',
@@ -595,14 +595,6 @@ function TicketBack({ ticket, onFlip, numberAura }: FaceProps) {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showOnchain && ticket.onchain && (
-          <OnchainModal
-            onchain={ticket.onchain}
-            onClose={() => setShowOnchain(false)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   )
 }
@@ -630,17 +622,15 @@ function OnchainModal({ onchain, onClose }: { onchain: OnchainInfo; onClose: () 
       transition={{ duration: 0.2 }}
       onClick={(e) => { e.stopPropagation(); onClose() }}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         inset: 0,
-        zIndex: 50,
+        zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        background: 'rgba(0,0,0,0.6)',
-        borderRadius: 'inherit',
-        overflow: 'hidden',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(0,0,0,0.7)',
       }}
     >
       <motion.div
@@ -650,8 +640,9 @@ function OnchainModal({ onchain, onClose }: { onchain: OnchainInfo; onClose: () 
         transition={{ type: 'spring', damping: 26, stiffness: 350 }}
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 'calc(100% - 28px)',
-          maxHeight: 'calc(100% - 28px)',
+          width: 'calc(100% - 48px)',
+          maxWidth: 380,
+          maxHeight: 'calc(100% - 80px)',
           background: 'linear-gradient(145deg, #111827 0%, #0d1117 100%)',
           borderRadius: 16,
           border: '1px solid rgba(0,197,152,0.2)',
@@ -811,6 +802,7 @@ export function CollectibleTicketCard({
   metalEffect,
   compact = false,
   onOpen,
+  onShowOnchain,
   holoVariant = 'rainbow',
   enableHolo,
   pokeEffect,
@@ -824,6 +816,7 @@ export function CollectibleTicketCard({
   metalEffect?: MetalEffect
   compact?: boolean
   onOpen?: () => void
+  onShowOnchain?: () => void
   holoVariant?: HoloVariant
   enableHolo?: boolean
   pokeEffect?: PokeEffect
@@ -1052,7 +1045,7 @@ export function CollectibleTicketCard({
                       />
                     </div>
                     <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-                      <TicketBack ticket={ticket} onFlip={() => {}} numberAura={resolvedNumberAura} />
+                      <TicketBack ticket={ticket} onFlip={() => {}} onShowOnchain={onShowOnchain} numberAura={resolvedNumberAura} />
                     </div>
                   </ReactCardFlip>
                 </LazyParallaxTilt>
@@ -1072,6 +1065,7 @@ function CollectionCoverFlow({
   onActiveIndexChange,
   getEffect,
   getNumberAura,
+  onShowOnchain,
   disableParallaxTilt = false,
 }: {
   tickets: Ticket[]
@@ -1081,6 +1075,7 @@ function CollectionCoverFlow({
   onActiveIndexChange: (index: number) => void
   getEffect: (ticketId: string) => EffectType
   getNumberAura: (ticketId: string) => NumberAuraType
+  onShowOnchain?: (ticket: Ticket) => void
   disableParallaxTilt?: boolean
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -1188,6 +1183,7 @@ function CollectionCoverFlow({
                       numberAura={numberAura}
                       nativeTiltTarget={isFocus}
                       disableParallaxTilt={disableParallaxTilt}
+                      onShowOnchain={onShowOnchain ? () => onShowOnchain(ticket) : undefined}
                     />
                   </motion.div>
                 </div>
@@ -1210,6 +1206,7 @@ export function CollectionScreen({
   disableParallaxTilt?: boolean
 }) {
   useNativeTiltBridge() // Android 가속계 → DeviceOrientation 변환
+  const [onchainTicket, setOnchainTicket] = useState<Ticket | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [settledIndex, setSettledIndex] = useState(0)
   const [transitionOriginIndex, setTransitionOriginIndex] = useState(0)
@@ -1470,6 +1467,7 @@ export function CollectionScreen({
                   onActiveIndexChange={setActiveIndex}
                   getEffect={getEffect}
                   getNumberAura={getResolvedNumberAura}
+                  onShowOnchain={(ticket) => setOnchainTicket(ticket)}
                   disableParallaxTilt={disableParallaxTilt}
                 />
               </div>
@@ -1485,6 +1483,15 @@ export function CollectionScreen({
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {onchainTicket?.onchain && (
+          <OnchainModal
+            onchain={onchainTicket.onchain}
+            onClose={() => setOnchainTicket(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

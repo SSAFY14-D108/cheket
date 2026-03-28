@@ -480,8 +480,8 @@ private fun MenuList(
         MenuDivider()
         MenuRow(
             icon = Icons.Outlined.Receipt,
-            title = "거래 내역",
-            subtitle = "거래와 정산 내역을 확인하세요",
+            title = "트랜젝션 내역",
+            subtitle = "트랜젝션과 정산 내역을 확인하세요",
             onClick = onTxHistory,
         )
         MenuDivider()
