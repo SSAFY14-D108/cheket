@@ -3,6 +3,7 @@ package com.ssafy.cheket.controller.host;
 import com.ssafy.cheket.dto.common.ApiResponse;
 import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
 import com.ssafy.cheket.dto.host.response.GetReservationsResponse;
+import com.ssafy.cheket.dto.host.response.GetRevenueSplitOnchainResponse;
 import com.ssafy.cheket.dto.host.response.GetRevenueSplitResponse;
 import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
 import com.ssafy.cheket.service.host.DashboardService;
@@ -49,6 +50,17 @@ public class DashboardController {
             .orElse(null);
         GetRevenueSplitResponse response = dashboardService.getRevenueSplit(loginId, role, showId);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "수입 배분 조회 완료", response));
+    }
+
+    @GetMapping("/revenue-split/onchain")
+    @Operation(summary = "수입 배분 조회(온체인)")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetRevenueSplitOnchainResponse>> getRevenueSplitOnchain(
+        @AuthenticationPrincipal Long loginId, Authentication authentication, @PathVariable Long showId) {
+        String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+            .orElse(null);
+        GetRevenueSplitOnchainResponse response = dashboardService.getRevenueSplitOnchain(loginId, role, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "수입 배분 온체인 조회 완료", response));
     }
 
     @GetMapping("/reservations")

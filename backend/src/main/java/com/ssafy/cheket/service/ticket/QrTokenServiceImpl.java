@@ -74,11 +74,72 @@ public class QrTokenServiceImpl implements QrTokenService {
         return new QrTokenResponse(qrToken, QR_TOKEN_EXPIRY_SECONDS);
     }
 
-    // ===== QR 토큰 검증 + 온체인 체크인 (검증 앱용) =====
+    // ===== QR 토큰 검증 + DB 체크인 (검증 앱용) =====
 
     @Override
     @Transactional
     public CheckInResponse verifyAndCheckIn(String qrToken) {
+
+        // ── 1단계: JWT 서명 + 만료 검증 ──
+        Claims claims;
+        try {
+            claims = jwtTokenProvider.parseQrToken(qrToken);
+        } catch (ExpiredJwtException e) {
+            throw new BadRequestException("QR 코드가 만료되었습니다. 재발급 받아주세요.");
+        } catch (Exception e) {
+            throw new BadRequestException("유효하지 않은 QR 코드입니다.");
+        }
+
+        String type = claims.get("type", String.class);
+        if (!"QR_TOKEN".equals(type)) {
+            throw new BadRequestException("유효하지 않은 QR 코드입니다.");
+        }
+
+        Long ticketId = Long.parseLong(claims.getSubject());
+        Long userId = claims.get("userId", Long.class);
+
+        // ── 2단계: Redis 일회성 확인 + 삭제 ──
+        String savedToken = qrTokenRedisRepository.find(ticketId)
+            .orElseThrow(() -> new BadRequestException("이미 사용되었거나 만료된 QR 코드입니다."));
+
+        if (!savedToken.equals(qrToken)) {
+            throw new BadRequestException("유효하지 않은 QR 코드입니다.");
+        }
+
+        qrTokenRedisRepository.delete(ticketId);
+
+        // ── 3단계: DB에서 티켓 조회 ──
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new NotFoundException("티켓을 찾을 수 없습니다."));
+
+        if (ticket.getCheckedInAt() != null) {
+            throw new BadRequestException("이미 입장 처리된 티켓입니다.");
+        }
+
+        // ── 4단계: DB 소유권 검증 ──
+        if (!ticket.getUserId().equals(userId)) {
+            throw new ForbiddenException("티켓 소유자가 아닙니다.");
+        }
+
+        // ── 5단계: DB 체크인 기록 + 티켓 상태 USED 변경 ──
+        ticket.setCheckedInAt(LocalDateTime.now());
+        ticket.setResaleStatus(ResaleStatus.USED);
+        ticketRepository.save(ticket);
+
+        // ── 6단계: 응답 (DB 좌석 정보 기반) ──
+        CheckInTicketProjection dbInfo = ticketRepository.findCheckInInfoByTicketId(ticketId);
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
+        return new CheckInResponse(true, ticket.getId(), user.getUsername(),
+            dbInfo != null ? dbInfo.getShowTitle() : null, dbInfo != null ? dbInfo.getSectionName() : null,
+            dbInfo != null ? dbInfo.getSeatNo() : null, dbInfo != null ? dbInfo.getGrade() : null,
+            ticket.getCheckedInAt().toString());
+    }
+
+    // ===== QR 토큰 검증 + 온체인 체크인 (검증 앱용) =====
+
+    @Override
+    @Transactional
+    public CheckInResponse verifyAndCheckInOnchain(String qrToken) {
 
         // ── 1단계: JWT 서명 + 만료 검증 ──
         Claims claims;
