@@ -286,7 +286,7 @@ public class TicketServiceImpl implements TicketService {
                 new GetUpcomingTicketResponse.ShowInfo(ticket.getShowId(), ticket.getShowName(),
                     ticket.getSessionDate(), ticket.getVenueName()),
                 ticket.getPrice(), ticket.getSeatId(), ticket.getSectionName(), ticket.getSeatNo(), ticket.getGrade(),
-                ticket.getStatus(), ticket.getMetadataIpfsCid(),
+                ticket.getStatus(), ticket.getPosterIpfsCid(), ticket.getMetadataIpfsCid(),
                 (ticket.getResalePrice() == null) ? 0 : ticket.getResalePrice()))
             .toList();
     }

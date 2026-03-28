@@ -114,6 +114,4 @@ public class TicketController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "입장이 확인되었습니다.", response));
     }
 
-
-
 }
