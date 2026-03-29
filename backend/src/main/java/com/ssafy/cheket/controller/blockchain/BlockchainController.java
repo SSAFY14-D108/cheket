@@ -3,6 +3,7 @@ package com.ssafy.cheket.controller.blockchain;
 import com.ssafy.cheket.service.blockchain.MintingService;
 import com.ssafy.cheket.service.blockchain.SettlementService;
 import com.ssafy.cheket.service.blockchain.ShowMintingService;
+import com.ssafy.cheket.service.wallet.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class BlockchainController {
     private final ShowMintingService showMintingService;
     private final MintingService mintingService;
     private final SettlementService settlementService;
+    private final WalletService walletService;
 
     // ========== 민팅 ==========
 
@@ -149,5 +151,13 @@ public class BlockchainController {
     public ResponseEntity<Map<String, Object>> getAvailableSeats(@PathVariable Long showId,
         @RequestParam(defaultValue = "3") int count) {
         return ResponseEntity.ok(mintingService.getAvailableSeats(showId, count));
+    }
+
+    @PostMapping("/test/collect-ssf")
+    @Operation(summary = "[테스트] 테스트 계정 SSF 일괄 회수",
+        description = "test00~test114 계정의 SSF를 플랫폼 지갑으로 일괄 전송")
+    public ResponseEntity<Map<String, Object>> collectTestAccountsSsf() {
+        log.info("[테스트] 테스트 계정 SSF 일괄 회수 요청");
+        return ResponseEntity.ok(walletService.collectSsfFromTestAccounts());
     }
 }

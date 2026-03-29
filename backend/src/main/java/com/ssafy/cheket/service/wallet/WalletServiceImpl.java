@@ -24,17 +24,22 @@ import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.tx.RawTransactionManager;
 
+import java.io.File;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 지갑 서비스 구현체 — 초기 SSF 전송
@@ -225,6 +230,120 @@ public class WalletServiceImpl implements WalletService {
         // 2. 지갑에서 잔액 읽기
         Integer balance = wallet.getCtkBalance() != null ? wallet.getCtkBalance() : 0;
         return new WalletBalanceResponse(balance, wallet.getAddress());
+    }
+
+    @Value("${wallet.keystore.password}")
+    private String keystorePassword;
+
+    @Value("${wallet.keystore.directory}")
+    private String keystoreDirectory;
+
+    // -- 테스트 계정(userId 27~141) SSF 일괄 회수 → 플랫폼 지갑으로 --
+    @Override
+    public Map<String, Object> collectSsfFromTestAccounts() {
+        Credentials platformCredentials = Credentials.create(platformPrivateKey);
+        String platformAddress = platformCredentials.getAddress();
+
+        int success = 0;
+        int skipped = 0;
+        int failed = 0;
+        long totalCollected = 0;
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        for (long userId = 27; userId <= 141; userId++) {
+            try {
+                User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElse(null);
+                if (user == null) {
+                    skipped++;
+                    continue;
+                }
+                Wallet wallet = walletRepository.findById(user.getWalletId()).orElse(null);
+                if (wallet == null || wallet.getKeystoreFilename() == null) {
+                    skipped++;
+                    continue;
+                }
+
+                // ① 온체인 잔액 조회
+                Function balanceOfFunction = new Function("balanceOf",
+                    Collections.singletonList(new Address(wallet.getAddress())),
+                    Collections.singletonList(new TypeReference<Uint256>() {
+                    }));
+                String encodedBalance = FunctionEncoder.encode(balanceOfFunction);
+                EthCall ethCall = web3j
+                    .ethCall(
+                        org.web3j.protocol.core.methods.request.Transaction
+                            .createEthCallTransaction(wallet.getAddress(), ssfContractAddress, encodedBalance),
+                        DefaultBlockParameterName.LATEST)
+                    .send();
+
+                if (ethCall.hasError()) {
+                    failed++;
+                    continue;
+                }
+
+                List<Type> decoded = FunctionReturnDecoder.decode(ethCall.getValue(),
+                    balanceOfFunction.getOutputParameters());
+                BigInteger balance = (BigInteger) decoded.get(0).getValue();
+
+                if (balance.compareTo(BigInteger.ZERO) <= 0) {
+                    skipped++;
+                    continue;
+                }
+
+                // ② 유저 키스토어로 서명하여 transfer(platformAddress, balance)
+                Credentials userCredentials = WalletUtils.loadCredentials(keystorePassword,
+                    new File(keystoreDirectory + "/" + wallet.getKeystoreFilename()));
+                RawTransactionManager txManager = new RawTransactionManager(web3j, userCredentials, chainId);
+
+                Function transferFunction = new Function("transfer",
+                    Arrays.asList(new Address(platformAddress), new Uint256(balance)),
+                    Collections.singletonList(new TypeReference<Bool>() {
+                    }));
+                String encodedTransfer = FunctionEncoder.encode(transferFunction);
+
+                EthSendTransaction tx = txManager.sendTransaction(BigInteger.ZERO, BigInteger.valueOf(100000),
+                    ssfContractAddress, encodedTransfer, BigInteger.ZERO);
+
+                if (tx.hasError()) {
+                    log.warn("[SSF 회수] userId={} 전송 실패: {}", userId, tx.getError().getMessage());
+                    failed++;
+                    continue;
+                }
+
+                // ③ DB 잔액 0으로 업데이트
+                wallet.setCtkBalance(0);
+                wallet.setBalanceSyncedAt(LocalDateTime.now());
+                walletRepository.save(wallet);
+
+                totalCollected += balance.longValue();
+                success++;
+
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("userId", userId);
+                result.put("username", user.getUsername());
+                result.put("amount", balance.longValue());
+                result.put("txHash", tx.getTransactionHash());
+                results.add(result);
+
+                log.info("[SSF 회수] userId={}, username={}, amount={}, txHash={}", userId, user.getUsername(),
+                    balance, tx.getTransactionHash());
+
+            } catch (Exception e) {
+                log.error("[SSF 회수] userId={} 실패", userId, e);
+                failed++;
+            }
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("totalCollected", totalCollected);
+        response.put("success", success);
+        response.put("skipped", skipped);
+        response.put("failed", failed);
+        response.put("platformAddress", platformAddress);
+        response.put("details", results);
+
+        log.info("[SSF 회수] 완료 — 총 {}SSF 회수, 성공={}, 스킵={}, 실패={}", totalCollected, success, skipped, failed);
+        return response;
     }
 
     // -- 새로고침 잔액 조회 (온체인 -> DB 동기화) --
