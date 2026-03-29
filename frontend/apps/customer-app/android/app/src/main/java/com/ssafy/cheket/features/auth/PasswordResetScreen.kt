@@ -103,8 +103,8 @@ fun PasswordResetScreen(
         scope.launch {
             try {
                 val formattedPhone = formatPhoneForApi(phone)
-                val response = authService.sendSms(com.ssafy.cheket.core.network.dto.SmsSendRequest(formattedPhone))
-                Log.d(TAG, "sendSms() statusCode=${response.httpStatusCode}")
+                val response = authService.requestPasswordReset(com.ssafy.cheket.core.network.dto.PasswordResetRequest(formattedPhone))
+                Log.d(TAG, "requestPasswordReset() statusCode=${response.httpStatusCode}")
                 isLoading = false
                 if (response.httpStatusCode in 200..299) {
                     codeSent = true
@@ -113,7 +113,7 @@ fun PasswordResetScreen(
                     phoneError = response.responseMessage ?: "인증번호 전송에 실패했어요"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "sendSms() error", e)
+                Log.e(TAG, "requestPasswordReset() error", e)
                 isLoading = false
                 phoneError = "인증번호 전송에 실패했어요"
             }

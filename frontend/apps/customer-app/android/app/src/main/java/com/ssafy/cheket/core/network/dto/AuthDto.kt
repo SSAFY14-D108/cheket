@@ -23,7 +23,7 @@ data class SmsVerifyRequest(
     val code: String,
 )
 
-data class PasswordResetRequest(val email: String)
+data class PasswordResetRequest(val phoneNumber: String)
 
 data class PasswordChangeRequest(
     val phoneNumber: String,
