@@ -41,7 +41,7 @@ public class BlockchainScheduler {
      * 내일 예매 시작인 DRAFT 공연을 찾아서 EventNFT + TicketNFT를 온체인에 배치 발행 → DRAFT → MINTING →
      * MINTED
      */
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 4 * * *")
     public void scheduleShowAndTicketMinting() {
         log.info("[민팅 스케줄러] 실행 시작");
 

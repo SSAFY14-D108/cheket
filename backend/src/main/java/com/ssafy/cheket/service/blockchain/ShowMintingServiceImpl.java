@@ -76,6 +76,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
     // ========== 일괄 민팅 (수동 API용) ==========
 
     @Override
+    @Transactional
     public Map<String, Object> mintAllDraftShows() {
         LocalDateTime deadline = LocalDate.now().plusDays(1).atTime(LocalTime.MAX);
         List<Show> draftShows = showRepository.findByStatusAndReservationStartDateBetween(ShowStatus.DRAFT,
