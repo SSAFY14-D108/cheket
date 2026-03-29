@@ -3,6 +3,8 @@ package com.ssafy.cheket.service.host;
 import com.ssafy.cheket.config.s3.S3Uploader;
 import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.host.response.VenueSeatItemResponse;
+import com.ssafy.cheket.dto.host.response.VenueSeatLayoutResponse;
 import com.ssafy.cheket.dto.settlement.response.GetApprovalListResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
@@ -68,6 +70,8 @@ public class HostShowServiceImpl implements HostShowService {
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final SectionRepository sectionRepository;
+
     private final S3Uploader s3Uploader;
     private final BlockchainAsyncWorker blockchainAsyncWorker;
 
@@ -718,6 +722,30 @@ public class HostShowServiceImpl implements HostShowService {
         });
 
         return txId;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VenueSeatLayoutResponse> getVenueSeatLayout(Long venueId) {
+        if (!venueRepository.existsById(venueId))
+            throw new NotFoundException("공연장을 찾을 수 없습니다.");
+
+        List<Section> sections = sectionRepository.findByVenueIdOrderByIdAsc(venueId);
+        if (sections.isEmpty())
+            return List.of();
+
+        List<Long> sectionIds = sections.stream().map(Section::getId).toList();
+        List<Seat> seats = seatRepository.findBySectionIdInOrderBySectionIdAscRowNumAscColNumAsc(sectionIds);
+
+        Map<Long, List<VenueSeatItemResponse>> seatMap = new LinkedHashMap<>();
+
+        for (Seat seat : seats) {
+            seatMap.computeIfAbsent(seat.getSectionId(), key -> new ArrayList<>())
+                .add(new VenueSeatItemResponse(seat.getId(), seat.getRowNum(), seat.getColNum(), seat.getSeatNo()));
+        }
+
+        return sections.stream().map(section -> new VenueSeatLayoutResponse(section.getId(), section.getSectionName(),
+            seatMap.getOrDefault(section.getId(), List.of()))).toList();
     }
 
     private ShowItem toShowItem(Show s) {
