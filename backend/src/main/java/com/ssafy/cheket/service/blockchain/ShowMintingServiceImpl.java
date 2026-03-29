@@ -303,9 +303,25 @@ public class ShowMintingServiceImpl implements ShowMintingService {
 
         uploadToIpfs(show);
 
+        // 온체인 tokenURI도 업데이트 (보관함 온체인 조회에서 사용)
+        String onchainResult = "스킵";
+        if (show.getMetadataIpfsCid() != null && show.getEventNftId() != null) {
+            try {
+                BigInteger eventId = BigInteger.valueOf(show.getEventNftId());
+                String ipfsUri = "ipfs://" + show.getMetadataIpfsCid();
+                TransactionReceipt receipt = blockchainService.executePlatformTx(
+                    () -> blockchainService.getTicketNFT().setEventTokenURI(eventId, ipfsUri).send());
+                onchainResult = "성공 (tx=" + receipt.getTransactionHash() + ")";
+                log.info("[공연 {}] 온체인 tokenURI 재설정 완료 — eventId={}, uri={}", showId, eventId, ipfsUri);
+            } catch (Exception e) {
+                onchainResult = "실패: " + e.getMessage();
+                log.error("[공연 {}] 온체인 tokenURI 재설정 실패", showId, e);
+            }
+        }
+
         return Map.of("showId", showId, "posterIpfsCid",
             show.getPosterIpfsCid() != null ? show.getPosterIpfsCid() : "실패", "metadataIpfsCid",
-            show.getMetadataIpfsCid() != null ? show.getMetadataIpfsCid() : "실패");
+            show.getMetadataIpfsCid() != null ? show.getMetadataIpfsCid() : "실패", "onchainTokenURI", onchainResult);
     }
 
     private BigInteger mintEventNft(Show show, List<String> txHashes) throws Exception {
