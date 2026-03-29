@@ -158,6 +158,11 @@ public class ShowMintingServiceImpl implements ShowMintingService {
         Show show = showRepository.findById(showId)
             .orElseThrow(() -> new BlockchainException("공연을 찾을 수 없습니다: " + showId));
 
+        // Lazy 프록시 강제 초기화 — IPFS 업로드(외부 HTTP) 중 세션 끊김 방지
+        if (show.getVenue() != null) {
+            show.getVenue().getName();
+        }
+
         // ========== ① DRAFT → MINTING (원자적, 중복 요청 방지) ==========
         int updated = showRepository.updateStatusToMintingIfDraft(showId);
         if (updated == 0) {
@@ -251,9 +256,19 @@ public class ShowMintingServiceImpl implements ShowMintingService {
             metadata.put("description", show.getDescription() != null ? show.getDescription() : "");
             metadata.put("image", posterCid != null ? pinataService.getIpfsUri(posterCid) : "");
 
+            // Venue는 LAZY 프록시 — 세션이 닫힌 경우 대비하여 안전하게 조회
+            String venueName = "";
+            try {
+                if (show.getVenue() != null) {
+                    venueName = show.getVenue().getName();
+                }
+            } catch (Exception ex) {
+                log.debug("[공연 {}] Venue 로딩 실패 (Lazy 프록시) — 빈 문자열로 대체", show.getId());
+            }
+
             Map<String, Object> attributes = new java.util.LinkedHashMap<>();
             attributes.put("artist", show.getArtist() != null ? show.getArtist() : "");
-            attributes.put("venue", show.getVenue() != null ? show.getVenue().getName() : "");
+            attributes.put("venue", venueName);
             attributes.put("showStartDate", show.getShowStartDate() != null ? show.getShowStartDate().toString() : "");
             attributes.put("showEndDate", show.getShowEndDate() != null ? show.getShowEndDate().toString() : "");
             attributes.put("playtime", show.getPlaytime() != null ? show.getPlaytime() : 0);
@@ -269,6 +284,28 @@ public class ShowMintingServiceImpl implements ShowMintingService {
             // IPFS 업로드 실패해도 민팅은 진행 (메타데이터는 선택적)
             log.warn("[공연 {}] IPFS 업로드 실패 — 빈 metadataCID로 민팅 진행: {}", show.getId(), e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> reuploadIpfs(Long showId) {
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new BlockchainException("공연을 찾을 수 없습니다: " + showId));
+
+        // Lazy 프록시 강제 초기화
+        if (show.getVenue() != null) {
+            show.getVenue().getName();
+        }
+
+        // 기존 metadataIpfsCid 초기화하여 재업로드 허용
+        show.setMetadataIpfsCid(null);
+        show.setPosterIpfsCid(null);
+
+        uploadToIpfs(show);
+
+        return Map.of("showId", showId, "posterIpfsCid",
+            show.getPosterIpfsCid() != null ? show.getPosterIpfsCid() : "실패", "metadataIpfsCid",
+            show.getMetadataIpfsCid() != null ? show.getMetadataIpfsCid() : "실패");
     }
 
     private BigInteger mintEventNft(Show show, List<String> txHashes) throws Exception {

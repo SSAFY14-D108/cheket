@@ -54,6 +54,13 @@ public class BlockchainController {
         return ResponseEntity.ok(showMintingService.mintAllDraftShows());
     }
 
+    @PostMapping("/minting/shows/{showId}/reupload-ipfs")
+    @Operation(summary = "[민팅] IPFS 메타데이터 재업로드", description = "민팅은 완료되었지만 IPFS 업로드가 실패한 공연의 포스터 + 메타데이터를 재업로드")
+    public ResponseEntity<Map<String, Object>> reuploadIpfs(@PathVariable Long showId) {
+        log.info("[IPFS 재업로드 API] 요청 — showId={}", showId);
+        return ResponseEntity.ok(showMintingService.reuploadIpfs(showId));
+    }
+
     // ========== 정산 ==========
 
     @PostMapping("/settlement/finalize-all")

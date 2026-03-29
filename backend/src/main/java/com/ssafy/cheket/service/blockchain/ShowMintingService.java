@@ -57,4 +57,15 @@ public interface ShowMintingService {
      * @return 민팅 시도한 공연 수
      */
     int mintPendingDraftShows();
+
+    /**
+     * 기존 공연의 IPFS 메타데이터 재업로드
+     *
+     * 민팅은 완료되었지만 IPFS 업로드가 실패한 공연에 대해 포스터 + 메타데이터 JSON을 다시 업로드
+     *
+     * @param showId
+     *            공연 ID
+     * @return 업로드 결과 (posterIpfsCid, metadataIpfsCid)
+     */
+    Map<String, Object> reuploadIpfs(Long showId);
 }
