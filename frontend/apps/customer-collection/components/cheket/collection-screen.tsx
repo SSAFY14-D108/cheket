@@ -278,15 +278,34 @@ function useDecodedPoster(src: string, eagerLoad = false) {
 
 // API effect 값 → EffectType 매핑
 const EFFECT_NAME_MAP: Record<string, EffectType> = {
+  // Metal
   'Gold': 'gold-foil',
   'Silver': 'silver-foil',
   'Rose': 'rose-foil',
+  // Holo
   'Hologram': 'rainbow',
+  'Rainbow': 'rainbow',
   'Aurora': 'aurora',
   'Prism': 'prism',
   'Cosmos': 'cosmos',
   'Sunset': 'sunset',
   'Neon': 'neon',
+  // Poke
+  'Poke Holo': 'poke-holo',
+  'Galaxy': 'poke-galaxy',
+  'Poke V': 'poke-v',
+  'VMAX': 'poke-vmax',
+  'VSTAR': 'poke-vstar',
+  'Rainbow P': 'poke-rainbow',
+  'Secret': 'poke-secret',
+  'Full Art': 'poke-fullart',
+  'Trainer': 'poke-trainer',
+  'Radiant': 'poke-radiant',
+  'Gallery': 'poke-gallery-holo',
+  'Gallery V': 'poke-gallery-v',
+  // Paper
+  'Cotton': 'paper-cotton',
+  'Crumpled': 'paper-crumpled',
 }
 
 export function getTicketEffect(ticketId: string, apiEffect?: string | null): EffectType {

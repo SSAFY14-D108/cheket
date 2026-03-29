@@ -281,6 +281,18 @@ private fun HistoryTxItem(tx: TxUiItem) {
 
                     Spacer(Modifier.height(2.dp))
 
+                    // 양도: seller → buyer 이름 표시
+                    if (tx.type == "TRANSFER" && (tx.sellerName != null || tx.buyerName != null)) {
+                        Text(
+                            "${tx.sellerName ?: "?"} → ${tx.buyerName ?: "?"}",
+                            fontSize = 11.sp,
+                            color = NeutralColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.height(1.dp))
+                    }
+
                     // description 한 줄 미리보기
                     Text(
                         tx.description,
