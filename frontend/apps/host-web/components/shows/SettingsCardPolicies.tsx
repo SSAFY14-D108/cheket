@@ -238,8 +238,8 @@ export function SettingsCardPolicies({
           </Label>
 
           <div className="rounded-lg border bg-muted/10 p-4">
-            <div className="grid items-start gap-3 lg:grid-cols-[360px_minmax(0,1fr)]">
-              <div className="h-[270px] rounded-md border bg-background p-2">
+            <div className="grid items-stretch gap-4 lg:grid-cols-2">
+              <div className="min-h-[292px] rounded-md border bg-background p-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -276,15 +276,15 @@ export function SettingsCardPolicies({
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex h-full flex-col justify-center gap-2">
-                <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5">
-                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+              <div className="flex min-h-[292px] flex-col gap-3 rounded-md border bg-background p-3">
+                <div className="grid w-full grid-cols-2 gap-2">
+                  <div className="rounded-md bg-background/80 px-3 py-2">
                     <p className="text-[11px] leading-tight text-muted-foreground">총합</p>
                     <p className="text-2xl font-semibold leading-none">
                       {PLATFORM_TOTAL_BPS.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
                     </p>
                   </div>
-                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                  <div className="rounded-md bg-background/80 px-3 py-2">
                     <p className="text-[11px] leading-tight text-muted-foreground">플랫폼 비율</p>
                     <p className="text-2xl font-semibold leading-none">
                       {(platformShareBps / 100).toLocaleString()}<span className="text-base font-medium">%</span>
@@ -293,13 +293,13 @@ export function SettingsCardPolicies({
                       </span>
                     </p>
                   </div>
-                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                  <div className="rounded-md bg-background/80 px-3 py-2">
                     <p className="text-[11px] leading-tight text-muted-foreground">현재 입력 합계</p>
                     <p className="text-2xl font-semibold leading-none">
                       {totalShareBps.toLocaleString()} <span className="text-xs font-medium text-muted-foreground">bps</span>
                     </p>
                   </div>
-                  <div className="rounded-sm bg-background/80 px-1.5 py-1">
+                  <div className="rounded-md bg-background/80 px-3 py-2">
                     <p className="text-[11px] leading-tight text-muted-foreground">남은 비율</p>
                     <p
                       className={`text-2xl font-semibold leading-none ${
@@ -313,31 +313,31 @@ export function SettingsCardPolicies({
                   </div>
                 </div>
 
-                <div className="rounded-md border bg-background px-3 py-1.5 text-[11px] text-muted-foreground">
+                <div className="rounded-md border bg-background px-3 py-2 text-[11px] text-muted-foreground">
                   현재 입력 합계에는 플랫폼 비율 {(platformShareBps / 100).toLocaleString()}%가 포함되어 있으며,
                   전체 분배 합계는 {(PLATFORM_TOTAL_BPS / 100).toLocaleString()}% 기준으로 계산됩니다.
                 </div>
 
                 {isEdit && !canEditStakeholders && (
-                  <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-600">
+                  <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
                     정산 비율과 이해관계자 정보는 등록 후 수정할 수 없습니다.
                   </div>
                 )}
 
                 {!isStakeholderShareValid && (
-                  <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+                  <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                     현재 합계 {totalShareBps.toLocaleString()} / 10,000 bps ({Math.max(0, remainingShareBps).toLocaleString()} bps 추가 필요)
                   </div>
                 )}
 
-                <div className="rounded-md border bg-background p-3">
+                <div className="flex min-h-[140px] flex-col rounded-md border bg-background p-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-semibold text-foreground">배분 목록</p>
                     <span className="text-[11px] text-muted-foreground">
                       {distributionLegendItems.length}개 항목
                     </span>
                   </div>
-                  <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+                  <div className="mt-3 min-h-[96px] max-h-[180px] space-y-2 overflow-y-auto pr-1">
                     {distributionLegendItems.map((entry) => (
                       <div
                         key={`${entry.name}-${entry.value}`}
