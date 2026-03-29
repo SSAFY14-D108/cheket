@@ -36,6 +36,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
@@ -88,6 +89,7 @@ public class BlockchainAsyncWorker {
     private final SessionRepository sessionRepository;
     private final TicketTransferRepository ticketTransferRepository;
     private final NotificationService notificationService;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${wallet.keystore.password}")
     private String keystorePassword;
@@ -277,8 +279,9 @@ public class BlockchainAsyncWorker {
                 purchasedSeats.add(new PurchasedSeatInfo(seat, ticket, ticketNftId));
             }
 
-            // 공연의 예매 수 증가
-            showRepository.increaseReservationCount(showId, purchasedSeats.size());
+            // 공연의 예매 수 증가 (@Modifying 쿼리는 트랜잭션 필수 → TransactionTemplate 사용)
+            transactionTemplate.executeWithoutResult(
+                status -> showRepository.increaseReservationCount(showId, purchasedSeats.size()));
 
             // ========== ⑤ Transaction → CONFIRMED ==========
             tx.setTxHash(lastTxHash); // purchase tx로 수정
@@ -668,7 +671,8 @@ public class BlockchainAsyncWorker {
             Session session = sessionRepository.findById(sessionSeat.getSessionId())
                 .orElseThrow(() -> new BlockchainException("회차를 찾을 수 없습니다."));
 
-            showRepository.decreaseReservationCount(session.getShowId(), 1);
+            transactionTemplate.executeWithoutResult(
+                status -> showRepository.decreaseReservationCount(session.getShowId(), 1));
 
             // 온체인 검증 — NFT가 플랫폼에 반환됐는지
             verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getPlatformWalletAddress(), "환불");
@@ -1449,7 +1453,8 @@ public class BlockchainAsyncWorker {
                     Session session = sessionRepository.findById(seat.getSessionId())
                         .orElseThrow(() -> new BlockchainException("회차를 찾을 수 없습니다."));
 
-                    showRepository.increaseReservationCount(session.getShowId(), 1);
+                    transactionTemplate.executeWithoutResult(
+                        status -> showRepository.increaseReservationCount(session.getShowId(), 1));
                 } catch (Exception countEx) {
                     log.error("[온체인 동기화] nftId={} — reservationCount 증가 실패, 구매는 성공", nftId, countEx);
                 }
