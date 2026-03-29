@@ -215,6 +215,7 @@ class ShowRepositoryImpl(
                     name = dto.title,
                     artistName = dto.artist,
                     date = dto.show?.showStartDate ?: "",
+                    endDate = dto.show?.showEndDate,
                     venue = dto.venue,
                     region = dto.region,
                     poster = dto.posterUrl,

@@ -56,7 +56,7 @@ fun WalletHistoryScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "트랜젝션 내역",
+                title = "트랜잭션 내역",
                 onBack = onBack,
                 helpTutorialId = TutorialId.WALLET_HISTORY,
             )
