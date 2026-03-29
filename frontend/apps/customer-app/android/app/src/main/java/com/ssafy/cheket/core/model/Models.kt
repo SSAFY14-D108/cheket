@@ -162,6 +162,8 @@ data class RankingItem(
     val venue: String,
     val poster: String,
     val genre: String,
+    val showDate: String = "",
+    val showEndDate: String = "",
 )
 
 data class OpenScheduleItem(

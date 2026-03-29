@@ -3,6 +3,8 @@ package com.ssafy.cheket.core.repository.impl
 import android.util.Log
 import com.ssafy.cheket.core.model.ResaleGroupItem
 import com.ssafy.cheket.core.model.ResaleItem
+import com.ssafy.cheket.core.network.dto.ResaleShowDto
+import com.ssafy.cheket.core.network.dto.ResaleTicketDto
 import com.ssafy.cheket.core.network.service.ResaleService
 import com.ssafy.cheket.core.repository.ResaleRepository
 import kotlinx.coroutines.flow.Flow
@@ -20,21 +22,8 @@ class ResaleRepositoryImpl(
         try {
             val response = resaleService.getResaleShows()
             Log.d(TAG, "getResaleItems() statusCode=${response.httpStatusCode}, count=${response.data?.shows?.size}")
-            val items = response.data?.shows?.map { dto ->
-                ResaleItem(
-                    id = dto.showId.toString(),
-                    ticketId = "",
-                    showId = dto.showId.toString(),
-                    showName = dto.title,
-                    showDate = dto.showStartDate,
-                    venue = dto.venue,
-                    poster = dto.posterUrl,
-                    seatLabel = "",
-                    grade = "",
-                    originalPrice = 0,
-                    resalePrice = 0,
-                    sellerId = "",
-                )
+            val items = response.data?.shows?.flatMap { show ->
+                fetchResaleItemsForShow(show)
             } ?: emptyList()
             emit(items)
         } catch (e: Exception) {
@@ -77,5 +66,36 @@ class ResaleRepositoryImpl(
             Log.w(TAG, "fetchMinResalePrice() failed for showId=$showId", e)
             0
         }
+    }
+
+    private suspend fun fetchResaleItemsForShow(show: ResaleShowDto): List<ResaleItem> {
+        return try {
+            val response = resaleService.getResaleTickets(showId = show.showId, size = RESALE_PRICE_FETCH_SIZE)
+            response.data?.tickets?.map { ticket ->
+                ticket.toResaleItem(show)
+            } ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "fetchResaleItemsForShow() failed for showId=${show.showId}", e)
+            emptyList()
+        }
+    }
+
+    private fun ResaleTicketDto.toResaleItem(show: ResaleShowDto): ResaleItem {
+        val timePart = session.sessionStartTime.take(5)
+        val showDate = "${session.sessionDate} $timePart"
+        return ResaleItem(
+            id = ticketId.toString(),
+            ticketId = ticketId.toString(),
+            showId = show.showId.toString(),
+            showName = show.title,
+            showDate = showDate,
+            venue = show.venue,
+            poster = show.posterUrl,
+            seatLabel = "$sectionName $seatNo",
+            grade = grade,
+            originalPrice = originalPrice,
+            resalePrice = discountedPrice,
+            sellerId = "",
+        )
     }
 }

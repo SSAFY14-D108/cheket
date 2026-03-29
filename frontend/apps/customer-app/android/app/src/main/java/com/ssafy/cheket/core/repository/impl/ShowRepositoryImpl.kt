@@ -157,6 +157,8 @@ class ShowRepositoryImpl(
                     venue = dto.venue,
                     poster = dto.posterUrl,
                     genre = dto.region,
+                    showDate = dto.show?.showStartDate ?: "",
+                    showEndDate = dto.show?.showEndDate ?: "",
                 )
             } ?: emptyList()
             emit(items)
