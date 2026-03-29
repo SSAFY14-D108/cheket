@@ -116,7 +116,7 @@ export function DashboardContent({ data }: DashboardContentProps) {
               </div>
               <div className="mt-5 flex items-end justify-between gap-4">
                 <p className="text-[clamp(2rem,4vw,3rem)] font-semibold tracking-[-0.06em] text-black">
-                  {totalSales.totalPrimarySales.toLocaleString()}원
+                  {totalSales.totalPrimarySales.toLocaleString()} SSF
                 </p>
                 <p className="pb-1 text-sm text-black/42">1차 판매 기준</p>
               </div>
