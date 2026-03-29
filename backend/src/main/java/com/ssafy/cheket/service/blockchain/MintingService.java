@@ -94,4 +94,16 @@ public interface MintingService {
      * 공연의 모든 좌석에 대해 온체인 NFT 소유자와 DB 상태를 비교하고 불일치 시 DB를 교정
      */
     Map<String, Object> syncShowWithOnChain(Long showId);
+
+    /**
+     * 세션의 onChainTicketNftId가 NULL인 좌석을 온체인에서 찾아 채워넣기
+     *
+     * 온체인 totalSupply를 순회하며 tickets(tokenId).sessionId가 일치하는 토큰을 찾고 section + row +
+     * seat으로 DB session_seat과 매칭하여 onChainTicketNftId를 업데이트
+     *
+     * @param sessionId
+     *            DB 세션 ID
+     * @return 동기화 결과 (총 스캔, 매칭, 실패 등)
+     */
+    Map<String, Object> syncNftIdsFromOnChain(Long sessionId);
 }

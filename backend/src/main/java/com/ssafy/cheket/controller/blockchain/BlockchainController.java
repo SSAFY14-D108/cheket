@@ -144,6 +144,13 @@ public class BlockchainController {
         return ResponseEntity.ok(mintingService.syncShowWithOnChain(showId));
     }
 
+    @PostMapping("/sync/session/{sessionId}/nft-ids")
+    @Operation(summary = "[동기화] 세션 NFT ID 채우기", description = "onChainTicketNftId가 NULL인 좌석을 온체인에서 찾아 매칭하여 채워넣기")
+    public ResponseEntity<Map<String, Object>> syncNftIds(@PathVariable Long sessionId) {
+        log.info("[동기화 API] NFT ID 동기화 요청 — sessionId={}", sessionId);
+        return ResponseEntity.ok(mintingService.syncNftIdsFromOnChain(sessionId));
+    }
+
     // ========== 테스트 유틸 ==========
 
     @GetMapping("/test/available-seats/{showId}")
@@ -154,8 +161,7 @@ public class BlockchainController {
     }
 
     @PostMapping("/test/collect-ssf")
-    @Operation(summary = "[테스트] 테스트 계정 SSF 일괄 회수",
-        description = "test00~test114 계정의 SSF를 플랫폼 지갑으로 일괄 전송")
+    @Operation(summary = "[테스트] 테스트 계정 SSF 일괄 회수", description = "test00~test114 계정의 SSF를 플랫폼 지갑으로 일괄 전송")
     public ResponseEntity<Map<String, Object>> collectTestAccountsSsf() {
         log.info("[테스트] 테스트 계정 SSF 일괄 회수 요청");
         return ResponseEntity.ok(walletService.collectSsfFromTestAccounts());

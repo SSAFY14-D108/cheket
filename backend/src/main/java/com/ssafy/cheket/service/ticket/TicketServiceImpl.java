@@ -249,9 +249,8 @@ public class TicketServiceImpl implements TicketService {
         sessionSeatRepository.save(sessionSeat);
 
         // ④ Transaction PENDING 생성 (환불 금액은 온체인에서 결정)
-        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND).amount(0L).description(
-            "요청 접수 — 티켓 환불 대기 (ticketId=%d, userId=%d, nftId=%d)".formatted(ticketId, userId, ticket.getTicketNftId()))
-            .txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
+        Transaction transaction = Transaction.builder().type(Transaction.TransactionType.REFUND).amount(0L)
+            .description("요청 접수 — 티켓 환불 대기").txStatus(Transaction.TxStatus.PENDING).buyerId(userId).build();
         transactionRepository.save(transaction);
 
         log.info("[티켓 환불] PENDING 생성 — txId={}", transaction.getId());

@@ -270,10 +270,8 @@ public class WalletServiceImpl implements WalletService {
                     }));
                 String encodedBalance = FunctionEncoder.encode(balanceOfFunction);
                 EthCall ethCall = web3j
-                    .ethCall(
-                        org.web3j.protocol.core.methods.request.Transaction
-                            .createEthCallTransaction(wallet.getAddress(), ssfContractAddress, encodedBalance),
-                        DefaultBlockParameterName.LATEST)
+                    .ethCall(org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
+                        wallet.getAddress(), ssfContractAddress, encodedBalance), DefaultBlockParameterName.LATEST)
                     .send();
 
                 if (ethCall.hasError()) {
@@ -325,8 +323,8 @@ public class WalletServiceImpl implements WalletService {
                 result.put("txHash", tx.getTransactionHash());
                 results.add(result);
 
-                log.info("[SSF 회수] userId={}, username={}, amount={}, txHash={}", userId, user.getUsername(),
-                    balance, tx.getTransactionHash());
+                log.info("[SSF 회수] userId={}, username={}, amount={}, txHash={}", userId, user.getUsername(), balance,
+                    tx.getTransactionHash());
 
             } catch (Exception e) {
                 log.error("[SSF 회수] userId={} 실패", userId, e);

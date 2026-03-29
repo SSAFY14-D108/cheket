@@ -2,6 +2,8 @@ package com.ssafy.cheket.service.blockchain;
 
 import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.Session;
+import com.ssafy.cheket.entity.show.Seat;
+import com.ssafy.cheket.entity.show.Section;
 import com.ssafy.cheket.entity.show.SessionSeat;
 import com.ssafy.cheket.entity.show.Show;
 import com.ssafy.cheket.entity.user.User;
@@ -11,6 +13,8 @@ import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
+import com.ssafy.cheket.repository.show.SeatRepository;
+import com.ssafy.cheket.repository.show.SectionRepository;
 import com.ssafy.cheket.repository.show.SessionSeatRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
@@ -47,6 +51,8 @@ public class MintingServiceImpl implements MintingService {
     private final StakeholderRepository stakeholderRepository;
     private final SessionRepository sessionRepository;
     private final SessionSeatRepository sessionSeatRepository;
+    private final SeatRepository seatRepository;
+    private final SectionRepository sectionRepository;
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
 
@@ -447,6 +453,118 @@ public class MintingServiceImpl implements MintingService {
         result.put("issues", issues);
 
         log.info("[동기화] showId={} — 검사 {}건, 불일치 {}건, 교정 {}건", showId, totalChecked, mismatched, synced);
+        return result;
+    }
+
+    // ========== NFT ID 동기화 (NULL 채우기) ==========
+
+    @Override
+    public Map<String, Object> syncNftIdsFromOnChain(Long sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+            .orElseThrow(() -> new NotFoundException("세션을 찾을 수 없습니다: " + sessionId));
+
+        if (session.getOnChainSessionId() == null) {
+            throw new BlockchainException("세션 " + sessionId + "의 onChainSessionId가 없습니다");
+        }
+
+        BigInteger onChainSessionId = BigInteger.valueOf(session.getOnChainSessionId());
+        log.info("[NFT ID 동기화] 시작 — sessionId={}, onChainSessionId={}", sessionId, onChainSessionId);
+
+        // ① NULL인 좌석 조회 + 매칭용 키(section+row+seat) 빌드
+        List<SessionSeat> allSeats = sessionSeatRepository.findBySessionId(sessionId);
+        List<SessionSeat> nullSeats = allSeats.stream().filter(s -> s.getOnChainTicketNftId() == null)
+            .collect(Collectors.toList());
+
+        if (nullSeats.isEmpty()) {
+            log.info("[NFT ID 동기화] NULL인 좌석 없음 — sessionId={}", sessionId);
+            return Map.of("sessionId", sessionId, "message", "NULL인 좌석이 없습니다", "nullCount", 0);
+        }
+
+        // seatId → Seat 조회
+        List<Long> seatIds = nullSeats.stream().map(SessionSeat::getSeatId).collect(Collectors.toList());
+        Map<Long, Seat> seatMap = seatRepository.findAllById(seatIds).stream()
+            .collect(Collectors.toMap(Seat::getId, s -> s));
+
+        // sectionId → Section 조회
+        List<Long> sectionIds = seatMap.values().stream().map(Seat::getSectionId).distinct()
+            .collect(Collectors.toList());
+        Map<Long, Section> sectionMap = sectionRepository.findAllById(sectionIds).stream()
+            .collect(Collectors.toMap(Section::getId, s -> s));
+
+        // 매칭 키: "sectionName:row:col" → SessionSeat
+        Map<String, SessionSeat> keyToSeat = new HashMap<>();
+        for (SessionSeat ss : nullSeats) {
+            Seat seat = seatMap.get(ss.getSeatId());
+            if (seat == null)
+                continue;
+            Section section = sectionMap.get(seat.getSectionId());
+            if (section == null)
+                continue;
+            String key = section.getSectionName() + ":" + seat.getRowNum() + ":" + seat.getColNum();
+            keyToSeat.put(key, ss);
+        }
+
+        log.info("[NFT ID 동기화] NULL 좌석 {}개, 매칭 키 {}개", nullSeats.size(), keyToSeat.size());
+
+        // ② 온체인 totalSupply 조회 후 전체 스캔
+        BigInteger totalSupply;
+        try {
+            totalSupply = blockchainService.getTicketNFT().totalSupply().send();
+        } catch (Exception e) {
+            throw new BlockchainException("totalSupply 조회 실패: " + e.getMessage());
+        }
+
+        int scanned = 0;
+        int matched = 0;
+        int failed = 0;
+        List<Map<String, Object>> matchedList = new ArrayList<>();
+
+        for (BigInteger i = BigInteger.ZERO; i.compareTo(totalSupply) < 0; i = i.add(BigInteger.ONE)) {
+            try {
+                var ticket = blockchainService.getTicketNFT().getTicket(i).send();
+
+                // sessionId 일치하는 토큰만 처리
+                if (!ticket.sessionId.equals(onChainSessionId))
+                    continue;
+
+                scanned++;
+                String key = ticket.section + ":" + ticket.row + ":" + ticket.seat;
+
+                SessionSeat ss = keyToSeat.get(key);
+                if (ss != null) {
+                    ss.setOnChainTicketNftId(i.longValue());
+                    sessionSeatRepository.save(ss);
+                    matched++;
+                    keyToSeat.remove(key); // 매칭 완료 → 제거
+
+                    matchedList.add(Map.of("sessionSeatId", ss.getId(), "tokenId", i.longValue(), "key", key));
+                    log.info("[NFT ID 동기화] 매칭 — seatId={}, tokenId={}, key={}", ss.getId(), i, key);
+                }
+
+                // 모든 NULL 좌석이 매칭되면 조기 종료
+                if (keyToSeat.isEmpty())
+                    break;
+
+            } catch (Exception e) {
+                failed++;
+                log.error("[NFT ID 동기화] tokenId={} 조회 실패", i, e);
+            }
+        }
+
+        int remaining = keyToSeat.size();
+        log.info("[NFT ID 동기화] 완료 — scanned={}, matched={}, remaining={}, failed={}", scanned, matched, remaining,
+            failed);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("sessionId", sessionId);
+        result.put("onChainSessionId", onChainSessionId);
+        result.put("nullCount", nullSeats.size());
+        result.put("scanned", scanned);
+        result.put("matched", matched);
+        result.put("remaining", remaining);
+        result.put("failed", failed);
+        result.put("matchedDetails", matchedList);
+
         return result;
     }
 }
