@@ -275,7 +275,7 @@ fun SeatMapScreen(
                         Icon(
                             Icons.Default.AccessTime,
                             contentDescription = null,
-                            tint = if (isUrgent) Color(0xFFF87171) else Color(0xFF3B82F6),
+                            tint = if (isUrgent) Color(0xFFF87171) else Info,
                             modifier = Modifier.size(16.dp),
                         )
                         Text(

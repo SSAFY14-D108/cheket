@@ -16,6 +16,7 @@ class FakeShowRepository : ShowRepository {
         regions: List<Int>?,
         sort: String?,
         keyword: String?,
+        includeEnded: Boolean,
         page: Int,
         size: Int,
     ): ShowPage {
@@ -23,7 +24,8 @@ class FakeShowRepository : ShowRepository {
         val regionNames = regions?.map { RegionCode.toName(it) }
         val filtered = all.filter { show ->
             (regionNames == null || show.region in regionNames) &&
-                    (keyword == null || show.name.contains(keyword, ignoreCase = true))
+                    (keyword == null || show.name.contains(keyword, ignoreCase = true)) &&
+                    (includeEnded || show.status != ShowStatus.COMPLETED)
         }
         val start = (page * size).coerceAtMost(filtered.size)
         val end = ((page + 1) * size).coerceAtMost(filtered.size)

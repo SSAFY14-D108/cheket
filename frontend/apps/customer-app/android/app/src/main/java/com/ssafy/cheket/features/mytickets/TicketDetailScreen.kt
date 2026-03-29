@@ -6,10 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +58,7 @@ import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.CheketAlertDialog
 import com.ssafy.cheket.core.ui.component.CheketDialog
 import com.ssafy.cheket.core.ui.component.TicketStatusBadge
+import com.ssafy.cheket.core.util.DateTimeUtils
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.BorderColor
 import com.ssafy.cheket.ui.theme.CardBg
@@ -66,7 +67,6 @@ import com.ssafy.cheket.ui.theme.Muted
 import com.ssafy.cheket.ui.theme.MutedForeground
 import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
-import com.ssafy.cheket.ui.theme.Warning
 import com.ssafy.cheket.ui.theme.White
 import java.text.NumberFormat
 import java.util.Locale
@@ -107,7 +107,7 @@ fun TicketDetailScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "상세 정보를 불러오지 못했습니다.\n목록에서 다시 선택해주세요.",
+                    text = "티켓 정보를 불러오지 못했어요.\n목록으로 돌아가 다시 확인해 주세요.",
                     color = MutedForeground,
                     fontSize = 14.sp,
                 )
@@ -118,7 +118,7 @@ fun TicketDetailScreen(
         if (showRefundDialog) {
             CheketDialog(
                 title = "티켓 환불",
-                message = "정말 환불하시겠어요? 환불 후에는 되돌릴 수 없습니다.",
+                message = "해당 티켓을 환불하시겠어요? 환불 후에는 다시 되돌릴 수 없어요.",
                 confirmText = "환불하기",
                 dismissText = "취소",
                 onConfirm = {
@@ -136,9 +136,9 @@ fun TicketDetailScreen(
 
         if (showResaleCancelDialog) {
             CheketDialog(
-                title = "판매 등록 취소",
-                message = "판매 등록을 취소하시겠어요? 블록체인 처리 후 다시 보유중 상태로 돌아옵니다.",
-                confirmText = "취소 요청하기",
+                title = "판매 취소",
+                message = "판매 등록을 취소하시겠어요? 취소 후에는 다시 판매 등록을 해야 해요.",
+                confirmText = "취소하기",
                 dismissText = "닫기",
                 onConfirm = {
                     showResaleCancelDialog = false
@@ -164,12 +164,15 @@ fun TicketDetailScreen(
 
         resaleCancelErrorMessage?.let { message ->
             CheketAlertDialog(
-                title = "판매 등록 취소 실패",
+                title = "판매 취소 실패",
                 message = message,
                 confirmText = "확인",
                 onConfirm = { resaleCancelErrorMessage = null },
             )
         }
+
+        val metadataValue = ticket.tokenUri ?: ticket.metadataIpfsCid
+        val metadataLabel = if (!ticket.tokenUri.isNullOrBlank()) "Metadata URI" else "Metadata CID"
 
         Column(
             modifier = Modifier
@@ -219,7 +222,7 @@ fun TicketDetailScreen(
 
                     HorizontalDivider(color = BorderColor)
 
-                    InfoRow(label = "공연일시", value = com.ssafy.cheket.core.util.DateTimeUtils.formatShowDateTime(ticket.showDate))
+                    InfoRow(label = "공연일시", value = DateTimeUtils.formatShowDateTime(ticket.showDate))
                     InfoRow(label = "장소", value = ticket.venue)
                     InfoRow(label = "좌석", value = ticket.seatLabel)
                     InfoRow(label = "등급", value = ticket.grade)
@@ -228,7 +231,7 @@ fun TicketDetailScreen(
                     if (ticket.status == TicketStatus.LISTED && ticket.resalePrice != null) {
                         HorizontalDivider(color = BorderColor)
                         InfoRow(
-                            label = "재판매 금액",
+                            label = "판매 금액",
                             value = formatPrice(ticket.resalePrice),
                             valueColor = Primary,
                         )
@@ -265,20 +268,17 @@ fun TicketDetailScreen(
                     HorizontalDivider(color = BorderColor)
 
                     NftInfoRow(
-                        label = "Token ID",
+                        label = "티켓 식별 번호",
                         value = ticket.numbering.ifBlank { ticket.id },
                     )
 
-                    ticket.metadataIpfsCid?.let {
-                        NftInfoRow(
-                            label = "Metadata CID",
-                            value = it,
-                        )
-                    } ?: Text(
-                        text = "메타데이터 연동 전입니다.",
-                        fontSize = 12.sp,
-                        color = MutedForeground,
-                    )
+                    ticket.posterIpfsCid?.takeIf { it.isNotBlank() }?.let {
+                        NftInfoRow(label = "Poster CID", value = it)
+                    }
+
+                    metadataValue?.takeIf { it.isNotBlank() }?.let {
+                        NftInfoRow(label = metadataLabel, value = it)
+                    }
                 }
             }
 
@@ -292,9 +292,13 @@ fun TicketDetailScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary),
                     ) {
-                        Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Icon(
+                            imageVector = Icons.Default.QrCode2,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("QR 코드 보기", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("QR 코드 보기", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
                     }
 
                     Row(
@@ -307,12 +311,18 @@ fun TicketDetailScreen(
                                 .weight(1f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
-                            border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = OnBackground),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(BorderColor),
+                            ),
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("양도하기", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("양도", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
 
                         OutlinedButton(
@@ -321,12 +331,18 @@ fun TicketDetailScreen(
                                 .weight(1f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
-                            border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = OnBackground),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(BorderColor),
+                            ),
                         ) {
-                            Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                imageVector = Icons.Default.Storefront,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("2차 판매하기", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("2차 판매", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
                     }
 
@@ -337,8 +353,8 @@ fun TicketDetailScreen(
                             .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Warning.copy(alpha = 0.14f),
-                            contentColor = Warning,
+                            containerColor = CardBg,
+                            contentColor = OnBackground,
                         ),
                         enabled = !refundUiState.isRefunding,
                     ) {
@@ -352,10 +368,10 @@ fun TicketDetailScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = Warning,
+                                color = OnBackground,
                             )
                         } else {
-                            Text("환불하기", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("환불", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
                     }
                 }
@@ -377,7 +393,7 @@ fun TicketDetailScreen(
                                 color = White,
                             )
                         } else {
-                            Text("판매 등록 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
+                            Text("판매 취소", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = White)
                         }
                     }
                 }
@@ -404,22 +420,22 @@ fun TicketDetailScreen(
 private fun InfoRow(
     label: String,
     value: String,
-    valueColor: androidx.compose.ui.graphics.Color = OnBackground,
+    valueColor: Color = OnBackground,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, fontSize = 13.sp, color = MutedForeground)
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
+        Text(text = label, fontSize = 13.sp, color = MutedForeground)
+        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
     }
 }
 
 @Composable
 private fun NftInfoRow(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, fontSize = 11.sp, color = MutedForeground)
+        Text(text = label, fontSize = 11.sp, color = MutedForeground)
         Text(
             text = value,
             fontSize = 12.sp,

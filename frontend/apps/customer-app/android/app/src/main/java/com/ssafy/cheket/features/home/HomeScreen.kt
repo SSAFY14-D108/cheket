@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -58,6 +59,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +78,7 @@ import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.Black
 import com.ssafy.cheket.ui.theme.Primary
+import com.ssafy.cheket.ui.theme.PrimaryLight
 import com.ssafy.cheket.ui.theme.White
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -85,11 +88,12 @@ private val V0Card = Color(0xFFFFFFFF)
 private val V0TextPrimary = Color(0xFF111111)
 private val V0TextMuted = Color(0xFF667085)
 private val V0TextSub = Color(0xFF9CA3AF)
-private val V0ActiveFilterBg = Color(0xFFE8EEF9)
+private val V0ActiveFilterBg = PrimaryLight
 private val V0SectionDivider = Color(0xFFF3F4F6)
 private val V0Gray500 = Color(0xFF6B7280)
 private val V0Gray900 = Color(0xFF111827)
 private val V0Red500 = Color(0xFFEF4444)
+private val V0RankLabel = Color(0xFF7B88C7)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +103,8 @@ fun HomeScreen(
     onMyPage: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onOpenSoon: () -> Unit = {},
+    onLikedShowsMore: () -> Unit = {},
+    onResaleMore: () -> Unit = {},
     onSeatMapTest: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
@@ -156,8 +162,7 @@ fun HomeScreen(
                 )
             }
 
-            if (uiState.rankingItems.isNotEmpty()) {
-                item {
+            item {
                     Column(Modifier.padding(top = 20.dp, bottom = 16.dp)) {
                         HomeSectionHeader(title = "랭킹")
                         RankingSection(
@@ -166,37 +171,32 @@ fun HomeScreen(
                         )
                     }
                 }
-            }
 
-            if (uiState.openSchedule.isNotEmpty()) {
-                item {
+            item {
                     OpenScheduleSection(
                         items = uiState.openSchedule,
                         onItemClick = onShowClick,
                         onMore = onOpenSoon,
                     )
                 }
-            }
 
-            if (uiState.likedShows.isNotEmpty()) {
-                item {
+            item {
                     LikedShowsSection(
                         likedShows = uiState.likedShows,
                         onShowClick = onShowClick,
+                        onMore = onLikedShowsMore,
                     )
                 }
-            }
 
-            if (uiState.resaleItems.isNotEmpty()) {
-                item {
+            item {
                     ResaleDiscountSection(
                         resaleItems = uiState.resaleItems,
                         onItemClick = onShowClick,
+                        onMore = onResaleMore,
                     )
                     Spacer(Modifier.height(32.dp))
                 }
             }
-        }
         } // PullToRefreshBox
     }
 }
@@ -217,8 +217,11 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
     LaunchedEffect(pagerState, slides.size) {
         while (true) {
             delay(3500)
-            if (slides.size > 1) {
-                pagerState.animateScrollToPage((pagerState.currentPage + 1) % slides.size)
+            val pageCount = pagerState.pageCount
+            if (pageCount > 1) {
+                val safeCurrentPage = pagerState.currentPage.coerceIn(0, pageCount - 1)
+                val nextPage = (safeCurrentPage + 1) % pageCount
+                pagerState.animateScrollToPage(nextPage)
             }
         }
     }
@@ -228,20 +231,6 @@ private fun HeroBanner(slides: List<BannerSlide>, onSlideClick: (String) -> Unit
             .fillMaxWidth()
             .aspectRatio(4f / 3f),
     ) {
-        // 좌측 상단 고정 라벨
-        Text(
-            text = "AI가 추천한 공연",
-            color = White,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 14.dp)
-                .background(Black.copy(alpha = 0.4f), RoundedCornerShape(50))
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-                .zIndex(1f),
-        )
-
         HorizontalPager(state = pagerState) { page ->
             val slide = slides[page]
             Box(
@@ -381,6 +370,14 @@ private fun HomeSectionHeader(title: String, onMore: (() -> Unit)? = null) {
 
 @Composable
 private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Unit) {
+    if (items.isEmpty()) {
+        HomeSectionEmptyCard(
+            title = "\uC9D1\uACC4 \uC911\uC778 \uB7AD\uD0B9\uC774 \uC5C6\uC5B4\uC694",
+            description = "\uC870\uAE08 \uB4A4\uC5D0 \uB2E4\uC2DC \uD655\uC778\uD558\uBA74 \uC778\uAE30 \uACF5\uC5F0\uC744 \uBCF4\uC5EC\uB4DC\uB9B4\uAC8C\uC694.",
+        )
+        return
+    }
+
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -396,6 +393,27 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Box {
+                    val rankFontSize = if (rank == 1) 52.sp else 46.sp
+                    val rankModifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 2.dp, top = 2.dp)
+                        .zIndex(2f)
+                    Text(
+                        text = rank.toString(),
+                        fontSize = rankFontSize,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xCC101828),
+                        textAlign = TextAlign.Center,
+                        modifier = rankModifier.offset(x = 1.dp, y = 1.dp),
+                    )
+                    Text(
+                        text = rank.toString(),
+                        fontSize = rankFontSize,
+                        fontWeight = FontWeight.Black,
+                        color = if (rank == 1) Color(0xFFF8FBFF) else Color(0xFFF4F7FF),
+                        textAlign = TextAlign.Center,
+                        modifier = rankModifier,
+                    )
                     AsyncImage(
                         model = item.poster,
                         contentDescription = item.name,
@@ -404,48 +422,9 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                             .fillMaxWidth()
                             .height(176.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF3F4F6)),
+                            .background(Color(0xFFF3F4F6))
+                            .zIndex(1f),
                     )
-                    // 등수 배지
-                    Box(
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .size(24.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(
-                                run {
-                                    val alpha = if (rank == 1) 1f else 0.6f
-                                    androidx.compose.ui.graphics.Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFFE8B4CB).copy(alpha = alpha),
-                                            Color(0xFFCDB4E8).copy(alpha = alpha),
-                                            Color(0xFFB4E8D4).copy(alpha = alpha),
-                                            Color(0xFFABFEFF).copy(alpha = alpha),
-                                        )
-                                    )
-                                }
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        // 숫자 stroke 효과: 뒤에 테두리, 앞에 흰색
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "$rank",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF2D1A4E),
-                                style = androidx.compose.ui.text.TextStyle(
-                                    drawStyle = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f),
-                                ),
-                            )
-                            Text(
-                                text = "$rank",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White,
-                            )
-                        }
-                    }
                 }
                 Text(
                     text = item.name,
@@ -479,7 +458,14 @@ private fun OpenScheduleSection(
     val cardWidth = minOf((screenWidth * 82 / 100), 320).dp
 
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "오픈 예정", onMore = onMore)
+        HomeSectionHeader(title = "인기 오픈 예정", onMore = onMore)
+        if (items.isEmpty()) {
+            HomeSectionEmptyCard(
+                title = "\uC608\uC815\uB41C \uC624\uD508 \uC77C\uC815\uC774 \uC5C6\uC5B4\uC694",
+                description = "\uC0C8\uB85C \uC5F4\uB9B4 \uACF5\uC5F0\uC774 \uC0DD\uAE30\uBA74 \uC5EC\uAE30\uC11C \uBC14\uB85C \uBCFC \uC218 \uC788\uC5B4\uC694.",
+            )
+            return@Column
+        }
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -597,9 +583,18 @@ private fun buildShowDateLabel(startDate: String, endDate: String): String {
 private fun LikedShowsSection(
     likedShows: List<LikedShow>,
     onShowClick: (String) -> Unit,
+    onMore: () -> Unit,
 ) {
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "찜한 공연")
+        HomeSectionHeader(title = "\uCC1C\uD55C \uACF5\uC5F0", onMore = onMore)
+
+        if (likedShows.isEmpty()) {
+            HomeSectionEmptyCard(
+                title = "\uC544\uC9C1 \uCC1C\uD55C \uACF5\uC5F0\uC774 \uC5C6\uC5B4\uC694",
+                description = "\uB9C8\uC74C\uC5D0 \uB4DC\uB294 \uACF5\uC5F0\uC744 \uCC1C\uD558\uBA74 \uC5EC\uAE30\uC11C \uBAA8\uC544\uBCFC \uC218 \uC788\uC5B4\uC694.",
+            )
+            return@Column
+        }
 
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -669,6 +664,7 @@ private fun LikedShowsSection(
 private fun ResaleDiscountSection(
     resaleItems: List<ResaleItem>,
     onItemClick: (String) -> Unit,
+    onMore: () -> Unit,
 ) {
     val discounted = remember(resaleItems) {
         resaleItems.mapNotNull { item ->
@@ -678,11 +674,15 @@ private fun ResaleDiscountSection(
             if (percent > 0) item to percent else null
         }.sortedByDescending { it.second }.take(5)
     }
-
-    if (discounted.isEmpty()) return
-
     Column(Modifier.padding(vertical = 20.dp)) {
-        HomeSectionHeader(title = "핫한 리세일", onMore = {})
+        HomeSectionHeader(title = "\uD56B\uD55C \uB9AC\uC138\uC77C", onMore = onMore)
+        if (discounted.isEmpty()) {
+            HomeSectionEmptyCard(
+                title = "\uC9C0\uAE08\uC740 \uB458\uB7EC\uBCFC \u0032\uCC28 \uAC70\uB798\uAC00 \uC5C6\uC5B4\uC694",
+                description = "\uC0C8\uB85C\uC6B4 \uAC70\uB798\uAC00 \uC62C\uB77C\uC624\uBA74 \uC774 \uC139\uC158\uC5D0\uC11C \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+            )
+            return@Column
+        }
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -789,5 +789,32 @@ private fun ResaleDiscountSection(
     }
 }
 
+@Composable
+private fun HomeSectionEmptyCard(
+    title: String,
+    description: String,
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = V0Gray900,
+        )
+        Text(
+            text = description,
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+            color = V0TextMuted,
+        )
+    }
+}
 
 

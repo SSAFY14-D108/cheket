@@ -107,13 +107,16 @@ class ShowDateSelectionViewModel(
                 val calYear = parts.getOrNull(0)?.toIntOrNull() ?: 2026
                 val calMonth = parts.getOrNull(1)?.toIntOrNull() ?: 1
 
-                val grades = showDetail?.grade?.map {
-                    GradeUiItem(
-                        name = it.gradeName,
-                        price = it.price,
-                        colorCode = it.colorCode,
-                    )
-                } ?: emptyList()
+                val grades = showDetail?.grade
+                    ?.map {
+                        GradeUiItem(
+                            name = it.gradeName,
+                            price = it.price,
+                            colorCode = it.colorCode,
+                        )
+                    }
+                    ?.distinctBy { Triple(it.name, it.price, it.colorCode) }
+                    ?: emptyList()
 
                 _uiState.value = DateSelectionUiState.Success(
                     showTitle = showDetail?.title ?: "공연",

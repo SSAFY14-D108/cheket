@@ -3,7 +3,6 @@ package com.ssafy.cheket.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 
 private val CheketColorScheme = lightColorScheme(
     primary = Primary,
@@ -18,7 +17,7 @@ private val CheketColorScheme = lightColorScheme(
     onSurfaceVariant = MutedForeground,
     outline = BorderColor,
     error = Danger,
-    secondary = Color(0xFF6B7280),
+    secondary = Secondary,
     onSecondary = White,
 )
 

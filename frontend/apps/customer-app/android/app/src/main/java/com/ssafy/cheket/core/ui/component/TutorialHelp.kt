@@ -58,7 +58,6 @@ enum class TutorialId {
 }
 
 private data class TutorialContent(
-    val category: String,
     val title: String,
     val summary: String,
     val points: List<String>,
@@ -138,9 +137,6 @@ private fun TutorialHelpDialog(
                         )
                     }
                 }
-
-                CategoryPill(content.category)
-                Spacer(modifier = Modifier.height(20.dp))
 
                 Box(
                     modifier = Modifier
@@ -245,33 +241,6 @@ private fun TutorialHelpDialog(
 }
 
 @Composable
-private fun CategoryPill(category: String) {
-    Row(
-        modifier = Modifier
-            .background(
-                color = Color(0xFFF6F8FB),
-                shape = RoundedCornerShape(18.dp),
-            )
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
-            contentDescription = null,
-            tint = MutedForeground,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = category,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = MutedForeground,
-        )
-    }
-}
-
-@Composable
 private fun TutorialPointCard(
     index: Int,
     text: String,
@@ -315,7 +284,6 @@ private fun TutorialPointCard(
 private fun tutorialContentOf(id: TutorialId): TutorialContent {
     return when (id) {
         TutorialId.RESALE_LIST -> TutorialContent(
-            category = "RESALE",
             title = "2차 거래소 안내",
             summary = "이 화면에서는 공연별로 등록된 재판매 티켓을 찾아보고 원하는 공연으로 이동할 수 있어요.",
             points = listOf(
@@ -326,7 +294,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             caution = "재판매가는 등록 상황에 따라 계속 달라질 수 있으니 결제 직전에 한 번 더 확인해 주세요.",
         )
         TutorialId.RESALE_DETAIL -> TutorialContent(
-            category = "RESALE",
             title = "재판매 티켓 안내",
             summary = "이 화면에서는 현재 판매 중인 재판매 티켓을 비교하고, 원하는 좌석을 골라 구매할 수 있어요.",
             points = listOf(
@@ -337,7 +304,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             caution = "재판매 티켓은 한 장씩 선점될 수 있어서 보고 있는 동안에도 상태가 바뀔 수 있어요.",
         )
         TutorialId.RESALE_CREATE -> TutorialContent(
-            category = "RESALE",
             title = "재판매 등록 안내",
             summary = "보유 중인 티켓을 다른 사용자에게 판매하고 싶을 때 이 화면에서 재판매 가격을 정해 등록할 수 있어요.",
             points = listOf(
@@ -348,7 +314,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             caution = "재판매 등록 후에는 실제 거래 진행 상황에 따라 티켓 사용 가능 여부가 달라질 수 있어요.",
         )
         TutorialId.WALLET -> TutorialContent(
-            category = "WALLET",
             title = "SSF 지갑 안내",
             summary = "이 화면에서는 서비스 안에서 사용하는 SSF 잔액과 지갑 주소를 확인할 수 있어요.",
             points = listOf(
@@ -359,7 +324,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             caution = "지갑 주소는 자산 식별 정보이므로 복사 전후를 꼭 확인해 주세요.",
         )
         TutorialId.WALLET_HISTORY -> TutorialContent(
-            category = "WALLET",
             title = "지갑 내역 안내",
             summary = "SSF의 충전과 사용 흐름을 날짜별로 확인할 수 있는 화면이에요.",
             points = listOf(
@@ -369,7 +333,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             ),
         )
         TutorialId.TX_HISTORY -> TutorialContent(
-            category = "LEDGER",
             title = "거래 내역 안내",
             summary = "블록체인과 연결된 거래 상태를 확인하는 화면으로, 처리 결과와 확인 수를 함께 볼 수 있어요.",
             points = listOf(
@@ -379,7 +342,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             ),
         )
         TutorialId.TRANSFER -> TutorialContent(
-            category = "TRANSFER",
             title = "티켓 양도 안내",
             summary = "보유한 티켓을 다른 사용자에게 안전하게 전달할 때 사용하는 화면이에요.",
             points = listOf(
@@ -390,7 +352,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             caution = "한 번 양도된 티켓은 되돌리기 어려우니 받는 사람 정보를 꼭 다시 확인해 주세요.",
         )
         TutorialId.COLLECTION -> TutorialContent(
-            category = "COLLECTION",
             title = "컬렉션 안내",
             summary = "관람이 완료된 티켓은 컬렉션으로 보관되고, 나만의 아카이브처럼 모아볼 수 있어요.",
             points = listOf(
@@ -400,7 +361,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             ),
         )
         TutorialId.COLLECTIBLE_TICKET_DETAIL -> TutorialContent(
-            category = "COLLECTION",
             title = "컬렉터블 티켓 안내",
             summary = "컬렉션에 저장된 티켓을 크게 보고, NFT처럼 감상할 수 있는 상세 화면이에요.",
             points = listOf(
@@ -410,7 +370,6 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             ),
         )
         TutorialId.QR_CHECKIN -> TutorialContent(
-            category = "CHECK-IN",
             title = "QR 체크인 안내",
             summary = "공연장 입장 시 사용하는 QR을 확인하고 새로고침할 수 있는 화면이에요.",
             points = listOf(

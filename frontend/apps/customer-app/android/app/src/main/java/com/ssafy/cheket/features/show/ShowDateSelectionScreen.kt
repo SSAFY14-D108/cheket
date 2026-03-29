@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,7 +45,7 @@ private val KR_WEEKDAYS = listOf("일", "월", "화", "수", "목", "금", "토"
 @Composable
 fun ShowDateSelectionScreen(
     showId: String,
-    onDateSelected: (showId: String, sessionId: String) -> Unit,
+    onDateSelected: (showId: String, sessionId: String, showName: String, showDateLabel: String) -> Unit,
     onBack: () -> Unit,
     viewModel: ShowDateSelectionViewModel = viewModel(
         factory = ShowDateSelectionViewModel.factory(showId)
@@ -96,10 +97,14 @@ fun ShowDateSelectionScreen(
             is DateSelectionUiState.Success -> {
                 DateSelectionContent(
                     state = state,
-                    showId = showId,
                     onSelectDate = { viewModel.selectDate(it) },
                     onSessionClick = { session ->
-                        onDateSelected(showId, session.sessionId.toString())
+                        onDateSelected(
+                            showId,
+                            session.sessionId.toString(),
+                            state.showTitle,
+                            session.displayLabel,
+                        )
                     },
                     modifier = Modifier
                         .fillMaxSize()
@@ -114,7 +119,6 @@ fun ShowDateSelectionScreen(
 @Composable
 private fun DateSelectionContent(
     state: DateSelectionUiState.Success,
-    showId: String,
     onSelectDate: (dateKey: String) -> Unit,
     onSessionClick: (SessionUiItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -428,6 +432,9 @@ private fun SessionCard(
             // Grade pills
             if (grades.isNotEmpty()) {
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     grades.forEach { g ->

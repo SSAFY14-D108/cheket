@@ -38,7 +38,7 @@ import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 
 private val V0Background = Background
-private val V0ActiveFilterBg = Color(0xFFE8EEF9)
+private val V0ActiveFilterBg = PrimaryLight
 private val V0ActiveFilterText = Color(0xFF111111)
 private val V0IconTint = Color(0xFF333333)
 private val V0SellingBadgeBg = Color(0xFFF3F4F6)

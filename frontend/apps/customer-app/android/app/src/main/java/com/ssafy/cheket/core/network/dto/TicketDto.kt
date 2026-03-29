@@ -65,6 +65,7 @@ data class UpcomingTicketDto(
     @SerializedName("grade") val grade: String,
     @SerializedName("status") val status: String,
     @SerializedName("resalePrice") val resalePrice: Int? = null,
+    @SerializedName("posterIpfsCid") val posterIpfsCid: String? = null,
     @SerializedName("metadataIpfsCid") val metadataIpfsCid: String? = null,
 )
 
@@ -82,9 +83,25 @@ data class CollectionTicketDto(
     @SerializedName("ticketId") val ticketId: Long,
     @SerializedName("numbering") val numbering: String,
     @SerializedName("posterUrl") val posterUrl: String,
-    @SerializedName("show") val show: TicketShowDto,
+    @SerializedName("show") val show: TicketShowDto? = null,
+    @SerializedName("showInfo") val showInfo: TicketShowDto? = null,
     @SerializedName("seatId") val seatId: Long? = null,
     @SerializedName("sectionName") val sectionName: String,
     @SerializedName("seatNo") val seatNo: String,
     @SerializedName("grade") val grade: String,
+    @SerializedName("price") val price: Int? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("posterIpfsCid") val posterIpfsCid: String? = null,
+    @SerializedName("metadataIpfsCid") val metadataIpfsCid: String? = null,
+    @SerializedName("resalePrice") val resalePrice: Int? = null,
+    @SerializedName("onchain") val onchain: CollectionOnchainDto? = null,
+)
+
+data class CollectionOnchainDto(
+    @SerializedName("tokenId") val tokenId: Long? = null,
+    @SerializedName("ownerAddress") val ownerAddress: String? = null,
+    @SerializedName("tokenURI") val tokenUri: String? = null,
+    @SerializedName("onchainStatus") val onchainStatus: String? = null,
+    @SerializedName("price") val price: Long? = null,
+    @SerializedName("mintedAt") val mintedAt: Long? = null,
 )

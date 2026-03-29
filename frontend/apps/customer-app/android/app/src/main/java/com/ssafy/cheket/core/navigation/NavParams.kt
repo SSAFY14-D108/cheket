@@ -19,6 +19,8 @@ object NavParams {
     var selectedTicket: Ticket? = null
     var showInfo: Show? = null
     var sessionId: Long = 0L
+    var waitingShowName: String = ""
+    var waitingShowDate: String = ""
     var seatAccessToken: String? = null
     var seatAccessExpiresAt: String? = null
     var initialSortOption: String? = null // ShowsScreen 초기 정렬 (예: "OPEN_SOON")
@@ -29,6 +31,8 @@ object NavParams {
         failureReason = ""
         showInfo = null
         sessionId = 0L
+        waitingShowName = ""
+        waitingShowDate = ""
         seatAccessToken = null
         seatAccessExpiresAt = null
     }

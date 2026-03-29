@@ -90,6 +90,7 @@ private val ResetButtonBackground = Color(0xFFF1F3F5)
 private val RegionButtonBackground = Color(0xFFF4F5F6)
 private val RegionSheetButtonBackground = Color(0xFFF7F7F7)
 private val RegionSheetHandleColor = Color(0xFF6D8780)
+private val FilterChipHeight = 40.dp
 
 private val ResaleRegions = listOf(
     "전체",
@@ -177,7 +178,6 @@ fun ResaleScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
             if (isSearchMode) {
                 ResaleSearchBar(
                     query = query,
@@ -408,7 +408,8 @@ private fun RegionSummaryButton(
             .background(Color(0xFFF3F4F6))
             .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .height(FilterChipHeight)
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {

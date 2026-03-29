@@ -74,15 +74,17 @@ class ShowRepositoryImpl(
         regions: List<Int>?,
         sort: String?,
         keyword: String?,
+        includeEnded: Boolean,
         page: Int,
         size: Int,
     ): ShowPage {
-        Log.d(TAG, "getShowsPage(regions=$regions, sort=$sort, keyword=$keyword, page=$page, size=$size)")
+        Log.d(TAG, "getShowsPage(regions=$regions, sort=$sort, keyword=$keyword, includeEnded=$includeEnded, page=$page, size=$size)")
         return try {
             val response = showService.getShows(
                 regions = regions,
                 sort = sort,
                 keyword = keyword,
+                includeEnded = includeEnded,
                 page = page,
                 size = size,
             )
@@ -315,7 +317,7 @@ class ShowRepositoryImpl(
             showId = dto.showId.toString(),
             image = dto.posterUrl,
             title = dto.title,
-            subtitle = dto.reason ?: "AI가 추천한 공연",
+            subtitle = dto.reason ?: "당신을 위한 공연",
             venue = buildBannerVenueLabel(dto.artist, dto.venue),
             dates = buildBannerDateLabel(dto.show?.showStartDate, dto.show?.showEndDate),
         )

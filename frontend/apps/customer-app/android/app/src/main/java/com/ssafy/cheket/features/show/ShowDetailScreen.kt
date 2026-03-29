@@ -373,7 +373,7 @@ private fun ShowDetailContent(
                 }
 
                 // Description
-                if (show.description != null) {
+                if (!show.description.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

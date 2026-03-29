@@ -41,7 +41,8 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
         // Poster — h-20 w-20 rounded-lg (80x80)
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .width(92.dp)
+                .height(122.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(Muted),
             contentAlignment = Alignment.Center,

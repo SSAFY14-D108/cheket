@@ -487,18 +487,25 @@ private fun ReadyContent(
         }
     }
 
-    // Show info card
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .elevatedSurface()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(showName, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = V0Fg)
-        if (showDate.isNotEmpty()) {
-            Spacer(Modifier.height(4.dp))
-            Text(showDate, fontSize = 12.sp, color = V0Muted)
+    if (showName.isNotBlank() || showDate.isNotBlank()) {
+        val infoText = listOf(showName, showDate)
+            .filter { it.isNotBlank() }
+            .joinToString(" · ")
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .elevatedSurface()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = infoText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = V0Muted,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 

@@ -10,6 +10,7 @@ interface ShowService {
         @Query("regions") regions: List<Int>? = null,
         @Query("sort") sort: String? = null,
         @Query("keyword") keyword: String? = null,
+        @Query("includeEnded") includeEnded: Boolean = false,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20,
     ): ApiResponse<ShowListResponse>

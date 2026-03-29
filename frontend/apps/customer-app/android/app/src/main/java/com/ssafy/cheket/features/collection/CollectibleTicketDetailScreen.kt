@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.datasource.mock.MockDataSource
+import com.ssafy.cheket.core.navigation.NavParams
 import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.TutorialId
 import com.ssafy.cheket.ui.theme.*
@@ -42,8 +43,10 @@ fun CollectibleTicketDetailScreen(
     ticketId: String,
     onBack: () -> Unit,
 ) {
-    val ticket = remember { MockDataSource.mockTickets.find { it.id == ticketId } }
-    val user = remember { MockDataSource.mockUser }
+    val ticket = remember(ticketId) {
+        NavParams.selectedTicket?.takeIf { it.id == ticketId }
+            ?: MockDataSource.mockTickets.find { it.id == ticketId }
+    }
 
     if (ticket == null) {
         Scaffold(
@@ -65,8 +68,10 @@ fun CollectibleTicketDetailScreen(
     val holoVariant = remember(ticketId) { getTicketHoloVariant(ticketId) }
     val numberAura = remember(ticketId) { getNumberAura(ticketId) }
     val tiltState by rememberTiltState(maxDegrees = 10f)
-    val tokenId = "#${ticket.id.hashCode().toUInt().toString(16).take(8).uppercase()}"
-    val contractAddress = "0xCheket${ticket.showId.hashCode().toUInt().toString(16).padStart(8, '0')}...NFT"
+    val tokenId = ticket.tokenId ?: "#${ticket.id.hashCode().toUInt().toString(16).take(8).uppercase()}"
+    val ownerAddress = ticket.ownerAddress
+    val metadataValue = ticket.tokenUri ?: ticket.metadataIpfsCid
+    val metadataLabel = if (!ticket.tokenUri.isNullOrBlank()) "Metadata URI" else "Metadata CID"
 
     Scaffold(
         topBar = {
@@ -153,8 +158,12 @@ fun CollectibleTicketDetailScreen(
                         }
                         HorizontalDivider(color = BorderColor)
                         NftInfoRow("Token ID", tokenId)
-                        NftInfoRow("Owner", user.walletAddress.take(10) + "..." + user.walletAddress.takeLast(4))
-                        NftInfoRow("Contract", contractAddress)
+                        ownerAddress?.takeIf { it.isNotBlank() }?.let {
+                            NftInfoRow("Owner", it.take(10) + "..." + it.takeLast(4))
+                        }
+                        metadataValue?.takeIf { it.isNotBlank() }?.let {
+                            NftInfoRow(metadataLabel, it)
+                        }
                     }
                 }
 

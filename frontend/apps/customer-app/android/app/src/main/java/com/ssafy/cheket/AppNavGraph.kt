@@ -362,6 +362,13 @@ fun AppNavGraph(
                             launchSingleTop = true
                         }
                     },
+                    onLikedShowsMore = { navController.navigate(Routes.WISHLIST) },
+                    onResaleMore = {
+                        navController.navigate(Routes.RESALE) {
+                            popUpTo(Routes.HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
                     onSeatMapTest = { showId -> navController.navigate(Routes.seatMap(showId)) },
                 )
             }
@@ -414,7 +421,9 @@ fun AppNavGraph(
                 val showId = backStackEntry.arguments?.getString("showId") ?: ""
                 ShowDateSelectionScreen(
                     showId = showId,
-                    onDateSelected = { sId, dateId ->
+                    onDateSelected = { sId, dateId, showName, showDateLabel ->
+                        NavParams.waitingShowName = showName
+                        NavParams.waitingShowDate = showDateLabel
                         navController.navigate(Routes.waitingQueue(sId, dateId))
                     },
                     onBack = { navController.popBackStack() },
@@ -432,6 +441,8 @@ fun AppNavGraph(
                 WaitingQueueScreen(
                     showId = showId,
                     sessionId = showDateId,
+                    showName = NavParams.waitingShowName,
+                    showDate = NavParams.waitingShowDate,
                     queueService = appContainer.queueService,
                     onComplete = { navController.navigate(Routes.seatSelection(it, showDateId)) {
                         popUpTo(Routes.waitingQueue(showId, showDateId)) { inclusive = true }
@@ -846,8 +857,9 @@ fun AppNavGraph(
 
             slideComposable(Routes.ARCHIVE) {
                 ArchiveScreen(
-                    onTicketClick = { ticketId ->
-                        navController.navigate(Routes.collectibleDetail(ticketId))
+                    onTicketClick = { ticket ->
+                        NavParams.selectedTicket = ticket
+                        navController.navigate(Routes.collectibleDetail(ticket.id))
                     },
                 )
             }
