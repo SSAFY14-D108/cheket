@@ -25,7 +25,10 @@ interface TicketService {
     suspend fun getUpcomingTickets(): ApiResponse<List<UpcomingTicketDto>>
 
     @GET("api/v1/tickets/collection/onchain")
-    suspend fun getCollectionTickets(): ApiResponse<List<CollectionOnchainDto>>
+    suspend fun getCollectionTickets(): ApiResponse<List<CollectionTicketDto>>
+
+    @GET("api/v1/tickets/collection/onchain")
+    suspend fun getCollectionTicketsOnchain(): ApiResponse<List<CollectionTicketDto>>
 
     @POST("api/v1/tickets/{ticketId}/transfer")
     suspend fun transferTicket(

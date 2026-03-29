@@ -39,7 +39,7 @@ import com.ssafy.cheket.ui.theme.*
  * 알림 타입별 아이콘 + 색상 매핑
  */
 private fun notificationIcon(type: String): Pair<ImageVector, Color> = when (type) {
-    "SHOW_START" -> Icons.Outlined.Event to Color(0xFF3B82F6)           // 파랑
+    "SHOW_START" -> Icons.Outlined.Event to Info
     "SETTLEMENT" -> Icons.Outlined.AccountBalanceWallet to Primary
     "APPROVED" -> Icons.Outlined.CheckCircle to Primary
     "REJECTED" -> Icons.Outlined.Cancel to Color(0xFFEF4444)             // 빨강

@@ -49,6 +49,13 @@ fun ShowCardItem(show: Show, onClick: () -> Unit = {}) {
             append(show.region)
         }
     }
+    val showDateText = buildString {
+        append(DateTimeUtils.formatShowDate(show.date))
+        if (show.endDate != null && show.endDate != show.date) {
+            append(" ~ ")
+            append(DateTimeUtils.formatShowDate(show.endDate))
+        }
+    }
 
     // 오픈예정/마감임박 뱃지 텍스트 (달력 우측에 표시)
     val openDateFormatted = show.openDate?.let { DateTimeUtils.formatShortDateTime(it) }
@@ -190,13 +197,7 @@ fun ShowCardItem(show: Show, onClick: () -> Unit = {}) {
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = buildString {
-                            append(DateTimeUtils.formatShortDate(show.date))
-                            if (show.endDate != null && show.endDate != show.date) {
-                                append(" ~ ")
-                                append(DateTimeUtils.formatShortDate(show.endDate))
-                            }
-                        },
+                        text = showDateText,
                         fontSize = 13.sp,
                         color = MutedForeground,
                         maxLines = 1,

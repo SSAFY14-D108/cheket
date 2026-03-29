@@ -24,7 +24,8 @@ class FakeShowRepository : ShowRepository {
         val regionNames = regions?.map { RegionCode.toName(it) }
         val filtered = all.filter { show ->
             (regionNames == null || show.region in regionNames) &&
-                    (keyword == null || show.name.contains(keyword, ignoreCase = true))
+                    (keyword == null || show.name.contains(keyword, ignoreCase = true)) &&
+                    (includeEnded == true || show.status != ShowStatus.COMPLETED)
         }
         val start = (page * size).coerceAtMost(filtered.size)
         val end = ((page + 1) * size).coerceAtMost(filtered.size)

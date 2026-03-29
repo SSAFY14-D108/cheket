@@ -317,7 +317,7 @@ class ShowRepositoryImpl(
             showId = dto.showId.toString(),
             image = dto.posterUrl,
             title = dto.title,
-            subtitle = dto.reason ?: "AI가 추천한 공연",
+            subtitle = dto.reason ?: "당신을 위한 공연",
             venue = buildBannerVenueLabel(dto.artist, dto.venue),
             dates = buildBannerDateLabel(dto.show?.showStartDate, dto.show?.showEndDate),
         )

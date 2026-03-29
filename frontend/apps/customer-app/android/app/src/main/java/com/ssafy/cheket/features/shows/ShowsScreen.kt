@@ -1,9 +1,9 @@
 package com.ssafy.cheket.features.shows
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,18 +24,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,9 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +54,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -66,7 +62,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -76,18 +71,19 @@ import com.ssafy.cheket.core.ui.component.AppHeader
 import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.ShowCardItem
 import com.ssafy.cheket.ui.theme.Background
-import com.ssafy.cheket.ui.theme.BorderColor
 import com.ssafy.cheket.ui.theme.MutedForeground
 import com.ssafy.cheket.ui.theme.OnBackground
 import com.ssafy.cheket.ui.theme.Primary
+import com.ssafy.cheket.ui.theme.PrimaryLight
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
-private val FilterBarBackground = Color(0xFFF4F6F5)
 private val FilterChipBackground = Color(0xFFFFFFFF)
 private val FilterChipBorder = Color(0xFFE5E7EB)
 private val FilterSelectedText = Color(0xFF111827)
 private val FilterSelectedChip = Color(0xFFF3F4F6)
+private val FilterChipHeight = 40.dp
 private val RegionChipSelected = Primary
 private val RegionChipSelectedText = Color(0xFFFFFFFF)
 private val RegionChipDefault = Color(0xFFF7F7F6)
@@ -141,16 +137,7 @@ fun ShowsScreen(
                 },
                 onReset = { pendingRegions = emptyList() },
                 onApply = {
-                    val currentRegions = uiState.selectedRegions
-                    val removedRegions = currentRegions.filterNot { pendingRegions.contains(it) }
-                    val addedRegions = pendingRegions.filterNot { currentRegions.contains(it) }
-
-                    if (pendingRegions.isEmpty() && currentRegions.isNotEmpty()) {
-                        viewModel.onRegionToggle(null)
-                    } else {
-                        removedRegions.forEach { viewModel.onRegionToggle(it) }
-                        addedRegions.forEach { viewModel.onRegionToggle(it) }
-                    }
+                    viewModel.applyRegions(pendingRegions)
                     isRegionSheetOpen = false
                 },
             )
@@ -162,7 +149,7 @@ fun ShowsScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             AppHeader(
-                title = "공연",
+                title = "\uacf5\uc5f0",
                 actions = {
                     IconButton(
                         onClick = {
@@ -176,7 +163,7 @@ fun ShowsScreen(
                     ) {
                         Icon(
                             imageVector = if (isSearchMode) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = if (isSearchMode) "검색 닫기" else "검색",
+                            contentDescription = if (isSearchMode) "\uac80\uc0c9 \ub2eb\uae30" else "\uac80\uc0c9",
                             tint = Color(0xFF24332F),
                         )
                     }
@@ -190,7 +177,6 @@ fun ShowsScreen(
                 .background(Background)
                 .padding(innerPadding),
         ) {
-            // 검색/정렬/지역 필터 (content 안에 배치)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -235,122 +221,91 @@ fun ShowsScreen(
                             isRegionSheetOpen = true
                         },
                     )
-
                     Spacer(modifier = Modifier.weight(1f))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            viewModel.onIncludeEndedChange(!uiState.includeEnded)
-                        },
-                    ) {
-                        Checkbox(
-                            checked = uiState.includeEnded,
-                            onCheckedChange = viewModel::onIncludeEndedChange,
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = Primary,
-                                uncheckedColor = MutedForeground,
-                            ),
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Text(
-                            text = "종료 포함",
-                            fontSize = 11.sp,
-                            color = if (uiState.includeEnded) OnBackground else MutedForeground,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-
-                    if (viewModel.hasActiveFilters()) {
-                        TextButton(onClick = viewModel::resetFilters) {
-                            Text(
-                                text = "필터 초기화",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MutedForeground,
-                            )
-                        }
-                    }
+                    ToggleFilterChip(
+                        label = "??? ?? ???",
+                        selected = !uiState.includeEnded,
+                        onClick = { viewModel.onIncludeEndedChange(!uiState.includeEnded) },
+                    )
                 }
             }
 
-            // 공연 목록
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
                 onRefresh = viewModel::refresh,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-        ) {
-            if (uiState.isLoading && uiState.shows.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(36.dp),
-                        strokeWidth = 3.dp,
-                        color = Primary,
-                    )
-                }
-            } else if (uiState.shows.isEmpty()) {
-                EmptyState(
-                    title = "공연을 찾을 수 없어요",
-                    description = "검색어나 지역 필터를 바꿔서 다시 찾아보세요.",
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
-                ) {
-                    itemsIndexed(uiState.shows, key = { index, show -> "${show.id}_$index" }) { _, show ->
-                        ShowCardItem(show = show, onClick = { onShowClick(show.id) })
+            ) {
+                if (uiState.isLoading && uiState.shows.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(36.dp),
+                            strokeWidth = 3.dp,
+                            color = Primary,
+                        )
                     }
+                } else if (uiState.shows.isEmpty()) {
+                    EmptyState(
+                        title = "\uacf5\uc5f0\uc774 \uc5c6\uc5b4\uc694",
+                        description = "\uac80\uc0c9\uc5b4\ub098 \ud544\ud130\ub97c \ubc14\uafd4\uc11c \ub2e4\ub978 \uacf5\uc5f0\uc744 \ucc3e\uc544\ubcf4\uc138\uc694.",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = listState,
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+                    ) {
+                        itemsIndexed(uiState.shows, key = { index, show -> "${show.id}_$index" }) { _, show ->
+                            ShowCardItem(show = show, onClick = { onShowClick(show.id) })
+                        }
 
-                    if (uiState.isLoadingMore) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.5.dp,
-                                    color = Primary,
-                                )
+                        if (uiState.isLoadingMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.5.dp,
+                                        color = Primary,
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    if (
-                        uiState.shows.isNotEmpty() &&
-                        !uiState.isLoading &&
-                        !uiState.isLoadingMore &&
-                        !uiState.hasMore
-                    ) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "더 이상 공연이 없습니다",
-                                    fontSize = 12.sp,
-                                    color = MutedForeground,
-                                )
+                        if (
+                            uiState.shows.isNotEmpty() &&
+                            !uiState.isLoading &&
+                            !uiState.isLoadingMore &&
+                            !uiState.hasMore
+                        ) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "\ubaa8\ub4e0 \uacf5\uc5f0\uc744 \ud655\uc778\ud588\uc5b4\uc694",
+                                        fontSize = 12.sp,
+                                        color = MutedForeground,
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        } // Column
     }
 }
 
@@ -366,7 +321,7 @@ private fun SearchField(
     val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
     if (autoFocus) {
         LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(100)
+            delay(100)
             focusRequester.requestFocus()
         }
     }
@@ -416,15 +371,13 @@ private fun SearchField(
                 ) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "공연명, 아티스트, 장소 검색",
+                            text = "\uacf5\uc5f0\uba85, \uc544\ud2f0\uc2a4\ud2b8, \uc7a5\uc18c \uac80\uc0c9",
                             fontSize = 14.sp,
                             color = MutedForeground,
                         )
                     }
                     innerTextField()
                 }
-
-                // X 버튼 제거됨
             }
         },
     )
@@ -444,7 +397,8 @@ private fun SortDropdownButton(
                 .background(FilterSelectedChip)
                 .border(1.dp, FilterChipBorder, RoundedCornerShape(20.dp))
                 .clickable { onExpandedChange(!expanded) }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .height(FilterChipHeight)
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -498,12 +452,13 @@ private fun RegionSummaryButton(
             .background(FilterChipBackground)
             .border(1.dp, FilterChipBorder, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .height(FilterChipHeight)
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "지역",
+            text = if (hasSelection) summary else "\uc9c0\uc5ed",
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = FilterSelectedText,
@@ -513,6 +468,59 @@ private fun RegionSummaryButton(
             contentDescription = null,
             tint = MutedForeground,
             modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun ToggleFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = Modifier
+            .then(modifier)
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (selected) PrimaryLight else FilterChipBackground)
+            .border(
+                width = 1.dp,
+                color = if (selected) Primary.copy(alpha = 0.45f) else FilterChipBorder,
+                shape = RoundedCornerShape(20.dp),
+            )
+            .clickable(onClick = onClick)
+            .height(FilterChipHeight)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (selected) Primary else Color.Transparent)
+                .border(
+                    width = 1.dp,
+                    color = if (selected) Primary else FilterChipBorder,
+                    shape = RoundedCornerShape(50),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(11.dp),
+                )
+            }
+        }
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (selected) OnBackground else MutedForeground,
         )
     }
 }
@@ -529,7 +537,7 @@ private fun FilterSummaryRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "총 ${totalCount}개",
+            text = "\ucd1d ${totalCount}\uac1c",
             fontSize = 12.sp,
             color = MutedForeground,
         )
@@ -555,20 +563,20 @@ private fun RegionBottomSheet(
                 .padding(horizontal = 20.dp),
         ) {
             Text(
-                text = "지역 선택",
+                text = "\uc9c0\uc5ed \uc120\ud0dd",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = OnBackground,
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "원하는 지역을 선택해서 공연 목록을 좁혀보세요.",
+                text = "\uc6d0\ud558\ub294 \uc9c0\uc5ed\uc744 \uc120\ud0dd\ud574\uc11c \uacf5\uc5f0 \ubaa9\ub85d\uc744 \uc881\ud600\ubcf4\uc138\uc694.",
                 fontSize = 13.sp,
                 color = MutedForeground,
             )
             Spacer(modifier = Modifier.height(20.dp))
 
-            val regionItems = listOf<Pair<String, RegionOption?>>("전체" to null) +
+            val regionItems = listOf<Pair<String, RegionOption?>>("\uc804\uccb4" to null) +
                 RegionOption.entries.map { it.label to it }
 
             regionItems.chunked(6).forEach { rowItems ->
@@ -615,7 +623,7 @@ private fun RegionBottomSheet(
                     pressedElevation = 0.dp,
                 ),
             ) {
-                Text("초기화", fontWeight = FontWeight.SemiBold)
+                Text("\ucd08\uae30\ud654", fontWeight = FontWeight.SemiBold)
             }
             Button(
                 onClick = onApply,
@@ -626,7 +634,7 @@ private fun RegionBottomSheet(
                 ),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Text("적용", fontWeight = FontWeight.SemiBold)
+                Text("\uc801\uc6a9", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -658,8 +666,8 @@ private fun RegionSheetChip(
 
 private fun regionSummaryText(selectedRegions: List<RegionOption>): String {
     return when {
-        selectedRegions.isEmpty() -> "전체"
+        selectedRegions.isEmpty() -> "\uc804\uccb4"
         selectedRegions.size == 1 -> selectedRegions.first().label
-        else -> "${selectedRegions.first().label} 외 ${selectedRegions.size - 1}"
+        else -> "${selectedRegions.first().label} \uc678 ${selectedRegions.size - 1}"
     }
 }

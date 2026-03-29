@@ -74,7 +74,6 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
-            
             .verticalScroll(rememberScrollState()),
     ) {
         Box(
@@ -102,7 +101,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(112.dp)
-                    .align(Alignment.BottomCenter),
+                    .align(Alignment.BottomCenter)
             ) {
                 val w = size.width
                 val h = size.height

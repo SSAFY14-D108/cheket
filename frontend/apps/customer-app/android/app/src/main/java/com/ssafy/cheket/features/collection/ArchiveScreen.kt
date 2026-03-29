@@ -31,7 +31,7 @@ import com.ssafy.cheket.ui.theme.*
 
 @Composable
 fun ArchiveScreen(
-    onTicketClick: (String) -> Unit,
+    onTicketClick: (Ticket) -> Unit,
 ) {
     val usedTickets = remember {
         MockDataSource.mockTickets.filter { it.status == TicketStatus.USED }
@@ -85,7 +85,7 @@ fun ArchiveScreen(
                     items(usedTickets, key = { it.id }) { ticket ->
                         ArchiveTicketCard(
                             ticket = ticket,
-                            onClick = { onTicketClick(ticket.id) },
+                            onClick = { onTicketClick(ticket) },
                         )
                     }
                 }

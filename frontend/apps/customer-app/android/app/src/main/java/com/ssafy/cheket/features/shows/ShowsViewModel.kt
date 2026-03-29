@@ -1,4 +1,4 @@
-﻿package com.ssafy.cheket.features.shows
+package com.ssafy.cheket.features.shows
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -13,6 +13,7 @@ import com.ssafy.cheket.core.network.dto.SaveSearchKeywordRequest
 import com.ssafy.cheket.core.network.service.ShowService
 import com.ssafy.cheket.core.repository.ShowRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,31 +21,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 enum class SortOption(val label: String, val apiValue: String) {
-    POPULAR("인기순", "POPULAR"),
-    LATEST("최신순", "LATEST"),
-    CLOSING("마감임박순", "DEADLINE"),
-    OPEN_SOON("오픈임박순", "OPEN_SOON"),
+    POPULAR("\uc778\uae30\uc21c", "POPULAR"),
+    LATEST("\ucd5c\uc2e0\uc21c", "LATEST"),
+    CLOSING("\ub9c8\uac10\uc784\ubc15\uc21c", "DEADLINE"),
+    OPEN_SOON("\uc624\ud508\uc784\ubc15\uc21c", "OPEN_SOON"),
 }
 
-/** 백엔드 Region 값을 지역 필터에 매핑 */
 enum class RegionOption(val label: String, val apiValue: Int) {
-    SEOUL("서울", 11),
-    GYEONGGI("경기", 41),
-    INCHEON("인천", 28),
-    BUSAN("부산", 26),
-    DAEGU("대구", 27),
-    GWANGJU("광주", 29),
-    DAEJEON("대전", 30),
-    ULSAN("울산", 31),
-    SEJONG("세종", 36),
-    GANGWON("강원", 42),
-    CHUNGBUK("충북", 43),
-    CHUNGNAM("충남", 44),
-    JEONBUK("전북", 45),
-    JEONNAM("전남", 46),
-    GYEONGBUK("경북", 47),
-    GYEONGNAM("경남", 48),
-    JEJU("제주", 50),
+    SEOUL("\uc11c\uc6b8", 11),
+    GYEONGGI("\uacbd\uae30", 41),
+    INCHEON("\uc778\ucc9c", 28),
+    BUSAN("\ubd80\uc0b0", 26),
+    DAEGU("\ub300\uad6c", 27),
+    GWANGJU("\uad11\uc8fc", 29),
+    DAEJEON("\ub300\uc804", 30),
+    ULSAN("\uc6b8\uc0b0", 31),
+    SEJONG("\uc138\uc885", 36),
+    GANGWON("\uac15\uc6d0", 42),
+    CHUNGBUK("\ucda9\ubd81", 43),
+    CHUNGNAM("\ucda9\ub0a8", 44),
+    JEONBUK("\uc804\ubd81", 45),
+    JEONNAM("\uc804\ub0a8", 46),
+    GYEONGBUK("\uacbd\ubd81", 47),
+    GYEONGNAM("\uacbd\ub0a8", 48),
+    JEJU("\uc81c\uc8fc", 50),
 }
 
 data class ShowsUiState(
@@ -69,25 +69,24 @@ class ShowsViewModel(
     private val _uiState = MutableStateFlow(ShowsUiState())
     val uiState: StateFlow<ShowsUiState> = _uiState.asStateFlow()
 
-    // 寃???붾컮?댁떛??
     private var searchJob: Job? = null
+    private var loadJob: Job? = null
+    private var loadRequestVersion: Long = 0L
 
     init {
-        // NavParams에서 초기 정렬 확인 (예: 홈 → 오픈 예정 더보기)
         val initialSort = NavParams.initialSortOption
         if (initialSort != null) {
-            NavParams.initialSortOption = null // 한 번만 사용
+            NavParams.initialSortOption = null
             val sortOption = SortOption.entries.find { it.apiValue == initialSort }
             if (sortOption != null) {
                 _uiState.value = _uiState.value.copy(sortBy = sortOption)
-                Log.d(TAG, "init — initial sort from NavParams: $sortOption")
+                Log.d(TAG, "init - initial sort from NavParams: $sortOption")
             }
         }
-        Log.d(TAG, "init — loading shows")
+        Log.d(TAG, "init - loading shows")
         loadShows()
     }
 
-    // ?? 寃?? ?띿뒪???낅뜲?댄듃 + ?붾컮?댁떛 API ?몄텧 ??
     fun onSearchChange(query: String) {
         Log.d(TAG, "onSearchChange() query=$query")
         _uiState.value = _uiState.value.copy(searchQuery = query)
@@ -98,14 +97,12 @@ class ShowsViewModel(
         }
     }
 
-    // ?? 寃?? ?ㅻ낫??Search 踰꾪듉 / 寃???꾩씠肄??대┃ ??利됱떆 API ?몄텧 ??
     fun onSearchSubmit() {
         val query = _uiState.value.searchQuery.trim()
         Log.d(TAG, "onSearchSubmit() query=$query")
         searchJob?.cancel()
         loadShows(page = 0)
 
-        // 검색 키워드 저장 (AI 추천용, fire-and-forget)
         if (query.isNotBlank()) {
             viewModelScope.launch {
                 try {
@@ -118,14 +115,12 @@ class ShowsViewModel(
         }
     }
 
-    // ?? ?뺣젹 蹂寃???利됱떆 API ?몄텧 ??
     fun onSortChange(sort: SortOption) {
         Log.d(TAG, "onSortChange() sort=$sort")
         _uiState.value = _uiState.value.copy(sortBy = sort)
         loadShows(page = 0)
     }
 
-    // ?? 吏???꾪꽣 ?좉? ??利됱떆 API ?몄텧 ??
     fun onRegionToggle(region: RegionOption?) {
         Log.d(TAG, "onRegionToggle() region=$region")
         if (region == null) {
@@ -135,6 +130,12 @@ class ShowsViewModel(
             val updated = if (current.contains(region)) current - region else current + region
             _uiState.value = _uiState.value.copy(selectedRegions = updated)
         }
+        loadShows(page = 0)
+    }
+
+    fun applyRegions(regions: List<RegionOption>) {
+        Log.d(TAG, "applyRegions() regions=$regions")
+        _uiState.value = _uiState.value.copy(selectedRegions = regions.distinct())
         loadShows(page = 0)
     }
 
@@ -175,7 +176,9 @@ class ShowsViewModel(
     fun activeFilterCount(): Int = _uiState.value.selectedRegions.size + if (_uiState.value.includeEnded) 1 else 0
 
     private fun loadShows(page: Int = 0, append: Boolean = false) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        val requestVersion = ++loadRequestVersion
+        loadJob = viewModelScope.launch {
             val s = _uiState.value
             if (!s.isRefreshing) {
                 _uiState.value = s.copy(
@@ -198,10 +201,17 @@ class ShowsViewModel(
                     size = PAGE_SIZE,
                 )
 
+                if (requestVersion != loadRequestVersion) {
+                    Log.d(TAG, "loadShows() ignoring stale response version=$requestVersion latest=$loadRequestVersion")
+                    return@launch
+                }
+
                 val mergedShows = if (append) {
                     val existingIds = s.shows.map { it.id }.toSet()
                     s.shows + result.shows.filter { it.id !in existingIds }
-                } else result.shows
+                } else {
+                    result.shows
+                }
                 val hasMore = when {
                     result.totalElements > 0 -> mergedShows.size < result.totalElements
                     else -> result.shows.size >= PAGE_SIZE
@@ -217,9 +227,15 @@ class ShowsViewModel(
                     isRefreshing = false,
                     hasMore = hasMore,
                 )
-                Log.d(TAG, "loadShows() page=${result.page}/${result.totalPages}, total=${result.totalElements}, count=${result.shows.size}")
+                Log.d(
+                    TAG,
+                    "loadShows() page=${result.page}/${result.totalPages}, total=${result.totalElements}, count=${result.shows.size}",
+                )
+            } catch (_: CancellationException) {
+                Log.d(TAG, "loadShows() cancelled version=$requestVersion")
             } catch (e: Exception) {
                 Log.e(TAG, "loadShows() failed", e)
+                if (requestVersion != loadRequestVersion) return@launch
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isLoadingMore = false,

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -50,11 +51,13 @@ import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.Background
 import com.ssafy.cheket.ui.theme.MutedForeground
+import com.ssafy.cheket.ui.theme.PrimaryLight
 
 private val V0Background = Background
-private val V0ActiveFilterBg = Color(0xFFE8EEF9)
+private val V0ActiveFilterBg = PrimaryLight
 private val V0ActiveFilterText = Color(0xFF111111)
 private val V0ForegroundText = Color(0xFF111111)
+private val FilterChipHeight = 40.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +89,7 @@ fun MyTicketsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -96,17 +99,22 @@ fun MyTicketsScreen(
                 ) {
                     items(items = TicketFilter.entries.toList()) { filter ->
                         val selected = uiState.selectedFilter == filter
-                        Text(
-                            text = filter.label,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (selected) V0ActiveFilterText else MutedForeground,
+                        Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
                                 .clickable { viewModel.onFilterChange(filter) }
                                 .background(if (selected) V0ActiveFilterBg else Color.Transparent)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
+                                .height(FilterChipHeight)
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = filter.label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (selected) V0ActiveFilterText else MutedForeground,
+                            )
+                        }
                     }
                 }
 
@@ -127,7 +135,8 @@ fun MyTicketsScreen(
                             )
                         )
                         .clickable(onClick = onCollection)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .height(FilterChipHeight)
+                        .padding(horizontal = 16.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.AutoAwesome,

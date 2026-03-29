@@ -33,9 +33,10 @@ import com.ssafy.cheket.core.ui.component.EmptyState
 import com.ssafy.cheket.core.ui.component.TicketCardItem
 import com.ssafy.cheket.core.ui.component.elevatedSurfaceSoft
 import com.ssafy.cheket.ui.theme.Background
+import com.ssafy.cheket.ui.theme.PrimaryLight
 
 private val HistoryBackground = Background
-private val HistoryActiveBg = Color(0xFFE8EEF9)
+private val HistoryActiveBg = PrimaryLight
 private val HistoryActiveText = Color(0xFF111111)
 private val HistoryInactiveText = Color(0xFF7B8B86)
 
