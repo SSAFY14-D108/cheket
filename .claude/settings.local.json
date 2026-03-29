@@ -88,7 +88,18 @@
       "Bash(find /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/host-web -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\) ! -path */.next/* ! -path */node_modules/* ! -path */.git/*)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx next:*)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(find C:UsersSSAFYDocumentsS14P21D108_frontendfrontendappshost-web -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\))",
+      "Bash(find C:UsersSSAFYDocumentsS14P21D108_frontendfrontendappshost-webpublic -type f -name *section* -o -name *venue*)",
+      "Bash(find \"/c/Users/SSAFY/Documents/S14P21D108_backend/backend/src/main/java/com/ssafy/cheket/entity\" -name \"*.java\" -type f -exec basename {})",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit --pretty)",
+      "Bash(find /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/customer-collection -type f -name *[Tt]icket* -o -name *[Pp]review* -o -name *[Ee]ffect*)",
+      "Bash(find C:UsersSSAFYDocumentsS14P21D108_frontendfrontendappscustomer-appandroid -type f -name *[Ee]ffect*)",
+      "Bash(grep -r \"getTicketEffect\\\\|EffectType\\\\|HoloVariant\\\\|pokeEffect\\\\|paperEffect\\\\|metalEffect\" /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/customer-collection --include=*.tsx --include=*.ts)",
+      "Bash(find C:UsersSSAFYDocumentsS14P21D108_frontendfrontendappscustomer-appandroid -name CollectionViewModel* -type f)",
+      "Bash(find C:UsersSSAFYDocumentsS14P21D108_frontendfrontendappscustomer-appandroid -name TicketService* -type f)",
+      "Bash(grep -rn \"ticketEffects\\\\|getTicketEffect\\\\|effect\" /c/Users/SSAFY/Documents/S14P21D108_frontend/frontend/apps/host-web/lib --include=*.ts --include=*.tsx)"
     ]
   }
 }
