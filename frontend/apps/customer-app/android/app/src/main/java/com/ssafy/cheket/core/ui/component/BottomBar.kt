@@ -49,13 +49,13 @@ fun CheketBottomBar(
     ) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route
-                                NavigationBarItem(
-                                selected = selected,
-                        onClick = { onNavigate(item.route) },
-                        icon = {
-                            Icon(
-                                imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.label,
+            NavigationBarItem(
+                selected = selected,
+                onClick = { onNavigate(item.route) },
+                icon = {
+                    Icon(
+                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.label,
                         modifier = Modifier.size(20.dp),
                     )
                 },

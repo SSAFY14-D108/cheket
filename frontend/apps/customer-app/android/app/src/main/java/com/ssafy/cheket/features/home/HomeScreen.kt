@@ -35,6 +35,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -390,13 +392,13 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                     .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
                     .clickable { onItemClick(item.showId) }
                     .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Box {
-                    val rankFontSize = if (rank == 1) 52.sp else 46.sp
+                    val rankFontSize = if (rank == 1) 48.sp else 42.sp
                     val rankModifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 2.dp, top = 2.dp)
+                        .padding(start = 8.dp, top = 4.dp)
                         .zIndex(2f)
                     Text(
                         text = rank.toString(),
@@ -431,17 +433,23 @@ private fun RankingSection(items: List<RankingItem>, onItemClick: (String) -> Un
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = V0Gray900,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 16.sp,
-                    modifier = Modifier.height(18.dp),
+                    lineHeight = 15.sp,
+                    modifier = Modifier.heightIn(min = 30.dp),
                 )
-                Text(
+                val dateLabel = buildShowDateLabel(item.showDate, item.showEndDate)
+                if (dateLabel.isNotBlank()) {
+                    MetaLine(
+                        icon = Icons.Outlined.CalendarMonth,
+                        text = dateLabel,
+                        tint = V0TextSub,
+                    )
+                }
+                MetaLine(
+                    icon = Icons.Outlined.LocationOn,
                     text = item.venue,
-                    fontSize = 10.sp,
-                    color = V0Gray500,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    tint = V0Gray500,
                 )
             }
         }
@@ -607,13 +615,13 @@ private fun LikedShowsSection(
                         .elevatedSurfaceSoft(RoundedCornerShape(16.dp))
                         .clickable { onShowClick(show.showId) }
                         .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Box {
-                        AsyncImage(
-                            model = show.posterUrl,
-                            contentDescription = show.title,
-                            contentScale = ContentScale.Crop,
+                Box {
+                    AsyncImage(
+                        model = show.posterUrl,
+                        contentDescription = show.title,
+                        contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(176.dp)
@@ -644,19 +652,52 @@ private fun LikedShowsSection(
                         color = V0Gray900,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        lineHeight = 16.sp,
-                        modifier = Modifier.heightIn(min = 34.dp),
+                        lineHeight = 15.sp,
+                        modifier = Modifier.heightIn(min = 30.dp),
                     )
-                    Text(
+                    val dateLabel = buildShowDateLabel(show.showStartDate, "")
+                    if (dateLabel.isNotBlank()) {
+                        MetaLine(
+                            icon = Icons.Outlined.CalendarMonth,
+                            text = dateLabel,
+                            tint = V0TextSub,
+                        )
+                    }
+                    MetaLine(
+                        icon = Icons.Outlined.LocationOn,
                         text = show.venue,
-                        fontSize = 10.sp,
-                        color = V0Gray500,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        tint = V0Gray500,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MetaLine(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    tint: Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(10.dp),
+        )
+        Text(
+            text = text,
+            fontSize = 10.sp,
+            color = tint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            lineHeight = 12.sp,
+        )
     }
 }
 
@@ -666,17 +707,23 @@ private fun ResaleDiscountSection(
     onItemClick: (String) -> Unit,
     onMore: () -> Unit,
 ) {
-    val discounted = remember(resaleItems) {
-        resaleItems.mapNotNull { item ->
-            if (item.originalPrice <= 0) return@mapNotNull null
-            val percent =
+    val resaleHighlights = remember(resaleItems) {
+        resaleItems.map { item ->
+            val percent = if (item.originalPrice > 0) {
                 ((item.originalPrice - item.resalePrice).toFloat() / item.originalPrice * 100).roundToInt()
-            if (percent > 0) item to percent else null
-        }.sortedByDescending { it.second }.take(5)
+            } else {
+                0
+            }
+            item to percent
+        }.sortedWith(
+            compareByDescending<Pair<ResaleItem, Int>> { it.second > 0 }
+                .thenByDescending { it.second }
+                .thenBy { it.first.resalePrice.takeIf { price -> price > 0 } ?: Int.MAX_VALUE },
+        ).take(5)
     }
     Column(Modifier.padding(vertical = 20.dp)) {
         HomeSectionHeader(title = "\uD56B\uD55C \uB9AC\uC138\uC77C", onMore = onMore)
-        if (discounted.isEmpty()) {
+        if (resaleHighlights.isEmpty()) {
             HomeSectionEmptyCard(
                 title = "\uC9C0\uAE08\uC740 \uB458\uB7EC\uBCFC \u0032\uCC28 \uAC70\uB798\uAC00 \uC5C6\uC5B4\uC694",
                 description = "\uC0C8\uB85C\uC6B4 \uAC70\uB798\uAC00 \uC62C\uB77C\uC624\uBA74 \uC774 \uC139\uC158\uC5D0\uC11C \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
@@ -687,7 +734,7 @@ private fun ResaleDiscountSection(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            discounted.forEach { (item, percent) ->
+            resaleHighlights.forEach { (item, percent) ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -705,15 +752,17 @@ private fun ResaleDiscountSection(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color(0xFFF3F4F6)),
                         )
-                        Box(
-                            Modifier
-                                .padding(6.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(V0Red500)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                .align(Alignment.TopStart),
-                        ) {
-                            Text(text = "-$percent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = White)
+                        if (percent > 0) {
+                            Box(
+                                Modifier
+                                    .padding(6.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(V0Red500)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .align(Alignment.TopStart),
+                            ) {
+                                Text(text = "-$percent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = White)
+                            }
                         }
                     }
                     Spacer(Modifier.width(12.dp))
@@ -759,22 +808,27 @@ private fun ResaleDiscountSection(
                             color = V0Gray500,
                             modifier = Modifier.padding(top = 2.dp),
                         )
-                        Text(
-                            text = "${item.seatLabel} 쨌 ${item.grade}",
-                            fontSize = 12.sp,
-                            color = V0Gray500,
-                        )
+                        val seatSummary = listOf(item.seatLabel, item.grade).filter { it.isNotBlank() }.joinToString(" · ")
+                        if (seatSummary.isNotBlank()) {
+                            Text(
+                                text = seatSummary,
+                                fontSize = 12.sp,
+                                color = V0Gray500,
+                            )
+                        }
                         Row(
                             modifier = Modifier.padding(top = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Text(
-                                text = "%,d SSF".format(item.originalPrice),
-                                fontSize = 12.sp,
-                                color = V0TextSub,
-                                textDecoration = TextDecoration.LineThrough,
-                            )
+                            if (item.originalPrice > 0 && item.originalPrice > item.resalePrice) {
+                                Text(
+                                    text = "%,d SSF".format(item.originalPrice),
+                                    fontSize = 12.sp,
+                                    color = V0TextSub,
+                                    textDecoration = TextDecoration.LineThrough,
+                                )
+                            }
                             Text(
                                 text = "%,d SSF".format(item.resalePrice),
                                 fontSize = 14.sp,
@@ -788,6 +842,7 @@ private fun ResaleDiscountSection(
         }
     }
 }
+
 
 @Composable
 private fun HomeSectionEmptyCard(

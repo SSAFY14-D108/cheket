@@ -223,7 +223,7 @@ fun ShowsScreen(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     ToggleFilterChip(
-                        label = "??? ?? ???",
+                        label = "종료된 공연 숨기기",
                         selected = !uiState.includeEnded,
                         onClick = { viewModel.onIncludeEndedChange(!uiState.includeEnded) },
                     )

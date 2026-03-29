@@ -2,7 +2,16 @@ package com.ssafy.cheket.core.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -22,10 +31,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ssafy.cheket.core.model.Ticket
-import com.ssafy.cheket.ui.theme.*
+import com.ssafy.cheket.core.util.DateTimeUtils
+import com.ssafy.cheket.ui.theme.Muted
+import com.ssafy.cheket.ui.theme.MutedForeground
 
 private val V0Foreground = Color(0xFF111111)
 private val V0SeatText = Color(0xFF333333)
+private val PosterHeight = 122.dp
 
 @Composable
 fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
@@ -38,11 +50,10 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        // Poster — h-20 w-20 rounded-lg (80x80)
         Box(
             modifier = Modifier
                 .width(92.dp)
-                .height(122.dp)
+                .height(PosterHeight)
                 .clip(RoundedCornerShape(14.dp))
                 .background(Muted),
             contentAlignment = Alignment.Center,
@@ -67,9 +78,10 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
         Column(
             modifier = Modifier
                 .weight(1f)
+                .height(PosterHeight)
                 .padding(vertical = 2.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Title + status badge row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -90,58 +102,51 @@ fun TicketCardItem(ticket: Ticket, onClick: () -> Unit = {}) {
                 TicketStatusBadge(ticket.status)
             }
 
-            Spacer(Modifier.height(4.dp))
-
-            // Seat · Grade
-            Text(
-                text = "${ticket.seatLabel} · ${ticket.grade}",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = V0SeatText,
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            // Date row with icon
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.CalendarMonth,
-                    contentDescription = null,
-                    tint = MutedForeground,
-                    modifier = Modifier.size(12.dp),
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = com.ssafy.cheket.core.util.DateTimeUtils.formatShowDateTime(ticket.showDate),
+                    text = "${ticket.seatLabel} · ${ticket.grade}",
                     fontSize = 12.sp,
-                    color = MutedForeground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Medium,
+                    color = V0SeatText,
                 )
-            }
 
-            Spacer(Modifier.height(2.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarMonth,
+                        contentDescription = null,
+                        tint = MutedForeground,
+                        modifier = Modifier.size(12.dp),
+                    )
+                    Text(
+                        text = DateTimeUtils.formatShowDateTime(ticket.showDate),
+                        fontSize = 12.sp,
+                        color = MutedForeground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
-            // Venue row with icon
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.LocationOn,
-                    contentDescription = null,
-                    tint = MutedForeground,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(
-                    text = ticket.venue,
-                    fontSize = 12.sp,
-                    color = MutedForeground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = MutedForeground,
+                        modifier = Modifier.size(12.dp),
+                    )
+                    Text(
+                        text = ticket.venue,
+                        fontSize = 12.sp,
+                        color = MutedForeground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

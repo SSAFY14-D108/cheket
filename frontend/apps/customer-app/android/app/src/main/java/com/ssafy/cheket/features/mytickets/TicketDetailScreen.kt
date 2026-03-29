@@ -279,7 +279,7 @@ fun TicketDetailScreen(
                     metadataValue?.takeIf { it.isNotBlank() }?.let {
                         NftInfoRow(label = metadataLabel, value = it)
                     } ?: Text(
-                        text = "????? ?? ????.",
+                        text = "메타데이터 연동 전입니다.",
                         fontSize = 12.sp,
                         color = MutedForeground,
                     )
