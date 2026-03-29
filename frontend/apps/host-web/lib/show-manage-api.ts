@@ -310,6 +310,20 @@ function normalizeContractApproval(
   }
 }
 
+export interface VenueSeatItem {
+  seatId: number
+  rowNum: number
+  colNum: number
+  seatNo: string
+  sectionId: number
+}
+
+export interface VenueSectionSeats {
+  sectionId: number
+  sectionName: string
+  seats: VenueSeatItem[]
+}
+
 export interface HostShowSection {
   sectionId: number
   sectionName: string
@@ -425,6 +439,11 @@ function buildShowSectionsPath(venueId: string | number) {
   return `/api/v1/hosts/venues/${venueId}/sections`
 }
 
+function buildVenueSeatsPath(venueId: string | number) {
+  // 공연장 전체 좌석 좌표 조회
+  return `/api/v1/hosts/venues/${venueId}/seats`
+}
+
 function buildTxStatusPath(txId: string | number) {
   return `/api/v1/wallets/transactions/${txId}`
 }
@@ -481,6 +500,14 @@ export async function rejectShowContract(showId: string | number) {
   )
 
   return response
+}
+
+export async function fetchVenueSeats(venueId: string | number) {
+  const response = await apiFetch<ApiResponse<VenueSectionSeats[]>>(buildVenueSeatsPath(venueId), {
+    method: "GET",
+  })
+
+  return response.data
 }
 
 export async function fetchShowSections(venueId: string | number) {

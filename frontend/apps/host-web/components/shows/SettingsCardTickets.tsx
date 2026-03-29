@@ -17,6 +17,7 @@ import {
   type HostShowTicketEffect,
 } from "@/lib/show-manage-api"
 import { TicketEffectPreview } from "./TicketEffectPreview"
+import { VenueSeatMap } from "./VenueSeatMap"
 import type { Grade, SessionItem } from "./showFormTypes"
 
 interface SettingsCardTicketsProps {
@@ -58,19 +59,19 @@ function sanitizeNonNegativeInteger(value: string) {
   return value.replace(/[^\d]/g, "")
 }
 
-function getVenueMapImg(id: string) {
-  switch (id) {
-    case "1":
-      return "/venue_map/sectionId1.png"
-    case "2":
-      return "/venue_map/sectionid2.jpg"
-    case "3":
-      return "/venue_map/sectionid3.png"
-    case "4":
-      return "/venue_map/sectionid4.jpg"
-    default:
-      return "/venue_map/sectionId1.png"
+function buildSectionColorEntries(grades: Grade[]) {
+  const entries: Array<{ sectionId: string; colorCode: string }> = []
+  for (const grade of grades) {
+    const color = grade.colorCode || "#d4d4d8"
+    const ids = grade.sectionId
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    for (const id of ids) {
+      entries.push({ sectionId: id, colorCode: color })
+    }
   }
+  return entries
 }
 
 export function SettingsCardTickets({
@@ -91,7 +92,7 @@ export function SettingsCardTickets({
   showErrors = false,
   showSessionSection = true,
 }: SettingsCardTicketsProps) {
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  const [isSeatMapModalOpen, setIsSeatMapModalOpen] = useState(false)
   const [sectionsError, setSectionsError] = useState<string | null>(null)
   const [ticketEffectsError, setTicketEffectsError] = useState<string | null>(null)
   const [sectionsRetryKey, setSectionsRetryKey] = useState(0)
@@ -115,7 +116,7 @@ export function SettingsCardTickets({
         }).length
       : 0
 
-  const mapImageSrc = getVenueMapImg(venueId)
+  const sectionColors = useMemo(() => buildSectionColorEntries(grades), [grades])
   const safeActiveGradeIndex =
     grades.length === 0 ? 0 : Math.min(activeGradeIndex, grades.length - 1)
   const activeGrade = grades[safeActiveGradeIndex] ?? null
@@ -190,16 +191,16 @@ export function SettingsCardTickets({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsImageModalOpen(false)
+        setIsSeatMapModalOpen(false)
       }
     }
 
-    if (isImageModalOpen) {
+    if (isSeatMapModalOpen) {
       window.addEventListener("keydown", handleKeyDown)
     }
 
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isImageModalOpen])
+  }, [isSeatMapModalOpen])
 
   const usedSectionIds = useMemo(() => {
     if (!activeGrade) {
@@ -330,29 +331,25 @@ export function SettingsCardTickets({
           <div className="grid gap-4 xl:grid-cols-[260px_220px_minmax(0,1fr)]">
             <div className="rounded-[1.25rem] border bg-background p-4">
               <div className="mb-2 flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">구역 번호 참고(sectionId)</Label>
+                <Label className="text-xs text-muted-foreground">좌석 배치도</Label>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-[11px]"
-                  onClick={() => setIsImageModalOpen(true)}
+                  onClick={() => setIsSeatMapModalOpen(true)}
                 >
                   <ZoomIn className="mr-1 size-3.5" />
                   크게 보기
                 </Button>
               </div>
               <div
-                className="flex cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-muted/20"
-                onClick={() => setIsImageModalOpen(true)}
+                className="cursor-pointer"
+                onClick={() => setIsSeatMapModalOpen(true)}
               >
-                <img
-                  src={mapImageSrc}
-                  alt="구역 안내도"
-                  className="max-h-52 w-full object-contain"
-                  onError={(event) => {
-                    ;(event.target as HTMLImageElement).src = "/venue_map/sectionId1.png"
-                  }}
+                <VenueSeatMap
+                  venueId={venueId}
+                  sectionColors={sectionColors}
                 />
               </div>
             </div>
@@ -613,30 +610,28 @@ export function SettingsCardTickets({
         </div>
       </CardContent>
 
-      {isImageModalOpen ? (
+      {isSeatMapModalOpen ? (
         <div
           className="fixed inset-0 z-50 flex animate-in fade-in items-center justify-center bg-black/80 p-4 backdrop-blur-sm duration-200"
-          onClick={() => setIsImageModalOpen(false)}
+          onClick={() => setIsSeatMapModalOpen(false)}
         >
           <div
-            className="relative flex max-h-[90vh] w-full max-w-5xl items-center justify-center"
+            className="relative w-full max-w-5xl rounded-2xl bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <Button
               variant="ghost"
               size="icon"
-              className="absolute -top-12 right-0 size-10 rounded-full text-white hover:bg-white/20 hover:text-white"
-              onClick={() => setIsImageModalOpen(false)}
+              className="absolute right-3 top-3 size-8 rounded-full"
+              onClick={() => setIsSeatMapModalOpen(false)}
             >
-              <X className="size-6" />
+              <X className="size-5" />
             </Button>
-            <img
-              src={mapImageSrc}
-              alt="구역 안내도 크게 보기"
-              className="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl ring-1 ring-white/10"
-              onError={(event) => {
-                ;(event.target as HTMLImageElement).src = "/venue_map/sectionId1.png"
-              }}
+            <h3 className="mb-4 text-base font-semibold">좌석 배치도</h3>
+            <VenueSeatMap
+              venueId={venueId}
+              sectionColors={sectionColors}
+              className="[&>div:last-child]:!max-h-[70vh]"
             />
           </div>
         </div>
