@@ -308,7 +308,7 @@ private fun ProcessingContent(
             label = "블록 확정",
             description = "블록에 포함 및 NFT 발행",
             isCompleted = status == TxStatus.CONFIRMED,
-            isActive = status == TxStatus.SUBMITTED && txHash != null,
+            isActive = status == TxStatus.SUBMITTED,
         )
     }
 
