@@ -31,6 +31,9 @@ import com.ssafy.cheket.core.ui.component.elevatedSurface
 import com.ssafy.cheket.core.ui.component.gradientBorder
 import com.ssafy.cheket.ui.theme.*
 import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.Calendar
 import java.util.Locale
 
@@ -159,12 +162,19 @@ private fun DateSelectionContent(
 
             state.selectedDateSessions.forEach { session ->
                 val dayNumber = allDates.indexOf(session.dateKey) + 1
+                val isPastSession = try {
+                    LocalDateTime.of(
+                        LocalDate.parse(session.date),
+                        LocalTime.parse(session.startTime),
+                    ) < LocalDateTime.now()
+                } catch (_: Exception) { false }
 
                 SessionCard(
                     session = session,
                     dayLabel = "DAY $dayNumber",
                     grades = state.grades,
                     numberFormat = numberFormat,
+                    isPast = isPastSession,
                     onClick = { onSessionClick(session) },
                 )
             }
@@ -275,7 +285,10 @@ private fun CalendarCard(
                                         calMonth.toString().padStart(2, '0')
                                     }-${day.toString().padStart(2, '0')}"
                                     val sessionsOnDay = sessionsByDate[key]
-                                    val hasShow = !sessionsOnDay.isNullOrEmpty()
+                                    val isPast = try {
+                                        LocalDate.parse(key) < LocalDate.now()
+                                    } catch (_: Exception) { false }
+                                    val hasShow = !sessionsOnDay.isNullOrEmpty() && !isPast
                                     val dow = (firstDayOfWeek + day - 1) % 7
 
                                     Column(
@@ -346,23 +359,25 @@ private fun SessionCard(
     dayLabel: String,
     grades: List<GradeUiItem>,
     numberFormat: NumberFormat,
+    isPast: Boolean = false,
     onClick: () -> Unit,
 ) {
     val isSoldOut = session.remainingSeats == 0
+    val isDisabled = isSoldOut || isPast
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (!isSoldOut) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(if (!isDisabled) Modifier.clickable(onClick = onClick) else Modifier),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSoldOut) Color(0xFFF5F5F5) else CardBg,
+            containerColor = if (isDisabled) Color(0xFFF5F5F5) else CardBg,
         ),
     ) {
         Column(
             modifier = Modifier
                 .padding(16.dp)
-                .then(if (isSoldOut) Modifier.fillMaxWidth() else Modifier),
+                .then(if (isDisabled) Modifier.fillMaxWidth() else Modifier),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 회차 + 날짜/시간
@@ -376,7 +391,7 @@ private fun SessionCard(
                         dayLabel,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSoldOut) MutedForeground else V0DayLabel,
+                        color = if (isDisabled) MutedForeground else V0DayLabel,
                         letterSpacing = 0.5.sp,
                     )
                     Spacer(Modifier.height(2.dp))
@@ -384,10 +399,21 @@ private fun SessionCard(
                         session.displayLabel,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isSoldOut) MutedForeground else V0TextPrimary,
+                        color = if (isDisabled) MutedForeground else V0TextPrimary,
                     )
                 }
-                if (isSoldOut) {
+                if (isPast) {
+                    Text(
+                        "지난 공연",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MutedForeground,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFFE5E7EB))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                } else if (isSoldOut) {
                     Text(
                         "매진",
                         fontSize = 12.sp,
