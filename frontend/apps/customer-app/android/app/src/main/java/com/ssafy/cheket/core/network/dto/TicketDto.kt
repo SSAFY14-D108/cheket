@@ -2,8 +2,6 @@ package com.ssafy.cheket.core.network.dto
 
 import com.google.gson.annotations.SerializedName
 
-// ── Requests ──
-
 data class PurchaseRequest(
     @SerializedName("sessionSeatIds") val sessionSeatIds: List<Long>,
 )
@@ -11,8 +9,6 @@ data class PurchaseRequest(
 data class SeatLockRequest(
     @SerializedName("sessionSeatIds") val sessionSeatIds: List<Long>,
 )
-
-// ── Seat Lock Response ──
 
 data class SeatLockResponse(
     @SerializedName("expiresAt") val expiresAt: String,
@@ -40,18 +36,14 @@ data class TransferRequest(
     @SerializedName("phoneNumber") val phoneNumber: String,
 )
 
-// ── Responses ──
-
 data class PurchaseResponse(
     @SerializedName("txId") val txId: Long,
 )
 
 data class QrTokenResponse(
     @SerializedName("qrToken") val qrToken: String,
-    @SerializedName("expiresIn") val expiresIn: Int, // 만료까지 남은 초
+    @SerializedName("expiresIn") val expiresIn: Int,
 )
-
-// ── Ticket List ──
 
 data class UpcomingTicketDto(
     @SerializedName("ticketId") val ticketId: Long,
@@ -77,8 +69,6 @@ data class TicketShowDto(
     @SerializedName("effect") val effect: String? = null,
 )
 
-// ── Collection ──
-
 data class CollectionTicketDto(
     @SerializedName("ticketId") val ticketId: Long,
     @SerializedName("numbering") val numbering: String,
@@ -94,10 +84,10 @@ data class CollectionTicketDto(
     @SerializedName("posterIpfsCid") val posterIpfsCid: String? = null,
     @SerializedName("metadataIpfsCid") val metadataIpfsCid: String? = null,
     @SerializedName("resalePrice") val resalePrice: Int? = null,
-    @SerializedName("onchain") val onchain: CollectionOnchainDto? = null,
+    @SerializedName("onchain") val onchain: OnchainInfoDto? = null,
 )
 
-data class CollectionOnchainDto(
+data class OnchainInfoDto(
     @SerializedName("tokenId") val tokenId: Long? = null,
     @SerializedName("ownerAddress") val ownerAddress: String? = null,
     @SerializedName("tokenURI") val tokenUri: String? = null,

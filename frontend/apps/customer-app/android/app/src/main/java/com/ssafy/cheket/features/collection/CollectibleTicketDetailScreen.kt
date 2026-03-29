@@ -1,3 +1,5 @@
+// NOTE: 미사용 화면. ArchiveScreen에서만 네비게이션하나, ArchiveScreen 자체가 도달 불가.
+// 컬렉션은 CollectionListWebViewScreen(customer-collection 웹앱 WebView)으로 대체됨.
 package com.ssafy.cheket.features.collection
 
 import androidx.compose.animation.core.*

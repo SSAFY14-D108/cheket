@@ -10,7 +10,7 @@ interface ShowService {
         @Query("regions") regions: List<Int>? = null,
         @Query("sort") sort: String? = null,
         @Query("keyword") keyword: String? = null,
-        @Query("includeEnded") includeEnded: Boolean = false,
+        @Query("includeEnded") includeEnded: Boolean? = null,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20,
     ): ApiResponse<ShowListResponse>
@@ -70,7 +70,11 @@ interface ShowService {
     @POST("api/v1/shows/contracts/{showId}/reject")
     suspend fun rejectContract(@Path("showId") showId: Long): ApiResponse<Unit>
 
-    /** 수익 배분 조회 */
+    /** 수익 배분 조회 (DB) */
     @GET("api/v1/hosts/shows/{showId}/dashboard/revenue-split")
     suspend fun getRevenueSplit(@Path("showId") showId: Long): ApiResponse<RevenueSplitResponse>
+
+    /** 수익 배분 조회 (온체인) */
+    @GET("api/v1/hosts/shows/{showId}/dashboard/revenue-split/onchain")
+    suspend fun getRevenueSplitOnchain(@Path("showId") showId: Long): ApiResponse<RevenueSplitOnchainResponse>
 }

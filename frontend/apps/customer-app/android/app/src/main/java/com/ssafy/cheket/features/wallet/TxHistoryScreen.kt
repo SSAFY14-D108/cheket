@@ -42,7 +42,7 @@ fun TxHistoryScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "티켓 거래 내역",
+                title = "티켓 트랜젝션 내역",
                 onBack = onBack,
                 helpTutorialId = TutorialId.TX_HISTORY,
             )
@@ -50,7 +50,7 @@ fun TxHistoryScreen(
     ) { innerPadding ->
         if (txRecords.isEmpty()) {
             EmptyState(
-                title = "거래 내역이 없습니다.",
+                title = "트랜젝션 내역이 없습니다.",
                 description = "티켓 구매, 재판매, 환불 내역이 여기에 표시됩니다.",
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )

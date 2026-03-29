@@ -225,3 +225,29 @@ data class RevenueSplitInfo(
     @SerializedName("rateBps") val rateBps: Int,    // basis points (100 = 1%)
     @SerializedName("amount") val amount: Double,
 )
+
+// ── Revenue Split Onchain (수익 배분 온체인 조회) ──
+
+data class RevenueSplitOnchainResponse(
+    @SerializedName("showId") val showId: Long,
+    @SerializedName("title") val title: String,
+    @SerializedName("totalRevenue") val totalRevenue: Double,
+    @SerializedName("splits") val splits: List<SplitOnchainInfo>,
+)
+
+data class SplitOnchainInfo(
+    @SerializedName("role") val role: String,
+    @SerializedName("id") val id: Long? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("rateBps") val rateBps: Int,
+    @SerializedName("amount") val amount: Double,
+    @SerializedName("onchain") val onchain: StakeholderOnchainInfo? = null,
+)
+
+data class StakeholderOnchainInfo(
+    @SerializedName("stakeholderNftId") val stakeholderNftId: Long,
+    @SerializedName("walletAddress") val walletAddress: String,
+    @SerializedName("onchainRole") val onchainRole: String,
+    @SerializedName("onchainShareBps") val onchainShareBps: Int,
+    @SerializedName("eventNftId") val eventNftId: Long,
+)

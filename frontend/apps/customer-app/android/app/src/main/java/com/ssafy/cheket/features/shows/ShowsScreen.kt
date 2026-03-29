@@ -223,9 +223,9 @@ fun ShowsScreen(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     ToggleFilterChip(
-                        label = "\uc885\ub8cc\ub41c \uacf5\uc5f0 \uc228\uae30\uae30",
+                        label = "??? ?? ???",
                         selected = !uiState.includeEnded,
-                        onClick = viewModel::onIncludeEndedToggle,
+                        onClick = { viewModel.onIncludeEndedChange(!uiState.includeEnded) },
                     )
                 }
             }

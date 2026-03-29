@@ -319,7 +319,7 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             points = listOf(
                 "현재 보유 중인 SSF 잔액을 바로 확인할 수 있어요.",
                 "테스트 충전 금액은 지갑 잔액에 즉시 반영돼요.",
-                "더 자세한 사용 기록은 지갑 거래 내역 화면에서 볼 수 있어요.",
+                "더 자세한 사용 기록은 트랜젝션 내역 화면에서 볼 수 있어요.",
             ),
             caution = "지갑 주소는 자산 식별 정보이므로 복사 전후를 꼭 확인해 주세요.",
         )
@@ -333,12 +333,12 @@ private fun tutorialContentOf(id: TutorialId): TutorialContent {
             ),
         )
         TutorialId.TX_HISTORY -> TutorialContent(
-            title = "거래 내역 안내",
-            summary = "블록체인과 연결된 거래 상태를 확인하는 화면으로, 처리 결과와 확인 수를 함께 볼 수 있어요.",
+            title = "?? ?? ??",
+            summary = "????? ??? ?? ??? ???? ????, ?? ??? ?? ?? ?? ? ? ???.",
             points = listOf(
-                "구매, 재판매, 양도 같은 거래가 어떤 상태인지 확인할 수 있어요.",
-                "트랜잭션 해시와 확인 수를 통해 처리 진행 상황을 볼 수 있어요.",
-                "실패한 거래는 오류 메시지와 함께 원인을 다시 확인할 수 있어요.",
+                "??, ??, ?? ?? ????? ?? ??? ??? ? ???.",
+                "???? ??? ?? ?? ?? ?? ?? ??? ? ? ???.",
+                "??? ????? ?? ???? ?? ??? ?? ??? ? ???.",
             ),
         )
         TutorialId.TRANSFER -> TutorialContent(

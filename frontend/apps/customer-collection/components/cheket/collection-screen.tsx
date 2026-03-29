@@ -5,8 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import ReactCardFlip from 'react-card-flip'
-import { ChevronLeft, ChevronRight, Music2 } from 'lucide-react'
-import type { CollectionTicket } from '@/lib/types'
+import { ChevronLeft, ChevronRight, Music2, Link2, X } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import type { CollectionTicket, OnchainInfo } from '@/lib/types'
 
 const TicketSparklesAura = dynamic(
   () => import('./ticket-sparkles-aura').then((module) => module.TicketSparklesAura),
@@ -135,6 +136,7 @@ type NumberAuraSetting = 'auto' | NumberAuraType
 interface FaceProps {
   ticket: Ticket
   onFlip: () => void
+  onShowOnchain?: () => void
   metalEffect?: MetalEffect
   eagerLoad?: boolean
   holoActive?: boolean
@@ -499,7 +501,7 @@ function TicketFront({
   )
 }
 
-function TicketBack({ ticket, onFlip, numberAura }: FaceProps) {
+function TicketBack({ ticket, onFlip, onShowOnchain, numberAura }: FaceProps) {
   const grade = getGrade(ticket.grade)
 
   return (
@@ -564,8 +566,153 @@ function TicketBack({ ticket, onFlip, numberAura }: FaceProps) {
               <SeatBox label="Seat" value={ticket.seatLabel} accent="#f8e28a" />
             </div>
           </div>
+
+          {ticket.onchain && onShowOnchain && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onShowOnchain() }}
+              style={{
+                marginTop: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '10px 0',
+                borderRadius: 10,
+                border: '1px solid rgba(0,197,152,0.35)',
+                background: 'rgba(0,197,152,0.1)',
+                color: '#00C598',
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Link2 size={14} />
+              On-chain 정보 보기
+            </button>
+          )}
         </div>
       </div>
+
+    </div>
+  )
+}
+
+function OnchainModal({ onchain, onClose }: { onchain: OnchainInfo; onClose: () => void }) {
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    VALID: { bg: 'rgba(16,185,129,0.15)', text: '#10b981' },
+    USED: { bg: 'rgba(99,102,241,0.15)', text: '#818cf8' },
+    EXPIRED: { bg: 'rgba(107,114,128,0.15)', text: '#9ca3af' },
+    REFUNDED: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444' },
+  }
+  const statusColor = statusColors[onchain.onchainStatus] ?? statusColors.USED
+
+  const mintDate = new Date(onchain.mintedAt * 1000)
+  const mintLabel = `${mintDate.getFullYear()}.${String(mintDate.getMonth() + 1).padStart(2, '0')}.${String(mintDate.getDate()).padStart(2, '0')} ${String(mintDate.getHours()).padStart(2, '0')}:${String(mintDate.getMinutes()).padStart(2, '0')}`
+
+  const truncateAddr = (addr: string) =>
+    addr.length > 14 ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : addr
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={(e) => { e.stopPropagation(); onClose() }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(0,0,0,0.7)',
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ type: 'spring', damping: 26, stiffness: 350 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 'calc(100% - 48px)',
+          maxWidth: 380,
+          maxHeight: 'calc(100% - 80px)',
+          background: 'linear-gradient(145deg, #111827 0%, #0d1117 100%)',
+          borderRadius: 16,
+          border: '1px solid rgba(0,197,152,0.2)',
+          padding: 20,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          overflow: 'auto',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(0,197,152,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Link2 size={14} color="#00C598" />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>On-chain</span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose() }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <X size={14} color="rgba(255,255,255,0.5)" />
+          </button>
+        </div>
+
+        {/* Status Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+            padding: '4px 10px', borderRadius: 6,
+            background: statusColor.bg, color: statusColor.text,
+          }}>
+            {onchain.onchainStatus}
+          </span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+            Token #{onchain.tokenId}
+          </span>
+        </div>
+
+        {/* Info Rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <OnchainRow label="Token ID" value={`#${onchain.tokenId}`} />
+          <OnchainRow label="Owner" value={truncateAddr(onchain.ownerAddress)} mono />
+          <OnchainRow label="Price" value={`${onchain.price.toLocaleString()} SSF`} />
+          <OnchainRow label="Minted" value={mintLabel} />
+          <OnchainRow label="Token URI" value={truncateAddr(onchain.tokenURI)} mono />
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function OnchainRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '8px 12px', borderRadius: 8,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.05)',
+    }}>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)',
+        fontFamily: mono ? "'SF Mono', 'Fira Code', monospace" : 'inherit',
+      }}>
+        {value}
+      </span>
     </div>
   )
 }
@@ -655,6 +802,7 @@ export function CollectibleTicketCard({
   metalEffect,
   compact = false,
   onOpen,
+  onShowOnchain,
   holoVariant = 'rainbow',
   enableHolo,
   pokeEffect,
@@ -668,6 +816,7 @@ export function CollectibleTicketCard({
   metalEffect?: MetalEffect
   compact?: boolean
   onOpen?: () => void
+  onShowOnchain?: () => void
   holoVariant?: HoloVariant
   enableHolo?: boolean
   pokeEffect?: PokeEffect
@@ -896,7 +1045,7 @@ export function CollectibleTicketCard({
                       />
                     </div>
                     <div key="back" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-                      <TicketBack ticket={ticket} onFlip={() => {}} numberAura={resolvedNumberAura} />
+                      <TicketBack ticket={ticket} onFlip={() => {}} onShowOnchain={onShowOnchain} numberAura={resolvedNumberAura} />
                     </div>
                   </ReactCardFlip>
                 </LazyParallaxTilt>
@@ -916,6 +1065,7 @@ function CollectionCoverFlow({
   onActiveIndexChange,
   getEffect,
   getNumberAura,
+  onShowOnchain,
   disableParallaxTilt = false,
 }: {
   tickets: Ticket[]
@@ -925,6 +1075,7 @@ function CollectionCoverFlow({
   onActiveIndexChange: (index: number) => void
   getEffect: (ticketId: string) => EffectType
   getNumberAura: (ticketId: string) => NumberAuraType
+  onShowOnchain?: (ticket: Ticket) => void
   disableParallaxTilt?: boolean
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -1032,6 +1183,7 @@ function CollectionCoverFlow({
                       numberAura={numberAura}
                       nativeTiltTarget={isFocus}
                       disableParallaxTilt={disableParallaxTilt}
+                      onShowOnchain={onShowOnchain ? () => onShowOnchain(ticket) : undefined}
                     />
                   </motion.div>
                 </div>
@@ -1054,6 +1206,7 @@ export function CollectionScreen({
   disableParallaxTilt?: boolean
 }) {
   useNativeTiltBridge() // Android 가속계 → DeviceOrientation 변환
+  const [onchainTicket, setOnchainTicket] = useState<Ticket | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [settledIndex, setSettledIndex] = useState(0)
   const [transitionOriginIndex, setTransitionOriginIndex] = useState(0)
@@ -1314,6 +1467,7 @@ export function CollectionScreen({
                   onActiveIndexChange={setActiveIndex}
                   getEffect={getEffect}
                   getNumberAura={getResolvedNumberAura}
+                  onShowOnchain={(ticket) => setOnchainTicket(ticket)}
                   disableParallaxTilt={disableParallaxTilt}
                 />
               </div>
@@ -1329,6 +1483,15 @@ export function CollectionScreen({
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {onchainTicket?.onchain && (
+          <OnchainModal
+            onchain={onchainTicket.onchain}
+            onClose={() => setOnchainTicket(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

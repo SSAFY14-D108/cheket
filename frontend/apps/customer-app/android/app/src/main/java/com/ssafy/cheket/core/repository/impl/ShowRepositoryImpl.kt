@@ -74,7 +74,7 @@ class ShowRepositoryImpl(
         regions: List<Int>?,
         sort: String?,
         keyword: String?,
-        includeEnded: Boolean,
+        includeEnded: Boolean?,
         page: Int,
         size: Int,
     ): ShowPage {

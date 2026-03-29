@@ -278,7 +278,11 @@ fun TicketDetailScreen(
 
                     metadataValue?.takeIf { it.isNotBlank() }?.let {
                         NftInfoRow(label = metadataLabel, value = it)
-                    }
+                    } ?: Text(
+                        text = "????? ?? ????.",
+                        fontSize = 12.sp,
+                        color = MutedForeground,
+                    )
                 }
             }
 

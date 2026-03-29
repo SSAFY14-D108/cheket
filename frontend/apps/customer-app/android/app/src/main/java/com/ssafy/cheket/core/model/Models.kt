@@ -82,6 +82,16 @@ data class Ticket(
     val attendedDate: String? = null,
     val numbering: String = "",
     val effect: String? = null,
+    val onchain: OnchainInfo? = null,
+)
+
+data class OnchainInfo(
+    val tokenId: Long,
+    val ownerAddress: String,
+    val tokenURI: String,
+    val onchainStatus: String,
+    val price: Long,
+    val mintedAt: Long,
 )
 
 data class User(

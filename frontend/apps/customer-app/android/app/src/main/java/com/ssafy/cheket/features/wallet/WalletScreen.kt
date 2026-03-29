@@ -240,7 +240,7 @@ fun WalletScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "지갑 거래 내역",
+                                text = "트랜젝션 내역",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OnBackground,
