@@ -16,7 +16,9 @@ data class TransactionDto(
     @SerializedName("txHash") val txHash: String? = null,
     @SerializedName("blockNumber") val blockNumber: Long? = null,
     @SerializedName("sellerId") val sellerId: Long? = null,
+    @SerializedName("sellerName") val sellerName: String? = null,
     @SerializedName("buyerId") val buyerId: Long? = null,
+    @SerializedName("buyerName") val buyerName: String? = null,
     @SerializedName("createdAt") val createdAt: String,
 )
 

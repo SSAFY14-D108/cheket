@@ -15,7 +15,7 @@
 glab mr create \
   --target-branch fe/dev \
   --remove-source-branch \
-  --title "[FE] <type>: <설명>" \
+  --title "[FE] <설명>" \
   --description "<템플릿>"
 ```
 
@@ -53,6 +53,7 @@ glab mr create \
 
 ## 주의사항
 
+- MR 제목에 `feat:`, `fix:`, `refactor:` 같은 type prefix를 붙이지 않는다. `[FE] 설명` 형태만 사용
 - MR 생성 후 URL을 사용자에게 보여준다
 - glab 명령어가 실패하면 에러 메시지를 보여주고 `glab auth login` 안내
 - 관련 이슈 번호는 사용자에게 물어본다

@@ -36,6 +36,8 @@ data class TxUiItem(
     val txStatus: String? = null,  // PENDING, SUBMITTED, CONFIRMED, FAILED
     val txHash: String? = null,
     val blockNumber: Long? = null,
+    val sellerName: String? = null,
+    val buyerName: String? = null,
     val createdAt: String,
     val dateLabel: String,
     val timeLabel: String,
@@ -169,6 +171,8 @@ private fun TransactionDto.toUiItem(currentUserId: Long?): TxUiItem {
         txStatus = txStatus,
         txHash = txHash,
         blockNumber = blockNumber,
+        sellerName = sellerName,
+        buyerName = buyerName,
         createdAt = createdAt,
         dateLabel = dateLabel,
         timeLabel = timeLabel,
