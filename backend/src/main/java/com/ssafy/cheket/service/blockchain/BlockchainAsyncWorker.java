@@ -311,7 +311,7 @@ public class BlockchainAsyncWorker {
 
             if (!anySynced && soldCount == 0) {
                 // 전체 실패
-                updateTransactionFailed(txId, "구매 실패 — " + e.getMessage());
+                updateTransactionFailed(txId, "구매 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             } else if (soldCount > 0 && failedCount > 0) {
                 // 일부 성공 — 실패 좌석 번호 추출해서 description에 포함
                 String failedSeatNos = seats.stream().filter(s -> s.getStatus() != SeatStatus.SOLD).map(s -> {
@@ -355,7 +355,7 @@ public class BlockchainAsyncWorker {
             long failedCount2 = seats.size() - soldCount2;
 
             if (!anySynced && soldCount2 == 0) {
-                updateTransactionFailed(txId, "티켓 구매 실패 — " + e.getMessage());
+                updateTransactionFailed(txId, "구매 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             } else if (soldCount2 > 0 && failedCount2 > 0) {
                 // 일부 성공 — 실패 좌석 번호 추출해서 description에 포함
                 String failedSeatNos2 = seats.stream().filter(s -> s.getStatus() != SeatStatus.SOLD).map(s -> {
@@ -503,7 +503,7 @@ public class BlockchainAsyncWorker {
 
         } catch (BlockchainException e) {
             log.error("[양도 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, e.getMessage());
+            updateTransactionFailed(txId, "양도 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             // 온체인 검증 — 받는 사람이 이미 소유하고 있는지 확인
             try {
                 User receiver = userRepository.findByIdAndDeletedAtIsNull(receiverUserId).orElse(null);
@@ -518,7 +518,7 @@ public class BlockchainAsyncWorker {
             }
         } catch (Exception e) {
             log.error("[양도 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "양도 실패 — " + e.getMessage());
+            updateTransactionFailed(txId, "양도 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             // 온체인 검증 — 받는 사람이 이미 소유하고 있는지 확인
             try {
                 User receiver = userRepository.findByIdAndDeletedAtIsNull(receiverUserId).orElse(null);
@@ -674,13 +674,13 @@ public class BlockchainAsyncWorker {
         } catch (BlockchainException e) {
             log.error("[티켓 환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
             restoreRefundSeatToSold(sessionSeatId, txId);
-            updateTransactionFailed(txId, e.getMessage());
+            updateTransactionFailed(txId, "환불 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             // 온체인 검증 — 플랫폼이 이미 소유하고 있는지 확인
             verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getPlatformWalletAddress(), "환불 실패 복구");
         } catch (Exception e) {
             log.error("[티켓 환불 비동기] 실패 — txId={}, ticketId={}", txId, ticketId, e);
             restoreRefundSeatToSold(sessionSeatId, txId);
-            updateTransactionFailed(txId, "티켓 환불 실패 — " + e.getMessage());
+            updateTransactionFailed(txId, "환불 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             // 온체인 검증 — 플랫폼이 이미 소유하고 있는지 확인
             verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getPlatformWalletAddress(), "환불 실패 복구");
         }
@@ -797,10 +797,10 @@ public class BlockchainAsyncWorker {
 
         } catch (BlockchainException e) {
             log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, e.getMessage());
+            updateTransactionFailed(txId, "공연 등록 실패 — 블록체인에 수익 분배 계약을 등록하지 못했습니다.");
         } catch (Exception e) {
             log.error("[StakeholderNFT 발행 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "공연 등록 실패 — " + e.getMessage());
+            updateTransactionFailed(txId, "공연 등록 실패 — 블록체인에 수익 분배 계약을 등록하지 못했습니다.");
         }
     }
 
@@ -1052,14 +1052,14 @@ public class BlockchainAsyncWorker {
         } catch (BlockchainException e) {
             log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
             restoreResaleTicketToAvailable(ticketId);
-            updateTransactionFailed(txId, e.getMessage());
+            updateTransactionFailed(txId, "리세일 등록 실패 — 블록체인에 NFT를 예치하지 못했습니다.");
             // 온체인 검증 — Escrow가 이미 소유하고 있는지 확인
             verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getEscrow().getContractAddress(),
                 "리세일 등록 실패 복구");
         } catch (Exception e) {
             log.error("[리세일 등록 비동기] 실패 — txId={}", txId, e);
             restoreResaleTicketToAvailable(ticketId);
-            updateTransactionFailed(txId, "리세일 등록 실패 — " + e.getMessage());
+            updateTransactionFailed(txId, "리세일 등록 실패 — 블록체인에 NFT를 예치하지 못했습니다.");
             // 온체인 검증 — Escrow가 이미 소유하고 있는지 확인
             verifyAndSyncOwnership(onChainTicketNftId, blockchainService.getEscrow().getContractAddress(),
                 "리세일 등록 실패 복구");
@@ -1136,7 +1136,7 @@ public class BlockchainAsyncWorker {
 
         } catch (BlockchainException e) {
             log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, e.getMessage());
+            updateTransactionFailed(txId, "리세일 취소 실패 — 블록체인에서 NFT를 반환하지 못했습니다.");
             // 온체인 검증 — 판매자가 이미 NFT를 돌려받았는지 확인
             try {
                 Ticket failedTicket = ticketRepository.findById(ticketId).orElse(null);
@@ -1157,7 +1157,7 @@ public class BlockchainAsyncWorker {
             restoreResaleToActive(resaleId, txId);
         } catch (Exception e) {
             log.error("[리세일 취소 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "리세일 취소 실패 — " + e.getMessage());
+            updateTransactionFailed(txId, "리세일 취소 실패 — 블록체인에서 NFT를 반환하지 못했습니다.");
             // 온체인 검증 — 판매자가 이미 NFT를 돌려받았는지 확인
             try {
                 Ticket failedTicket = ticketRepository.findById(ticketId).orElse(null);
@@ -1301,7 +1301,7 @@ public class BlockchainAsyncWorker {
 
         } catch (BlockchainException e) {
             log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, e.getMessage());
+            updateTransactionFailed(txId, "리세일 구매 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             // 온체인 검증 — 구매자가 이미 NFT를 소유하고 있는지 확인
             try {
                 Ticket failedTicket = ticketRepository.findById(ticketId).orElse(null);
@@ -1321,7 +1321,7 @@ public class BlockchainAsyncWorker {
             restoreResaleToActive(resaleId, txId);
         } catch (Exception e) {
             log.error("[리세일 구매 비동기] 실패 — txId={}", txId, e);
-            updateTransactionFailed(txId, "리세일 구매 실패 — " + e.getMessage());
+            updateTransactionFailed(txId, "리세일 구매 실패 — 블록체인 처리 중 오류가 발생했습니다.");
             // 온체인 검증 — 구매자가 이미 NFT를 소유하고 있는지 확인
             try {
                 Ticket failedTicket = ticketRepository.findById(ticketId).orElse(null);
@@ -1484,12 +1484,7 @@ public class BlockchainAsyncWorker {
         try {
             Transaction failedTx = transactionRepository.findById(txId).orElseThrow();
             failedTx.setTxStatus(Transaction.TxStatus.FAILED);
-            String previousDescription = failedTx.getDescription();
-            if (previousDescription == null || previousDescription.isBlank()) {
-                failedTx.setDescription("FAILED — " + description);
-            } else {
-                failedTx.setDescription(previousDescription + " | FAILED: " + description);
-            }
+            failedTx.setDescription(description);
             transactionRepository.save(failedTx);
             log.info("[비동기] Transaction FAILED 업데이트 완료 — txId={}", txId);
         } catch (Exception dbErr) {

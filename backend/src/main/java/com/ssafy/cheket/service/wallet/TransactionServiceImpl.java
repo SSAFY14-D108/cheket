@@ -12,7 +12,9 @@ import com.ssafy.cheket.repository.settlement.SettlementRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.TransactionRepository;
+import com.ssafy.cheket.entity.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final StakeholderRepository stakeholderRepository;
     private final ShowRepository showRepository;
     private final SessionRepository sessionRepository;
+    private final UserRepository userRepository;
 
     private static final DateTimeFormatter SESSION_FMT = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
 
@@ -148,11 +151,17 @@ public class TransactionServiceImpl implements TransactionService {
                     throw new BadRequestException("잘못된 거래 유형입니다.");
                 }
             }
-            txList = transactions.stream()
-                .map(tx -> new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(), tx.getDescription(),
-                    tx.getTxStatus().name(), tx.getTxHash(), tx.getBlockNumber(), tx.getSellerId(), tx.getBuyerId(),
-                    tx.getCreatedAt()))
-                .toList();
+            txList = transactions.stream().map(tx -> {
+                String sellerName = tx.getSellerId() != null
+                    ? userRepository.findById(tx.getSellerId()).map(User::getUsername).orElse(null)
+                    : null;
+                String buyerName = tx.getBuyerId() != null
+                    ? userRepository.findById(tx.getBuyerId()).map(User::getUsername).orElse(null)
+                    : null;
+                return new TransactionResponse(tx.getId(), tx.getType().name(), tx.getAmount(), tx.getDescription(),
+                    tx.getTxStatus().name(), tx.getTxHash(), tx.getBlockNumber(), tx.getSellerId(), sellerName,
+                    tx.getBuyerId(), buyerName, tx.getCreatedAt());
+            }).toList();
         }
 
         // ── 정산 이력 (type 없음 or SETTLEMENT 필터) ─────────────────────────────────
@@ -203,8 +212,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         return new TransactionResponse(s.getId(), "SETTLEMENT", s.getAmount(), description, "CONFIRMED", s.getTxHash(),
             null, // blockNumber 없음
-            null, // sellerId 없음
-            null, // buyerId 없음
+            null, null, // sellerId, sellerName 없음
+            null, null, // buyerId, buyerName 없음
             s.getCreatedAt());
     }
 
