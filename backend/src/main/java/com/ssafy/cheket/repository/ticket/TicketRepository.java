@@ -178,4 +178,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // 좌석 복원: sessionSeatId로 Ticket 존재 여부 확인 (환불 중 고착 판별)
     boolean existsBySessionSeatId(Long sessionSeatId);
+
+    // 정산 시 세션별 판매된 티켓 조회 (체크인/만료 온체인 동기화용)
+    @Query("""
+        SELECT t FROM Ticket t
+        JOIN SessionSeat ss ON ss.id = t.sessionSeatId
+        WHERE ss.sessionId = :sessionId
+          AND t.ticketNftId IS NOT NULL
+        """)
+    List<Ticket> findTicketsWithNftIdBySessionId(@Param("sessionId") Long sessionId);
 }

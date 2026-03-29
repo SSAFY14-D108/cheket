@@ -1,17 +1,22 @@
 package com.ssafy.cheket.service.blockchain;
 
 import com.ssafy.cheket.blockchain.contract.Settlement.PaidEventResponse;
+import com.ssafy.cheket.entity.resale.Resale;
 import com.ssafy.cheket.entity.settlement.Settlement;
+import com.ssafy.cheket.entity.ticket.Ticket;
 import com.ssafy.cheket.entity.settlement.Stakeholder;
 import com.ssafy.cheket.entity.show.Session;
 import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.enums.ResaleStatus;
 import com.ssafy.cheket.exception.common.BlockchainException;
 import com.ssafy.cheket.exception.common.NotFoundException;
 import com.ssafy.cheket.repository.host.HostRepository;
+import com.ssafy.cheket.repository.resale.ResaleEntityRepository;
 import com.ssafy.cheket.repository.settlement.SettlementRepository;
 import com.ssafy.cheket.repository.settlement.StakeholderRepository;
 import com.ssafy.cheket.repository.show.SessionRepository;
 import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.repository.ticket.TicketRepository;
 import com.ssafy.cheket.repository.user.UserRepository;
 import com.ssafy.cheket.repository.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +58,8 @@ public class SettlementServiceImpl implements SettlementService {
     private final ShowRepository showRepository;
     private final StakeholderRepository stakeholderRepository;
     private final SettlementRepository settlementRepository;
+    private final ResaleEntityRepository resaleEntityRepository;
+    private final TicketRepository ticketRepository;
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
     private final HostRepository hostRepository;
@@ -90,6 +97,10 @@ public class SettlementServiceImpl implements SettlementService {
                 // 정산 실행 (실패 시 재시도)
                 finalizeWithRetry(session, show);
                 settledSessionIds.add(session.getId());
+
+                // 만료된 리세일 처리 (Escrow.cancelDeal → NFT 판매자 반환)
+                cancelExpiredResales(session);
+                syncTicketStatusOnChain(session);
 
             } catch (Exception e) {
                 log.error("[정산] 회차 {} 최종 실패 — {}: {}", session.getId(), e.getClass().getSimpleName(), e.getMessage());
@@ -131,6 +142,10 @@ public class SettlementServiceImpl implements SettlementService {
                 // 정산 실행 (실패 시 재시도)
                 finalizeWithRetry(session, show);
                 settledSessionIds.add(session.getId());
+
+                // 만료된 리세일 처리 (Escrow.cancelDeal → NFT 판매자 반환)
+                cancelExpiredResales(session);
+                syncTicketStatusOnChain(session);
 
             } catch (Exception e) {
                 log.error("[정산] 회차 {} 최종 실패 — {}: {}", session.getId(), e.getClass().getSimpleName(), e.getMessage());
@@ -185,6 +200,10 @@ public class SettlementServiceImpl implements SettlementService {
         }
 
         finalizeSession(session, show);
+
+        // 만료된 리세일 처리 (Escrow.cancelDeal → NFT 판매자 반환)
+        cancelExpiredResales(session);
+        syncTicketStatusOnChain(session);
     }
 
     private static final int MAX_RETRY = 5;
@@ -314,6 +333,127 @@ public class SettlementServiceImpl implements SettlementService {
         } catch (Exception e) {
             log.warn("[정산 이력] 지갑 주소 조회 실패 — stakeholderId={}: {}", stakeholder.getId(), e.getMessage());
             return null;
+        }
+    }
+
+    // ========== 만료 리세일 처리 ==========
+
+    /**
+     * 종료된 회차의 ACTIVE 리세일을 Escrow.cancelDeal()로 취소하고 NFT를 판매자에게 반환
+     *
+     * [흐름] ① 해당 세션의 ACTIVE 리세일 조회 (DB) ② 각 리세일에 대해 Escrow.cancelDeal(dealId) 호출 →
+     * NFT 판매자 반환 ③ DB: Resale → CANCELLED, Ticket.resaleStatus → EXPIRED
+     */
+    private void cancelExpiredResales(Session session) {
+        try {
+            List<Resale> activeResales = resaleEntityRepository.findActiveResalesBySessionId(session.getId());
+
+            if (activeResales.isEmpty()) {
+                log.info("[리세일 만료] 회차 {} — ACTIVE 리세일 없음", session.getId());
+                return;
+            }
+
+            log.info("[리세일 만료] 회차 {} — {}건 처리 시작", session.getId(), activeResales.size());
+
+            for (Resale resale : activeResales) {
+                try {
+                    if (resale.getOnChainListingId() != null) {
+                        // Escrow.cancelDeal() → NFT 판매자 반환
+                        blockchainService.executePlatformTx(() -> blockchainService.getEscrow()
+                            .cancelDeal(BigInteger.valueOf(resale.getOnChainListingId())).send());
+                        log.info("[리세일 만료] cancelDeal 완료 — resaleId={}, dealId={}", resale.getId(),
+                            resale.getOnChainListingId());
+                    }
+
+                    // DB: Resale → CANCELLED
+                    resale.setStatus(Resale.ResaleListingStatus.CANCELLED);
+                    resale.setUpdatedAt(LocalDateTime.now());
+                    resaleEntityRepository.save(resale);
+
+                    // DB: Ticket.resaleStatus → EXPIRED
+                    ticketRepository.findById(resale.getTicketId()).ifPresent(ticket -> {
+                        ticket.setResaleStatus(ResaleStatus.EXPIRED);
+                        ticketRepository.save(ticket);
+                    });
+
+                    log.info("[리세일 만료] 완료 — resaleId={}, ticketId={}", resale.getId(), resale.getTicketId());
+
+                } catch (Exception e) {
+                    log.error("[리세일 만료] 실패 — resaleId={}, dealId={}: {}", resale.getId(), resale.getOnChainListingId(),
+                        e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("[리세일 만료] 회차 {} 조회 실패: {}", session.getId(), e.getMessage());
+        }
+    }
+
+    // ========== 티켓 온체인 상태 동기화 ==========
+
+    /**
+     * 정산 후 티켓 온체인 상태 동기화
+     *
+     * [흐름] ① 체크인된 티켓(checkedInAt != null) → batchCheckIn() → 온체인 USED ② 미사용
+     * 티켓(checkedInAt == null) → reclaimTicket(EXPIRED) → 온체인 EXPIRED ③ DB:
+     * resaleStatus → USED / EXPIRED
+     */
+    private void syncTicketStatusOnChain(Session session) {
+        try {
+            List<Ticket> tickets = ticketRepository.findTicketsWithNftIdBySessionId(session.getId());
+
+            if (tickets.isEmpty()) {
+                log.info("[티켓 상태 동기화] 회차 {} — 티켓 없음", session.getId());
+                return;
+            }
+
+            // 체크인된 티켓 → 온체인 USED (batchCheckIn)
+            List<BigInteger> checkedInTokenIds = tickets.stream().filter(t -> t.getCheckedInAt() != null)
+                .filter(t -> t.getResaleStatus() != ResaleStatus.USED) // 이미 USED인 건 스킵
+                .map(t -> BigInteger.valueOf(t.getTicketNftId())).collect(Collectors.toList());
+
+            if (!checkedInTokenIds.isEmpty()) {
+                try {
+                    blockchainService.executePlatformTx(
+                        () -> blockchainService.getTicketNFT().batchCheckIn(checkedInTokenIds).send());
+                    log.info("[티켓 상태 동기화] batchCheckIn 완료 — 회차 {}, {}건", session.getId(), checkedInTokenIds.size());
+
+                    // DB: resaleStatus → USED
+                    tickets.stream().filter(t -> t.getCheckedInAt() != null && t.getResaleStatus() != ResaleStatus.USED)
+                        .forEach(t -> {
+                            t.setResaleStatus(ResaleStatus.USED);
+                            ticketRepository.save(t);
+                        });
+                } catch (Exception e) {
+                    log.error("[티켓 상태 동기화] batchCheckIn 실패 — 회차 {}: {}", session.getId(), e.getMessage());
+                }
+            }
+
+            // 미사용 티켓 → 온체인 EXPIRED (reclaimTicket)
+            List<Ticket> unusedTickets = tickets.stream().filter(t -> t.getCheckedInAt() == null)
+                .filter(t -> t.getResaleStatus() != ResaleStatus.EXPIRED) // 이미 EXPIRED인 건 스킵
+                .filter(t -> t.getResaleStatus() != ResaleStatus.LISTED) // 리세일 중인 건 cancelExpiredResales에서 처리
+                .collect(Collectors.toList());
+
+            for (Ticket ticket : unusedTickets) {
+                try {
+                    // reclaimTicket(tokenId, 2) → EXPIRED
+                    blockchainService.executePlatformTx(() -> blockchainService.getTicketNFT()
+                        .reclaimTicket(BigInteger.valueOf(ticket.getTicketNftId()), BigInteger.valueOf(2)).send());
+
+                    ticket.setResaleStatus(ResaleStatus.EXPIRED);
+                    ticketRepository.save(ticket);
+                    log.info("[티켓 상태 동기화] EXPIRED 처리 — ticketId={}, nftId={}", ticket.getId(), ticket.getTicketNftId());
+                } catch (Exception e) {
+                    log.error("[티켓 상태 동기화] EXPIRED 실패 — ticketId={}, nftId={}: {}", ticket.getId(),
+                        ticket.getTicketNftId(), e.getMessage());
+                }
+            }
+
+            log.info("[티켓 상태 동기화] 완료 — 회차 {}, USED={}건, EXPIRED={}건", session.getId(), checkedInTokenIds.size(),
+                unusedTickets.size());
+
+        } catch (Exception e) {
+            log.error("[티켓 상태 동기화] 회차 {} 실패: {}", session.getId(), e.getMessage());
         }
     }
 
