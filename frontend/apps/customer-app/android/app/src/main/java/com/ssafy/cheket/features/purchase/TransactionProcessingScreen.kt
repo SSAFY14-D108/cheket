@@ -300,15 +300,15 @@ private fun ProcessingContent(
             label = "블록체인 전송",
             description = if (txHash != null) "TX: ${txHash.take(10)}...${txHash.takeLast(6)}"
             else "스마트 컨트랙트 호출 대기",
-            isCompleted = false,
+            isCompleted = status == TxStatus.CONFIRMED,
             isActive = status == TxStatus.SUBMITTED,
         )
         StatusStepItem(
             stepNumber = 3,
             label = "블록 확정",
             description = "블록에 포함 및 NFT 발행",
-            isCompleted = false,
-            isActive = false,
+            isCompleted = status == TxStatus.CONFIRMED,
+            isActive = status == TxStatus.SUBMITTED && txHash != null,
         )
     }
 
