@@ -102,6 +102,7 @@ public class ShowMintingServiceImpl implements ShowMintingService {
     // ========== 스케줄러용 — 예매 오픈 임박 DRAFT 공연 자동 민팅 ==========
 
     @Override
+    @Transactional
     public int mintPendingDraftShows() {
         // 내일 23:59:59까지 — 예매 시작일이 이 시점 이하인 DRAFT 공연
         LocalDateTime deadline = LocalDate.now().plusDays(1).atTime(LocalTime.MAX);
