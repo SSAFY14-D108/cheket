@@ -106,7 +106,6 @@ public class BlockchainAsyncWorker {
      * FAILED
      */
     @Async
-    @Transactional
     public void processOnChainPurchase(Long txId, Long userId, Long showId, Long sessionId, List<Long> sessionSeatIds,
         Long onChainSessionIdValue) {
         log.info("[티켓 구매 비동기] 시작 — txId={}", txId);
@@ -192,6 +191,12 @@ public class BlockchainAsyncWorker {
             BigInteger onChainSessionId = BigInteger.valueOf(onChainSessionIdValue);
             String lastTxHash = null;
             TransactionReceipt receipt = null;
+
+            // SUBMITTED 상태를 프론트 폴링이 잡을 수 있도록 명시적 저장
+            tx.setTxStatus(Transaction.TxStatus.SUBMITTED);
+            tx.setDescription("블록 생성 대기 중 — 티켓 구매 트랜잭션 전파");
+            transactionRepository.save(tx);
+            log.info("[티켓 구매 비동기] Transaction → SUBMITTED (purchaseTicket 시작 전)");
 
             // 성공한 좌석 추적
             List<PurchasedSeatInfo> purchasedSeats = new ArrayList<>();
@@ -545,7 +550,6 @@ public class BlockchainAsyncWorker {
      * Transaction/Ticket/Seat 상태 반영
      */
     @Async
-    @Transactional
     public void processOnChainRefund(Long txId, Long userId, Long ticketId, Long onChainSessionId,
         Long onChainTicketNftId) {
         log.info("[티켓 환불 비동기] 시작 — txId={}, ticketId={}, userId={}", txId, ticketId, userId);
