@@ -7,8 +7,10 @@ import com.ssafy.cheket.dto.host.request.HostWithdrawRequest;
 import com.ssafy.cheket.dto.host.request.ModifyHostInfoRequest;
 import com.ssafy.cheket.dto.host.response.CheckBusinessNoDuplicateResponse;
 import com.ssafy.cheket.dto.host.response.GetHostInfoResponse;
+import com.ssafy.cheket.dto.host.response.VenueSeatLayoutResponse;
 import com.ssafy.cheket.dto.show.response.GetSectionsResponse;
 import com.ssafy.cheket.service.host.HostService;
+import com.ssafy.cheket.service.host.HostShowService;
 import com.ssafy.cheket.service.show.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,6 +29,7 @@ public class HostController {
 
     private final HostService hostService;
     private final ShowService showService;
+    private final HostShowService hostShowService;
 
     @PostMapping
     @Operation(summary = "주최측 회원가입")
@@ -81,4 +84,11 @@ public class HostController {
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회원 탈퇴 완료", null));
     }
 
+    @GetMapping("/venues/{venueId}/seats")
+    @Operation(summary = "공연장별 좌석 배치도 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<VenueSeatLayoutResponse>>> getVenueSeats(@PathVariable Long venueId) {
+        List<VenueSeatLayoutResponse> response = hostShowService.getVenueSeatLayout(venueId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "공연장 좌석 배치도 조회 완료", response));
+    }
 }

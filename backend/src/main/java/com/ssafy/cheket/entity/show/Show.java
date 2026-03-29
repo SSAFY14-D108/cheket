@@ -28,7 +28,7 @@ public class Show {
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue;
 
-    @Column(name = "title", nullable = false, length = 50)
+    @Column(name = "title", nullable = false, length = 200)
     private String title;
 
     @Column(name = "poster_url", nullable = false, length = 200)

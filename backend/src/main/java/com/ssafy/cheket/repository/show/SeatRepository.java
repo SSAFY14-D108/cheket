@@ -28,4 +28,6 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
             )
         """)
     long countByShowId(@Param("showId") Long showId);
+
+    List<Seat> findBySectionIdInOrderBySectionIdAscRowNumAscColNumAsc(List<Long> sectionIds);
 }

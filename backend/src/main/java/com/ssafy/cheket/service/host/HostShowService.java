@@ -2,6 +2,7 @@ package com.ssafy.cheket.service.host;
 
 import com.ssafy.cheket.dto.host.response.CreateShowResponse;
 import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.host.response.VenueSeatLayoutResponse;
 import com.ssafy.cheket.dto.settlement.response.GetApprovalListResponse;
 import com.ssafy.cheket.dto.show.request.AddShowRequest;
 import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
@@ -30,4 +31,6 @@ public interface HostShowService {
     List<GetApprovalListResponse> getContracts(Long loginId, String role, Long showId);
 
     Long confirmShow(Long hostId, Long showId);
+
+    List<VenueSeatLayoutResponse> getVenueSeatLayout(Long venueId);
 }
