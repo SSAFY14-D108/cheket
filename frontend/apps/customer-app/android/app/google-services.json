@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602339569115",
+    "project_id": "cheket-f4d1a",
+    "storage_bucket": "cheket-f4d1a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602339569115:android:38279cb5ae11dfd960cbfe",
+        "android_client_info": {
+          "package_name": "com.ssafy.cheket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqeJzl5J0uqLaJanAbp5c1TWcHHZcmB-k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

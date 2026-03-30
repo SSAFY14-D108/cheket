@@ -1,0 +1,36 @@
+{
+  "name": "customer-collection",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3100 --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --port 3100"
+  },
+  "dependencies": {
+    "@tsparticles/engine": "^3.9.1",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.9.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.35.2",
+    "lucide-react": "^0.564.0",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-card-flip": "^1.2.3",
+    "react-dom": "19.2.4",
+    "react-parallax-tilt": "^1.7.319",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^22",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "postcss": "^8.5",
+    "postcss-preset-env": "^11.2.0",
+    "tailwindcss": "^4.2.0",
+    "tw-animate-css": "1.3.3",
+    "typescript": "5.7.3"
+  }
+}
