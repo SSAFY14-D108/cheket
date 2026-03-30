@@ -1,3 +1,6 @@
+node_modules/
+.next/
+bun.lock
+*.lock
 .env
-.claude/
-.idea/
+.env.local
