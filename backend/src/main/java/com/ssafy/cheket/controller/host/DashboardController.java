@@ -1,0 +1,74 @@
+package com.ssafy.cheket.controller.host;
+
+import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.host.response.GetBookingRateResponse;
+import com.ssafy.cheket.dto.host.response.GetReservationsResponse;
+import com.ssafy.cheket.dto.host.response.GetRevenueSplitOnchainResponse;
+import com.ssafy.cheket.dto.host.response.GetRevenueSplitResponse;
+import com.ssafy.cheket.dto.host.response.GetTotalSalesResponse;
+import com.ssafy.cheket.service.host.DashboardService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/hosts/shows/{showId}/dashboard")
+public class DashboardController {
+    private final DashboardService dashboardService;
+
+    @GetMapping("/total-sales")
+    @Operation(summary = "총 판매 금액 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetTotalSalesResponse>> getTotalSales(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        GetTotalSalesResponse response = dashboardService.getTotalSales(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "총 판매 금액 조회 완료", response));
+    }
+
+    @GetMapping("/booking-rate")
+    @Operation(summary = "예매율 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetBookingRateResponse>> getBookingRate(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        GetBookingRateResponse response = dashboardService.getBookingRate(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "예매율 조회 완료", response));
+    }
+
+    @GetMapping("/revenue-split")
+    @Operation(summary = "수입 배분 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetRevenueSplitResponse>> getRevenueSplit(@AuthenticationPrincipal Long loginId,
+        Authentication authentication, @PathVariable Long showId) {
+        String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+            .orElse(null);
+        GetRevenueSplitResponse response = dashboardService.getRevenueSplit(loginId, role, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "수입 배분 조회 완료", response));
+    }
+
+    @GetMapping("/revenue-split/onchain")
+    @Operation(summary = "수입 배분 조회(온체인)")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetRevenueSplitOnchainResponse>> getRevenueSplitOnchain(
+        @AuthenticationPrincipal Long loginId, Authentication authentication, @PathVariable Long showId) {
+        String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+            .orElse(null);
+        GetRevenueSplitOnchainResponse response = dashboardService.getRevenueSplitOnchain(loginId, role, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "수입 배분 온체인 조회 완료", response));
+    }
+
+    @GetMapping("/reservations")
+    @Operation(summary = "회차별 예매 현황 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetReservationsResponse>> getReservations(@AuthenticationPrincipal Long hostId,
+        @PathVariable Long showId) {
+        GetReservationsResponse response = dashboardService.getReservations(hostId, showId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "회차별 예매 현황 조회 완료", response));
+    }
+}

@@ -1,0 +1,781 @@
+package com.ssafy.cheket.service.host;
+
+import com.ssafy.cheket.config.s3.S3Uploader;
+import com.ssafy.cheket.dto.host.response.CreateShowResponse;
+import com.ssafy.cheket.dto.host.response.GetHostShowDetailResponse;
+import com.ssafy.cheket.dto.host.response.VenueSeatItemResponse;
+import com.ssafy.cheket.dto.host.response.VenueSeatLayoutResponse;
+import com.ssafy.cheket.dto.settlement.response.GetApprovalListResponse;
+import com.ssafy.cheket.dto.show.request.AddShowRequest;
+import com.ssafy.cheket.dto.show.request.UpdateShowRequest;
+import com.ssafy.cheket.dto.show.response.GetShowListResponse;
+import com.ssafy.cheket.dto.show.response.ShowItem;
+import com.ssafy.cheket.dto.ticket.response.GetTicketEffectsResponse;
+import com.ssafy.cheket.entity.host.Host;
+import com.ssafy.cheket.entity.settlement.Stakeholder;
+import com.ssafy.cheket.entity.show.*;
+import com.ssafy.cheket.entity.ticket.TicketEffect;
+import com.ssafy.cheket.entity.transaction.Transaction;
+import com.ssafy.cheket.entity.user.User;
+import com.ssafy.cheket.enums.ApprovalStatus;
+import com.ssafy.cheket.enums.SeatStatus;
+import com.ssafy.cheket.enums.ShowStatus;
+import com.ssafy.cheket.enums.StakeholderRole;
+import com.ssafy.cheket.enums.UserType;
+import com.ssafy.cheket.exception.common.BadRequestException;
+import com.ssafy.cheket.exception.common.ForbiddenException;
+import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.host.HostRepository;
+import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.show.*;
+import com.ssafy.cheket.repository.ticket.TicketEffectRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
+import com.ssafy.cheket.repository.wallet.TransactionRepository;
+import com.ssafy.cheket.service.blockchain.BlockchainAsyncWorker;
+import com.ssafy.cheket.service.notification.NotificationService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
+import org.web3j.crypto.Credentials;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class HostShowServiceImpl implements HostShowService {
+    private final TicketEffectRepository ticketEffectRepository;
+    private final ShowRepository showRepository;
+    private final SeatGradeRepository seatGradeRepository;
+    private final StakeholderRepository stakeholderRepository;
+    private final RefundPolicyRepository refundPolicyRepository;
+    private final SessionRepository sessionRepository;
+    private final LikeRepository likeRepository;
+    private final SessionSeatRepository sessionSeatRepository;
+    private final HostRepository hostRepository;
+    private final VenueRepository venueRepository;
+    private final ShowImageRepository showImageRepository;
+    private final SeatRepository seatRepository;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
+    private final SectionRepository sectionRepository;
+
+    private final S3Uploader s3Uploader;
+    private final BlockchainAsyncWorker blockchainAsyncWorker;
+
+    private final NotificationService notificationService;
+
+    // 클래스 상단에 필드 추가
+    @Value("${blockchain.platform-private-key}")
+    private String platformPrivateKey;
+
+    // 티켓 효과 목록 조회
+    @Override
+    public List<GetTicketEffectsResponse> getTicketEffects() {
+        List<TicketEffect> effects = ticketEffectRepository.findAll();
+
+        return effects.stream().map(effect -> new GetTicketEffectsResponse(effect.getId(), effect.getEffect()))
+            .toList();
+    }
+
+    // 내 공연 목록 조회
+    @Override
+    public GetShowListResponse<ShowItem> getMyShows(Long hostId, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), clamp(size, 1, 100));
+        Page<Show> result = showRepository.findByHost_id(hostId, pageable);
+        List<ShowItem> items = result.getContent().stream().map(this::toShowItem).toList();
+
+        return new GetShowListResponse<>(items, result.getNumber(), result.getSize(), result.getTotalElements(),
+            result.getTotalPages());
+    }
+
+    // 공연 상세 조회
+    @Override
+    public GetHostShowDetailResponse getHostShowDetail(Long loginId, String role, Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+
+        boolean canAccess = false;
+
+        if ("ROLE_HOST".equals(role)) {
+            canAccess = show.getHost().getId().equals(loginId);
+        } else if ("ROLE_USER".equals(role)) {
+            canAccess = stakeholderRepository.existsByShowIdAndUserId(showId, loginId);
+        }
+
+        if (!canAccess)
+            throw new ForbiddenException("권한이 없습니다.");
+
+        List<SeatGrade> seatGrades = seatGradeRepository.findByShowId(showId);
+        List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(showId);
+        List<RefundPolicy> refundPolicies = refundPolicyRepository.findByShowIdOrderByDaysRemainingDesc(showId);
+        List<Session> sessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+
+        List<Long> sessionIds = sessions.stream().map(Session::getId).toList();
+
+        Map<Long, Integer> capacityMap = sessionSeatRepository.countGroupedBySessionIds(sessionIds).stream()
+            .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Long) row[1]).intValue()));
+
+        List<Long> ticketEffectIds = seatGrades.stream().map(SeatGrade::getTicketEffectId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        Map<Long, TicketEffect> ticketEffectMap = ticketEffectIds.isEmpty()
+            ? Collections.emptyMap()
+            : ticketEffectRepository.findAllById(ticketEffectIds).stream()
+                .collect(Collectors.toMap(TicketEffect::getId, Function.identity()));
+
+        List<Long> hostIds = stakeholders.stream()
+            .filter(stakeholder -> stakeholder.getRole() == StakeholderRole.ORGANIZER).map(Stakeholder::getHostId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        List<Long> userIds = stakeholders.stream()
+            .filter(stakeholder -> stakeholder.getRole() == StakeholderRole.ARTIST).map(Stakeholder::getUserId)
+            .filter(Objects::nonNull).distinct().toList();
+
+        Map<Long, Host> hostMap = hostIds.isEmpty()
+            ? Collections.emptyMap()
+            : hostRepository.findAllById(hostIds).stream().collect(Collectors.toMap(Host::getId, Function.identity()));
+
+        Map<Long, User> userMap = userIds.isEmpty()
+            ? Collections.emptyMap()
+            : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+
+        List<GetHostShowDetailResponse.StakeholderInfo> stakeholderInfos = stakeholders.stream().map(stakeholder -> {
+            String name = null;
+            String number = null;
+            Long stakeholderId = null;
+
+            if (stakeholder.getRole() == StakeholderRole.ORGANIZER) {
+                stakeholderId = stakeholder.getHostId();
+
+                Host host = hostMap.get(stakeholder.getHostId());
+                if (host != null) {
+                    name = host.getCompanyName();
+                    number = host.getBusinessNo();
+                }
+            } else if (stakeholder.getRole() == StakeholderRole.ARTIST) {
+                stakeholderId = stakeholder.getUserId();
+
+                User user = userMap.get(stakeholder.getUserId());
+                if (user != null) {
+                    name = user.getUsername();
+                    number = user.getPhoneNumber();
+                }
+            }
+
+            return new GetHostShowDetailResponse.StakeholderInfo(stakeholder.getRole(), stakeholderId, name, number,
+                stakeholder.getShareBps());
+        }).toList();
+
+        return new GetHostShowDetailResponse(show.getId(), show.getTitle(), show.getPosterUrl(),
+            new GetHostShowDetailResponse.VenueInfo(show.getVenue().getId(), show.getVenue().getName(),
+                show.getVenue().getAddress()),
+            new GetHostShowDetailResponse.ShowPeriod(show.getShowStartDate().toLocalDate(),
+                show.getShowEndDate().toLocalDate()),
+            new GetHostShowDetailResponse.ReservationPeriod(show.getReservationStartDate(),
+                show.getReservationEndDate()),
+            show.getDescription(), show.getArtist(), show.getPlaytime(), show.getPurchaseLimit(),
+            likeRepository.countByShowId(showId),
+
+            seatGrades.stream().map(grade -> {
+                TicketEffect ticketEffect = ticketEffectMap.get(grade.getTicketEffectId());
+
+                return new GetHostShowDetailResponse.GradeInfo(grade.getSectionId(), grade.getGradeName(),
+                    grade.getPrice(), grade.getColorCode(), grade.getTicketEffectId(),
+                    ticketEffect != null ? ticketEffect.getEffect() : null);
+            }).toList(),
+
+            stakeholderInfos,
+
+            refundPolicies.stream()
+                .map(policy -> new GetHostShowDetailResponse.RefundPolicyInfo(policy.getDaysRemaining(),
+                    policy.getRefundRate()))
+                .toList(),
+
+            sessions.stream()
+                .map(session -> new GetHostShowDetailResponse.SessionInfo(session.getId(),
+                    session.getSessionDate().toLocalDate(), session.getSessionStartTime().toLocalTime(),
+                    capacityMap.getOrDefault(session.getId(), 0)))
+                .toList(),
+            show.getStatus(), show.getCreatedAt(), show.getUpdatedAt(),
+            showImageRepository.findAllByShow_Id(showId).stream().map(ShowImage::getImageUrl).toList());
+    }
+
+    @Override
+    @Transactional
+    public CreateShowResponse createShow(Long hostId, AddShowRequest request, MultipartFile posterImage,
+        List<MultipartFile> descriptionImages) {
+        // 요청 데이터 검증
+        int totalBps = request.stakeholders().stream().mapToInt(AddShowRequest.StakeholderInfo::shareBps).sum();
+
+        if (totalBps + 800 != 10000) {
+            // 10000 bps = 100%
+            // 9000이면 → 9000 / 100 = 90 → "현재: 90%"
+            throw new BadRequestException("수익 배분 합계가 100%가 아닙니다. (현재: " + totalBps / 100 + "%)");
+        }
+
+        // 0. 플랫폼 지갑 개인키에서 추출
+        Credentials credentials = Credentials.create(platformPrivateKey);
+        String platformWallet = credentials.getAddress();
+
+        // 1. Host, Venue 존재 확인
+        Host host = hostRepository.findById(hostId).orElseThrow(() -> new NotFoundException("호스트를 찾을 수 없습니다."));
+        Venue venue = venueRepository.findById(request.venueId())
+            .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
+
+        // 2. ① shows 저장
+        Show show = Show.builder().host(host).venue(venue).title(request.title()).posterUrl("temp")
+            .showStartDate(request.showStartDate()).showEndDate(request.showEndDate())
+            .reservationStartDate(request.reservationStartDate()).reservationEndDate(request.reservationEndDate())
+            .playtime(request.playtime()).description(request.description()).purchaseLimit(request.purchaseLimit())
+            .artist(request.artist()).platformFeeBps(800).platformWallet(platformWallet)
+            .status(ShowStatus.PENDING_CONTRACT).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+
+        show = showRepository.save(show);
+        Long showId = show.getId();
+
+        // 3. ② 포스터 S3 업로드 → posterUrl 업데이트
+        String posterUrl = s3Uploader.upload(posterImage, showId);
+        show.setPosterUrl(posterUrl);
+
+        // 4. ③ sessions 저장 (회차)
+        List<Session> sessions = request.sessionInfo().stream().map(s -> Session.builder().showId(showId)
+            .sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList();
+        sessions = sessionRepository.saveAll(sessions);
+
+        // 5. ④ seat_grades 저장 (등급 × 구역)
+        List<Long> allSectionIds = new ArrayList<>();
+
+        for (AddShowRequest.GradeInfo grade : request.grade()) {
+            for (Long sectionId : grade.sectionIds()) { // section마다 설정
+                SeatGrade seatGrade = SeatGrade.builder().showId(showId).sectionId(sectionId)
+                    .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
+                    .ticketEffectId(grade.ticketEffectId()).build();
+                seatGradeRepository.save(seatGrade);
+
+                allSectionIds.add(sectionId);
+            }
+        }
+
+        // 6. ⑤ refund_policies 저장 (환불 정책)
+        for (AddShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
+            RefundPolicy refundPolicy = RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
+                .refundRate(policy.refundRate()).build();
+            refundPolicyRepository.save(refundPolicy);
+        }
+
+        // 7. ⑥ stakeholders 저장 (온체인 발행은 최종 등록(confirm) 시 수행)
+        // 이해관계자 전원 승인 후 주최자가 최종 등록해야 StakeholderNFT 발행됨
+        List<Stakeholder> savedStakeholders = new ArrayList<>();
+
+        for (AddShowRequest.StakeholderInfo info : request.stakeholders()) {
+            StakeholderRole role = StakeholderRole.valueOf(info.role().toUpperCase());
+            Long userId = null;
+            Long stakeholderHostId = null;
+
+            if (role == StakeholderRole.ORGANIZER) {
+                Host stakeholderHost = hostRepository.findByBusinessNoAndDeletedAtIsNull(info.businessNo())
+                    .orElseThrow(() -> new NotFoundException("해당 사업자등록 번호로 가입된 주최측이 없습니다: " + info.businessNo()));
+                stakeholderHostId = stakeholderHost.getId();
+            } else {
+                User user = userRepository.findByPhoneNumberAndDeletedAtIsNull(info.phoneNumber())
+                    .orElseThrow(() -> new NotFoundException("이해 관계자를 찾을 수 없습니다: " + info.phoneNumber()));
+                userId = user.getId();
+            }
+
+            Stakeholder stakeholder = Stakeholder.builder().showId(showId).userId(userId).hostId(stakeholderHostId)
+                .role(role).shareBps(info.shareBps()).approvalStatus(ApprovalStatus.PENDING).build();
+
+            stakeholder = stakeholderRepository.save(stakeholder);
+            savedStakeholders.add(stakeholder);
+        }
+
+        // 이해관계자들에게 승인 요청 알림 발송
+        List<Long> targetUserIds = savedStakeholders.stream().map(Stakeholder::getUserId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        for (Long userId : targetUserIds) {
+            notificationService.sendRequestCreate(userId, showId);
+        }
+
+        // 플랫폼도 Stakeholder로 추가 (800 bps = 8%, 승인 불필요 → APPROVED)
+        Stakeholder platformStakeholder = Stakeholder.builder().showId(showId).role(StakeholderRole.ORGANIZER)
+            .shareBps(800).approvalStatus(ApprovalStatus.APPROVED).approvedAt(LocalDateTime.now()).build();
+        stakeholderRepository.save(platformStakeholder);
+
+        // 8. ⑦ show_images 저장 (설명 이미지)
+        if (descriptionImages != null && !descriptionImages.isEmpty()) {
+            for (MultipartFile image : descriptionImages) {
+                String imageUrl = s3Uploader.upload(image, showId);
+                ShowImage showImage = ShowImage.of(show, imageUrl);
+                showImageRepository.save(showImage);
+            }
+        }
+
+        // 9. ⑧ session_seats 저장 (회차 × 좌석 = AVAILABLE)
+        List<Seat> seats = seatRepository.findBySectionIdIn(allSectionIds);
+
+        List<SessionSeat> sessionSeats = new ArrayList<>();
+
+        for (Session session : sessions) {
+            for (Seat seat : seats) {
+                sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                    .status(SeatStatus.AVAILABLE).build());
+            }
+        }
+        sessionSeatRepository.saveAll(sessionSeats);
+
+        return new CreateShowResponse(showId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteShow(Long hostId, Long showId) {
+        // 1. 공연 존재 + 권한 확인
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("계약 대기(PENDING_CONTRACT) 상태의 공연만 삭제할 수 있습니다.");
+        }
+        if (!show.getHost().getId().equals(hostId)) {
+            throw new ForbiddenException("본인이 등록한 공연만 삭제할 수 있습니다.");
+        }
+
+        // 2. FK 순서대로 삭제: session_seats → sessions → seat_grades → refund_policies →
+        // stakeholders → show_images
+        List<Long> sessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream().map(Session::getId)
+            .toList();
+        if (!sessionIds.isEmpty()) {
+            sessionSeatRepository.deleteBySessionIdIn(sessionIds);
+        }
+        sessionRepository.deleteAllByShowId(showId);
+        seatGradeRepository.deleteAllByShowId(showId);
+        refundPolicyRepository.deleteAllByShowId(showId);
+        stakeholderRepository.deleteAllByShowId(showId);
+        showImageRepository.deleteAllByShowId(showId);
+
+        // 3. S3 이미지 삭제
+        s3Uploader.deleteAllByShowId(showId);
+
+        // 4. 공연 삭제
+        showRepository.delete(show);
+    }
+
+    @Override
+    @Transactional
+    public void updateShow(Long hostId, Long showId, UpdateShowRequest request, MultipartFile posterImage,
+        List<MultipartFile> descriptionImages) {
+
+        // 1. 공연 존재 + 권한 확인
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (show.getStatus() != ShowStatus.DRAFT && show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("임시저장 또는 계약 대기 상태의 공연만 수정할 수 있습니다.");
+        }
+        if (!show.getHost().getId().equals(hostId))
+            throw new ForbiddenException("본인이 등록한 공연만 수정할 수 있습니다.");
+
+        // 알림을 보내기 위한 flag
+        boolean flag = true;
+
+        // ── 2. 기본 정보: null이 아닌 필드만 수정 ──
+        if (request.title() != null)
+            show.setTitle(request.title());
+        if (request.venueId() != null) {
+            Venue venue = venueRepository.findById(request.venueId())
+                .orElseThrow(() -> new NotFoundException("공연장을 찾을 수 없습니다."));
+            show.setVenue(venue);
+            flag = false;
+        }
+        if (request.artist() != null) {
+            show.setArtist(request.artist());
+            flag = false;
+        }
+        if (request.description() != null)
+            show.setDescription(request.description());
+        if (request.playtime() != null) {
+            show.setPlaytime(request.playtime());
+            flag = false;
+        }
+        if (request.purchaseLimit() != null) {
+            show.setPurchaseLimit(request.purchaseLimit());
+            flag = false;
+        }
+        if (request.showStartDate() != null) {
+            show.setShowStartDate(request.showStartDate());
+            flag = false;
+        }
+        if (request.showEndDate() != null) {
+            show.setShowEndDate(request.showEndDate());
+            flag = false;
+        }
+        if (request.reservationStartDate() != null) {
+            show.setReservationStartDate(request.reservationStartDate());
+            flag = false;
+        }
+        if (request.reservationEndDate() != null) {
+            show.setReservationEndDate(request.reservationEndDate());
+            flag = false;
+        }
+        show.setUpdatedAt(LocalDateTime.now());
+
+        // ── 3. 포스터 이미지: 파일이 있을 때만 교체 ──
+        if (posterImage != null && !posterImage.isEmpty()) {
+            String posterUrl = s3Uploader.upload(posterImage, showId);
+            show.setPosterUrl(posterUrl);
+        }
+
+        // ── 4. 설명 이미지 ──
+        List<String> existingUrls = request.existingDescriptionImageUrls();
+
+        // existingUrls가 null이면 이미지 수정 안 함
+        if (existingUrls != null) {
+            // 1. 기존 이미지 중 유지 목록에 없는 것 -> DB 삭제 + s3삭제
+            List<ShowImage> currentImages = showImageRepository.findAllByShow_Id(showId);
+            // 유지 목록에 없는 것만 삭제
+            for (ShowImage img : currentImages) {
+                if (!existingUrls.contains(img.getImageUrl())) {
+                    s3Uploader.delete(img.getImageUrl());
+                    showImageRepository.delete(img);
+                }
+            }
+        }
+
+        // 새 이미지만 업로드 + 저장
+        if (descriptionImages != null && !descriptionImages.isEmpty()) {
+            for (MultipartFile image : descriptionImages) {
+                String imageUrl = s3Uploader.upload(image, showId);
+                showImageRepository.save(ShowImage.of(show, imageUrl));
+            }
+        }
+
+        // ── 5. 회차 (sessionInfo): null이면 건드리지 않음 ──
+        if (request.sessionInfo() != null) {
+            // 기존 session_seats → sessions 삭제 (FK 순서)
+            List<Long> oldSessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream()
+                .map(Session::getId).toList();
+            if (!oldSessionIds.isEmpty()) {
+                sessionSeatRepository.deleteBySessionIdIn(oldSessionIds);
+            }
+            sessionRepository.deleteAllByShowId(showId);
+
+            // 새 회차 저장
+            List<Session> newSessions = sessionRepository
+                .saveAll(request.sessionInfo().stream().map(s -> Session.builder().showId(showId)
+                    .sessionDate(s.sessionDate()).sessionStartTime(s.sessionStartTime()).build()).toList());
+
+            // 새 session_seats 재생성 (등급 정보가 같이 왔으면 새 등급 기준, 아니면 기존 등급 기준)
+            List<Long> sectionIds;
+            if (request.grade() != null) {
+                sectionIds = request.grade().stream().flatMap(g -> g.sectionIds().stream()).distinct().toList();
+            } else {
+                sectionIds = seatGradeRepository.findByShowId(showId).stream().map(SeatGrade::getSectionId).distinct()
+                    .toList();
+            }
+
+            if (!sectionIds.isEmpty()) {
+                List<Seat> seats = seatRepository.findBySectionIdIn(sectionIds);
+                List<SessionSeat> sessionSeats = new ArrayList<>();
+                for (Session session : newSessions) {
+                    for (Seat seat : seats) {
+                        sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                            .status(SeatStatus.AVAILABLE).build());
+                    }
+                }
+                sessionSeatRepository.saveAll(sessionSeats);
+            }
+            flag = false;
+        }
+
+        // ── 6. 등급 (grade): null이면 건드리지 않음 ──
+        if (request.grade() != null) {
+            seatGradeRepository.deleteAllByShowId(showId);
+
+            for (UpdateShowRequest.GradeInfo grade : request.grade()) {
+                for (Long sectionId : grade.sectionIds()) {
+                    seatGradeRepository.save(SeatGrade.builder().showId(showId).sectionId(sectionId)
+                        .gradeName(grade.gradeName()).price(grade.price()).colorCode(grade.colorCode())
+                        .ticketEffectId(grade.ticketEffectId()).build());
+                }
+            }
+
+            // 등급만 바뀌고 회차는 안 바뀐 경우 → session_seats 재생성
+            if (request.sessionInfo() == null) {
+                List<Long> existingSessionIds = sessionRepository.findByShowIdOrderBySessionDateAsc(showId).stream()
+                    .map(Session::getId).toList();
+                if (!existingSessionIds.isEmpty()) {
+                    sessionSeatRepository.deleteBySessionIdIn(existingSessionIds);
+
+                    List<Long> newSectionIds = request.grade().stream().flatMap(g -> g.sectionIds().stream()).distinct()
+                        .toList();
+                    List<Seat> seats = seatRepository.findBySectionIdIn(newSectionIds);
+                    List<Session> existingSessions = sessionRepository.findByShowIdOrderBySessionDateAsc(showId);
+
+                    List<SessionSeat> sessionSeats = new ArrayList<>();
+                    for (Session session : existingSessions) {
+                        for (Seat seat : seats) {
+                            sessionSeats.add(SessionSeat.builder().sessionId(session.getId()).seatId(seat.getId())
+                                .status(SeatStatus.AVAILABLE).build());
+                        }
+                    }
+                    sessionSeatRepository.saveAll(sessionSeats);
+                }
+            }
+            flag = false;
+        }
+
+        // ── 7. 환불 정책 (refundPolicy): null이면 건드리지 않음 ──
+        if (request.refundPolicy() != null) {
+            refundPolicyRepository.deleteAllByShowId(showId);
+            for (UpdateShowRequest.RefundPolicyInfo policy : request.refundPolicy()) {
+                refundPolicyRepository.save(RefundPolicy.builder().showId(showId).daysRemaining(policy.daysRemaining())
+                    .refundRate(policy.refundRate()).build());
+            }
+            flag = false;
+        }
+
+        if (request.stakeholders() != null) {
+            List<Stakeholder> existingStakeholders = stakeholderRepository.findByShowId(showId);
+
+            Map<String, Stakeholder> existingByKey = existingStakeholders.stream().filter(this::isContractStakeholder)
+                .collect(Collectors.toMap(this::stakeholderKey, Function.identity(), (a, b) -> a));
+
+            Set<String> requestKeys = request.stakeholders().stream().map(this::stakeholderKey)
+                .collect(Collectors.toSet());
+
+            for (Stakeholder stakeholder : existingStakeholders) {
+                if (!isContractStakeholder(stakeholder)) {
+                    continue;
+                }
+
+                String key = stakeholderKey(stakeholder);
+                if (!requestKeys.contains(key)) {
+                    stakeholderRepository.delete(stakeholder);
+                    existingByKey.remove(key);
+                }
+            }
+
+            for (UpdateShowRequest.StakeholderInfo info : request.stakeholders()) {
+                String key = stakeholderKey(info);
+                Stakeholder stakeholder = existingByKey.get(key);
+
+                if (stakeholder == null) {
+                    Long stakeholderUserId = info.role() == StakeholderRole.ARTIST ? info.id() : null;
+                    Long stakeholderHostId = info.role() == StakeholderRole.ORGANIZER ? info.id() : null;
+
+                    stakeholder = Stakeholder.builder().showId(showId).userId(stakeholderUserId)
+                        .hostId(stakeholderHostId).role(info.role()).shareBps(info.shareBps()).build();
+                } else {
+                    stakeholder.setShareBps(info.shareBps());
+                }
+
+                stakeholder.setApprovalStatus(null);
+                stakeholder.setApprovedAt(null);
+                stakeholder.setRejectedAt(null);
+                stakeholderRepository.save(stakeholder);
+            }
+
+            flag = false;
+        }
+
+        if (!flag) {
+            List<Long> targetUserIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getUserId)
+                .filter(Objects::nonNull).distinct().toList();
+
+            for (Long userId : targetUserIds) {
+                notificationService.sendRequestUpdate(userId, showId);
+            }
+        }
+    }
+
+    // 공연 별 스마트컨트랙트 승인/거절 내역 조회
+    @Override
+    public List<GetApprovalListResponse> getContracts(Long loginId, String role, Long showId) {
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        boolean canAccess = false;
+        if ("ROLE_HOST".equals(role)) {
+            canAccess = show.getHost().getId().equals(loginId)
+                || stakeholderRepository.findByShowIdAndHostId(showId, loginId).isPresent();
+        } else if ("ROLE_USER".equals(role)) {
+            canAccess = stakeholderRepository.existsByShowIdAndUserId(showId, loginId);
+        }
+
+        if (!canAccess)
+            throw new ForbiddenException("본인이 등록한 공연만 조회할 수 있습니다.");
+
+        List<Stakeholder> stakeholders = stakeholderRepository.findContractTargetsByShowId(showId);
+
+        List<Long> stakeholderHostIds = stakeholders.stream().map(Stakeholder::getHostId).filter(Objects::nonNull)
+            .distinct().toList();
+        List<Long> stakeholderUserIds = stakeholders.stream().map(Stakeholder::getUserId).filter(Objects::nonNull)
+            .distinct().toList();
+
+        Map<Long, Host> hostMap = stakeholderHostIds.isEmpty()
+            ? Collections.emptyMap()
+            : hostRepository.findAllById(stakeholderHostIds).stream()
+                .collect(Collectors.toMap(Host::getId, Function.identity()));
+        Map<Long, User> userMap = stakeholderUserIds.isEmpty()
+            ? Collections.emptyMap()
+            : userRepository.findAllById(stakeholderUserIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return stakeholders.stream().map(stakeholder -> {
+            UserType userType = stakeholder.getRole() == StakeholderRole.ORGANIZER ? UserType.HOST : UserType.USER;
+            Long userId = userType == UserType.HOST ? stakeholder.getHostId() : stakeholder.getUserId();
+            String username = null;
+
+            if (userType == UserType.HOST) {
+                Host host = hostMap.get(userId);
+                if (host != null)
+                    username = host.getCompanyName();
+            } else {
+                User user = userMap.get(userId);
+                if (user != null)
+                    username = user.getUsername();
+            }
+
+            ApprovalStatus approvalStatus = stakeholder.getApprovalStatus() == null
+                ? ApprovalStatus.PENDING
+                : stakeholder.getApprovalStatus();
+            LocalDateTime determinedAt = null;
+            if (approvalStatus == ApprovalStatus.APPROVED) {
+                determinedAt = stakeholder.getApprovedAt();
+            } else if (approvalStatus == ApprovalStatus.REJECTED) {
+                determinedAt = stakeholder.getRejectedAt();
+            }
+
+            return new GetApprovalListResponse(userType, userId, username, approvalStatus, determinedAt);
+        }).toList();
+    }
+
+    /**
+     * 주최자 최종 등록 — 이해관계자 전원 승인 확인 후 StakeholderNFT 온체인 발행
+     *
+     * [선행 조건] ① 본인 공연인지 확인 ② DRAFT 상태인지 확인 (이미 민팅된 공연은 중복 발행 불가) ③ 이해관계자 전원
+     * APPROVED인지 확인 (PENDING/REJECTED 있으면 거부)
+     *
+     * [처리 흐름] 전원 승인 → Transaction(STAKEHOLDER_MINT) PENDING 생성 → afterCommit에서 비동기
+     * StakeholderNFT 발행
+     *
+     * @return 생성된 Transaction ID (프론트에서 폴링으로 상태 추적)
+     */
+    @Override
+    @Transactional
+    public Long confirmShow(Long hostId, Long showId) {
+        // 1. 공연 존재 + 권한 확인
+        Show show = showRepository.findById(showId).orElseThrow(() -> new NotFoundException("존재하지 않는 공연입니다."));
+        if (!show.getHost().getId().equals(hostId)) {
+            throw new ForbiddenException("본인이 등록한 공연만 최종 등록할 수 있습니다.");
+        }
+        if (show.getStatus() != ShowStatus.PENDING_CONTRACT) {
+            throw new BadRequestException("계약 대기(PENDING_CONTRACT) 상태의 공연만 최종 등록할 수 있습니다.");
+        }
+
+        // 2. 이해관계자 전원 승인 확인 (플랫폼 제외한 실제 계약 대상만)
+        List<Stakeholder> contractTargets = stakeholderRepository.findContractTargetsByShowId(showId);
+        if (contractTargets.isEmpty()) {
+            throw new BadRequestException("등록된 이해관계자가 없습니다.");
+        }
+
+        List<Stakeholder> notApproved = contractTargets.stream()
+            .filter(s -> s.getApprovalStatus() != ApprovalStatus.APPROVED).toList();
+        if (!notApproved.isEmpty()) {
+            long pendingCount = notApproved.stream()
+                .filter(s -> s.getApprovalStatus() == ApprovalStatus.PENDING || s.getApprovalStatus() == null).count();
+            long rejectedCount = notApproved.stream().filter(s -> s.getApprovalStatus() == ApprovalStatus.REJECTED)
+                .count();
+            throw new BadRequestException(
+                "이해관계자 전원 승인이 필요합니다. (미응답: " + pendingCount + "명, 거절: " + rejectedCount + "명)");
+        }
+
+        // 3. 상태 변경: PENDING_CONTRACT → DRAFT (이제 민팅 스케줄러 대상이 됨)
+        show.setStatus(ShowStatus.DRAFT);
+        show.setUpdatedAt(LocalDateTime.now());
+
+        // 4. 플랫폼 지갑 주소 추출
+        Credentials credentials = Credentials.create(platformPrivateKey);
+        String platformWallet = credentials.getAddress();
+
+        // 5. StakeholderNFT 온체인 발행 — 비동기 처리
+        List<Long> stakeholderIds = stakeholderRepository.findByShowId(showId).stream().map(Stakeholder::getId)
+            .toList();
+
+        Transaction tx = Transaction.builder().type(Transaction.TransactionType.STAKEHOLDER_MINT).amount(0L)
+            .description("블록체인 준비 중 — 수익 분배 계약 등록 대기").txStatus(Transaction.TxStatus.PENDING).build();
+        tx = transactionRepository.save(tx);
+        Long txId = tx.getId();
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                blockchainAsyncWorker.processOnChainStakeholderMint(txId, stakeholderIds, platformWallet);
+            }
+        });
+
+        return txId;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VenueSeatLayoutResponse> getVenueSeatLayout(Long venueId) {
+        if (!venueRepository.existsById(venueId))
+            throw new NotFoundException("공연장을 찾을 수 없습니다.");
+
+        List<Section> sections = sectionRepository.findByVenueIdOrderByIdAsc(venueId);
+        if (sections.isEmpty())
+            return List.of();
+
+        List<Long> sectionIds = sections.stream().map(Section::getId).toList();
+        List<Seat> seats = seatRepository.findBySectionIdInOrderBySectionIdAscRowNumAscColNumAsc(sectionIds);
+
+        Map<Long, List<VenueSeatItemResponse>> seatMap = new LinkedHashMap<>();
+
+        for (Seat seat : seats) {
+            seatMap.computeIfAbsent(seat.getSectionId(), key -> new ArrayList<>())
+                .add(new VenueSeatItemResponse(seat.getId(), seat.getRowNum(), seat.getColNum(), seat.getSeatNo()));
+        }
+
+        return sections.stream().map(section -> new VenueSeatLayoutResponse(section.getId(), section.getSectionName(),
+            seatMap.getOrDefault(section.getId(), List.of()))).toList();
+    }
+
+    private ShowItem toShowItem(Show s) {
+        return new ShowItem(s.getId(), s.getTitle(), s.getPosterUrl(), s.getVenue().getName(), s.getPurchaseLimit(),
+            s.getVenue().getRegion().getName(),
+            new ShowItem.ShowPeriod(s.getShowStartDate().toLocalDate(), s.getShowEndDate().toLocalDate()),
+            new ShowItem.ReservationPeriod(s.getReservationStartDate(), s.getReservationEndDate()),
+            s.getStatus().name());
+    }
+
+    private int clamp(int v, int min, int max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    private boolean isContractStakeholder(Stakeholder stakeholder) {
+        return stakeholder.getUserId() != null || stakeholder.getHostId() != null;
+    }
+
+    private String stakeholderKey(Stakeholder stakeholder) {
+        if (stakeholder.getRole() == StakeholderRole.ARTIST) {
+            return "ARTIST:" + stakeholder.getUserId();
+        }
+        return "ORGANIZER:" + stakeholder.getHostId();
+    }
+
+    private String stakeholderKey(UpdateShowRequest.StakeholderInfo info) {
+        if (info.role() == StakeholderRole.ARTIST) {
+            return "ARTIST:" + info.id();
+        }
+        return "ORGANIZER:" + info.id();
+    }
+
+}

@@ -1,0 +1,122 @@
+package com.ssafy.cheket.controller.user;
+
+import com.ssafy.cheket.dto.auth.request.FindEmailRequest;
+import com.ssafy.cheket.dto.notification.request.CreateNotificationRequest;
+import com.ssafy.cheket.dto.notification.request.TestNotificationRequest;
+import com.ssafy.cheket.dto.notification.response.GetNotificationsResponse;
+import com.ssafy.cheket.dto.user.request.SaveFcmTokenRequest;
+import com.ssafy.cheket.dto.user.request.UpdateNotificationRequest;
+import com.ssafy.cheket.dto.user.request.UserSignupRequest;
+import com.ssafy.cheket.dto.auth.response.FindEmailResponse;
+import com.ssafy.cheket.dto.common.ApiResponse;
+import com.ssafy.cheket.dto.user.response.GetMyShowsResponse;
+import com.ssafy.cheket.dto.user.response.GetProfileResponse;
+import com.ssafy.cheket.service.notification.NotificationService;
+import com.ssafy.cheket.service.user.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/users")
+public class UserController {
+    private final UserService userService;
+    private final NotificationService notificationService;
+
+    @PostMapping
+    @Operation(summary = "회원가입") // Swagger 문서 자동 생성
+    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody UserSignupRequest request) {
+        userService.userSignup(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(201, "회원가입 완료", null));
+    }
+
+    @PostMapping("/email")
+    @Operation(summary = "이메일 찾기")
+    public ResponseEntity<ApiResponse<FindEmailResponse>> findEmail(@RequestBody FindEmailRequest request) {
+        FindEmailResponse response = userService.findEmail(request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "이메일 찾기에 성공했습니다.", response));
+    }
+
+    @DeleteMapping
+    @Operation(summary = "회원 탈퇴")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> withdrawUser(Authentication authentication,
+        @RequestHeader("Authorization") String authHeader,
+        @RequestHeader(value = "Refresh-Token", required = false) String refreshToken) {
+        Long userId = Long.parseLong(authentication.getName());
+        String accessToken = authHeader.substring(7);
+        userService.withdrawUser(userId, accessToken, refreshToken);
+        return ResponseEntity.ok(ApiResponse.ok(200, "회원 탈퇴 완료", null));
+    }
+
+    @GetMapping
+    @Operation(summary = "프로필 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<GetProfileResponse>> getProfile(@AuthenticationPrincipal Long userId) {
+        GetProfileResponse response = userService.getProfile(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "프로필 조회 완료", response));
+    }
+
+    @PutMapping("/notifications")
+    @Operation(summary = "알림 여부 수정")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> updateNotification(@RequestBody UpdateNotificationRequest request,
+        @AuthenticationPrincipal Long userId) {
+        userService.updateNotification(userId, request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 여부 수정 완료", null));
+    }
+
+    @PostMapping("/fcm-token")
+    @Operation(summary = "FCM 토큰 저장")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> saveFcmToken(@RequestBody SaveFcmTokenRequest request,
+        @AuthenticationPrincipal Long userId) {
+        userService.saveFcmToken(userId, request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "FCM 토큰이 정상적으로 저장되었습니다.", null));
+    }
+
+    @GetMapping("/notifications")
+    @Operation(summary = "알림 내역 조회")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetNotificationsResponse>>> getNotifications(
+        @AuthenticationPrincipal Long userId) {
+        List<GetNotificationsResponse> response = userService.getNotifications(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 내역 조회에 성공했습니다.", response));
+    }
+
+    @PatchMapping("/notifications/{notificationId}")
+    @Operation(summary = "알림 읽음 처리")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> readNotification(@AuthenticationPrincipal Long userId,
+        @PathVariable Long notificationId) {
+        userService.readNotification(userId, notificationId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "알림 읽음 처리에 성공했습니다.", null));
+    }
+
+    @PostMapping("/notifications/test")
+    @Operation(summary = "알림 테스트용 수동 알림 발송")
+    public ResponseEntity<ApiResponse<Void>> sendTestNotification(@RequestBody TestNotificationRequest request) {
+        CreateNotificationRequest createRequest = CreateNotificationRequest.builder().userId(request.userId())
+            .type(request.type()).title(request.title()).variables(request.variables()).build();
+
+        notificationService.createNotification(createRequest, request.data());
+
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "테스트 알림 발송 완료", null));
+    }
+
+    @GetMapping("/my-shows")
+    @Operation(summary = "내가 참여한 공연 목록")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<List<GetMyShowsResponse>>> getMyShows(@AuthenticationPrincipal Long userId) {
+        List<GetMyShowsResponse> response = userService.getMyShows(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(200, "내가 참여한 공연 목록 조회에 성공했습니다.", response));
+    }
+}
