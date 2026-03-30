@@ -1,6 +1,25 @@
+
+# frontend
 node_modules/
 .next/
 bun.lock
 *.lock
 .env
 .env.local
+
+
+# backend & blockchain
+.env
+.env.local
+.claude/
+.DS_Store
+.idea/
+*.iml
+node_modules/
+.next/
+next-env.d.ts
+package-lock.json
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
+CHEKET_*.md

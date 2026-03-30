@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CHEKET</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  background:rgba(0,0,0,0.85);
+  width:100%;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  overflow:auto;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── Card Container ── */
+.scene{
+  perspective:1200px;
+  width:272px;height:460px;
+  position:relative;
+  isolation:isolate;
+}
+
+/* ── Card Flip ── */
+.card-flip{
+  position:relative;width:100%;height:100%;
+  transform-style:preserve-3d;
+  transition:transform 0.7s cubic-bezier(0.4,0,0.2,1);
+  will-change:transform;
+  cursor:pointer;
+}
+.card-flip.flipped{transform:rotateY(180deg)}
+
+.face{
+  position:absolute;inset:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  display:flex;flex-direction:column;
+  height:460px;
+}
+.face-back{transform:rotateY(180deg)}
+
+/* ── Scallop Edges ── */
+.scallop{display:block;width:100%;height:12px;flex-shrink:0}
+
+/* ── Card Body ── */
+.card-body{
+  flex:1;position:relative;overflow:hidden;
+}
+.card-body-inner{
+  position:absolute;inset:0;overflow:hidden;
+  background:#0b0f1a;
+}
+
+/* ── Tilt wrapper ── */
+.tilt-wrapper{
+  transform-style:preserve-3d;
+  transition:transform 0.12s ease-out;
+  will-change:transform;
+  width:100%;height:100%;
+}
+
+/* ── Entry Animation ── */
+.scene{
+  animation:cardEnter 0.6s cubic-bezier(0.23,1,0.32,1) forwards;
+  opacity:0;transform:scale(0.88) rotateX(12deg);
+}
+@keyframes cardEnter{to{opacity:1;transform:scale(1) rotateX(0deg)}}
+
+/* ── Poster ── */
+.poster{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;z-index:3;
+}
+
+/* ── Gradient Overlays ── */
+.grad-main{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:linear-gradient(to top,rgba(11,15,26,0.82) 12%,rgba(11,15,26,0.2) 52%,rgba(11,15,26,0.08) 100%);
+}
+.grad-top{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,transparent 30%);
+}
+
+/* Gold variant gradients */
+.is-gold .grad-main{
+  background:linear-gradient(to top,rgba(49,34,8,0.58) 10%,rgba(49,34,8,0.15) 48%,rgba(255,234,180,0.16) 100%);
+}
+.is-gold .card-body-inner{background-color:#d5b45a}
+
+/* ── Gold Foil Layers ── */
+.gold-foil-base,.gold-foil-grain,.gold-foil-sheen{
+  position:absolute;inset:0;pointer-events:none;
+}
+.gold-foil-base{
+  z-index:1;
+  background:
+    radial-gradient(120% 85% at 50% 4%,rgba(255,246,198,0.75) 0%,rgba(255,246,198,0) 60%),
+    radial-gradient(90% 80% at 50% 100%,rgba(112,73,20,0.26) 0%,rgba(112,73,20,0) 64%),
+    linear-gradient(92deg,#fdf3bf 0%,#efcf78 22%,#c9972d 44%,#f4dc98 58%,#c88e26 76%,#fae8a8 100%);
+  box-shadow:inset 0 1px 0 rgba(255,248,208,0.8),inset 0 -1px 0 rgba(108,70,18,0.45),
+    inset 0 16px 24px rgba(255,250,219,0.12),inset 0 -16px 28px rgba(94,62,18,0.16);
+}
+.gold-foil-grain{
+  z-index:2;opacity:0.38;mix-blend-mode:overlay;
+  background-image:
+    repeating-linear-gradient(18deg,rgba(255,252,230,0.2) 0px,rgba(255,252,230,0.2) 1px,rgba(255,252,230,0) 1px,rgba(255,252,230,0) 4px),
+    repeating-linear-gradient(-24deg,rgba(92,61,16,0.16) 0px,rgba(92,61,16,0.16) 1px,rgba(92,61,16,0) 1px,rgba(92,61,16,0) 6px),
+    repeating-linear-gradient(90deg,rgba(255,244,198,0.1) 0px,rgba(255,244,198,0.1) 1px,rgba(255,244,198,0) 1px,rgba(255,244,198,0) 9px);
+}
+.gold-foil-sheen{
+  z-index:3;mix-blend-mode:screen;opacity:0.68;
+  background-image:linear-gradient(108deg,rgba(255,255,255,0) 16%,rgba(255,255,255,0.42) 28%,rgba(255,255,255,0.12) 40%,rgba(255,255,255,0.02) 52%,rgba(255,255,255,0) 64%);
+  background-size:210% 100%;
+  animation:goldSheen 5.8s linear infinite;
+}
+@keyframes goldSheen{
+  0%{background-position:110% 0}
+  100%{background-position:-110% 0}
+}
+
+/* ── Holographic Overlay Layers ── */
+.holo-layer{
+  position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden;
+}
+.holo-rainbow,.holo-glare,.holo-foil,.holo-noise{
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  transition:opacity 350ms ease;
+}
+
+/* Rainbow — color blend */
+.holo-rainbow{
+  opacity:0.2;mix-blend-mode:color;
+  background-image:repeating-linear-gradient(
+    var(--angle,133deg),
+    hsl(0,100%,65%) 0%,hsl(40,100%,60%) 4%,hsl(60,100%,62%) 8%,
+    hsl(120,95%,50%) 12%,hsl(180,100%,55%) 16%,hsl(220,100%,65%) 20%,
+    hsl(270,100%,65%) 24%,hsl(310,100%,62%) 28%,hsl(340,100%,60%) 32%,
+    hsl(0,100%,65%) 36%
+  );
+  background-size:200% 200%;
+  background-position:var(--mx,50%) var(--my,50%);
+  filter:saturate(1.4);
+}
+.holo-rainbow::after{
+  content:"";position:absolute;inset:0;
+  mix-blend-mode:screen;opacity:0.2;
+  background-image:repeating-linear-gradient(
+    var(--angle,133deg),
+    rgba(255,255,255,0) 0%,rgba(255,255,255,0.08) 2%,rgba(255,255,255,0.45) 3.5%,
+    rgba(255,255,255,0.08) 5%,rgba(255,255,255,0) 8%,rgba(255,255,255,0) 16%
+  );
+  background-size:300% 300%;
+  background-position:var(--mx,50%) var(--my,50%);
+}
+.holo-rainbow.is-active{opacity:0.25}
+
+/* Glare — bright reflection */
+.holo-glare{
+  opacity:0.15;mix-blend-mode:overlay;
+  background-image:radial-gradient(ellipse 50% 40% at var(--mx,50%) var(--my,50%),
+    rgba(255,255,255,0.7) 0%,rgba(255,255,255,0.2) 40%,transparent 70%);
+}
+.holo-glare.is-active{opacity:0.4}
+
+/* Foil — fine noise grain */
+.holo-foil{
+  opacity:0.1;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj4KPGZpbHRlciBpZD0ibiI+CjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuNyIgbnVtT2N0YXZlcz0iMTAiIHN0aXRjaFRpbGVzPSJzdGl0Y2giPjwvZmVUdXJidWxlbmNlPgo8L2ZpbHRlcj4KPHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwMDAiPjwvcmVjdD4KPHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbHRlcj0idXJsKCNuKSIgb3BhY2l0eT0iMC4zIj48L3JlY3Q+Cjwvc3ZnPg==");
+  background-size:250px;
+}
+.holo-foil.is-active{opacity:0.35}
+
+/* Noise — subtle grain */
+.holo-noise{
+  opacity:0.08;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj4KPGZpbHRlciBpZD0ibiI+CjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIxLjUiIG51bU9jdGF2ZXM9IjYiIHN0aXRjaFRpbGVzPSJzdGl0Y2giPjwvZmVUdXJidWxlbmNlPgo8L2ZpbHRlcj4KPHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiMwMDAiPjwvcmVjdD4KPHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNuKSIgb3BhY2l0eT0iMC40Ij48L3JlY3Q+Cjwvc3ZnPg==");
+  background-size:200px;
+}
+
+/* ── Front Face Content ── */
+.front-header{
+  position:absolute;left:14px;right:14px;top:12px;z-index:6;
+}
+.front-header-text{
+  font-size:8px;letter-spacing:0.26em;text-transform:uppercase;
+  color:rgba(255,255,255,0.82);font-weight:700;
+}
+.is-gold .front-header-text{color:rgba(24,20,10,0.72)}
+
+.front-title-area{
+  position:absolute;left:14px;right:14px;top:44px;z-index:6;
+}
+.front-big-title{
+  font-size:42px;font-weight:900;line-height:0.9;letter-spacing:-0.03em;
+  color:rgba(255,255,255,0.95);text-transform:uppercase;
+}
+.is-gold .front-big-title{color:rgba(125,26,26,0.86)}
+.front-event-name{
+  margin-top:3px;font-size:18px;font-weight:800;line-height:1.06;
+  color:rgba(255,255,255,0.95);text-transform:uppercase;
+}
+.is-gold .front-event-name{color:rgba(100,22,22,0.84)}
+
+.front-bottom{
+  position:absolute;left:14px;right:14px;bottom:12px;z-index:6;
+  display:flex;align-items:flex-end;justify-content:space-between;
+}
+.front-brand-label{
+  font-size:7.5px;letter-spacing:0.24em;text-transform:uppercase;
+  color:rgba(255,255,255,0.7);font-weight:700;
+}
+.is-gold .front-brand-label{color:rgba(24,20,10,0.62)}
+.front-ticket-no{
+  font-family:'Courier New',monospace;font-size:9px;
+  color:rgba(255,255,255,0.82);
+}
+.is-gold .front-ticket-no{color:rgba(24,20,10,0.7)}
+.front-tap{
+  font-size:8px;letter-spacing:0.12em;
+  color:rgba(255,255,255,0.68);
+}
+.is-gold .front-tap{color:rgba(24,20,10,0.58)}
+
+/* ── Back Face ── */
+.back-inner{
+  position:absolute;inset:0;overflow:hidden;
+}
+.back-poster{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;opacity:0.26;z-index:1;
+}
+.back-overlay{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(to bottom,rgba(9,13,24,0.9) 0%,rgba(9,13,24,0.93) 100%);
+}
+.is-gold .back-overlay{
+  background:linear-gradient(to bottom,rgba(70,44,14,0.66) 0%,rgba(55,36,11,0.74) 100%);
+}
+.is-gold .back-inner{background-color:#d5b45a}
+
+.back-content{
+  position:relative;z-index:3;height:100%;
+  padding:12px 14px;display:flex;flex-direction:column;
+  color:rgba(255,255,255,0.9);
+}
+.is-gold .back-content{color:#f8efd0}
+
+.back-top-row{
+  display:flex;justify-content:space-between;align-items:center;
+}
+.back-concert-label{
+  font-size:8px;letter-spacing:0.2em;text-transform:uppercase;opacity:0.9;
+}
+.back-ticket-no{font-size:8px;font-family:monospace;opacity:0.9}
+.back-event-name{
+  margin-top:10px;font-size:10px;font-weight:900;
+  line-height:1.15;text-transform:uppercase;
+}
+.back-divider{
+  border:none;border-top:1px solid rgba(255,255,255,0.28);
+  margin-top:10px;
+}
+.back-info-section{padding-top:10px;display:flex;flex-direction:column;gap:7px}
+.back-row{display:flex;gap:8px;align-items:baseline}
+.back-row-label{
+  font-size:6.5px;letter-spacing:0.12em;text-transform:uppercase;
+  color:rgba(255,255,255,0.22);font-weight:700;min-width:20px;flex-shrink:0;
+}
+.is-gold .back-row-label{color:rgba(24,20,10,0.58)}
+.back-row-value{
+  font-size:9px;font-weight:600;color:rgba(255,255,255,0.65);
+  line-height:1.3;word-break:keep-all;
+}
+.is-gold .back-row-value{color:rgba(24,20,10,0.74)}
+
+.back-divider2{
+  border:none;border-top:1px solid rgba(255,255,255,0.22);
+  margin-top:10px;
+}
+.back-grade-row{
+  padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;
+}
+.seat-box{
+  display:flex;flex-direction:column;align-items:center;
+  gap:3px;padding:5px;border-radius:7px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+}
+.seat-box-label{
+  font-size:6px;text-transform:uppercase;letter-spacing:0.15em;
+  color:rgba(255,255,255,0.25);font-weight:600;
+}
+.is-gold .seat-box-label{color:rgba(24,20,10,0.54)}
+.seat-box-value{
+  font-size:10px;font-weight:800;line-height:1;
+  color:rgba(255,255,255,0.82);
+}
+.is-gold .seat-box-value{color:#231b09}
+
+.back-price-row{
+  margin-top:auto;
+  border-top:1px dashed rgba(255,255,255,0.24);
+  padding-top:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.back-price{font-size:16px;font-weight:900}
+.back-price-unit{font-size:9px;margin-left:3px;opacity:0.8}
+.back-tap{font-size:8px;letter-spacing:0.12em;opacity:0.8}
+
+/* ── Glow per grade ── */
+.scene[data-grade="VIP"]{
+  filter:drop-shadow(0 0 20px rgba(212,164,74,0.3));
+}
+.scene[data-grade="R"]{
+  filter:drop-shadow(0 0 15px rgba(239,68,68,0.2));
+}
+.scene[data-grade="S"]{
+  filter:drop-shadow(0 0 15px rgba(59,130,246,0.15));
+}
+.scene:hover{
+  filter:drop-shadow(0 0 15px rgba(120,200,255,0.3));
+}
+</style>
+</head>
+<body>
+
+<div class="scene" id="scene">
+  <div class="tilt-wrapper" id="tiltWrapper">
+    <div class="card-flip" id="cardFlip">
+
+      <!-- ===== FRONT FACE ===== -->
+      <div class="face face-front" id="faceFront">
+        <svg class="scallop" id="scallopTopF" preserveAspectRatio="none"></svg>
+        <div class="card-body">
+          <div class="card-body-inner" id="frontInner">
+            <!-- Gold foil (VIP only) -->
+            <div class="gold-foil-base" id="gfBase" style="display:none"></div>
+            <div class="gold-foil-grain" id="gfGrain" style="display:none"></div>
+            <div class="gold-foil-sheen" id="gfSheen" style="display:none"></div>
+
+            <img class="poster" id="posterFront" alt="">
+            <!-- Holographic overlay -->
+            <div class="holo-layer" id="holoLayer">
+              <div class="holo-rainbow" id="holoRainbow"></div>
+              <div class="holo-glare" id="holoGlare"></div>
+              <div class="holo-foil" id="holoFoil"></div>
+              <div class="holo-noise" id="holoNoise"></div>
+            </div>
+            <div class="grad-main"></div>
+            <div class="grad-top"></div>
+
+            <!-- Content -->
+            <div class="front-header">
+              <p class="front-header-text">Concert Ticket</p>
+            </div>
+            <div class="front-title-area">
+              <h3 class="front-big-title">CHEKET</h3>
+              <p class="front-event-name" id="frontEvName"></p>
+            </div>
+            <div class="front-bottom">
+              <div>
+                <p class="front-brand-label">CHEKET</p>
+                <p class="front-ticket-no" id="frontTno"></p>
+              </div>
+              <p class="front-tap">TAP</p>
+            </div>
+          </div>
+        </div>
+        <svg class="scallop" id="scallopBotF" preserveAspectRatio="none"></svg>
+      </div>
+
+      <!-- ===== BACK FACE ===== -->
+      <div class="face face-back" id="faceBack">
+        <svg class="scallop" id="scallopTopB" preserveAspectRatio="none"></svg>
+        <div class="card-body">
+          <div class="back-inner" id="backInner">
+            <!-- Gold foil (VIP only) -->
+            <div class="gold-foil-base" id="gfBaseB" style="display:none"></div>
+            <div class="gold-foil-grain" id="gfGrainB" style="display:none"></div>
+            <div class="gold-foil-sheen" id="gfSheenB" style="display:none"></div>
+
+            <img class="back-poster" id="posterBack" alt="">
+            <div class="back-overlay"></div>
+            <div class="back-content">
+              <div class="back-top-row">
+                <p class="back-concert-label">IU WORLD TOUR CONCERT</p>
+                <p class="back-ticket-no" id="backTno"></p>
+              </div>
+              <p class="back-event-name" id="backEvName"></p>
+              <hr class="back-divider">
+              <div class="back-info-section">
+                <div class="back-row">
+                  <span class="back-row-label">Date</span>
+                  <span class="back-row-value" id="backDate"></span>
+                </div>
+                <div class="back-row">
+                  <span class="back-row-label">Venue</span>
+                  <span class="back-row-value" id="backVenue"></span>
+                </div>
+              </div>
+              <hr class="back-divider2">
+              <div class="back-grade-row">
+                <div class="seat-box" id="gradeBox">
+                  <span class="seat-box-label">Grade</span>
+                  <span class="seat-box-value" id="backGrade"></span>
+                </div>
+                <div class="seat-box" id="seatBox">
+                  <span class="seat-box-label">Seat</span>
+                  <span class="seat-box-value" id="backSeat"></span>
+                </div>
+              </div>
+              <div class="back-price-row">
+                <p class="back-price" id="backPrice"></p>
+                <p class="back-tap">TAP</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <svg class="scallop" id="scallopBotB" preserveAspectRatio="none"></svg>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Query Parameters ──
+var P = Object.fromEntries(new URLSearchParams(location.search));
+var grade = (P.grade || 'A').toUpperCase();
+var isGold = grade === 'VIP' || grade === 'VIP PIT';
+
+var GRADE_COLORS = {
+  VIP:{bg:'#f59e0b',text:'#000'},'VIP PIT':{bg:'#f59e0b',text:'#000'},
+  R:{bg:'#ef4444',text:'#fff'},S:{bg:'#3b82f6',text:'#fff'},
+  A:{bg:'#22c55e',text:'#fff'},FLOOR:{bg:'#3b82f6',text:'#fff'},
+  GA:{bg:'#3b82f6',text:'#fff'},'2F':{bg:'#a855f7',text:'#fff'},
+  '1F':{bg:'#06b6d4',text:'#fff'}
+};
+var gc = GRADE_COLORS[grade] || {bg:'#6b7280',text:'#fff'};
+
+// ── Scallop Edge Generator ──
+function makeScallop(svgEl, position, pageBg) {
+  var r = 6, count = 16, W = count * r * 2;
+  var circles = '';
+  for (var i = 0; i < count; i++) {
+    var cx = i * r * 2 + r;
+    if (position === 'top') {
+      circles += 'M ' + (cx - r) + ' 0 a ' + r + ' ' + r + ' 0 0 1 ' + (r * 2) + ' 0 ';
+    } else {
+      circles += 'M ' + (cx - r) + ' ' + (r * 2) + ' a ' + r + ' ' + r + ' 0 0 0 ' + (r * 2) + ' 0 ';
+    }
+  }
+  var path = position === 'top'
+    ? 'M0,0 ' + circles + 'L' + W + ',0 L' + W + ',' + r + ' L0,' + r + ' Z'
+    : 'M0,' + r + ' ' + circles + 'L' + W + ',' + (r * 2) + ' L0,' + (r * 2) + ' Z';
+
+  svgEl.setAttribute('viewBox', '0 0 ' + W + ' ' + (r * 2));
+  svgEl.style.height = (r * 2) + 'px';
+  svgEl.innerHTML = '<rect width="' + W + '" height="' + (r * 2) + '" fill="#0b0f1a"/>' +
+    '<path d="' + path + '" fill="' + pageBg + '"/>';
+}
+
+var pageBg = 'rgba(0,0,0,0.85)';
+makeScallop(document.getElementById('scallopTopF'), 'top', pageBg);
+makeScallop(document.getElementById('scallopBotF'), 'bottom', pageBg);
+makeScallop(document.getElementById('scallopTopB'), 'top', pageBg);
+makeScallop(document.getElementById('scallopBotB'), 'bottom', pageBg);
+
+// ── Populate Content ──
+var ticketNo = 'No.' + String(P.id || '0000').padStart(4, '0');
+var posterUrl = P.poster || '';
+var evName = P.name || '';
+
+document.getElementById('posterFront').src = posterUrl;
+document.getElementById('posterFront').onerror = function(){ this.style.display = 'none'; };
+document.getElementById('posterBack').src = posterUrl;
+document.getElementById('posterBack').onerror = function(){ this.style.display = 'none'; };
+
+document.getElementById('frontEvName').textContent = evName;
+document.getElementById('frontTno').textContent = ticketNo;
+
+document.getElementById('backEvName').textContent = evName;
+document.getElementById('backTno').textContent = ticketNo;
+document.getElementById('backDate').textContent = P.date || '';
+document.getElementById('backVenue').textContent = P.venue || '';
+document.getElementById('backGrade').textContent = grade;
+document.getElementById('backSeat').textContent = P.seat || '';
+
+var price = P.price || '0';
+document.getElementById('backPrice').innerHTML = Number(price).toLocaleString() +
+  '<span class="back-price-unit">\uc6d0</span>';
+
+// ── Grade styling ──
+var scene = document.getElementById('scene');
+scene.dataset.grade = grade;
+
+// Grade box accent color
+var gradeBox = document.getElementById('gradeBox');
+if (!isGold) {
+  gradeBox.style.backgroundColor = gc.bg + '20';
+  gradeBox.style.borderColor = gc.bg + '40';
+  gradeBox.querySelector('.seat-box-value').style.color = gc.bg;
+}
+var seatBox = document.getElementById('seatBox');
+if (!isGold) {
+  seatBox.style.backgroundColor = '#f8e28a20';
+  seatBox.style.borderColor = '#f8e28a40';
+  seatBox.querySelector('.seat-box-value').style.color = '#f8e28a';
+}
+
+// ── Gold mode ──
+if (isGold) {
+  document.getElementById('faceFront').classList.add('is-gold');
+  document.getElementById('faceBack').classList.add('is-gold');
+  // Show gold foil layers
+  ['gfBase','gfGrain','gfSheen','gfBaseB','gfGrainB','gfSheenB'].forEach(function(id){
+    document.getElementById(id).style.display = '';
+  });
+}
+
+// ── Card Flip ──
+var cardFlip = document.getElementById('cardFlip');
+var flipped = false;
+cardFlip.addEventListener('click', function(e) {
+  e.stopPropagation();
+  flipped = !flipped;
+  cardFlip.classList.toggle('flipped', flipped);
+});
+
+// ── Tilt + Holo Pointer Tracking ──
+var tiltWrapper = document.getElementById('tiltWrapper');
+var holoLayer = document.getElementById('holoLayer');
+var holoRainbow = document.getElementById('holoRainbow');
+var holoGlare = document.getElementById('holoGlare');
+var holoFoil = document.getElementById('holoFoil');
+var holoActive = false;
+var px = 0.5, py = 0.5;
+
+function updateHolo(x, y) {
+  var mx = x * 100;
+  var my = y * 100;
+  var angle = Math.atan2(y - 0.5, x - 0.5) * 180 / Math.PI + 133;
+  holoLayer.style.setProperty('--mx', mx + '%');
+  holoLayer.style.setProperty('--my', my + '%');
+  holoLayer.style.setProperty('--angle', angle + 'deg');
+}
+
+function updateTilt(x, y) {
+  var rx = (0.5 - y) * 10;
+  var ry = (x - 0.5) * 10;
+  tiltWrapper.style.transform = 'rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) scale(1.02)';
+}
+
+function setActive(a) {
+  holoActive = a;
+  var cls = a ? 'is-active' : '';
+  holoRainbow.className = 'holo-rainbow ' + cls;
+  holoGlare.className = 'holo-glare ' + cls;
+  holoFoil.className = 'holo-foil ' + cls;
+}
+
+scene.addEventListener('touchstart', function(e) {
+  setActive(true);
+}, {passive:true});
+
+scene.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  var t = e.touches[0], r = scene.getBoundingClientRect();
+  px = Math.max(0, Math.min(1, (t.clientX - r.left) / r.width));
+  py = Math.max(0, Math.min(1, (t.clientY - r.top) / r.height));
+  updateHolo(px, py);
+  updateTilt(px, py);
+}, {passive:false});
+
+scene.addEventListener('touchend', function() {
+  setActive(false);
+  px = 0.5; py = 0.5;
+  tiltWrapper.style.transform = '';
+  updateHolo(0.5, 0.5);
+});
+
+scene.addEventListener('mouseenter', function() { setActive(true); });
+scene.addEventListener('mousemove', function(e) {
+  var r = scene.getBoundingClientRect();
+  px = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  py = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+  updateHolo(px, py);
+  updateTilt(px, py);
+});
+scene.addEventListener('mouseleave', function() {
+  setActive(false);
+  px = 0.5; py = 0.5;
+  tiltWrapper.style.transform = '';
+  updateHolo(0.5, 0.5);
+});
+
+// ── Gyroscope ──
+if (window.DeviceOrientationEvent) {
+  window.addEventListener('deviceorientation', function(e) {
+    if (e.gamma == null) return;
+    px = Math.max(0, Math.min(1, 0.5 + e.gamma / 90));
+    py = Math.max(0, Math.min(1, 0.5 + (e.beta - 45) / 90));
+    updateHolo(px, py);
+    updateTilt(px, py);
+  });
+}
+
+// Initial state
+updateHolo(0.5, 0.5);
+</script>
+</body>
+</html>

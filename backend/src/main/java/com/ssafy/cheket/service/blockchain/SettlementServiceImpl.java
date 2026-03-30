@@ -1,0 +1,476 @@
+package com.ssafy.cheket.service.blockchain;
+
+import com.ssafy.cheket.blockchain.contract.Settlement.PaidEventResponse;
+import com.ssafy.cheket.entity.resale.Resale;
+import com.ssafy.cheket.entity.settlement.Settlement;
+import com.ssafy.cheket.entity.ticket.Ticket;
+import com.ssafy.cheket.entity.settlement.Stakeholder;
+import com.ssafy.cheket.entity.show.Session;
+import com.ssafy.cheket.entity.show.Show;
+import com.ssafy.cheket.enums.ResaleStatus;
+import com.ssafy.cheket.exception.common.BlockchainException;
+import com.ssafy.cheket.exception.common.NotFoundException;
+import com.ssafy.cheket.repository.host.HostRepository;
+import com.ssafy.cheket.repository.resale.ResaleEntityRepository;
+import com.ssafy.cheket.repository.settlement.SettlementRepository;
+import com.ssafy.cheket.repository.settlement.StakeholderRepository;
+import com.ssafy.cheket.repository.show.SessionRepository;
+import com.ssafy.cheket.repository.show.ShowRepository;
+import com.ssafy.cheket.repository.ticket.TicketRepository;
+import com.ssafy.cheket.repository.user.UserRepository;
+import com.ssafy.cheket.repository.wallet.WalletRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+
+import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * SettlementServiceImpl — 1차 판매금 자동 정산 구현체
+ *
+ * [핵심 원리] "서버는 트리거만 할 뿐, 분배 비율은 StakeholderNFT에 고정"
+ *
+ * Settlement.finalizeSession(onChainSessionId, eventNftId) 호출 → 컨트랙트 내부에서: ①
+ * sessionDeposits 총액 확인 (예치된 SSF) ② EventNFT → StakeholderNFT ID 목록 조회 ③ 각
+ * StakeholderNFT의 shareBps로 SSF 분배 ④ EventNFT.finalizeSession() → isFinalized =
+ * true (이중 정산 방지)
+ *
+ * [정산 흐름] 1차 판매 시: SSF → Settlement 컨트랙트 잠금 공연 종료 후: finalizeSession() →
+ * StakeholderNFT 비율대로 분배 → 주최자 52%, 아티스트 20%, 플랫폼 8% 등
+ *
+ * [DB 이력] 정산 성공 시 settlements 테이블에 이해관계자별 1건씩 기록 → show_id, session_id,
+ * stakeholder_id, tx_hash
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SettlementServiceImpl implements SettlementService {
+
+    private final BlockchainService blockchainService;
+    private final SessionRepository sessionRepository;
+    private final ShowRepository showRepository;
+    private final StakeholderRepository stakeholderRepository;
+    private final SettlementRepository settlementRepository;
+    private final ResaleEntityRepository resaleEntityRepository;
+    private final TicketRepository ticketRepository;
+    private final WalletRepository walletRepository;
+    private final UserRepository userRepository;
+    private final HostRepository hostRepository;
+
+    @Override
+    public List<Long> finalizeCompletedSessions() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Long> settledSessionIds = new ArrayList<>();
+
+        List<Session> sessions = sessionRepository.findAllCompletedSessions(now);
+
+        for (Session session : sessions) {
+            try {
+                Show show = showRepository.findById(session.getShowId()).orElse(null);
+                if (show == null) {
+                    log.warn("[정산] 회차 {} 공연 없음 → 스킵 (showId={})", session.getId(), session.getShowId());
+                    continue;
+                }
+
+                // 온체인에서 이미 정산됐는지 확인 (이중 정산 방지)
+                boolean isFinalized = blockchainService.getSettlement()
+                    .isSessionFinalized(BigInteger.valueOf(session.getOnChainSessionId())).send();
+                if (isFinalized) {
+                    continue;
+                }
+
+                // 예치금 확인 (0이면 판매 안 된 것 → 스킵)
+                BigInteger deposits = blockchainService.getSettlement()
+                    .getSessionDeposits(BigInteger.valueOf(session.getOnChainSessionId())).send();
+                if (deposits.compareTo(BigInteger.ZERO) == 0) {
+                    log.info("[정산] 회차 {} 예치금 없음 → 스킵", session.getId());
+                    continue;
+                }
+
+                // 정산 실행 (실패 시 재시도)
+                finalizeWithRetry(session, show);
+                settledSessionIds.add(session.getId());
+
+                // 만료된 리세일 처리 (Escrow.cancelDeal → NFT 판매자 반환)
+                cancelExpiredResales(session);
+                syncTicketStatusOnChain(session);
+
+            } catch (Exception e) {
+                log.error("[정산] 회차 {} 최종 실패 — {}: {}", session.getId(), e.getClass().getSimpleName(), e.getMessage());
+            }
+        }
+
+        return settledSessionIds;
+    }
+
+    @Override
+    public List<Long> finalizeByShowId(Long showId) {
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
+
+        if (show.getEventNftId() == null) {
+            throw new BlockchainException("민팅되지 않은 공연입니다.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<Session> sessions = sessionRepository.findCompletedSessionsByShowId(showId, now);
+        List<Long> settledSessionIds = new ArrayList<>();
+
+        for (Session session : sessions) {
+            try {
+                boolean isFinalized = blockchainService.getSettlement()
+                    .isSessionFinalized(BigInteger.valueOf(session.getOnChainSessionId())).send();
+                if (isFinalized) {
+                    log.info("[정산] 회차 {} 이미 정산됨 → 스킵", session.getId());
+                    continue;
+                }
+
+                BigInteger deposits = blockchainService.getSettlement()
+                    .getSessionDeposits(BigInteger.valueOf(session.getOnChainSessionId())).send();
+                if (deposits.compareTo(BigInteger.ZERO) == 0) {
+                    log.info("[정산] 회차 {} 예치금 없음 → 스킵", session.getId());
+                    continue;
+                }
+
+                // 정산 실행 (실패 시 재시도)
+                finalizeWithRetry(session, show);
+                settledSessionIds.add(session.getId());
+
+                // 만료된 리세일 처리 (Escrow.cancelDeal → NFT 판매자 반환)
+                cancelExpiredResales(session);
+                syncTicketStatusOnChain(session);
+
+            } catch (Exception e) {
+                log.error("[정산] 회차 {} 최종 실패 — {}: {}", session.getId(), e.getClass().getSimpleName(), e.getMessage());
+            }
+        }
+
+        return settledSessionIds;
+    }
+
+    @Override
+    public void finalizeBySessionId(Long showId, Long sessionId) {
+        Show show = showRepository.findById(showId)
+            .orElseThrow(() -> new NotFoundException("공연을 찾을 수 없습니다: " + showId));
+
+        if (show.getEventNftId() == null) {
+            throw new BlockchainException("민팅되지 않은 공연입니다.");
+        }
+
+        Session session = sessionRepository.findById(sessionId)
+            .orElseThrow(() -> new NotFoundException("회차를 찾을 수 없습니다: " + sessionId));
+
+        if (!session.getShowId().equals(showId)) {
+            throw new BlockchainException("회차 " + sessionId + "는 공연 " + showId + "에 속하지 않습니다.");
+        }
+
+        if (session.getOnChainSessionId() == null) {
+            throw new BlockchainException("온체인에 등록되지 않은 회차입니다.");
+        }
+
+        // 종료 여부 확인 (sessionStartTime + playtime < now)
+        LocalDateTime sessionEndTime = session.getSessionStartTime().plusMinutes(show.getPlaytime());
+        if (sessionEndTime.isAfter(LocalDateTime.now())) {
+            throw new BlockchainException("아직 종료되지 않은 회차입니다.");
+        }
+
+        try {
+            boolean isFinalized = blockchainService.getSettlement()
+                .isSessionFinalized(BigInteger.valueOf(session.getOnChainSessionId())).send();
+            if (isFinalized) {
+                throw new BlockchainException("이미 정산된 회차입니다.");
+            }
+
+            BigInteger deposits = blockchainService.getSettlement()
+                .getSessionDeposits(BigInteger.valueOf(session.getOnChainSessionId())).send();
+            if (deposits.compareTo(BigInteger.ZERO) == 0) {
+                throw new BlockchainException("예치금이 없는 회차입니다.");
+            }
+        } catch (BlockchainException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BlockchainException("온체인 조회 실패: " + e.getMessage());
+        }
+
+        finalizeSession(session, show);
+
+        // 만료된 리세일 처리 (Escrow.cancelDeal → NFT 판매자 반환)
+        cancelExpiredResales(session);
+        syncTicketStatusOnChain(session);
+    }
+
+    private static final int MAX_RETRY = 5;
+
+    /**
+     * 정산 실행 + 재시도 (최대 5회)
+     *
+     * 블록체인 통신 실패 시 재시도, 비즈니스 예외(BlockchainException)는 즉시 실패
+     */
+    private void finalizeWithRetry(Session session, Show show) {
+        for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
+            try {
+                finalizeSession(session, show);
+                return;
+            } catch (BlockchainException e) {
+                // 비즈니스 예외 (stakeholder 없음, 분배율 오류 등)는 재시도 불필요
+                throw e;
+            } catch (Exception e) {
+                log.warn("[정산] 회차 {} 재시도 {}/{} — {}", session.getId(), attempt, MAX_RETRY, e.getMessage());
+                if (attempt == MAX_RETRY) {
+                    throw new BlockchainException(
+                        "정산 " + MAX_RETRY + "회 재시도 실패 — sessionId=" + session.getId() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * 단일 회차 정산 실행
+     *
+     * [온체인 처리] Settlement.finalizeSession(onChainSessionId, eventNftId) 호출
+     *
+     * [컨트랙트 내부 동작] ① sessionDeposits[sessionId] 총액 확인 ②
+     * EventNFT.getStakeholderTokenIds(eventId) → [0, 1, 2] ③ 각 StakeholderNFT의
+     * shareBps로 SSF 분배 ④ EventNFT.finalizeSession() → isFinalized = true
+     *
+     * [DB 이력] 정산 성공 후 settlements 테이블에 이해관계자별 1건씩 저장
+     */
+    private void finalizeSession(Session session, Show show) {
+        // 이해관계자 존재 여부 검증
+        List<Stakeholder> stakeholders = stakeholderRepository.findByShowId(show.getId());
+        if (stakeholders.isEmpty()) {
+            throw new BlockchainException("이해관계자가 등록되지 않은 공연입니다: showId=" + show.getId());
+        }
+
+        // 분배율 합계 검증 (10000 bps = 100%)
+        int totalBps = stakeholders.stream().mapToInt(Stakeholder::getShareBps).sum();
+        if (totalBps != 10000) {
+            throw new BlockchainException(
+                "이해관계자 분배율 합계가 100%가 아닙니다: " + totalBps + " bps (showId=" + show.getId() + ")");
+        }
+
+        try {
+            BigInteger onChainSessionId = BigInteger.valueOf(session.getOnChainSessionId());
+            BigInteger eventNftId = BigInteger.valueOf(show.getEventNftId());
+
+            BigInteger deposits = blockchainService.getSettlement().getSessionDeposits(onChainSessionId).send();
+
+            log.info("[정산] 시작 — showId={}, sessionId={}, " + "onChainSessionId={}, eventNftId={}, " + "예치금={} SSF",
+                show.getId(), session.getId(), onChainSessionId, eventNftId, deposits);
+
+            TransactionReceipt receipt = blockchainService.executePlatformTx(
+                () -> blockchainService.getSettlement().finalizeSession(onChainSessionId, eventNftId).send());
+
+            String txHash = receipt.getTransactionHash();
+            log.info("[정산] 완료 — sessionId={}, txHash={}, " + "총 {} SSF 분배", session.getId(), txHash, deposits);
+
+            // 정산 이력 저장 — 이해관계자별 1건씩 (Paid 이벤트에서 실제 수령액 파싱)
+            saveSettlementHistory(show, session, txHash, stakeholders, receipt);
+
+            // EventNFT.finalizeSession() — onlyOwner이므로 백엔드(플랫폼 지갑)에서 별도 호출
+            // Settlement 컨트랙트는 onlyOwner 권한이 없어 직접 호출 불가
+            blockchainService
+                .executePlatformTx(() -> blockchainService.getEventNFT().finalizeSession(onChainSessionId).send());
+            log.info("[정산] EventNFT.finalizeSession 완료 — onChainSessionId={}", onChainSessionId);
+
+        } catch (Exception e) {
+            throw new BlockchainException("정산 실패 — sessionId=" + session.getId() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * 정산 이력을 settlements 테이블에 저장 Paid 이벤트에서 지갑별 실제 수령액 파싱 → amount 저장
+     */
+    private void saveSettlementHistory(Show show, Session session, String txHash, List<Stakeholder> stakeholders,
+        TransactionReceipt receipt) {
+
+        // Paid 이벤트에서 지갑주소 → 수령액 맵 구성
+        Map<String, Long> walletToAmount = new HashMap<>();
+        try {
+            List<PaidEventResponse> paidEvents = blockchainService.getSettlement().getPaidEvents(receipt);
+            walletToAmount = paidEvents.stream()
+                .collect(Collectors.toMap(e -> e.stakeholder.toLowerCase(), e -> e.amount.longValue(), (a, b) -> a));
+        } catch (Exception e) {
+            log.warn("[정산 이력] Paid 이벤트 파싱 실패 — amount=0으로 저장: {}", e.getMessage());
+        }
+
+        for (Stakeholder stakeholder : stakeholders) {
+            // 이해관계자 지갑 주소 조회
+            String walletAddress = resolveWalletAddress(stakeholder);
+            Long amount = walletAddress != null ? walletToAmount.getOrDefault(walletAddress.toLowerCase(), 0L) : 0L;
+
+            Settlement settlement = Settlement.builder().showId(show.getId()).sessionId(session.getId())
+                .stakeholderId(stakeholder.getId()).txHash(txHash).amount(amount).build();
+
+            settlementRepository.save(settlement);
+
+            log.info("[정산 이력] 저장 — sessionId={}, stakeholderId={} ({}), amount={} SSF, txHash={}", session.getId(),
+                stakeholder.getId(), stakeholder.getRole(), amount, txHash);
+        }
+    }
+
+    /**
+     * Stakeholder의 지갑 주소 조회 (user → wallet, host → wallet, 플랫폼 → platformWallet)
+     */
+    private String resolveWalletAddress(Stakeholder stakeholder) {
+        try {
+            if (stakeholder.getUserId() != null) {
+                return userRepository.findByIdAndDeletedAtIsNull(stakeholder.getUserId())
+                    .flatMap(u -> walletRepository.findById(u.getWalletId())).map(w -> w.getAddress()).orElse(null);
+            } else if (stakeholder.getHostId() != null) {
+                return hostRepository.findById(stakeholder.getHostId())
+                    .flatMap(h -> walletRepository.findById(h.getWalletId())).map(w -> w.getAddress()).orElse(null);
+            } else {
+                return blockchainService.getPlatformWalletAddress();
+            }
+        } catch (Exception e) {
+            log.warn("[정산 이력] 지갑 주소 조회 실패 — stakeholderId={}: {}", stakeholder.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    // ========== 만료 리세일 처리 ==========
+
+    /**
+     * 종료된 회차의 ACTIVE 리세일을 Escrow.cancelDeal()로 취소하고 NFT를 판매자에게 반환
+     *
+     * [흐름] ① 해당 세션의 ACTIVE 리세일 조회 (DB) ② 각 리세일에 대해 Escrow.cancelDeal(dealId) 호출 →
+     * NFT 판매자 반환 ③ DB: Resale → CANCELLED, Ticket.resaleStatus → EXPIRED
+     */
+    private void cancelExpiredResales(Session session) {
+        try {
+            List<Resale> activeResales = resaleEntityRepository.findActiveResalesBySessionId(session.getId());
+
+            if (activeResales.isEmpty()) {
+                log.info("[리세일 만료] 회차 {} — ACTIVE 리세일 없음", session.getId());
+                return;
+            }
+
+            log.info("[리세일 만료] 회차 {} — {}건 처리 시작", session.getId(), activeResales.size());
+
+            for (Resale resale : activeResales) {
+                try {
+                    if (resale.getOnChainListingId() != null) {
+                        // Escrow.cancelDeal() → NFT 판매자 반환
+                        blockchainService.executePlatformTx(() -> blockchainService.getEscrow()
+                            .cancelDeal(BigInteger.valueOf(resale.getOnChainListingId())).send());
+                        log.info("[리세일 만료] cancelDeal 완료 — resaleId={}, dealId={}", resale.getId(),
+                            resale.getOnChainListingId());
+                    }
+
+                    // DB: Resale → CANCELLED
+                    resale.setStatus(Resale.ResaleListingStatus.CANCELLED);
+                    resale.setUpdatedAt(LocalDateTime.now());
+                    resaleEntityRepository.save(resale);
+
+                    // DB: Ticket.resaleStatus → EXPIRED
+                    ticketRepository.findById(resale.getTicketId()).ifPresent(ticket -> {
+                        ticket.setResaleStatus(ResaleStatus.EXPIRED);
+                        ticketRepository.save(ticket);
+                    });
+
+                    log.info("[리세일 만료] 완료 — resaleId={}, ticketId={}", resale.getId(), resale.getTicketId());
+
+                } catch (Exception e) {
+                    log.error("[리세일 만료] 실패 — resaleId={}, dealId={}: {}", resale.getId(), resale.getOnChainListingId(),
+                        e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("[리세일 만료] 회차 {} 조회 실패: {}", session.getId(), e.getMessage());
+        }
+    }
+
+    // ========== 티켓 온체인 상태 동기화 ==========
+
+    /**
+     * 정산 후 티켓 온체인 상태 동기화
+     *
+     * [흐름] ① 체크인된 티켓(checkedInAt != null) → batchCheckIn() → 온체인 USED ② 미사용
+     * 티켓(checkedInAt == null) → reclaimTicket(EXPIRED) → 온체인 EXPIRED ③ DB:
+     * resaleStatus → USED / EXPIRED
+     */
+    private void syncTicketStatusOnChain(Session session) {
+        try {
+            List<Ticket> tickets = ticketRepository.findTicketsWithNftIdBySessionId(session.getId());
+
+            if (tickets.isEmpty()) {
+                log.info("[티켓 상태 동기화] 회차 {} — 티켓 없음", session.getId());
+                return;
+            }
+
+            // 체크인된 티켓 → 온체인 USED (batchCheckIn)
+            List<BigInteger> checkedInTokenIds = tickets.stream().filter(t -> t.getCheckedInAt() != null)
+                .filter(t -> t.getResaleStatus() != ResaleStatus.USED) // 이미 USED인 건 스킵
+                .map(t -> BigInteger.valueOf(t.getTicketNftId())).collect(Collectors.toList());
+
+            if (!checkedInTokenIds.isEmpty()) {
+                try {
+                    blockchainService.executePlatformTx(
+                        () -> blockchainService.getTicketNFT().batchCheckIn(checkedInTokenIds).send());
+                    log.info("[티켓 상태 동기화] batchCheckIn 완료 — 회차 {}, {}건", session.getId(), checkedInTokenIds.size());
+
+                    // DB: resaleStatus → USED
+                    tickets.stream().filter(t -> t.getCheckedInAt() != null && t.getResaleStatus() != ResaleStatus.USED)
+                        .forEach(t -> {
+                            t.setResaleStatus(ResaleStatus.USED);
+                            ticketRepository.save(t);
+                        });
+                } catch (Exception e) {
+                    log.error("[티켓 상태 동기화] batchCheckIn 실패 — 회차 {}: {}", session.getId(), e.getMessage());
+                }
+            }
+
+            // 미사용 티켓 → 온체인 EXPIRED (reclaimTicket)
+            List<Ticket> unusedTickets = tickets.stream().filter(t -> t.getCheckedInAt() == null)
+                .filter(t -> t.getResaleStatus() != ResaleStatus.EXPIRED) // 이미 EXPIRED인 건 스킵
+                .filter(t -> t.getResaleStatus() != ResaleStatus.LISTED) // 리세일 중인 건 cancelExpiredResales에서 처리
+                .collect(Collectors.toList());
+
+            for (Ticket ticket : unusedTickets) {
+                try {
+                    // reclaimTicket(tokenId, 2) → EXPIRED
+                    blockchainService.executePlatformTx(() -> blockchainService.getTicketNFT()
+                        .reclaimTicket(BigInteger.valueOf(ticket.getTicketNftId()), BigInteger.valueOf(2)).send());
+
+                    ticket.setResaleStatus(ResaleStatus.EXPIRED);
+                    ticketRepository.save(ticket);
+                    log.info("[티켓 상태 동기화] EXPIRED 처리 — ticketId={}, nftId={}", ticket.getId(), ticket.getTicketNftId());
+                } catch (Exception e) {
+                    log.error("[티켓 상태 동기화] EXPIRED 실패 — ticketId={}, nftId={}: {}", ticket.getId(),
+                        ticket.getTicketNftId(), e.getMessage());
+                }
+            }
+
+            log.info("[티켓 상태 동기화] 완료 — 회차 {}, USED={}건, EXPIRED={}건", session.getId(), checkedInTokenIds.size(),
+                unusedTickets.size());
+
+        } catch (Exception e) {
+            log.error("[티켓 상태 동기화] 회차 {} 실패: {}", session.getId(), e.getMessage());
+        }
+    }
+
+    // ========== 온체인 조회 ==========
+
+    @Override
+    public Map<String, Object> getSettlementDeposit(Long onChainSessionId) {
+        try {
+            BigInteger deposited = blockchainService.getSettlement()
+                .sessionDeposits(BigInteger.valueOf(onChainSessionId)).send();
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("onChainSessionId", onChainSessionId);
+            data.put("depositedAmount", deposited);
+            return data;
+        } catch (Exception e) {
+            throw new BlockchainException("Settlement 조회 실패: sessionId=" + onChainSessionId + " — " + e.getMessage());
+        }
+    }
+}
