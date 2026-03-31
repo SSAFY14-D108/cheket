@@ -12,16 +12,16 @@ function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined"
 }
 
-function buildStorageKey(showId: number) {
-  return `host-web.pending-show-tx.${showId}`
+function buildStorageKey() {
+  return `host-web.pending-show-tx`
 }
 
-export function loadPendingShowTx(showId: number) {
+export function loadPendingShowTx() {
   if (!canUseStorage()) {
     return null
   }
 
-  const rawValue = window.localStorage.getItem(buildStorageKey(showId))
+  const rawValue = window.localStorage.getItem(buildStorageKey())
 
   if (!rawValue) {
     return null
@@ -33,13 +33,15 @@ export function loadPendingShowTx(showId: number) {
     }
 
     if (
-      parsed.showId !== showId ||
+      typeof parsed.showId !== "number" ||
       typeof parsed.txId !== "number" ||
-        typeof parsed.startedAt !== "string"
-      ) {
-        window.localStorage.removeItem(buildStorageKey(showId))
-        return null
-      }
+      typeof parsed.startedAt !== "string"
+    ) {
+      window.localStorage.removeItem(buildStorageKey())
+      return null
+    }
+
+    const showId = parsed.showId
 
     const status =
       parsed.status === "SUBMITTED" ||
@@ -63,7 +65,7 @@ export function loadPendingShowTx(showId: number) {
       displayMode,
     } satisfies PendingShowTx
   } catch {
-    window.localStorage.removeItem(buildStorageKey(showId))
+    window.localStorage.removeItem(buildStorageKey())
     return null
   }
 }
@@ -74,15 +76,15 @@ export function savePendingShowTx(pendingTx: PendingShowTx) {
   }
 
   window.localStorage.setItem(
-    buildStorageKey(pendingTx.showId),
+    buildStorageKey(),
     JSON.stringify(pendingTx),
   )
 }
 
-export function clearPendingShowTx(showId: number) {
+export function clearPendingShowTx() {
   if (!canUseStorage()) {
     return
   }
 
-  window.localStorage.removeItem(buildStorageKey(showId))
+  window.localStorage.removeItem(buildStorageKey())
 }
