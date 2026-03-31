@@ -97,7 +97,7 @@ class WalletHistoryViewModel(
             } catch (e: Exception) {
                 Log.e(TAG, "load() error", e)
                 _uiState.value = WalletHistoryUiState.Error(
-                    "트랜젝션 내역을 불러오지 못했습니다: ${e.message}"
+                    "트랜잭션 내역을 불러오지 못했습니다: ${e.message}"
                 )
             }
         }

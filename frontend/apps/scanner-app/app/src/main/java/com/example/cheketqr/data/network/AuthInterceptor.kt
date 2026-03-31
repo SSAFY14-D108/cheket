@@ -58,7 +58,7 @@ class AuthInterceptor : Interceptor {
             val mediaType = "application/json".toMediaType()
             val refreshRequest = okhttp3.Request.Builder()
                 .url(chain.request().url.newBuilder()
-                    .encodedPath("/api/v1/hosts/auth/refresh")
+                    .encodedPath("/api/v1/auth/reissue")
                     .build())
                 .post(refreshBody.toRequestBody(mediaType))
                 .addHeader("Content-Type", "application/json")

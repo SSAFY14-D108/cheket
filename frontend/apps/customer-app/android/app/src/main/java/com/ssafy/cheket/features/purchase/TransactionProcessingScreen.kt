@@ -135,29 +135,31 @@ fun TransactionProcessingScreen(
         }
     }
 
-    // Auto-navigate on CONFIRMED
+    // CONFIRMED — 10초 카운트다운 후 자동 이동 (버튼으로도 즉시 이동 가능)
+    var autoNavCountdown by remember { mutableIntStateOf(10) }
     LaunchedEffect(currentStatus) {
         if (currentStatus == TxStatus.CONFIRMED) {
-            delay(5000L)
+            autoNavCountdown = 10
+            while (autoNavCountdown > 0) {
+                delay(1000L)
+                autoNavCountdown--
+            }
             onComplete()
-        } else if (currentStatus == TxStatus.FAILED) {
-            // FAILED는 자동 이동하지 않음 — 사용자가 직접 선택
         }
     }
 
-    // 뒤로가기 막기 (처리 중)
+    // 뒤로가기 막기 (처리 중 + 완료)
     androidx.activity.compose.BackHandler(
-        enabled = currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED
+        enabled = currentStatus != TxStatus.FAILED
     ) {
-        // 처리 중엔 뒤로가기 무시
+        // 처리 중·완료 시 뒤로가기 무시 — 버튼으로만 이동
     }
 
     Scaffold(
         topBar = {
             AppHeader(
                 title = txTypeLabel(txType),
-                onBack = if (currentStatus == TxStatus.CONFIRMED || currentStatus == TxStatus.FAILED)
-                    onBack else null,
+                onBack = if (currentStatus == TxStatus.FAILED) onBack else null,
             )
         },
     ) { innerPadding ->
@@ -169,7 +171,9 @@ fun TransactionProcessingScreen(
             contentAlignment = Alignment.Center,
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .offset(y = (-24).dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
@@ -187,6 +191,8 @@ fun TransactionProcessingScreen(
                         txAmount = txAmount,
                         description = description,
                         txType = txType,
+                        countdown = autoNavCountdown,
+                        onComplete = onComplete,
                     )
                     TxStatus.FAILED -> FailedContent(
                         errorMessage = errorMessage ?: "트랜잭션 처리에 실패했습니다",
@@ -239,14 +245,14 @@ private fun ProcessingContent(
     ) {
         // 체켓 로고 회전 애니메이션
         Box(
-            modifier = Modifier.size(160.dp),
+            modifier = Modifier.size(200.dp),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(id = com.ssafy.cheket.R.drawable.cheket_ticket_logo),
                 contentDescription = "처리 중",
                 modifier = Modifier
-                    .size(140.dp)
+                    .size(180.dp)
                     .offset(y = floatOffset.dp)
                     .graphicsLayer {
                         this.rotationY = rotationY
@@ -303,13 +309,6 @@ private fun ProcessingContent(
             isCompleted = status == TxStatus.CONFIRMED,
             isActive = status == TxStatus.SUBMITTED,
         )
-        StatusStepItem(
-            stepNumber = 3,
-            label = "블록 확정",
-            description = "블록에 포함 및 NFT 발행",
-            isCompleted = status == TxStatus.CONFIRMED,
-            isActive = status == TxStatus.SUBMITTED,
-        )
     }
 
     // 하단 정보
@@ -343,6 +342,8 @@ private fun ConfirmedContent(
     txAmount: Long?,
     description: String?,
     txType: String,
+    countdown: Int,
+    onComplete: () -> Unit,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -399,8 +400,24 @@ private fun ConfirmedContent(
         }
     }
 
+    Button(
+        onClick = onComplete,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+    ) {
+        Text(
+            text = "티켓 보러 가기",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+    }
+
     Text(
-        text = "잠시 후 자동으로 이동합니다...",
+        text = "${countdown}초 후 자동으로 이동합니다",
         fontSize = 12.sp,
         color = V0Muted,
         textAlign = TextAlign.Center,
