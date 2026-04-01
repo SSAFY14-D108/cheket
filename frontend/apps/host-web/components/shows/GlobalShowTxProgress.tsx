@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTxProgress, startTxProgress, updateTxStatus, updateTxDisplayMode, dismissTxProgress } from "@/hooks/use-tx-progress"
 import { ShowTxProgressDock } from "./ShowTxProgressDock"
 import { loadPendingShowTx } from "@/lib/show-tx-progress"
@@ -9,18 +9,26 @@ import { fetchShowDetail, fetchShowContracts, type TxStatus } from "@/lib/show-m
 export function GlobalShowTxProgress() {
   const txState = useTxProgress()
   const [isInitializing, setIsInitializing] = useState(true)
+  const hasInitializedRef = useRef(false)
 
+  // 마운트 시 딱 한 번만 실행: localStorage 기반 복원
+  // txState.isActive를 의존 배열에 넣으면 startTxProgress() 호출 후
+  // isActive 변경 → effect 재실행 → 무한 루프 발생하므로 [] 사용
   useEffect(() => {
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
+
     let isCancelled = false
 
     async function initializeFromStorage() {
+      // 이미 전역 상태에 활성 tx가 있으면(e.g. 상세 페이지에서 방금 시작) 그냥 초기화 완료
       if (txState.isActive) {
         setIsInitializing(false)
         return
       }
 
       const pendingTx = loadPendingShowTx()
-      
+
       if (!pendingTx) {
         setIsInitializing(false)
         return
@@ -56,7 +64,8 @@ export function GlobalShowTxProgress() {
     return () => {
       isCancelled = true
     }
-  }, [txState.isActive])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isInitializing || !txState.isActive || !txState.showDetail || !txState.contractApprovals || !txState.txId) {
     return null
