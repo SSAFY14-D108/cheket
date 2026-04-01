@@ -1,4 +1,6 @@
-﻿"use client"
+"use client"
+
+import type { CreateShowPhase } from "./ShowCreateProgressModal"
 
 import { useEffect, useState, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
@@ -79,6 +81,9 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
   const [isLoadingVenues, setIsLoadingVenues] = useState(true)
   const [venueLoadError, setVenueLoadError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submittingPhase, setSubmittingPhase] = useState<CreateShowPhase>("idle")
+  const [submittingStartedAt, setSubmittingStartedAt] = useState<string | null>(null)
+  const [submittingError, setSubmittingError] = useState<string | null>(null)
 
   function normalizeBusinessNo(value?: string | null) {
     return value?.replace(/\D/g, "") ?? ""
@@ -560,49 +565,78 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
             descriptionImageFiles,
           }, descriptionImagePreviews, initialData, { contentOnlyEdit: isContentOnlyEdit })
         )
-        window.alert(response.responseMessage || "공연 수정 완료")
+        toast({
+          title: "공연 수정 완료",
+          description: response.responseMessage || "공연이 수정되었습니다.",
+        })
+        router.push("/mypage")
       } else {
-        const response = await createShow(
-          buildCreatePayload({
-            title,
-            artistName,
-            playtime,
-            posterPreview,
-            posterFile,
-            venueId,
-            showStartAt,
-            showEndAt,
-            openAt,
-            closeAt,
-            description,
-            purchaseLimit,
-            grades,
-            stakeholders,
-            refundPolicy,
-            sessionInfo,
-            descriptionImageFiles,
-          })
-        )
-        window.alert(
-          response
-            ? `공연이 등록되었습니다. (공연 ID: ${response})`
-            : "공연이 등록되었습니다."
-        )
-      }
+        setSubmittingPhase("validating")
+        setSubmittingStartedAt(new Date().toISOString())
+        setSubmittingError(null)
 
-      router.push("/mypage")
+        const uploadingTimer = setTimeout(() => setSubmittingPhase("uploading"), 800)
+        const processingTimer = setTimeout(() => setSubmittingPhase("processing"), 5000)
+
+        try {
+          await createShow(
+            buildCreatePayload({
+              title,
+              artistName,
+              playtime,
+              posterPreview,
+              posterFile,
+              venueId,
+              showStartAt,
+              showEndAt,
+              openAt,
+              closeAt,
+              description,
+              purchaseLimit,
+              grades,
+              stakeholders,
+              refundPolicy,
+              sessionInfo,
+              descriptionImageFiles,
+            })
+          )
+
+          clearTimeout(uploadingTimer)
+          clearTimeout(processingTimer)
+          setSubmittingPhase("done")
+
+          setTimeout(() => {
+            router.push("/mypage")
+          }, 1500)
+        } catch (createError) {
+          clearTimeout(uploadingTimer)
+          clearTimeout(processingTimer)
+          setSubmittingPhase("error")
+          setSubmittingError(
+            createError instanceof ApiError
+              ? createError.message
+              : "공연 등록 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+          )
+        }
+      }
     } catch (error) {
       toast({
         title: isEdit ? "공연 수정 실패" : "공연 등록 실패",
         description:
           error instanceof ApiError
             ? error.message
-            : "?붿껌??泥섎━?섏? 紐삵뻽?듬땲?? ?좎떆 ???ㅼ떆 ?쒕룄?댁＜?몄슂.",
+            : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.",
         variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleProgressDismiss = () => {
+    setSubmittingPhase("idle")
+    setSubmittingStartedAt(null)
+    setSubmittingError(null)
   }
 
   return {
@@ -629,6 +663,9 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     isLoadingVenues,
     venueLoadError,
     isSubmitting,
+    submittingPhase,
+    submittingStartedAt,
+    submittingError,
     setTitle,
     setArtistName,
     setPlaytime,
@@ -656,6 +693,7 @@ export function useShowForm({ mode, initialData }: UseShowFormParams) {
     updateSession,
     getValidationMessage,
     handleSubmit,
+    handleProgressDismiss,
   }
 }
 

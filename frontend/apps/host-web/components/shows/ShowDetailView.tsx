@@ -34,14 +34,8 @@ import {
   rejectShowContract,
 } from "@/lib/show-manage-api"
 import { getShowDisplayMeta } from "@/lib/show-display"
-import {
-  clearPendingShowTx,
-  loadPendingShowTx,
-  savePendingShowTx,
-  type PendingShowTx,
-} from "@/lib/show-tx-progress"
 import { formatDateTimeWithWeekday, formatDateWithWeekday } from "@/lib/utils"
-import { ShowTxProgressDock } from "./ShowTxProgressDock"
+import { useTxProgress, startTxProgress } from "@/hooks/use-tx-progress"
 import {
   FIXED_PLATFORM_STAKEHOLDER,
   PLATFORM_FEE_BPS,
@@ -161,32 +155,19 @@ export function ShowDetailView({
   const [contractDecisionAction, setContractDecisionAction] = useState<
     "approve" | "reject" | null
   >(null)
-  const [pendingShowTx, setPendingShowTx] = useState<PendingShowTx | null>(null)
-  const [activeTxStatus, setActiveTxStatus] = useState<TxStatus | null>(null)
+  const txState = useTxProgress()
   const [hasStartedFinalRegistration, setHasStartedFinalRegistration] =
     useState(showDetail.status !== "PENDING_CONTRACT")
   const [selectedDescriptionImage, setSelectedDescriptionImage] = useState<
     string | null
   >(null)
   const isRefreshingApprovalsRef = useRef(false)
-  const settledTxStatusRef = useRef<"CONFIRMED" | "FAILED" | null>(null)
 
   useEffect(() => {
     setLocalContractApprovals(contractApprovals)
   }, [contractApprovals])
 
-  useEffect(() => {
-    const storedPendingTx = loadPendingShowTx(showDetail.showId)
 
-    if (!storedPendingTx) {
-      setPendingShowTx(null)
-      setActiveTxStatus(null)
-      return
-    }
-
-    setPendingShowTx(storedPendingTx)
-    setActiveTxStatus(storedPendingTx.status)
-  }, [showDetail.showId])
 
   useEffect(() => {
     setHasStartedFinalRegistration(showDetail.status !== "PENDING_CONTRACT")
@@ -195,7 +176,7 @@ export function ShowDetailView({
   const isPendingContract = showDetail.status === "PENDING_CONTRACT"
 
   useEffect(() => {
-    if (!isPendingContract || hasStartedFinalRegistration || pendingShowTx) {
+    if (!isPendingContract || hasStartedFinalRegistration || txState.isActive) {
       return
     }
 
@@ -247,7 +228,7 @@ export function ShowDetailView({
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       isRefreshingApprovalsRef.current = false
     }
-  }, [hasStartedFinalRegistration, isPendingContract, pendingShowTx, showDetail.showId])
+  }, [hasStartedFinalRegistration, isPendingContract, txState.isActive, showDetail.showId])
 
   const displayMeta = getShowDisplayMeta(showDetail)
   const visibleStakeholders = showDetail.stakeholders.filter((stakeholder) => {
@@ -287,7 +268,9 @@ export function ShowDetailView({
       approval.userType === "HOST" && approval.approvalStatus === "PENDING",
   )
   const isProgressActive =
-    activeTxStatus === "PENDING" || activeTxStatus === "SUBMITTED"
+    txState.isActive &&
+    (txState.status === "PENDING" || txState.status === "SUBMITTED") &&
+    txState.showDetail?.showId === showDetail.showId
   const canEditShow = showDetail.status !== "CANCELLED"
   const canConfirmShow =
     isPendingContract && !hasStartedFinalRegistration && !isSubmittingFinalRegistration
@@ -300,13 +283,18 @@ export function ShowDetailView({
     hasRejectedContract ||
     !isAllApproved ||
     isSubmittingFinalRegistration ||
-    isSubmittingContractDecision
+    isSubmittingContractDecision ||
+    txState.isActive
   const actionStatusMeta = getActionStatusMeta({
     showStatus: showDetail.status,
     isAllApproved,
     hasRejectedContract,
     hasStartedFinalRegistration,
   })
+
+  if (txState.isActive && !hasStartedFinalRegistration && isPendingContract) {
+    actionStatusMeta.hint = "다른 공연의 최종등록이 진행 중입니다. 완료 후 시도해주세요."
+  }
 
   const summaryItems = [
     {
@@ -368,18 +356,14 @@ export function ShowDetailView({
       setHasStartedFinalRegistration(true)
 
       if (typeof txId === "number" && txId > 0) {
-        const nextPendingTx: PendingShowTx = {
-          showId: showDetail.showId,
+        startTxProgress({
+          showDetail,
+          contractApprovals: localContractApprovals,
           txId,
           status: "PENDING",
           startedAt: new Date().toISOString(),
           displayMode: "modal",
-        }
-
-        settledTxStatusRef.current = null
-        setPendingShowTx(nextPendingTx)
-        setActiveTxStatus("PENDING")
-        savePendingShowTx(nextPendingTx)
+        })
         toast({
           title: "최종등록 요청 완료",
           description: "진행 모달에서 등록 상태를 확인하고, 필요하면 하단 패널로 최소화할 수 있습니다.",
@@ -406,77 +390,7 @@ export function ShowDetailView({
     }
   }
 
-  const updatePendingTxDisplayMode = (displayMode: PendingShowTx["displayMode"]) => {
-    if (!pendingShowTx) {
-      return
-    }
 
-    const nextPendingTx = {
-      ...pendingShowTx,
-      displayMode,
-    }
-
-    setPendingShowTx(nextPendingTx)
-
-    if (nextPendingTx.status === "PENDING" || nextPendingTx.status === "SUBMITTED") {
-      savePendingShowTx(nextPendingTx)
-    }
-  }
-
-  const handlePendingTxMinimize = () => {
-    updatePendingTxDisplayMode("dock")
-  }
-
-  const handlePendingTxRestore = () => {
-    updatePendingTxDisplayMode("modal")
-  }
-
-  const handlePendingTxStatusChange = (status: TxStatus) => {
-    setActiveTxStatus(status)
-
-    setPendingShowTx((currentPendingTx) => {
-      if (!currentPendingTx || currentPendingTx.status === status) {
-        return currentPendingTx
-      }
-
-      const nextPendingTx = {
-        ...currentPendingTx,
-        status,
-      }
-
-      if (status === "PENDING" || status === "SUBMITTED") {
-        savePendingShowTx(nextPendingTx)
-      }
-
-      return nextPendingTx
-    })
-  }
-
-  const handlePendingTxSettled = (status: Extract<TxStatus, "CONFIRMED" | "FAILED">) => {
-    if (settledTxStatusRef.current === status) {
-      return
-    }
-
-    settledTxStatusRef.current = status
-    clearPendingShowTx(showDetail.showId)
-
-    toast({
-      title: status === "CONFIRMED" ? "최종등록 완료" : "최종등록 처리 실패",
-      description:
-        status === "CONFIRMED"
-          ? "블록체인 등록이 완료되었습니다."
-          : "처리 결과를 확인해주세요. 상태를 새로고침합니다.",
-      variant: status === "CONFIRMED" ? undefined : "destructive",
-    })
-
-    router.refresh()
-  }
-
-  const handlePendingTxDismiss = () => {
-    clearPendingShowTx(showDetail.showId)
-    setPendingShowTx(null)
-    setActiveTxStatus(null)
-  }
 
   const handleApproveContract = async () => {
     try {
@@ -984,21 +898,6 @@ export function ShowDetailView({
           ) : null}
         </DialogContent>
       </Dialog>
-
-      {pendingShowTx ? (
-        <ShowTxProgressDock
-          txId={pendingShowTx.txId}
-          initialStatus={pendingShowTx.status}
-          displayMode={pendingShowTx.displayMode}
-          showDetail={showDetail}
-          contractApprovals={localContractApprovals}
-          onMinimize={handlePendingTxMinimize}
-          onRestore={handlePendingTxRestore}
-          onStatusChange={handlePendingTxStatusChange}
-          onDismiss={handlePendingTxDismiss}
-          onSettled={handlePendingTxSettled}
-        />
-      ) : null}
     </main>
   )
 }
