@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTxProgress, startTxProgress, updateTxStatus, updateTxDisplayMode, dismissTxProgress } from "@/hooks/use-tx-progress"
 import { ShowTxProgressDock } from "./ShowTxProgressDock"
 import { loadPendingShowTx } from "@/lib/show-tx-progress"
@@ -67,30 +67,31 @@ export function GlobalShowTxProgress() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (isInitializing || !txState.isActive || !txState.showDetail || !txState.contractApprovals || !txState.txId) {
-    return null
-  }
-
-  const handleMinimize = () => {
+  const handleMinimize = useCallback(() => {
     updateTxDisplayMode("dock")
-  }
+  }, [])
 
-  const handleRestore = () => {
+  const handleRestore = useCallback(() => {
     updateTxDisplayMode("modal")
-  }
+  }, [])
 
-  const handleStatusChange = (status: TxStatus) => {
+  const handleStatusChange = useCallback((status: TxStatus) => {
     updateTxStatus(status)
-  }
+  }, [])
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     dismissTxProgress()
-  }
+  }, [])
 
-  const handleSettled = (status: Extract<TxStatus, "CONFIRMED" | "FAILED">) => {
+  const handleSettled = useCallback((status: Extract<TxStatus, "CONFIRMED" | "FAILED">) => {
+    void status
     // We can show a toast here if we want, but it's optional
     // ShowDetailView already showed a toast if it was mounted.
     // Given the widget is persistent, it will show the FAILED/CONFIRMED state directly in the UI.
+  }, [])
+
+  if (isInitializing || !txState.isActive || !txState.showDetail || !txState.contractApprovals || !txState.txId) {
+    return null
   }
 
   return (

@@ -46,7 +46,13 @@ let memoryState: State = { ...initialState }
 const listeners: Array<(state: State) => void> = []
 
 function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
+  const nextState = reducer(memoryState, action)
+
+  if (Object.is(nextState, memoryState)) {
+    return
+  }
+
+  memoryState = nextState
   listeners.forEach((listener) => {
     listener(memoryState)
   })
@@ -79,9 +85,10 @@ function reducer(state: State, action: Action): State {
 
     case "UPDATE_STATUS": {
       if (!state.isActive || !state.showDetail) return state
+      if (state.status === action.status) return state
 
       const nextState = { ...state, status: action.status }
-      
+
       if (action.status === "PENDING" || action.status === "SUBMITTED") {
         savePendingShowTx({
           showId: state.showDetail.showId,
@@ -97,6 +104,7 @@ function reducer(state: State, action: Action): State {
 
     case "UPDATE_DISPLAY_MODE": {
       if (!state.isActive || !state.showDetail) return state
+      if (state.displayMode === action.displayMode) return state
 
       const nextState = { ...state, displayMode: action.displayMode }
 
