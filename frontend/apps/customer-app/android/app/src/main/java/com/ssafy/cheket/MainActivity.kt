@@ -11,10 +11,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.google.firebase.messaging.FirebaseMessaging
+import com.ssafy.cheket.core.network.dto.FcmTokenRequest
 import com.ssafy.cheket.ui.theme.CheketTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
 
@@ -53,6 +58,11 @@ class MainActivity : ComponentActivity() {
         // 앱이 꺼져 있을 때 알림 탭으로 시작된 경우
         handleNotificationIntent(intent)
 
+        // 로그인 상태면 FCM 토큰 동기화 (프로세스 죽어있을 때 토큰 교체 대비)
+        if (isAlreadyLoggedIn) {
+            syncFcmToken(app)
+        }
+
         setContent {
             CheketTheme {
                 AppNavGraph(
@@ -86,6 +96,18 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra("notification_type")
         intent.removeExtra("notification_id")
         intent.removeExtra("show_id")
+    }
+
+    private fun syncFcmToken(app: CheketApplication) {
+        lifecycleScope.launch {
+            try {
+                val fcmToken = FirebaseMessaging.getInstance().token.await()
+                app.appContainer.userService.saveFcmToken(FcmTokenRequest(fcmToken = fcmToken))
+                Log.d(TAG, "syncFcmToken() sent: ${fcmToken.take(10)}...")
+            } catch (e: Exception) {
+                Log.w(TAG, "syncFcmToken() failed (non-critical)", e)
+            }
+        }
     }
 
     private fun requestNotificationPermission() {
