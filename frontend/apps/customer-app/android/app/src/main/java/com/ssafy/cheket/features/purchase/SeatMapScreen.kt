@@ -907,10 +907,15 @@ private fun ZoomableSeatCanvas(
                         val zoomDelta = newZoom / zoom
                         val newOffsetX = (offsetX - centroid.x) * zoomDelta + centroid.x + pan.x
                         val newOffsetY = (offsetY - centroid.y) * zoomDelta + centroid.y + pan.y
-                        // 이동 범위 제한: 캔버스 크기의 1.5배 이내
-                        val bound = size.width * 1.5f
-                        offsetX = newOffsetX.coerceIn(-bound, bound)
-                        offsetY = newOffsetY.coerceIn(-bound, bound)
+                        // 이동 범위 제한: 확대 배율에 비례하여 조정
+                        val currentBaseScale = size.width.toFloat() / CANVAS_W
+                        val scale = currentBaseScale * newZoom
+                        val contentW = CANVAS_W * scale
+                        val contentH = CANVAS_H * scale
+                        val marginX = size.width * 0.3f
+                        val marginY = size.height * 0.3f
+                        offsetX = newOffsetX.coerceIn(-(contentW - marginX), marginX)
+                        offsetY = newOffsetY.coerceIn(-(contentH - marginY), marginY)
                         zoom = newZoom
                     }
                 }

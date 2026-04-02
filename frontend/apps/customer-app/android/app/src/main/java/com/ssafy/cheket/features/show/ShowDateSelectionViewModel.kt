@@ -135,6 +135,23 @@ class ShowDateSelectionViewModel(
         }
     }
 
+    fun changeMonth(delta: Int) {
+        val current = _uiState.value
+        if (current is DateSelectionUiState.Success) {
+            var newMonth = current.calMonth + delta
+            var newYear = current.calYear
+            if (newMonth > 12) { newMonth = 1; newYear++ }
+            if (newMonth < 1) { newMonth = 12; newYear-- }
+            _uiState.update {
+                current.copy(
+                    calYear = newYear,
+                    calMonth = newMonth,
+                    selectedDateSessions = emptyList(),
+                )
+            }
+        }
+    }
+
     fun selectDate(dateKey: String) {
         val current = _uiState.value
         if (current is DateSelectionUiState.Success) {

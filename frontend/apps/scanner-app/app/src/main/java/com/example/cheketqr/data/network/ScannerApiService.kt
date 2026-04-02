@@ -16,7 +16,7 @@ interface ScannerApiService {
         @Body request: HostLoginRequest,
     ): Response<ApiEnvelope<HostLoginResponse>>
 
-    @POST("/api/v1/hosts/auth/refresh")
+    @POST("/api/v1/auth/reissue")
     suspend fun refreshToken(
         @Body request: RefreshTokenRequest,
     ): Response<ApiEnvelope<HostLoginResponse>>

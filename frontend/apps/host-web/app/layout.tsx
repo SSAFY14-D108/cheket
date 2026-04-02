@@ -4,6 +4,7 @@ import { ConditionalFooter } from '@/components/layout/ConditionalFooter'
 import { AlertToastBridge } from '@/components/providers/AlertToastBridge'
 import { MockServiceWorkerProvider } from '@/components/providers/MockServiceWorkerProvider'
 import { Toaster } from '@/components/ui/toaster'
+import { GlobalShowTxProgress } from '@/components/shows/GlobalShowTxProgress'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
             <ConditionalFooter />
           </div>
           <Toaster />
+          <GlobalShowTxProgress />
           <Analytics />
         </MockServiceWorkerProvider>
       </body>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -33,6 +33,7 @@ import {
   PLATFORM_TOTAL_BPS,
 } from "./showFormUtils";
 import { useShowForm } from "./useShowForm";
+import { ShowCreateProgressModal } from "./ShowCreateProgressModal";
 
 interface ShowFormProps {
   mode: "create" | "edit";
@@ -82,6 +83,9 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     refundPolicy,
     sessionInfo,
     isSubmitting,
+    submittingPhase,
+    submittingStartedAt,
+    submittingError,
     setTitle,
     setArtistName,
     setPlaytime,
@@ -106,6 +110,7 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
     updateSession,
     getValidationMessage,
     handleSubmit,
+    handleProgressDismiss,
   } = form;
 
   const [step, setStep] = useState(1);
@@ -823,6 +828,14 @@ export function ShowForm({ mode, initialData }: ShowFormProps) {
           </Button>
         </DialogContent>
       </Dialog>
+
+      <ShowCreateProgressModal
+        open={submittingPhase !== "idle"}
+        phase={submittingPhase}
+        startedAt={submittingStartedAt}
+        errorMessage={submittingError}
+        onDismiss={handleProgressDismiss}
+      />
     </>
   );
 }

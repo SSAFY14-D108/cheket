@@ -111,7 +111,7 @@ fun WalletHistoryScreen(
                             Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("트랜젝션 내역이 없습니다.", color = MutedForeground, fontSize = 14.sp)
+                            Text("트랜잭션 내역이 없습니다.", color = MutedForeground, fontSize = 14.sp)
                         }
                     } else {
                         LazyColumn(
@@ -203,7 +203,7 @@ private fun FilterDropdown(
     }
 }
 
-// ── 트랜젝션 아이템 ──
+// ── 트랜잭션 아이템 ──
 
 @Composable
 private fun HistoryTxItem(tx: TxUiItem) {

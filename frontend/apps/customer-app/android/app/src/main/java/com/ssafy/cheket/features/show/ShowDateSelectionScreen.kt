@@ -101,6 +101,8 @@ fun ShowDateSelectionScreen(
                 DateSelectionContent(
                     state = state,
                     onSelectDate = { viewModel.selectDate(it) },
+                    onPrevMonth = { viewModel.changeMonth(-1) },
+                    onNextMonth = { viewModel.changeMonth(1) },
                     onSessionClick = { session ->
                         onDateSelected(
                             showId,
@@ -123,6 +125,8 @@ fun ShowDateSelectionScreen(
 private fun DateSelectionContent(
     state: DateSelectionUiState.Success,
     onSelectDate: (dateKey: String) -> Unit,
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit,
     onSessionClick: (SessionUiItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -146,6 +150,8 @@ private fun DateSelectionContent(
             calMonth = state.calMonth,
             sessionsByDate = state.sessionsByDate,
             onDayClick = onSelectDate,
+            onPrevMonth = onPrevMonth,
+            onNextMonth = onNextMonth,
         )
 
         // ── Selected day sessions ──
@@ -194,6 +200,8 @@ private fun CalendarCard(
     calMonth: Int,
     sessionsByDate: Map<String, List<SessionUiItem>>,
     onDayClick: (dateKey: String) -> Unit,
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit,
 ) {
     val calendar = remember(calYear, calMonth) {
         Calendar.getInstance().apply { set(calYear, calMonth - 1, 1) }
@@ -225,9 +233,13 @@ private fun CalendarCard(
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = null,
-                    tint = MutedForeground.copy(alpha = 0.3f),
-                    modifier = Modifier.size(20.dp),
+                    contentDescription = "이전 달",
+                    tint = MutedForeground,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .clickable { onPrevMonth() }
+                        .padding(4.dp),
                 )
                 Text(
                     "${calYear}.${calMonth.toString().padStart(2, '0')}",
@@ -237,9 +249,13 @@ private fun CalendarCard(
                 )
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MutedForeground.copy(alpha = 0.3f),
-                    modifier = Modifier.size(20.dp),
+                    contentDescription = "다음 달",
+                    tint = MutedForeground,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .clickable { onNextMonth() }
+                        .padding(4.dp),
                 )
             }
 

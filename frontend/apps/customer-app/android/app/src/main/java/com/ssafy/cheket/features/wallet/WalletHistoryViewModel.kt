@@ -97,7 +97,7 @@ class WalletHistoryViewModel(
             } catch (e: Exception) {
                 Log.e(TAG, "load() error", e)
                 _uiState.value = WalletHistoryUiState.Error(
-                    "트랜젝션 내역을 불러오지 못했습니다: ${e.message}"
+                    "트랜잭션 내역을 불러오지 못했습니다: ${e.message}"
                 )
             }
         }
@@ -161,18 +161,22 @@ private fun TransactionDto.toUiItem(currentUserId: Long?): TxUiItem {
 
     val displayAmount = if (isFailed) null else resolvedAmount
 
+    // TRANSFER + sellerId null → 초기 SSF 충전으로 표시
+    val isInitialCharge = type == "TRANSFER" && sellerId == null
+    val resolvedTypeLabel = if (isInitialCharge) "충전" else TYPE_LABELS[type] ?: type
+
     return TxUiItem(
         id = transactionId,
-        type = type,
-        typeLabel = TYPE_LABELS[type] ?: type,
-        description = description ?: TYPE_LABELS[type] ?: type,
+        type = if (isInitialCharge) "CHARGE" else type,
+        typeLabel = resolvedTypeLabel,
+        description = description ?: resolvedTypeLabel,
         amount = resolvedAmount,
         displayAmount = displayAmount,
         txStatus = txStatus,
         txHash = txHash,
         blockNumber = blockNumber,
-        sellerName = sellerName,
-        buyerName = buyerName,
+        sellerName = if (isInitialCharge) null else sellerName,
+        buyerName = if (isInitialCharge) null else buyerName,
         createdAt = createdAt,
         dateLabel = dateLabel,
         timeLabel = timeLabel,
