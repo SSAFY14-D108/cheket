@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,6 +16,8 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -135,29 +138,31 @@ fun TransactionProcessingScreen(
         }
     }
 
-    // Auto-navigate on CONFIRMED
+    // CONFIRMED — 60초 카운트다운 후 자동 이동 (버튼으로도 즉시 이동 가능)
+    var autoNavCountdown by remember { mutableIntStateOf(60) }
     LaunchedEffect(currentStatus) {
         if (currentStatus == TxStatus.CONFIRMED) {
-            delay(5000L)
+            autoNavCountdown = 60
+            while (autoNavCountdown > 0) {
+                delay(1000L)
+                autoNavCountdown--
+            }
             onComplete()
-        } else if (currentStatus == TxStatus.FAILED) {
-            // FAILED는 자동 이동하지 않음 — 사용자가 직접 선택
         }
     }
 
-    // 뒤로가기 막기 (처리 중)
+    // 뒤로가기 막기 (처리 중 + 완료)
     androidx.activity.compose.BackHandler(
-        enabled = currentStatus == TxStatus.PENDING || currentStatus == TxStatus.SUBMITTED
+        enabled = currentStatus != TxStatus.FAILED
     ) {
-        // 처리 중엔 뒤로가기 무시
+        // 처리 중·완료 시 뒤로가기 무시 — 버튼으로만 이동
     }
 
     Scaffold(
         topBar = {
             AppHeader(
                 title = txTypeLabel(txType),
-                onBack = if (currentStatus == TxStatus.CONFIRMED || currentStatus == TxStatus.FAILED)
-                    onBack else null,
+                onBack = if (currentStatus == TxStatus.FAILED) onBack else null,
             )
         },
     ) { innerPadding ->
@@ -169,7 +174,9 @@ fun TransactionProcessingScreen(
             contentAlignment = Alignment.Center,
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .offset(y = (-24).dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
@@ -187,6 +194,8 @@ fun TransactionProcessingScreen(
                         txAmount = txAmount,
                         description = description,
                         txType = txType,
+                        countdown = autoNavCountdown,
+                        onComplete = onComplete,
                     )
                     TxStatus.FAILED -> FailedContent(
                         errorMessage = errorMessage ?: "트랜잭션 처리에 실패했습니다",
@@ -210,19 +219,40 @@ private fun ProcessingContent(
     elapsedSeconds: Int,
     txType: String,
 ) {
-    // 로고 Y축 회전 (뒤집기 효과)
-    val infiniteTransition = rememberInfiniteTransition(label = "logoFlip")
-    val rotationY by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "rotationY",
-    )
+    // ── 인터랙티브 로고 회전 ──
+    // 기본 속도: 144°/s (= 360° / 2.5s)
+    val defaultSpeed = 144f // deg/s
+    var angle by remember { mutableFloatStateOf(0f) }
+    var currentSpeed by remember { mutableFloatStateOf(defaultSpeed) }
+    var isDragging by remember { mutableStateOf(false) }
+    var flingReleaseTime by remember { mutableLongStateOf(0L) }
+    val recoveryDuration = 5000f // 5초에 걸쳐 원래 속도로 복귀
+
+    // 프레임 루프 — 매 프레임마다 angle 갱신
+    LaunchedEffect(Unit) {
+        var lastFrameTime = withInfiniteAnimationFrameNanos { it }
+        while (true) {
+            val frameTime = withInfiniteAnimationFrameNanos { it }
+            val dt = (frameTime - lastFrameTime) / 1_000_000_000f // 초 단위
+            lastFrameTime = frameTime
+
+            if (!isDragging) {
+                // fling 후 5초에 걸쳐 기본 속도로 복귀
+                val elapsed = (System.currentTimeMillis() - flingReleaseTime).toFloat()
+                val t = (elapsed / recoveryDuration).coerceIn(0f, 1f)
+                // ease-out 보간
+                val eased = 1f - (1f - t) * (1f - t)
+                val speed = currentSpeed + (defaultSpeed - currentSpeed) * eased
+                angle += speed * dt
+                if (t >= 1f) currentSpeed = defaultSpeed
+            }
+
+            angle %= 360f
+        }
+    }
 
     // 위아래 살짝 떠다니는 효과
+    val infiniteTransition = rememberInfiniteTransition(label = "float")
     val floatOffset by infiniteTransition.animateFloat(
         initialValue = -6f,
         targetValue = 6f,
@@ -236,20 +266,38 @@ private fun ProcessingContent(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.pointerInput(Unit) {
+            detectHorizontalDragGestures(
+                onDragStart = { isDragging = true },
+                onDragEnd = {
+                    isDragging = false
+                    flingReleaseTime = System.currentTimeMillis()
+                },
+                onDragCancel = {
+                    isDragging = false
+                    flingReleaseTime = System.currentTimeMillis()
+                },
+                onHorizontalDrag = { _, dragAmount ->
+                    val delta = dragAmount * 0.8f
+                    angle += delta
+                    currentSpeed = delta * 60f
+                },
+            )
+        },
     ) {
-        // 체켓 로고 회전 애니메이션
+        // 체켓 로고 — 화면 어디서든 드래그로 조작 가능
         Box(
-            modifier = Modifier.size(160.dp),
+            modifier = Modifier.size(200.dp),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(id = com.ssafy.cheket.R.drawable.cheket_ticket_logo),
                 contentDescription = "처리 중",
                 modifier = Modifier
-                    .size(140.dp)
+                    .size(180.dp)
                     .offset(y = floatOffset.dp)
                     .graphicsLayer {
-                        this.rotationY = rotationY
+                        rotationY = angle
                         cameraDistance = 12f * density
                     },
             )
@@ -303,13 +351,6 @@ private fun ProcessingContent(
             isCompleted = status == TxStatus.CONFIRMED,
             isActive = status == TxStatus.SUBMITTED,
         )
-        StatusStepItem(
-            stepNumber = 3,
-            label = "블록 확정",
-            description = "블록에 포함 및 NFT 발행",
-            isCompleted = status == TxStatus.CONFIRMED,
-            isActive = status == TxStatus.SUBMITTED,
-        )
     }
 
     // 하단 정보
@@ -343,6 +384,8 @@ private fun ConfirmedContent(
     txAmount: Long?,
     description: String?,
     txType: String,
+    countdown: Int,
+    onComplete: () -> Unit,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -399,8 +442,24 @@ private fun ConfirmedContent(
         }
     }
 
+    Button(
+        onClick = onComplete,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+    ) {
+        Text(
+            text = "티켓 보러 가기",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+    }
+
     Text(
-        text = "잠시 후 자동으로 이동합니다...",
+        text = "${countdown}초 후 자동으로 이동합니다",
         fontSize = 12.sp,
         color = V0Muted,
         textAlign = TextAlign.Center,
